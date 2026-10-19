@@ -369,7 +369,8 @@
 
     /* ---------- números ---------- */
     function ehNum(x) { return typeof x === "bigint" || typeof x === "number"; }
-    function semNum(op, a, b) {
+    function semNum(op, a, b, p) {
+      if (p) topo().p = p;
       if (ehNum(a) && b !== null && b !== undefined && !ehNum(b) && typeof b !== "object") lancarErro(erroTipo("type '" + nomeTipo(b) + "' is not a subtype of type 'num'"));
       if (a === null || a === undefined) lancarErro(nsm(a, op, [b]));
       if (typeof a === "object" && a["m_" + op]) return a["m_" + op](b);
@@ -384,24 +385,24 @@
       if (ehNum(a) && ehNum(b)) return Number(a) + Number(b);
       if (ta === "string") lancarErro(erroTipo("type '" + nomeTipo(b) + "' is not a subtype of type 'String'"));
       if (Array.isArray(a) && Array.isArray(b)) return lista(a.concat(b), a.$t);
-      return semNum("+", a, b);
+      return semNum("+", a, b, arguments[2]);
     };
     R.sub = function (a, b) {
       var ta = typeof a, tb = typeof b;
       if (ta === "bigint" && tb === "bigint") return w64(a - b);
       if (ehNum(a) && ehNum(b)) return Number(a) - Number(b);
-      return semNum("-", a, b);
+      return semNum("-", a, b, arguments[2]);
     };
     R.mul = function (a, b) {
       var ta = typeof a, tb = typeof b;
       if (ta === "bigint" && tb === "bigint") return w64(a * b);
       if (ehNum(a) && ehNum(b)) return Number(a) * Number(b);
       if (ta === "string" && tb === "bigint") { if (b < 0n) return ""; return a.repeat(Number(b)); }
-      return semNum("*", a, b);
+      return semNum("*", a, b, arguments[2]);
     };
     R.div = function (a, b) {
       if (ehNum(a) && ehNum(b)) return Number(a) / Number(b);
-      return semNum("/", a, b);
+      return semNum("/", a, b, arguments[2]);
     };
     R.idiv = function (a, b, p) {
       var ta = typeof a, tb = typeof b;
@@ -428,7 +429,7 @@
         if ((ta === "bigint" || ta === "number") && (tb === "bigint" || tb === "number")) {
           switch (op) { case "<": return a < b; case ">": return a > b; case "<=": return a <= b; default: return a >= b; }
         }
-        return semNum(op, a, b);
+        return semNum(op, a, b, arguments[2]);
       };
     }
     R.lt = cmp("<"); R.gt = cmp(">"); R.le = cmp("<="); R.ge = cmp(">=");
@@ -604,6 +605,7 @@
     function metodoComoFuncao(o, nome, t) { var f = function () { return t.met[nome].apply(null, [o].concat([].slice.call(arguments))); }; return f; }
     R.nget = function (o, nome, p) { if (o === null || o === undefined) return null; return R.get(o, nome, p); };
     R.set = function (o, nome, v, p) {
+      if (p) topo().p = p;
       if (o === null || o === undefined) { if (p) topo().p = p; lancarErro(nsm(o, nome + "=", [v])); }
       var t = tabela(o);
       if (t) {
@@ -1213,6 +1215,7 @@
     R.aguardar = function (v, f, p) { if (f) { f.async = true; f.p = p; } return v; };
     R.retomou = function (f, v) { if (f) f.async = true; return v; };
     R.futuro = function (p, t) { p.$t = t; return p; };
+    R.futuroT = function (p, t) { if (p instanceof Promise && !p.$t) p.$t = t; return p; };
 
     function futuroDelayed(d, f) {
       return new Promise(function (ok, falha) {

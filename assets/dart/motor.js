@@ -1382,8 +1382,8 @@
       var alvo = d.estatico ? m.est : m.inst;
       if (d.k === "Field") d.vars.forEach(function (v) { alvo[v.nome] = { k: "campo", tipo: d.tipo, final: d.final }; if (!d.estatico) m.campos.push(v.nome); });
       else if (d.k === "Method" && !d.operador) alvo[d.nome] = { k: "metodo", decl: d };
-      else if (d.k === "Getter") alvo[d.nome] = { k: "get", tipo: d.ret };
-      else if (d.k === "Setter") { if (!alvo[d.nome]) alvo[d.nome] = { k: "set" }; }
+      else if (d.k === "Getter") alvo[d.nome] = { k: "get", tipo: d.ret, setter: !!(alvo[d.nome] && alvo[d.nome].setter) };
+      else if (d.k === "Setter") { if (!alvo[d.nome]) alvo[d.nome] = { k: "set", setter: true }; else alvo[d.nome].setter = true; }
     });
     return m;
   };
@@ -1415,7 +1415,7 @@
     if (BIBLIOTECA_DE[n] && !this.disponivel(n) && !(t.prefixo)) { if (t.p !== undefined) this.erro(onde === "super" ? "Type '" + n + "' not found." : "'" + n + "' isn't a type.", t.p, n.length); return; }
     if (TIPOS_NATIVOS.has(n) || this.classes[n] || (this.topo[n] && this.topo[n].k === "typedef") || this.tparams.has(n) || GLOBAIS.has(n)) return;
     if (t.p === undefined) return;
-    if (onde === "super") this.erro("Type '" + n + "' not found.", t.p, n.length);
+    if (onde === "super") this.erro("Type '" + n + "' not found.", t.p, n.length).fase = 0.5;
     else this.erro("'" + n + "' isn't a type.", t.p, n.length);
   };
   G.tipoNome = function (t) { return t ? (t.k === "T" ? t.nome : t.k === "TFun" ? "Function" : "Record") : null; };
@@ -1809,6 +1809,7 @@
         if (rt && rt.k === "T" && rt.nome === "void" && s.valor && !s.seta) {
           // retornar valor em função void
         }
+        if (fe && !fe.async && fe.ret && fe.ret.k === "T" && fe.ret.nome === "Future" && fe.ret.args.length) return "return $R.futuroT(" + this.exprT(s.valor, esc, rt) + ", " + q(this.tipoTexto(fe.ret.args[0])) + ");";
         return "return " + this.exprT(s.valor, esc, rt) + ";";
       }
       case "Rethrow": { var ce = esc; while (ce && !ce.catchVar) ce = ce.pai; return "throw " + (ce ? ce.catchVar : "$e") + ";"; }
@@ -2376,6 +2377,9 @@
     if (GLOBAIS.has(n) && (e.viaPrefixo || this.disponivel(n))) return "$R.g." + n;
     var ex = esc; while (ex && !ex.extensao) ex = ex.pai;
     if (ex) return chamada ? "$R.extMetodoThis(this, " + q(n) + ")" : "$R.get(this, " + q(n) + ")";
+    var cm = esc; while (cm && !cm.classe) cm = cm.pai;
+    var fm = esc; var estatico = false; while (fm) { if (fm.ehEstatico) estatico = true; if (fm.classe) break; fm = fm.pai; }
+    if (chamada && cm && cm.classe && !estatico) { var tC = { k: "T", nome: cm.classe.nome, args: [] }; this.erro("The method '" + n + "' isn't defined for the type '" + cm.classe.nome + "'.", e.p, n.length, this.contexto([tC]) + "\nTry correcting the name to the name of an existing method, or defining a method named '" + n + "'."); return "null"; }
     if (chamada) this.erro("Method not found: '" + n + "'.", e.p, n.length);
     else this.erro("Undefined name '" + n + "'.", e.p, n.length);
     return "null";
@@ -2558,7 +2562,7 @@
     if (ta && ta.k === "T" && ta.nul && ["+", "-", "*", "/", "<", ">", "<=", ">=", "~/", "%"].indexOf(e.op) >= 0 && ta.nome !== "dynamic") {
       this.erro("Operator '" + e.op + "' cannot be called on '" + this.tipoTexto(ta) + "' because it is potentially null.", e.pOp, e.op.length);
     }
-    return "$R." + OPS_JS[e.op] + "(" + a + ", " + b + (e.op === "~/" || e.op === "%" ? ", " + e.pOp : "") + ")";
+    return "$R." + OPS_JS[e.op] + "(" + a + ", " + b + ", " + (e.op === "~/" || e.op === "%" ? e.pOp : offsetDe(e.b)) + ")";
   };
   G.get = function (e, esc) {
     var nome = e.nome;
@@ -2741,9 +2745,8 @@
     }
     a.pos.forEach(function (x, i) { var p = ps.pos[i] || ps.opc[i - ps.pos.length]; var tp = p && tipoP(p); if (tp) self.checarArgTipo(tp, x, self._esc); });
     a.nom.forEach(function (x) { var p = ps.nomeados.filter(function (y) { return chaveNom(y) === x.nome; })[0]; var tp = p && tipoP(p); if (tp) self.checarArgTipo(tp, x.valor, self._esc); });
-    a.nom.forEach(function (x) {
-      if (!ps.nomeados.some(function (p) { return chaveNom(p) === x.nome; })) self.erro("No named parameter with the name '" + x.nome + "'.", x.p, x.nome.length);
-    });
+    var semNome = a.nom.filter(function (x) { return !ps.nomeados.some(function (p) { return chaveNom(p) === x.nome; }); })[0];
+    if (semNome) { self.erro("No named parameter with the name '" + semNome.nome + "'.", semNome.p, semNome.nome.length, null, ctx); return; }
     ps.nomeados.forEach(function (p) {
       if (p.obrig && !a.nom.some(function (x) { return x.nome === chaveNom(p); })) self.erro("Required named parameter '" + chaveNom(p) + "' must be provided.", a.p, 1);
     });
@@ -2811,12 +2814,12 @@
         var tr = this.tipoDe({ k: "Bin", op: op.slice(0, -1), a: alvo, b: e.valor, p: alvo.p, pOp: e.pOp }, esc);
         if (tr && tr.k === "T" && !this.atribuivel(tr, tipoAlvo)) this.erro("A value of type '" + this.tipoTexto(tr) + "' can't be assigned to a variable of type '" + this.tipoTexto(tipoAlvo) + "'.", e.pOp, 1, this.comCtx([tr, tipoAlvo]));
       }
-      return "(" + js + " = " + this.coagir("$R." + bop + "(" + js + ", " + v + (bop === "idiv" || bop === "mod" ? ", " + e.pOp : "") + ")", tipoAlvo) + ")";
+      return "(" + js + " = " + this.coagir("$R." + bop + "(" + js + ", " + v + ", " + (bop === "idiv" || bop === "mod" ? e.pOp : offsetDe(e.valor)) + ")", tipoAlvo) + ")";
     }
     if (alvo.k === "Get" && op === "=") {
       if (alvo.alvo.k === "CascadeAlvo" || alvo.alvo.k !== "Ident" || esc.achar(alvo.alvo.nome) || !this.classes[alvo.alvo.nome]) {
         var tobj = this.tipoDe(alvo.alvo, esc), tcampo = null;
-        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'.").ordemPos = e.valor.e; } }
+        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final || (mf.k === "get" && !mf.setter) || mf.k === "metodo") this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'.").ordemPos = e.valor.e; } }
         if (alvo.alvo.k === "This") { var mi2 = this.membroImplicito(alvo.nome, esc); if (mi2) tcampo = mi2.tipo; }
         this.checarNulo(alvo, esc);
         if (alvo.nome.charAt(0) === "_") this.checarMembro(Object.assign({}, alvo, { setter: true, ordemPos: e.valor.e }), esc);
