@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart stdin.readLineSync — lendo o que a pessoa digita | Guia Dart</title>
+<meta name="description" content="Ler o teclado no Dart para quem nunca programou: import 'dart:io', stdout.write e stdin.readLineSync, por que ele devolve String? (com o erro real), o null do Ctrl+D, ?? e !, int.tryParse e double.tryParse, o FormatException do int.parse, somar números digitados e pedir de novo até a resposta ser válida.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Lendo o Teclado (stdin.readLineSync)</span></h1>
+
+<p class="intro">Até aqui, todos os seus programas faziam sempre a mesma coisa: os valores estavam escritos no código. Um programa de verdade <strong>conversa</strong> com quem usa: pergunta o nome, a idade, o preço do item. Nesta aula você aprende a ler o que a pessoa digita no terminal com <code>stdin.readLineSync()</code>, e a lidar com as duas surpresas que vêm junto: o texto pode <strong>não existir</strong> (<code>null</code>) e pode <strong>não ser um número</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>import 'dart:io';</code>, o <code>stdout.write</code> (perguntar sem pular linha) e o <code>stdin.readLineSync()</code> (ler uma linha).</li>
+  <li>Por que o <code>readLineSync()</code> devolve <code>String?</code>, e não <code>String</code>, com o erro real do Dart.</li>
+  <li>Quando o <code>null</code> aparece de verdade (<kbd>Ctrl</kbd>+<kbd>D</kbd>), e como tratá-lo com <code>??</code>, <code>if</code> ou <code>!</code>.</li>
+  <li>Como transformar o texto digitado em número: <code>int.tryParse</code>, <code>double.tryParse</code>, e a exceção do <code>int.parse</code>.</li>
+  <li>Como ler vários valores num laço e pedir de novo até a resposta ser válida.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>). Nos terminais abaixo, o que vem depois de cada pergunta (<code>Ana</code>, <code>30</code>, <code>4.50</code>…) foi <strong>digitado</strong> por ela, seguido de <kbd>Enter</kbd>.</p>
+
+<hr>
+
+<h2>A ideia: o balcão da padaria</h2>
+<p>No balcão da padaria, a atendente pergunta "o que vai ser?" e <strong>espera</strong>. Só depois que o cliente responde ela continua. O programa faz igual:</p>
+<ol class="passo">
+  <li>escreve a pergunta na tela (<code>stdout.write</code>);</li>
+  <li><strong>para e espera</strong> a pessoa digitar e apertar <kbd>Enter</kbd> (<code>stdin.readLineSync()</code>);</li>
+  <li>guarda o que ela digitou numa variável e segue.</li>
+</ol>
+<p>Os nomes vêm do inglês: <code>stdin</code> é a <strong>entrada padrão</strong> (<em>standard input</em>, o teclado), <code>stdout</code> é a <strong>saída padrão</strong> (<em>standard output</em>, a tela). <code>readLineSync</code> = "ler uma linha, esperando" (<em>sync</em>, de síncrono: o programa fica parado até a linha chegar).</p>
+
+<hr>
+
+<h2>1. O primeiro programa que pergunta</h2>
+
+<pre class="file" data-file="ola_nome.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync();
+  print('Olá, $nome!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:io';</dt><dd>"Importe a biblioteca <code>dart:io</code>" (<em>io</em> = entrada e saída). O <code>print</code> vem de graça, mas o <code>stdin</code> e o <code>stdout</code> moram nessa biblioteca, e o programa precisa pedir por ela na primeira linha. Sem isso, o Dart não sabe o que é <code>stdin</code> (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>stdout.write('Qual é o seu nome? ');</dt><dd>Escreve a pergunta <strong>sem pular linha</strong> no fim, para a resposta ser digitada ao lado dela. O espaço depois do <code>?</code> separa a pergunta da resposta. (Com <code>print</code>, a resposta iria para a linha de baixo.)</dd>
+  <dt>stdin.readLineSync()</dt><dd>Para o programa e espera a pessoa digitar uma linha e apertar <kbd>Enter</kbd>. Devolve o texto digitado, <strong>sem</strong> o <kbd>Enter</kbd> do fim.</dd>
+  <dt>final nome = …;</dt><dd>Guarda a resposta. É <code>final</code> porque não vai mudar depois.</dd>
+</dl>
+
+<pre class="term">$ dart run ola_nome.dart
+Qual é o seu nome? Ana
+Olá, Ana!
+</pre>
+
+<p>Rode de novo e digite outro nome: o programa é o mesmo, a saída muda. É isso que torna o programa útil.</p>
+
+<div class="trydart" data-digitar="Bia">
+<p class="try-task"><strong>Experimente:</strong> clique em Rodar. O programa vai parar na pergunta, esperando: digite o seu nome no terminal da caixa e aperte <kbd>Enter</kbd>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync();
+  print('Olá, $nome!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Por que <code>String?</code> e não <code>String</code>?</h2>
+<p>O tipo que o <code>readLineSync()</code> devolve é <code>String?</code>, com interrogação: um <strong>tipo anulável</strong> (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>): pode ser um texto <strong>ou</strong> <code>null</code> ("nada"). Para ver na prática, a Ana tentou dizer que o nome é uma <code>String</code> comum:</p>
+
+<pre class="file" data-file="tipo.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  String nome = stdin.readLineSync();
+  print('Olá, $nome!');
+}
+</pre>
+
+<pre class="term">$ dart run tipo.dart
+tipo.dart:5:23: Error: A value of type 'String?' can't be assigned to a variable of type 'String'.
+  String nome = stdin.readLineSync();
+                      ^
+</pre>
+
+<dl class="anatomy">
+  <dt>tipo.dart:5:23: Error:</dt><dd>Erro de compilação no arquivo <code>tipo.dart</code>, linha 5, coluna 23. O programa nem chegou a perguntar nada.</dd>
+  <dt>A value of type 'String?' can't be assigned to a variable of type 'String'.</dt><dd>"Um valor do tipo <code>String?</code> não pode ser guardado numa variável do tipo <code>String</code>." O <code>readLineSync()</code> pode devolver <code>null</code>, e uma <code>String</code> sem interrogação promete que <strong>nunca</strong> será <code>null</code>. O Dart não deixa você fazer uma promessa que pode ser quebrada.</dd>
+  <dt>^</dt><dd>Aponta o <code>readLineSync</code>, a origem do valor que talvez seja <code>null</code>.</dd>
+</dl>
+
+<p>O mesmo acontece se você tentar usar o texto direto, como em <code>nome.length</code> (quantas letras):</p>
+
+<pre class="term">$ dart run metodo.dart
+metodo.dart:6:30: Error: Property 'length' cannot be accessed on 'String?' because it is potentially null.
+Try accessing using ?. instead.
+  print('Seu nome tem ${nome.length} letras.');
+                             ^^^^^^
+</pre>
+
+<p>"A propriedade <code>length</code> não pode ser acessada num <code>String?</code>, porque ele <strong>talvez seja null</strong>. Tente usar <code>?.</code>." Isso é a <a href="null-safety.html">null safety</a> trabalhando: o erro aparece <strong>antes</strong> de rodar, e não no meio do programa, na frente do usuário.</p>
+
+<h3>Quando o <code>null</code> acontece de verdade</h3>
+<p>Se a pessoa só aperta <kbd>Enter</kbd>, o <code>readLineSync()</code> devolve um texto <strong>vazio</strong> (<code>''</code>), não <code>null</code>. O <code>null</code> aparece quando a entrada <strong>acabou</strong> e não há linha nenhuma para ler. No terminal, isso se faz com <kbd>Ctrl</kbd>+<kbd>D</kbd> ("fim da entrada"). A Ana rodou o primeiro programa e, na pergunta, apertou <kbd>Ctrl</kbd>+<kbd>D</kbd>:</p>
+
+<pre class="term">$ dart run ola_nome.dart
+Qual é o seu nome?
+Olá, null!
+</pre>
+
+<p>O programa não quebrou, mas mostrou <code>Olá, null!</code>: o <code>print</code> transforma o <code>null</code> no texto <code>null</code>. A entrada também acaba quando ela vem de um arquivo ou de outro programa, em vez do teclado. Com <code>&lt; /dev/null</code> (um "arquivo vazio" do Linux) e com <code>echo Bia |</code> (o <code>echo</code> "digita" <code>Bia</code> pelo programa):</p>
+
+<pre class="term">$ dart run ola_nome.dart &lt; /dev/null
+Qual é o seu nome? Olá, null!
+$ echo Bia | dart run ola_nome.dart
+Qual é o seu nome? Olá, Bia!
+</pre>
+
+<p>(Aqui a resposta não aparece na tela, porque ninguém digitou: ela veio pronta. Por isso o <code>Olá</code> ficou na mesma linha da pergunta.)</p>
+
+<hr>
+
+<h2>3. Três jeitos de lidar com o <code>null</code></h2>
+
+<h3>a) <code>??</code>: um valor de reserva</h3>
+<p>O operador <code>??</code> ("se for nulo, use este", veja <a href="operadores-null.html">?. , ?? e ??=</a>) troca o <code>null</code> por um valor seu. O resultado é uma <code>String</code> comum, e o <code>.length</code> passa a funcionar:</p>
+
+<pre class="file" data-file="seguro.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync() ?? 'visitante';
+  print('Olá, $nome! Seu nome tem ${nome.length} letras.');
+}
+</pre>
+
+<pre class="term">$ dart run seguro.dart
+Qual é o seu nome? Ana
+Olá, Ana! Seu nome tem 3 letras.
+$ dart run seguro.dart
+Qual é o seu nome?
+Olá, visitante! Seu nome tem 9 letras.
+</pre>
+
+<p>Na segunda vez a Ana apertou <kbd>Ctrl</kbd>+<kbd>D</kbd>: o <code>null</code> virou <code>'visitante'</code>. Esse é o jeito mais usado, e o que este guia vai usar: <code>stdin.readLineSync() ?? ''</code> (texto vazio como reserva).</p>
+
+<h3>b) <code>if (… == null)</code>: tratar o caso à parte</h3>
+<pre class="file" data-file="com_if.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync();
+  if (nome == null) {
+    print('Você não digitou nada.');
+  } else {
+    print('Seu nome tem ${nome.length} letras.');
+  }
+}
+</pre>
+<p>Dentro do <code>else</code>, o Dart já sabe que <code>nome</code> não é <code>null</code> (ele acabou de testar) e deixa usar o <code>.length</code>. Isso se chama <strong>promoção de tipo</strong>.</p>
+
+<h3>c) <code>!</code>: "confie em mim, não é null"</h3>
+<p>O <code>!</code> no fim diz ao Dart: "eu garanto que não é <code>null</code>" (veja <a href="late.html">late e o Operador !</a>). Compila, mas, se a garantia falhar, o programa quebra. A Ana apertou <kbd>Ctrl</kbd>+<kbd>D</kbd> neste aqui:</p>
+
+<pre class="file" data-file="bang.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync()!;
+  print('Olá, $nome!');
+}
+</pre>
+
+<pre class="term">$ dart run bang.dart
+Qual é o seu nome?
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/bang.dart:5:36)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": um erro que aconteceu <strong>durante</strong> a execução, e ninguém cuidou dele.</dd>
+  <dt>Null check operator used on a null value</dt><dd>"O operador de checagem de nulo (<code>!</code>) foi usado num valor nulo." A promessa do <code>!</code> foi quebrada.</dd>
+  <dt>#0 main (file:///home/ana/bang.dart:5:36)</dt><dd>Onde: na função <code>main</code>, arquivo <code>bang.dart</code>, linha 5, coluna 36 (o <code>!</code>). As linhas <code>#1</code> e <code>#2</code> são do próprio Dart, que chamou o seu <code>main</code>; pode ignorá-las.</dd>
+  <dt>echo $? → 255</dt><dd>Programa que termina com exceção não tratada sai com o código 255.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Quando usar</th></tr>
+<tr><td><code>stdin.readLineSync() ?? ''</code></td><td>Quase sempre: o fim da entrada vira texto vazio, e você trata o vazio junto com as outras respostas ruins</td></tr>
+<tr><td><code>if (linha == null) { … }</code></td><td>Quando o fim da entrada deve ter uma resposta própria ("tchau!", encerrar)</td></tr>
+<tr><td><code>stdin.readLineSync()!</code></td><td>Evite: se a entrada acabar, o programa quebra com <code>Null check operator used on a null value</code></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-stdin="Bia\nRecife" data-goal="out:Bia mora em Recife.">
+<p class="try-task"><strong>Missão:</strong> a caixa vai "digitar" <code>Bia</code> e depois <code>Recife</code>. Acrescente uma segunda pergunta, <code>Em que cidade você mora? </code>, guarde a resposta em <code>cidade</code> (com <code>?? ''</code>) e mostre <code>Bia mora em Recife.</code></p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync() ?? '';
+  print('Olá, $nome!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync() ?? '';
+  stdout.write('Em que cidade você mora? ');
+  final cidade = stdin.readLineSync() ?? '';
+  print('$nome mora em $cidade.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O que se digita é sempre texto</h2>
+<p>O <code>readLineSync()</code> devolve texto, mesmo que a pessoa digite <code>2</code>. Veja o que acontece numa "soma":</p>
+
+<pre class="file" data-file="soma_texto.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = stdin.readLineSync() ?? '';
+  stdout.write('Segundo número: ');
+  final b = stdin.readLineSync() ?? '';
+  print('A soma é ${a + b}');
+}
+</pre>
+
+<pre class="term">$ dart run soma_texto.dart
+Primeiro número: 2
+Segundo número: 3
+A soma é 23
+</pre>
+
+<p><code>'2' + '3'</code> é <code>'23'</code>: o <code>+</code> de dois textos <strong>junta</strong>, não soma (veja <a href="strings.html">Strings</a>). Para fazer conta, é preciso converter o texto em número (veja também <a href="conversao.html">Conversão de Tipos</a>).</p>
+
+<h3><code>int.parse</code>: converte, ou quebra</h3>
+<pre class="file" data-file="idade_parse.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Quantos anos você tem? ');
+  final texto = stdin.readLineSync() ?? '';
+  final idade = int.parse(texto);
+  print('Daqui a 10 anos você terá ${idade + 10}.');
+}
+</pre>
+<p>Com <code>30</code> funciona. Mas a Ana digitou <code>trinta</code>:</p>
+<pre class="term">$ dart run idade_parse.dart
+Quantos anos você tem? trinta
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+trinta
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/idade_parse.dart:6:21)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>FormatException: Invalid radix-10 number (at character 1)</dt><dd>"Erro de formato: número de base 10 inválido (no caractere 1)". Base 10 é o nosso jeito comum de escrever números; já o primeiro caractere, o <code>t</code>, não é um algarismo.</dd>
+  <dt>trinta / ^</dt><dd>O texto que veio, com o <code>^</code> embaixo do caractere problemático.</dd>
+  <dt>#0 … #3</dt><dd>Funções internas do <code>int.parse</code>, onde o erro nasceu.</dd>
+  <dt>#4 main (file:///home/ana/idade_parse.dart:6:21)</dt><dd>A primeira linha que é <strong>sua</strong>: linha 6, o <code>int.parse(texto)</code>. Num stack trace, procure a primeira linha com o nome do seu arquivo.</dd>
+</dl>
+
+<h3><code>int.tryParse</code>: converte, ou devolve <code>null</code></h3>
+<p>O <code>tryParse</code> ("tentar converter") não quebra: se o texto não é um número, ele devolve <code>null</code>. O resultado é um <code>int?</code>, e um <code>if</code> separa os dois casos:</p>
+
+<pre class="file" data-file="idade.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Quantos anos você tem? ');
+  final texto = stdin.readLineSync() ?? '';
+  final idade = int.tryParse(texto);
+  if (idade == null) {
+    print('"$texto" não é um número inteiro.');
+  } else {
+    print('Daqui a 10 anos você terá ${idade + 10}.');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run idade.dart
+Quantos anos você tem? 30
+Daqui a 10 anos você terá 40.
+$ dart run idade.dart
+Quantos anos você tem? trinta
+"trinta" não é um número inteiro.
+$ dart run idade.dart
+Quantos anos você tem?
+"" não é um número inteiro.
+</pre>
+
+<p>Na terceira vez a Ana só apertou <kbd>Enter</kbd>: o texto vazio também não é número, e o mesmo <code>if</code> cuidou dele. Com o <code>?? ''</code> lá em cima, até o <kbd>Ctrl</kbd>+<kbd>D</kbd> cai nesse caso. <strong>Para entrada digitada, prefira sempre o <code>tryParse</code>.</strong></p>
+
+<div class="trydart" data-stdin="trinta" data-goal="out:não é um número;;semerro">
+<p class="try-task"><strong>Missão:</strong> a caixa vai "digitar" <code>trinta</code>, e o programa quebra com <code>FormatException</code>. Troque o <code>int.parse</code> por <code>int.tryParse</code> e, se o resultado for <code>null</code>, mostre <code>"trinta" não é um número inteiro.</code></p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Quantos anos você tem? ');
+  final texto = stdin.readLineSync() ?? '';
+  final idade = int.parse(texto);
+  print('Daqui a 10 anos você terá ${idade + 10}.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Quantos anos você tem? ');
+  final texto = stdin.readLineSync() ?? '';
+  final idade = int.tryParse(texto);
+  if (idade == null) {
+    print('"$texto" não é um número inteiro.');
+  } else {
+    print('Daqui a 10 anos você terá ${idade + 10}.');
+  }
+}
+</pre>
+</div>
+
+<h3>Números com vírgula: <code>double.tryParse</code></h3>
+<p>Para preços e notas quebradas, use <code>double.tryParse</code>. Cuidado: o Dart escreve números com <strong>ponto</strong>, como em inglês. A vírgula do português não é entendida:</p>
+
+<pre class="file" data-file="preco.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Preço: ');
+  final texto = (stdin.readLineSync() ?? '').trim();
+  final preco = double.tryParse(texto);
+  print('Texto lido: "$texto"  →  número: $preco');
+}
+</pre>
+
+<pre class="term">$ dart run preco.dart
+Preço: 4,50
+Texto lido: "4,50"  →  número: null
+$ dart run preco.dart
+Preço:   4.50
+Texto lido: "4.50"  →  número: 4.5
+</pre>
+
+<p>Na segunda vez a Ana digitou espaços antes e depois do <code>4.50</code>. O <code>.trim()</code> ("aparar") tirou esses espaços das pontas (veja <a href="strings-metodos.html">Métodos de String</a>). É um bom hábito aparar toda resposta digitada. Para aceitar a vírgula, troque-a por ponto antes de converter: <code>texto.replaceAll(',', '.')</code>, como no próximo exemplo.</p>
+
+<hr>
+
+<h2>5. Ler vários valores num laço</h2>
+<p>No caixa da padaria, a Ana digita o preço de cada item. Ninguém sabe quantos itens serão; quando acabar, ela aperta <kbd>Enter</kbd> numa linha vazia. Um <code>while (true)</code> com <code>break</code> (veja <a href="break-continue.html">break e continue</a>) resolve:</p>
+
+<pre class="file" data-file="compras.dart">import 'dart:io';
+
+void main() {
+  var total = 0.0;
+  var itens = 0;
+  while (true) {
+    stdout.write('Preço do item (Enter vazio para terminar): ');
+    final texto = (stdin.readLineSync() ?? '').trim();
+    if (texto.isEmpty) break;
+    final preco = double.tryParse(texto.replaceAll(',', '.'));
+    if (preco == null) {
+      print('  "$texto" não é um preço. Tente de novo.');
+      continue;
+    }
+    total += preco;
+    itens++;
+  }
+  print('$itens itens. Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>var total = 0.0;</dt><dd>O acumulador começa em <code>0.0</code>, com ponto, para ser um <code>double</code> (preços têm centavos).</dd>
+  <dt>(stdin.readLineSync() ?? '').trim()</dt><dd>Lê, troca o <code>null</code> por vazio e apara os espaços: tudo numa linha.</dd>
+  <dt>if (texto.isEmpty) break;</dt><dd>Linha vazia (<code>isEmpty</code> = "está vazio") encerra o laço. O <kbd>Ctrl</kbd>+<kbd>D</kbd> também, graças ao <code>?? ''</code>.</dd>
+  <dt>texto.replaceAll(',', '.')</dt><dd>Troca vírgula por ponto, para o <code>12,90</code> funcionar.</dd>
+  <dt>if (preco == null) { …; continue; }</dt><dd>Resposta que não é preço: avisa e pula para a próxima pergunta, sem somar nada.</dd>
+  <dt>total.toStringAsFixed(2)</dt><dd>Mostra o total com 2 casas decimais (o jeito de escrever dinheiro; veja <a href="int-double.html">Números</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run compras.dart
+Preço do item (Enter vazio para terminar): 4.50
+Preço do item (Enter vazio para terminar): 12,90
+Preço do item (Enter vazio para terminar): abc
+  "abc" não é um preço. Tente de novo.
+Preço do item (Enter vazio para terminar): 3.25
+Preço do item (Enter vazio para terminar):
+3 itens. Total: R$ 20.65
+</pre>
+
+<div class="trydart" data-digitar="4.50\n12,90\n\n">
+<p class="try-task"><strong>Experimente:</strong> rode e digite os preços de uma compra sua (com ponto ou vírgula). Tente um texto qualquer no meio. Para terminar, aperte <kbd>Enter</kbd> sem digitar nada.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  var total = 0.0;
+  var itens = 0;
+  while (true) {
+    stdout.write('Preço do item (Enter vazio para terminar): ');
+    final texto = (stdin.readLineSync() ?? '').trim();
+    if (texto.isEmpty) break;
+    final preco = double.tryParse(texto.replaceAll(',', '.'));
+    if (preco == null) {
+      print('  "$texto" não é um preço. Tente de novo.');
+      continue;
+    }
+    total += preco;
+    itens++;
+  }
+  print('$itens itens. Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<h3>Pedir de novo até a resposta ser válida</h3>
+<p>A professora lança uma nota de 0 a 10. Se ela digitar <code>15</code> ou <code>oito</code>, o programa pergunta de novo. Como a pergunta tem de ser feita <strong>pelo menos uma vez</strong>, o <code>do-while</code> (veja <a href="while.html">while e do-while</a>) cai como uma luva:</p>
+
+<pre class="file" data-file="nota.dart">import 'dart:io';
+
+void main() {
+  int? nota;
+  do {
+    stdout.write('Digite a nota (0 a 10): ');
+    nota = int.tryParse(stdin.readLineSync() ?? '');
+  } while (nota == null || nota &lt; 0 || nota &gt; 10);
+  print('Nota aceita: $nota');
+}
+</pre>
+
+<pre class="term">$ dart run nota.dart
+Digite a nota (0 a 10): 15
+Digite a nota (0 a 10): oito
+Digite a nota (0 a 10): 8
+Nota aceita: 8
+</pre>
+
+<p>A variável <code>int? nota;</code> é criada <strong>antes</strong> do laço (para existir na condição e no <code>print</code> final) e começa <code>null</code>. A condição diz "repita enquanto a nota for <strong>inválida</strong>": <code>null</code> (não era número) <strong>ou</strong> menor que 0 <strong>ou</strong> maior que 10. A ordem importa: o <code>nota == null ||</code> vem primeiro, e o <code>||</code> para de avaliar assim que acha um <code>true</code>; por isso o <code>nota &lt; 0</code> nunca roda com <code>null</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Escreva</th></tr>
+<tr><td>Ler um texto qualquer</td><td><code>final nome = stdin.readLineSync() ?? '';</code></td></tr>
+<tr><td>Ler e já tirar os espaços das pontas</td><td><code>(stdin.readLineSync() ?? '').trim()</code></td></tr>
+<tr><td>Ler um número inteiro</td><td><code>final n = int.tryParse(stdin.readLineSync() ?? '');</code> e testar <code>n == null</code></td></tr>
+<tr><td>Ler um número com casas decimais</td><td><code>double.tryParse(texto.replaceAll(',', '.'))</code></td></tr>
+<tr><td>Ler até a pessoa mandar parar</td><td><code>while (true)</code> + <code>if (texto.isEmpty) break;</code></td></tr>
+<tr><td>Perguntar até a resposta ser válida</td><td><code>do { … } while (resposta inválida);</code></td></tr>
+<tr><td>Converter texto que <strong>com certeza</strong> é número (escrito no próprio código)</td><td><code>int.parse('42')</code></td></tr>
+</table>
+</div>
+<p>Os valores também podem chegar ao programa na hora de rodá-lo, sem pergunta nenhuma: <code>dart run main.dart Ana 30</code>. Isso é assunto de <a href="argumentos.html">Argumentos da Linha de Comando</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>import 'dart:io';</code></strong>
+<pre class="file" data-file="sem_import.dart">void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync();
+  print('Olá, $nome!');
+}
+</pre>
+<pre class="term">$ dart run sem_import.dart
+sem_import.dart:2:3: Error: Undefined name 'stdout'.
+  stdout.write('Qual é o seu nome? ');
+  ^^^^^^
+sem_import.dart:3:16: Error: Undefined name 'stdin'.
+  final nome = stdin.readLineSync();
+               ^^^^^
+</pre>
+<p>"Nome não definido: <code>stdout</code>" e "… <code>stdin</code>". Sem o <code>import</code>, esses nomes não existem para o Dart. <strong>Como consertar:</strong> ponha <code>import 'dart:io';</code> na primeira linha do arquivo, antes do <code>main</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou o resultado numa <code>String</code> sem <code>?</code></strong>
+<p>É o erro da seção 2: <code>A value of type 'String?' can't be assigned to a variable of type 'String'.</code> <strong>Como consertar:</strong> <code>final nome = stdin.readLineSync() ?? '';</code> (ou declare <code>String? nome</code> e teste o <code>null</code> antes de usar).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>.length</code> (ou outro método) direto no resultado</strong>
+<p><code>Property 'length' cannot be accessed on 'String?' because it is potentially null.</code> O mesmo motivo: trate o <code>null</code> primeiro, com <code>??</code> ou <code>if</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>FormatException</code> ao converter</strong>
+<p><code>int.parse</code> com um texto que não é número (<code>trinta</code>, <code>4.5</code>, <code>''</code>) quebra o programa com <code>FormatException</code> (com <code>trinta</code> e <code>4.5</code>, a mensagem é <code>Invalid radix-10 number</code>; com o texto vazio, <code>Invalid number</code>) e código de saída 255 (seção 4). <strong>Como consertar:</strong> use <code>int.tryParse</code> e trate o <code>null</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A "soma" juntou os números</strong>
+<p><code>2</code> e <code>3</code> deram <code>23</code>: você somou dois textos. O Dart não reclama, porque juntar textos com <code>+</code> é permitido. <strong>Como consertar:</strong> converta antes com <code>int.tryParse</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>!</code> e a entrada acabou</strong>
+<p><code>Null check operator used on a null value</code>, código 255 (seção 3c). <strong>Como consertar:</strong> troque o <code>!</code> por <code>?? ''</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>import 'dart:io';</code></td><td>Traz <code>stdin</code>, <code>stdout</code> (e arquivos, <code>exit</code>…). Vai no topo do arquivo</td></tr>
+<tr><td><code>stdout.write('texto')</code></td><td>Escreve sem pular linha (bom para perguntas)</td></tr>
+<tr><td><code>stdin.readLineSync()</code></td><td>Espera uma linha e devolve <code>String?</code>: o texto sem o <kbd>Enter</kbd>, <code>''</code> se só apertou <kbd>Enter</kbd>, <code>null</code> se a entrada acabou</td></tr>
+<tr><td><code>… ?? ''</code></td><td>Troca o <code>null</code> por texto vazio</td></tr>
+<tr><td><code>texto.trim()</code></td><td>Tira os espaços das pontas</td></tr>
+<tr><td><code>texto.isEmpty</code></td><td><code>true</code> se o texto é vazio</td></tr>
+<tr><td><code>int.tryParse(texto)</code></td><td>Texto → <code>int?</code> (<code>null</code> se não for inteiro)</td></tr>
+<tr><td><code>double.tryParse(texto)</code></td><td>Texto → <code>double?</code> (aceita ponto, não vírgula)</td></tr>
+<tr><td><code>int.parse(texto)</code></td><td>Texto → <code>int</code>, ou <code>FormatException</code></td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>No terminal, encerra a entrada: o <code>readLineSync()</code> devolve <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para ler o nome com segurança:</p>
+<div class="ex-code"><input data-answer="import" aria-label="palavra-chave"> 'dart:io';<br><br>void main() {<br>&nbsp;&nbsp;final nome = stdin.<input data-answer="readLineSync" aria-label="método de leitura">() <input data-answer="??" aria-label="operador"> '';<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o valor?</h3>
+<p>O que <code>int.tryParse('oito')</code> devolve?</p>
+<div class="ex-code"><input data-answer="null" aria-label="valor devolvido"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que <code>stdin.readLineSync()</code> devolve <code>String?</code>?</p>
+<label><input type="radio" name="q3"> Porque a pessoa pode digitar um número</label>
+<label><input type="radio" name="q3"> Porque o Dart não sabe ler acentos</label>
+<label><input type="radio" name="q3"> Porque, se a entrada acabar (<kbd>Ctrl</kbd>+<kbd>D</kbd>, arquivo vazio), não há linha para devolver: vem <code>null</code></label>
+<label><input type="radio" name="q3"> Porque o <kbd>Enter</kbd> vazio vira <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. A pessoa digita <code>2</code> e <code>3</code>, e o programa faz <code>print(a + b)</code> com os dois textos lidos. O que aparece?</p>
+<label><input type="radio" name="q4"> <code>5</code></label>
+<label><input type="radio" name="q4"> <code>23</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>FormatException</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que <code>double.tryParse('4,50')</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>null</code>: o Dart usa ponto, não vírgula</label>
+<label><input type="radio" name="q5"> <code>4.5</code></label>
+<label><input type="radio" name="q5"> <code>450.0</code></label>
+<label><input type="radio" name="q5"> Uma <code>FormatException</code></label>
+</div>
+
+<h3>Missão final: a calculadora de soma</h3>
+
+<div class="trydart" data-stdin="2\n3" data-goal="out:A soma é 5;;src:tryParse">
+<p class="try-task"><strong>Missão:</strong> a caixa vai "digitar" <code>2</code> e <code>3</code>, e o programa mostra <code>A soma é 23</code>. Converta os dois textos com <code>int.tryParse</code> e use <code>?? 0</code> para o caso de não serem números, para o programa mostrar <code>A soma é 5</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = stdin.readLineSync() ?? '';
+  stdout.write('Segundo número: ');
+  final b = stdin.readLineSync() ?? '';
+  print('A soma é ${a + b}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = int.tryParse(stdin.readLineSync() ?? '') ?? 0;
+  stdout.write('Segundo número: ');
+  final b = int.tryParse(stdin.readLineSync() ?? '') ?? 0;
+  print('A soma é ${a + b}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Para ler o teclado: <code>import 'dart:io';</code> no topo, <code>stdout.write</code> para perguntar e <code>stdin.readLineSync()</code> para ler a resposta.</li>
+  <li>O <code>readLineSync()</code> devolve <code>String?</code>: se a entrada acabar (<kbd>Ctrl</kbd>+<kbd>D</kbd>), vem <code>null</code>. O Dart obriga você a tratar isso antes de usar o texto; o jeito mais simples é <code>?? ''</code>.</li>
+  <li>Evite o <code>!</code> na leitura: se vier <code>null</code>, o programa quebra.</li>
+  <li>O que se digita é texto. Para fazer conta, converta com <code>int.tryParse</code> ou <code>double.tryParse</code>, que devolvem <code>null</code> em vez de quebrar. O <code>int.parse</code> quebra com <code>FormatException</code>.</li>
+  <li>Apare com <code>.trim()</code>, troque a vírgula por ponto, e use laços para ler vários valores (<code>while (true)</code> + <code>break</code>) ou pedir de novo (<code>do-while</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
