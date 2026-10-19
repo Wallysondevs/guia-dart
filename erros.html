@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Lendo uma Mensagem de Erro — compilação × exceção | Guia Dart</title>
+<meta name="description" content="Como ler as mensagens de erro do Dart para quem nunca programou: erro de compilação (arquivo:linha:coluna, Error:, a linha do código, o ^^^, Context:, vários erros de uma vez) × exceção em tempo de execução (Unhandled exception:, o tipo, a mensagem e o stack trace #0, #1…), os códigos de saída 0, 254, 255 e exit(n), o dart analyze e a contagem de problemas, e uma galeria de erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Lendo uma Mensagem de Erro</span></h1>
+
+<p class="intro">Todo mundo que programa vê mensagens de erro <strong>o dia inteiro</strong>, inclusive quem programa há trinta anos. A diferença entre quem está começando e quem tem prática não é errar menos: é <strong>ler a mensagem</strong> e saber, em segundos, onde olhar. As mensagens do Dart são em inglês e parecem assustadoras, mas seguem sempre os mesmos dois formatos. Nesta aula, você vai aprender a desmontar cada um, peça por peça.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os dois tipos de problema: <strong>erro de compilação</strong> (antes de rodar) e <strong>exceção</strong> (durante a execução).</li>
+  <li>As peças do erro de compilação: <code>arquivo:linha:coluna</code>, <code>Error:</code>, a mensagem, a linha do código, o <code>^^^</code>, o <code>Try …</code> e o <code>Context:</code>.</li>
+  <li>As peças da exceção: <code>Unhandled exception:</code>, o tipo, a mensagem e o <strong>stack trace</strong> (<code>#0</code>, <code>#1</code>…).</li>
+  <li>Os <strong>códigos de saída</strong>: 0, 254, 255 e o seu próprio <code>exit(n)</code>.</li>
+  <li>O que fazer quando vêm vários erros, e como o <code>dart analyze</code> conta os problemas.</li>
+  <li>Uma galeria com os erros e exceções mais comuns, todos colhidos no Dart de verdade, com a tradução.</li>
+</ul>
+</div>
+
+<p>Todas as mensagens desta aula saíram do <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>, e foram copiadas exatamente como apareceram. O <code>echo $?</code> que aparece em alguns terminais é um comando do próprio terminal (não do Dart) que mostra o código de saída do último programa (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: o revisor e o acidente de percurso</h2>
+<p>Imagine que a Ana escreveu as instruções do caixa num papel para o funcionário novo. Duas coisas podem dar errado:</p>
+<ol class="passo">
+  <li><strong>Antes</strong> de o funcionário começar, a gerente lê o papel e devolve: "linha 3: 'some três ao preço'? Três o quê? Não dá para seguir isso." O funcionário <strong>nem começou</strong>. Isso é o <strong>erro de compilação</strong>: o Dart lê o programa inteiro antes de rodar (isso se chama <em>compilar</em>) e recusa o que não faz sentido.</li>
+  <li>O papel estava certo, o funcionário começou a atender e, no quarto cliente, a instrução mandou pegar o quarto pão do cesto, que só tinha três. Ele <strong>já tinha feito</strong> três atendimentos e parou no meio. Isso é a <strong>exceção</strong>: algo que só dá para descobrir <strong>rodando</strong>, com os dados de verdade.</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Exceção (em tempo de execução)</th></tr>
+<tr><td>Quando aparece</td><td>Antes de rodar qualquer linha</td><td>No meio da execução</td></tr>
+<tr><td>Os <code>print</code> antes do problema aparecem?</td><td>Não, nenhum</td><td>Sim, todos</td></tr>
+<tr><td>Começa com</td><td><code>arquivo.dart:linha:coluna: Error:</code></td><td><code>Unhandled exception:</code></td></tr>
+<tr><td>Onde está o lugar do problema</td><td>No começo da mensagem (linha e coluna)</td><td>No stack trace (<code>#0</code>, <code>#1</code>…)</td></tr>
+<tr><td>Código de saída</td><td><strong>254</strong></td><td><strong>255</strong></td></tr>
+<tr><td>Exemplos de causa</td><td>Faltou <code>;</code>, nome escrito errado, tipo trocado</td><td>Posição que não existe na lista, texto que não é número, <code>!</code> em <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. As peças de um erro de compilação</h2>
+
+<pre class="file" data-file="compilacao.dart">void main() {
+  print('Abrindo o caixa...');
+  int quantidade = 'três';
+  print('Quantidade: $quantidade');
+}
+</pre>
+
+<pre class="term">$ dart run compilacao.dart
+compilacao.dart:3:20: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int quantidade = 'três';
+                   ^
+$ echo $?
+254
+</pre>
+
+<p>Primeira coisa: o <code>Abrindo o caixa...</code> <strong>não apareceu</strong>, mesmo estando na linha 2, antes do problema. Com erro de compilação, nada roda. Agora, peça por peça:</p>
+
+<dl class="anatomy">
+  <dt>compilacao.dart</dt><dd>O <strong>arquivo</strong> onde está o problema. Em programas de vários arquivos, olhe este nome primeiro.</dd>
+  <dt>:3</dt><dd>A <strong>linha</strong> 3. Os editores de código mostram o número de cada linha na margem.</dd>
+  <dt>:20</dt><dd>A <strong>coluna</strong> 20: o 20º caractere da linha, contando os espaços do começo e a partir de 1.</dd>
+  <dt>Error:</dt><dd>"Erro": o Dart recusou o programa.</dd>
+  <dt>A value of type 'String' can't be assigned to a variable of type 'int'.</dt><dd>A <strong>mensagem</strong>: "um valor do tipo <code>String</code> não pode ser guardado numa variável do tipo <code>int</code>". O texto <code>'três'</code> não é um número inteiro (veja <a href="tipos.html">Os Tipos Básicos</a>).</dd>
+  <dt>  int quantidade = 'três';</dt><dd>A <strong>linha do código</strong>, copiada do seu arquivo, para você não precisar procurar.</dd>
+  <dt>^</dt><dd>O <strong>acento circunflexo</strong> fica embaixo da coluna exata. Às vezes vem um só (<code>^</code>), às vezes vários (<code>^^^^</code>), sublinhando a palavra inteira.</dd>
+</dl>
+
+<p>E o <code>echo $?</code> mostrou <strong>254</strong>: é o código de saída que o <code>dart run</code> devolve quando o programa não compila. Nenhuma linha do seu programa rodou.</p>
+
+<h3>As linhas extras: <code>Try …</code>, <code>- 'X' is from …</code> e <code>Context:</code></h3>
+<p>Muitas mensagens trazem linhas a mais. Este programa chama um método com a letra errada (<code>toUppercase</code>, com "c" minúsculo):</p>
+
+<pre class="term">$ dart run metodo_errado.dart
+metodo_errado.dart:3:14: Error: The method 'toUppercase' isn't defined for the type 'String'.
+Try correcting the name to the name of an existing method, or defining a method named 'toUppercase'.
+  print(nome.toUppercase());
+             ^^^^^^^^^^^
+</pre>
+
+<p>A linha que começa com <strong><code>Try</code></strong> ("tente") é uma <strong>sugestão</strong>: "corrija o nome para o de um método que existe, ou crie um método com esse nome". O nome certo é <code>toUpperCase</code>, com "C" maiúsculo: o Dart diferencia maiúsculas de minúsculas.</p>
+
+<p>Quando o problema envolve <strong>dois lugares</strong> do código, vem também um <strong><code>Context:</code></strong> ("contexto"), que <strong>não é outro erro</strong>: é o outro lugar, para você comparar. Aqui, uma função que pede dois valores recebeu um só:</p>
+
+<pre class="file" data-file="argumentos.dart">double total(double preco, int quantidade) =&gt; preco * quantidade;
+
+void main() {
+  print(total(4.0));
+}
+</pre>
+
+<pre class="term">$ dart run argumentos.dart
+argumentos.dart:4:14: Error: Too few positional arguments: 2 required, 1 given.
+  print(total(4.0));
+             ^
+argumentos.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double total(double preco, int quantidade) =&gt; preco * quantidade;
+       ^^^^^
+</pre>
+
+<p>"Poucos argumentos posicionais: 2 obrigatórios, 1 dado." O erro está na linha 4 (a chamada). O <code>Context:</code> aponta a linha 1 (a declaração da função): "encontrei esta candidata, mas os argumentos não combinam". Com as duas na tela, fica fácil ver que faltou a quantidade. Você também vai ver linhas como <code> - 'Produto' is from 'loja.dart'.</code>, que só dizem <strong>em que arquivo</strong> um tipo foi declarado.</p>
+
+<hr>
+
+<h2>2. Vários erros de uma vez</h2>
+<p>O Dart não para no primeiro erro: ele lista <strong>todos</strong> os que encontrou, na ordem em que aparecem no arquivo.</p>
+
+<pre class="file" data-file="tres_erros.dart">void main() {
+  final nome = 'Ana'
+  print('Olá, $nmoe!');
+  int idade = '30';
+}
+</pre>
+
+<pre class="term">$ dart run tres_erros.dart
+tres_erros.dart:2:16: Error: Expected ';' after this.
+  final nome = 'Ana'
+               ^^^^^
+tres_erros.dart:3:16: Error: Undefined name 'nmoe'.
+  print('Olá, $nmoe!');
+               ^^^^
+tres_erros.dart:4:15: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int idade = '30';
+              ^
+</pre>
+
+<p>Cada erro é um bloco que começa com <code>arquivo:linha:coluna: Error:</code>. Para contar quantos são, conte as linhas com <code>Error:</code>: aqui, três. O <code>dart run</code> não escreve o total, mas o <code>dart analyze</code> (o analisador; aula <a href="analise.html">Análise e Formatação</a>) escreve, num formato de uma linha por problema:</p>
+
+<pre class="term">$ dart analyze tres_erros.dart
+Analyzing tres_erros.dart...
+
+  error - tres_erros.dart:2:16 - Expected to find ';'. - expected_token
+  error - tres_erros.dart:3:16 - Undefined name 'nmoe'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - tres_erros.dart:4:15 - A value of type 'String' can't be assigned to a variable of type 'int'. Try changing the type of the variable, or casting the right-hand type to 'int'. - invalid_assignment
+warning - tres_erros.dart:2:9 - The value of the local variable 'nome' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - tres_erros.dart:4:7 - The value of the local variable 'idade' isn't used. Try removing the variable or using it. - unused_local_variable
+
+5 issues found.
+$ echo $?
+3
+</pre>
+
+<ul>
+  <li>Cada linha tem: a gravidade (<code>error</code> = erro, <code>warning</code> = aviso, e existe também <code>info</code>), <code>arquivo:linha:coluna</code>, a mensagem, e no fim um código (<code>undefined_identifier</code>) que serve para pesquisar.</li>
+  <li><code>5 issues found.</code>: "5 problemas encontrados" (3 erros e 2 avisos). Os avisos não impedem o programa de rodar; aqui dizem que as variáveis <code>nome</code> e <code>idade</code> nunca foram usadas.</li>
+  <li>O <code>dart analyze</code> não roda o programa, só o lê. O código de saída dele foi 3 (havia erros).</li>
+</ul>
+
+<div class="tip">
+<strong>A regra dos vários erros: conserte o primeiro e rode de novo</strong>
+<p>Um erro pode causar outros "de tabela": uma aspa esquecida, por exemplo, gera três mensagens para uma linha só (veja a galeria abaixo). Por isso: leia todos, conserte o <strong>primeiro</strong>, rode de novo. Muitas vezes os outros somem junto.</p>
+</div>
+
+<div class="trydart" data-goal="out:Olá, Ana!;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o <code>tres_erros.dart</code>, com uma linha a mais que mostra a idade. Rode, leia as mensagens e conserte uma por uma (a idade é o número 30, não o texto), até aparecer <code>Olá, Ana!</code> e <code>Idade: 30</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final nome = 'Ana'
+  print('Olá, $nmoe!');
+  int idade = '30';
+  print('Idade: $idade');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final nome = 'Ana';
+  print('Olá, $nome!');
+  int idade = 30;
+  print('Idade: $idade');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. As peças de uma exceção</h2>
+
+<pre class="file" data-file="excecao.dart">void main() {
+  print('Abrindo o caixa...');
+  final precos = [4.0, 20.0, 6.5];
+  print('Terceiro item: ${precos[2]}');
+  print('Quarto item: ${precos[3]}');
+  print('Fechando o caixa.');
+}
+</pre>
+
+<pre class="term">$ dart run excecao.dart
+Abrindo o caixa...
+Terceiro item: 6.5
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/excecao.dart:5:31)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>Desta vez o programa <strong>compilou e começou</strong>: as duas primeiras linhas saíram. Na linha 5 ele parou, e o <code>Fechando o caixa.</code> nunca apareceu. Peça por peça:</p>
+
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada". Uma <strong>exceção</strong> é um aviso de "algo deu errado" que o programa lança durante a execução. "Não tratada" quer dizer que nenhuma parte do seu código cuidou dela (como se cuida, com <code>try</code>/<code>catch</code>, é a próxima aula: <a href="excecoes.html">Exceções</a>), então o programa inteiro parou.</dd>
+  <dt>RangeError</dt><dd>O <strong>tipo</strong> da exceção: "erro de intervalo". O tipo é a primeira palavra; ele já diz muito (veja a tabela da seção 6).</dd>
+  <dt>(length): Invalid value: Not in inclusive range 0..2: 3</dt><dd>A <strong>mensagem</strong>: "valor inválido: não está no intervalo de 0 a 2 (inclusive): 3". A lista tem 3 itens, nas posições 0, 1 e 2; a posição 3 não existe (veja <a href="list.html">Listas</a>).</dd>
+  <dt>#0      List.[] (dart:core-patch/growable_array.dart)</dt><dd>O começo do <strong>stack trace</strong> ("rastro da pilha"): a lista de funções que estavam em andamento quando a exceção aconteceu. A <code>#0</code> é onde ela <strong>nasceu</strong>: dentro do <code>[]</code> da lista, no código do próprio Dart (<code>dart:core</code>).</dd>
+  <dt>#1      main (file:///home/ana/excecao.dart:5:31)</dt><dd>Quem chamou a <code>#0</code>: a sua função <code>main</code>, no arquivo <code>/home/ana/excecao.dart</code>, <strong>linha 5, coluna 31</strong>, o <code>[3]</code>. Esta é a linha que importa.</dd>
+  <dt>#2 e #3 (_delayEntrypointInvocation, _RawReceivePort)</dt><dd>São do Dart, que chamou o seu <code>main</code>. Aparecem no fim de todo stack trace; pode ignorá-las.</dd>
+</dl>
+
+<p>O código de saída foi <strong>255</strong>: o de exceção não tratada.</p>
+
+<div class="tip">
+<strong>Como achar a sua linha no stack trace</strong>
+<p>Leia de cima para baixo e pare na <strong>primeira linha com o seu arquivo</strong> (<code>file:///home/ana/…</code>). As linhas com <code>dart:core</code>, <code>dart:collection</code>, <code>dart:isolate</code> são da biblioteca do Dart: o erro estourou lá dentro, mas quem pediu a coisa errada foi você. Repare também que o stack trace mostra o caminho completo (<code>file:///home/ana/excecao.dart</code>), enquanto o erro de compilação mostra só o nome (<code>excecao.dart</code>).</p>
+</div>
+
+<h3>Um stack trace mais comprido</h3>
+<p>Quando uma função chama outra, que chama outra, o rastro mostra o caminho inteiro, <strong>de dentro para fora</strong>:</p>
+
+<pre class="file" data-file="profundo.dart">double lerPreco(String texto) {
+  return double.parse(texto);
+}
+
+double somarCarrinho(List&lt;String&gt; precos) {
+  var total = 0.0;
+  for (final p in precos) {
+    total += lerPreco(p);
+  }
+  return total;
+}
+
+void main() {
+  print('Somando o carrinho...');
+  final total = somarCarrinho(['4.00', '20.00', 'seis']);
+  print('Total: $total');
+}
+</pre>
+
+<pre class="term">$ dart run profundo.dart
+Somando o carrinho...
+Unhandled exception:
+FormatException: Invalid double
+seis
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      lerPreco (file:///home/ana/profundo.dart:2:17)
+#2      somarCarrinho (file:///home/ana/profundo.dart:8:14)
+#3      main (file:///home/ana/profundo.dart:15:17)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>A mensagem tem <strong>duas linhas</strong>: <code>FormatException: Invalid double</code> ("exceção de formato: <code>double</code> inválido") e, embaixo, o texto que causou o problema: <code>seis</code>. O rastro se lê como uma história, de baixo para cima: o <code>main</code> (linha 15) chamou <code>somarCarrinho</code>, que na linha 8 chamou <code>lerPreco</code>, que na linha 2 chamou <code>double.parse</code>, que não conseguiu ler <code>"seis"</code>. A primeira linha sua é a <code>#1</code>, mas o <strong>conserto</strong> pode estar mais embaixo: quem mandou o texto <code>'seis'</code> foi o <code>main</code>, na <code>#3</code>. É a missão final desta aula.</p>
+
+<hr>
+
+<h2>4. Os códigos de saída</h2>
+<p>Todo programa, ao terminar, devolve um número ao terminal: o <strong>código de saída</strong>. Zero quer dizer "deu tudo certo"; qualquer outro número, "algo deu errado". Programas que rodam outros programas (scripts, testes automáticos) olham esse número. Os do Dart, conferidos no lab:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Quando</th></tr>
+<tr><td><code>0</code></td><td>O programa terminou normalmente</td></tr>
+<tr><td><code>254</code></td><td>Erro de compilação: nada rodou</td></tr>
+<tr><td><code>255</code></td><td>Exceção não tratada: parou no meio. Também sai 255 quando o arquivo nem existe (<code>Could not find file `naoexiste.dart`</code>)</td></tr>
+<tr><td>o que você escolher</td><td><code>exit(n)</code>, de <code>dart:io</code>: você mesmo encerra com o código <code>n</code></td></tr>
+</table>
+</div>
+
+<pre class="file" data-file="saida3.dart">import 'dart:io';
+
+void main() {
+  print('Estoque vazio, nada a fazer.');
+  exit(3);
+}
+</pre>
+
+<pre class="term">$ dart run saida3.dart
+Estoque vazio, nada a fazer.
+$ echo $?
+3
+</pre>
+
+<p>Nada de mensagem de erro: o programa decidiu sair com o código 3, e só quem olha o <code>$?</code> fica sabendo. (No editor do guia, o código de saída aparece depois de cada Rodar; veja <a href="simulador.html">O Editor do Guia</a>.)</p>
+
+<hr>
+
+<h2>5. Galeria: erros de compilação comuns</h2>
+<p>Todos colhidos no lab. Para cada um: a mensagem, a tradução e o conserto.</p>
+
+<div class="cenario">
+<strong>Faltou o ponto e vírgula</strong>
+<pre class="term">$ dart run ponto_virgula.dart
+ponto_virgula.dart:2:23: Error: Expected ';' after this.
+  final total = 4.0 + 20.0
+                      ^^^^
+</pre>
+<p>"Era esperado <code>;</code> depois disto." Os <code>^^^^</code> marcam a <strong>última coisa antes</strong> do lugar onde falta o <code>;</code>. Conserto: <code>final total = 4.0 + 20.0;</code> (veja <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Nome escrito errado</strong>
+<pre class="term">$ dart run nome_errado.dart
+nome_errado.dart:3:9: Error: Undefined name 'precoTotla'.
+  print(precoTotla);
+        ^^^^^^^^^^
+</pre>
+<p>"Nome não definido: <code>precoTotla</code>." A variável se chama <code>precoTotal</code>; o Dart não adivinha. Também aparece quando a variável foi criada <strong>dentro</strong> de um bloco e usada fora dele.</p>
+</div>
+
+<div class="cenario">
+<strong>Método que não existe nesse tipo</strong>
+<p><code>The method 'toUppercase' isn't defined for the type 'String'.</code> (seção 1). Variações: <code>The getter 'x' isn't defined for the type 'Y'.</code> (para campos e getters). Confira a grafia, maiúsculas e minúsculas, e se o objeto é mesmo do tipo que você pensa.</p>
+</div>
+
+<div class="cenario">
+<strong>Função que promete devolver e não devolve</strong>
+<pre class="file" data-file="sem_return.dart">int dobro(int n) {
+  final resultado = n * 2;
+}
+
+void main() {
+  print(dobro(4));
+}
+</pre>
+<pre class="term">$ dart run sem_return.dart
+sem_return.dart:1:5: Error: A non-null value must be returned since the return type 'int' doesn't allow null.
+int dobro(int n) {
+    ^
+</pre>
+<p>"Um valor não nulo tem de ser devolvido, porque o tipo de retorno <code>int</code> não aceita <code>null</code>." Faltou o <code>return resultado;</code> (veja <a href="funcoes.html">Funções</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Chave que abriu e não fechou</strong>
+<pre class="file" data-file="chave.dart">void main() {
+  final precos = [4.0, 20.0];
+  for (final p in precos) {
+    print(p);
+
+}
+</pre>
+<pre class="term">$ dart run chave.dart
+chave.dart:3:27: Error: Can't find '}' to match '{'.
+  for (final p in precos) {
+                          ^
+</pre>
+<p>"Não encontrei a <code>}</code> que fecha esta <code>{</code>." O <code>^</code> aponta a chave que <strong>abriu</strong> (a do <code>for</code>, linha 3). O arquivo tem uma <code>}</code> no fim, mas ela fechou o <code>for</code>, e o <code>main</code> ficou aberto. Conserto: acrescente a <code>}</code> que falta. Indentar direito (2 espaços por nível) ajuda a ver qual sobrou.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspas que abriram e não fecharam: três erros para uma linha</strong>
+<pre class="term">$ dart run aspas.dart
+aspas.dart:2:9: Error: String starting with ' must end with '.
+  print('Bom dia, Ana!);
+        ^^^^^^^^^^^^^^^^
+aspas.dart:2:8: Error: Can't find ')' to match '('.
+  print('Bom dia, Ana!);
+       ^
+aspas.dart:2:9: Error: Expected ';' after this.
+  print('Bom dia, Ana!);
+        ^^^^^^^^^^^^^^^^
+</pre>
+<p>O primeiro erro é a causa: "um texto que começa com <code>'</code> tem de terminar com <code>'</code>". Como a aspa não fechou, o Dart achou que o <code>);</code> fazia parte do texto, e daí vieram os outros dois ("não achei o <code>)</code>", "faltou <code>;</code>"). É o exemplo perfeito da regra: conserte o primeiro, <code>print('Bom dia, Ana!');</code>, e os três somem.</p>
+</div>
+
+<div class="cenario">
+<strong>Valor que pode ser <code>null</code></strong>
+<pre class="file" data-file="nulo_compila.dart">import 'dart:io';
+
+void main() {
+  final nome = stdin.readLineSync();
+  print(nome.toUpperCase());
+}
+</pre>
+<pre class="term">$ dart run nulo_compila.dart
+nulo_compila.dart:5:14: Error: Method 'toUpperCase' cannot be called on 'String?' because it is potentially null.
+Try calling using ?. instead.
+  print(nome.toUpperCase());
+             ^^^^^^^^^^^
+</pre>
+<p>"O método não pode ser chamado em <code>String?</code>, porque ele pode ser <code>null</code>." O <code>?</code> no fim do tipo é o aviso (veja <a href="null-safety.html">Null Safety</a> e <a href="stdin.html">Lendo o Teclado</a>). Conserto: <code>nome?.toUpperCase()</code>, <code>(nome ?? '').toUpperCase()</code> ou um <code>if (nome != null)</code>.</p>
+</div>
+
+<hr>
+
+<h2>6. Galeria: exceções comuns</h2>
+<p>Em todas, o código de saída foi 255 e as duas últimas linhas do stack trace foram as mesmas <code>_delayEntrypointInvocation</code> e <code>_RawReceivePort</code>; aqui elas foram cortadas e marcadas com <code>…</code>.</p>
+
+<div class="cenario">
+<strong>Texto que não é número: <code>FormatException</code></strong>
+<pre class="term">$ dart run parse.dart
+Unhandled exception:
+FormatException: Invalid double
+12,50
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      main (file:///home/ana/parse.dart:3:24)
+…                                « e as duas linhas de sempre
+</pre>
+<p>O <code>double.parse('12,50')</code> não entende vírgula: o Dart usa ponto nos números. Conserto: <code>'12,50'.replaceAll(',', '.')</code> antes, ou <code>double.tryParse</code>, que devolve <code>null</code> em vez de lançar exceção (veja <a href="conversao.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>!</code> num valor nulo</strong>
+<pre class="file" data-file="nulo.dart">void main() {
+  final estoque = {'café': 10, 'bolo': 3};
+  final qtd = estoque['sonho']!;
+  print('Sonhos: $qtd');
+}
+</pre>
+<pre class="term">$ dart run nulo.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/nulo.dart:3:31)
+…                                « e as duas linhas de sempre
+</pre>
+<p>"O operador de checagem de nulo foi usado num valor nulo." O <code>!</code> prometeu "isto não é <code>null</code>", mas não havia <code>'sonho'</code> no mapa, e o mapa devolveu <code>null</code>. A coluna 31 é exatamente o <code>!</code>. Conserto: <code>estoque['sonho'] ?? 0</code> (veja <a href="late.html">late e o Operador !</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Divisão inteira por zero</strong>
+<pre class="term">$ dart run divisao.dart
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/divisao.dart:3:27)
+…                                « e as duas linhas de sempre
+</pre>
+<p>O programa fez <code>30 ~/ pacotes</code> com <code>pacotes</code> valendo 0. Só o <code>~/</code> (divisão inteira) lança exceção; o <code>/</code> comum devolve <code>Infinity</code> (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). Conserto: confira <code>if (pacotes &gt; 0)</code> antes.</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu o primeiro de uma lista vazia</strong>
+<pre class="term">$ dart run vazio.dart
+Unhandled exception:
+Bad state: No element
+#0      List.first (dart:core-patch/growable_array.dart:352:5)
+#1      main (file:///home/ana/vazio.dart:3:37)
+…                                « e as duas linhas de sempre
+</pre>
+<p>"Estado ruim: nenhum elemento." O <code>pedidos.first</code> numa lista vazia. O tipo dessa exceção é <code>StateError</code> (a mensagem começa com <code>Bad state:</code>). Conserto: <code>if (pedidos.isNotEmpty)</code>, ou <code>pedidos.firstOrNull</code>.</p>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Começo da mensagem</th><th>Tipo</th><th>O que costuma ser</th></tr>
+<tr><td><code>RangeError (length): Invalid value:</code></td><td><code>RangeError</code></td><td>Posição que não existe numa lista</td></tr>
+<tr><td><code>FormatException:</code></td><td><code>FormatException</code></td><td><code>int.parse</code>/<code>double.parse</code> com texto que não é número; JSON inválido</td></tr>
+<tr><td><code>Null check operator used on a null value</code></td><td><code>TypeError</code></td><td>Um <code>!</code> em algo que era <code>null</code></td></tr>
+<tr><td><code>type 'X' is not a subtype of type 'Y'</code></td><td><code>TypeError</code></td><td>Um <code>as</code> com o tipo errado (veja <a href="heranca.html">Herança</a>)</td></tr>
+<tr><td><code>Bad state:</code></td><td><code>StateError</code></td><td><code>first</code>/<code>last</code>/<code>single</code> em lista vazia</td></tr>
+<tr><td><code>IntegerDivisionByZeroException</code></td><td><code>IntegerDivisionByZeroException</code></td><td><code>~/</code> por zero</td></tr>
+<tr><td><code>LateInitializationError:</code></td><td><code>LateInitializationError</code></td><td>Variável <code>late</code> lida antes de receber valor</td></tr>
+<tr><td><code>NoSuchMethodError:</code></td><td><code>NoSuchMethodError</code></td><td>Método chamado num <code>dynamic</code> que não o tem</td></tr>
+<tr><td><code>Stack Overflow</code></td><td><code>StackOverflowError</code></td><td>Função que chama a si mesma sem parar (veja <a href="recursao.html">Recursão</a>)</td></tr>
+<tr><td><code>Invalid argument</code></td><td><code>ArgumentError</code></td><td>Um valor que a função não aceita (ex.: <code>byName</code> com nome errado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de achar o problema</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>O que fazer</th></tr>
+<tr><td>Apareceu <code>arquivo:linha:coluna: Error:</code></td><td>Vá à linha e à coluna; leia a mensagem e o <code>Try</code>; se houver <code>Context:</code>, compare os dois lugares</td></tr>
+<tr><td>Vários <code>Error:</code></td><td>Conserte o primeiro e rode de novo</td></tr>
+<tr><td>Quero a lista de problemas sem rodar, com avisos e a contagem</td><td><code>dart analyze</code> (os editores mostram a mesma coisa enquanto você digita, sublinhando em vermelho)</td></tr>
+<tr><td>Apareceu <code>Unhandled exception:</code></td><td>Leia o tipo e a mensagem; desça no stack trace até a primeira linha com o seu arquivo</td></tr>
+<tr><td>A exceção depende do que foi digitado ou lido</td><td>Acrescente <code>print</code> antes da linha suspeita para ver os valores; depois trate o caso (aula <a href="excecoes.html">Exceções</a>)</td></tr>
+<tr><td>Não entendeu a mensagem em inglês</td><td>Copie a frase (sem os nomes do seu código) e pesquise; o código do <code>dart analyze</code> (<code>undefined_identifier</code>) também serve</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado (ao ler o erro)</h2>
+
+<div class="cenario">
+<strong>O erro aponta uma linha, mas o problema está em outra</strong>
+<p>No <code>chave.dart</code>, o problema era a <code>}</code> que faltou lá embaixo, e o Dart apontou a <code>{</code> da linha 3. No <code>ponto_virgula.dart</code>, o <code>^</code> ficou embaixo do <code>20.0</code>, e o <code>;</code> faltava logo <strong>depois</strong> dele. A linha e a coluna dizem onde o Dart <strong>percebeu</strong> o problema, que nem sempre é onde você errou. Olhe também a linha de cima e o par (abre/fecha) do símbolo apontado.</p>
+</div>
+
+<div class="cenario">
+<strong>Consertou o lugar da <code>#0</code>, que não era seu</strong>
+<p>No <code>profundo.dart</code>, a <code>#0</code> é <code>double.parse (dart:core-patch/…)</code>. Esse arquivo é da biblioteca do Dart: não há o que consertar lá. Pule as linhas <code>dart:</code> e vá à primeira com <code>file:///home/ana/…</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o programa "não fez nada"</strong>
+<p>Com erro de compilação, nem o primeiro <code>print</code> aparece, e quem não lê a mensagem pensa que o programa "travou" ou "não funciona". Se nada da sua saída apareceu, procure um <code>Error:</code> na tela; se metade apareceu, procure um <code>Unhandled exception:</code>. E na dúvida, <code>echo $?</code>: 254 ou 255 dizem qual dos dois foi.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>Significado</th></tr>
+<tr><td><code>arquivo.dart:3:20:</code></td><td>Arquivo, linha 3, coluna 20</td></tr>
+<tr><td><code>Error:</code></td><td>Erro de compilação: o programa não roda (código 254)</td></tr>
+<tr><td><code>^</code> / <code>^^^^</code></td><td>Aponta a coluna / sublinha a palavra</td></tr>
+<tr><td><code>Try …</code></td><td>Sugestão de conserto</td></tr>
+<tr><td><code>Context:</code></td><td>Outro lugar relacionado (não é outro erro)</td></tr>
+<tr><td><code> - 'X' is from '…'.</code></td><td>Em que arquivo o tipo X foi declarado</td></tr>
+<tr><td><code>Unhandled exception:</code></td><td>Exceção durante a execução, ninguém tratou (código 255)</td></tr>
+<tr><td><code>RangeError</code>, <code>FormatException</code>…</td><td>O tipo da exceção</td></tr>
+<tr><td><code>#0 …</code></td><td>Onde a exceção nasceu</td></tr>
+<tr><td><code>#1 main (file:///home/ana/x.dart:5:31)</code></td><td>Quem chamou: função, arquivo, linha, coluna</td></tr>
+<tr><td><code>N issues found.</code></td><td>A contagem do <code>dart analyze</code></td></tr>
+<tr><td><code>echo $?</code></td><td>Mostra o código de saída (0, 254, 255, ou o do <code>exit(n)</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Inglês</th><th>Português</th></tr>
+<tr><td>expected</td><td>era esperado</td></tr>
+<tr><td>undefined / isn't defined</td><td>não definido</td></tr>
+<tr><td>can't be assigned to</td><td>não pode ser guardado em</td></tr>
+<tr><td>required / given</td><td>obrigatórios / recebidos</td></tr>
+<tr><td>potentially null</td><td>pode ser nulo</td></tr>
+<tr><td>to match</td><td>que combine com (o par de um símbolo)</td></tr>
+<tr><td>invalid value / invalid argument</td><td>valor / argumento inválido</td></tr>
+<tr><td>not in inclusive range 0..2</td><td>fora do intervalo de 0 a 2 (incluindo os dois)</td></tr>
+<tr><td>bad state / no element</td><td>estado ruim / nenhum elemento</td></tr>
+<tr><td>unhandled</td><td>não tratado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual linha?</h3>
+<p>Na mensagem <code>loja.dart:12:7: Error: Undefined name 'totla'.</code>, qual é a linha do problema?</p>
+<div class="ex-code">Linha <input data-answer="12" aria-label="linha" size="3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual código?</h3>
+<p>O programa não compilou. Que número o <code>echo $?</code> mostra logo depois do <code>dart run</code>?</p>
+<div class="ex-code"><input data-answer="254" aria-label="código de saída" size="4"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Qual função?</h3>
+<p>No stack trace <code>#0 double.parse (dart:core-patch/…)</code>, <code>#1 lerPreco (file:///home/ana/profundo.dart:2:17)</code>, <code>#2 somarCarrinho (…)</code>, qual é a primeira função <strong>sua</strong>?</p>
+<div class="ex-code"><input data-answer="lerPreco" aria-label="nome da função"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O programa mostrou duas linhas de saída e depois <code>Unhandled exception:</code>. O que aconteceu?</p>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> O programa compilou, começou a rodar e parou numa exceção</label>
+<label><input type="radio" name="q4"> O programa terminou normalmente</label>
+<label><input type="radio" name="q4"> O arquivo não existe</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Apareceram três <code>Error:</code> para a mesma linha, que tem uma aspa sem fechar. O que fazer primeiro?</p>
+<label><input type="radio" name="q5"> Consertar o último</label>
+<label><input type="radio" name="q5"> Apagar a linha</label>
+<label><input type="radio" name="q5"> Consertar o primeiro (fechar a aspa) e rodar de novo</label>
+<label><input type="radio" name="q5"> Rodar o <code>dart analyze</code> até sumirem</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O que é a linha <code>Context: Found this candidate, but the arguments don't match.</code>?</p>
+<label><input type="radio" name="q6"> Um segundo erro, que precisa de outro conserto</label>
+<label><input type="radio" name="q6"> Um aviso que pode ser ignorado sempre</label>
+<label><input type="radio" name="q6"> A saída do programa</label>
+<label><input type="radio" name="q6"> O outro lugar ligado ao mesmo erro (aqui, a declaração da função), para comparar</label>
+</div>
+
+<h3>Missão final: o carrinho que não somava</h3>
+
+<div class="trydart" data-goal="out:Total: 30.0;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o <code>profundo.dart</code> da seção 3. Rode, leia o stack trace de baixo para cima e descubra <strong>quem</strong> mandou o texto que não é número. Conserte no lugar certo (o preço do sonho é 6.00) até aparecer <code>Total: 30.0</code>, sem exceção.</p>
+<pre class="script" data-file="main.dart">double lerPreco(String texto) {
+  return double.parse(texto);
+}
+
+double somarCarrinho(List&lt;String&gt; precos) {
+  var total = 0.0;
+  for (final p in precos) {
+    total += lerPreco(p);
+  }
+  return total;
+}
+
+void main() {
+  print('Somando o carrinho...');
+  final total = somarCarrinho(['4.00', '20.00', 'seis']);
+  print('Total: $total');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double lerPreco(String texto) {
+  return double.parse(texto);
+}
+
+double somarCarrinho(List&lt;String&gt; precos) {
+  var total = 0.0;
+  for (final p in precos) {
+    total += lerPreco(p);
+  }
+  return total;
+}
+
+void main() {
+  print('Somando o carrinho...');
+  final total = somarCarrinho(['4.00', '20.00', '6.00']);
+  print('Total: $total');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Somando o carrinho...</code> e <code>Total: 30.0</code>, com código de saída 0.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Erro de compilação</strong>: aparece antes de rodar, nada do programa executa, código de saída 254. Formato: <code>arquivo:linha:coluna: Error: mensagem</code>, a linha do código e o <code>^</code>; às vezes um <code>Try</code> (sugestão) e um <code>Context:</code> (o outro lugar).</li>
+  <li><strong>Exceção</strong>: aparece rodando, o que veio antes já saiu, código de saída 255. Formato: <code>Unhandled exception:</code>, o tipo e a mensagem, e o stack trace (<code>#0</code> é onde nasceu; desça até a primeira linha com o seu arquivo).</li>
+  <li>Vários erros: conserte o primeiro e rode de novo. O <code>dart analyze</code> lista erros e avisos e conta: <code>N issues found.</code></li>
+  <li>A linha apontada é onde o Dart percebeu, nem sempre onde você errou: olhe a linha de cima e o par do símbolo.</li>
+  <li>Código de saída: 0 deu certo, 254 não compilou, 255 exceção (ou arquivo inexistente), e <code>exit(n)</code> para escolher o seu.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
