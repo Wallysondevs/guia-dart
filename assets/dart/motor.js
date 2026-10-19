@@ -445,7 +445,7 @@
     return this.no(topo ? "TopVar" : "Field", ini, { tipo: tipo, vars: vars, final: m.final, constante: m.constante, late: m.late, estatico: m.estatico });
   };
   P.parseCtor = function (ini, m, nomeClasse) {
-    this.next(); var nome = "";
+    var tNome = this.next(); var nome = "";
     if (this.accept(".")) nome = this.ident().v;
     var ps = this.parseParams();
     var inits = [], redir = null, superCall = null;
@@ -476,7 +476,7 @@
       var cp = this.parseFunctionBody(true);
       corpo = cp.corpo;
     }
-    return this.no("Ctor", ini, { nome: nome, classe: nomeClasse, params: ps, inits: inits, superCall: superCall, redir: redir, corpo: corpo, fabrica: m.fabrica, constante: m.constante });
+    return this.no("Ctor", ini, { pNomeCtor: tNome.p, nome: nome, classe: nomeClasse, params: ps, inits: inits, superCall: superCall, redir: redir, corpo: corpo, fabrica: m.fabrica, constante: m.constante });
   };
   // ( a, int b, [int c = 1] ) ou ( a, {required int b, int c = 2} )
   P.parseParams = function (soTipos) {
@@ -1269,6 +1269,7 @@
     }
     Object.keys(this.classes).forEach(visita);
     ordem.forEach(function (c) { out.push(self.genClasse(c, esc)); });
+    ordem.forEach(function (c) { if (c.k === "Class") { self.checarAbstratos(c); self.checarFinais(c); } });
     this.extensoes.forEach(function (x) { out.push(self.genExtensao(x, esc)); });
     // variáveis de topo: preguiçosas (como no Dart)
     this.prog.forEach(function (d) {
@@ -1292,6 +1293,75 @@
     out.unshift('"use strict";');
     out.push("return { main: " + (main ? main.js : "null") + ", nargs: " + ps + ", async: " + !!(main && main.decl && main.decl.async) + " };");
     return out.join("\n");
+  };
+  G.declsDe = function (c) {
+    // membros de instância com corpo (concretos) e sem corpo (abstratos), por nome
+    var r = {};
+    c.membros.forEach(function (d) {
+      if (d.estatico || d.k === "Ctor") return;
+      if (d.k === "Field") d.vars.forEach(function (v) { r[v.nome] = { concreto: true, d: d, p: v.p, campo: true, final: d.final }; });
+      else if (d.k === "Method" || d.k === "Getter" || d.k === "Setter") { var nm = d.k === "Setter" ? d.nome + "=" : d.nome; r[nm] = { concreto: !!d.corpo, d: d, p: d.pNome !== undefined ? d.pNome : d.p, len: String(d.nome).length }; }
+    });
+    return r;
+  };
+  G.checarAbstratos = function (c) {
+    if (c.abstrata || c.mixin || c.sealed || (c.mods || []).indexOf("abstract") >= 0 || (c.mods || []).indexOf("interface") >= 0 && false) return;
+    var self = this;
+    if (c.membros.some(function (d) { return d.k === "Method" && d.nome === "noSuchMethod"; })) return;
+    var concretos = {}, faltam = [];
+    // o que a classe (e as superclasses e mixins) implementa
+    (function junta(k) {
+      if (!k) return;
+      var ds = self.declsDe(k);
+      Object.keys(ds).forEach(function (n) { if (ds[n].concreto) { concretos[n] = true; if (ds[n].campo) { concretos[n] = true; if (!ds[n].final) concretos[n + "="] = true; } } });
+      (k.mixins || []).forEach(function (m) { junta(self.classes[m.nome]); });
+      if (k.sup) { if (!self.classes[k.sup.nome]) { concretos["*"] = true; return; } junta(self.classes[k.sup.nome]); }
+    })(c);
+    if (concretos["*"]) return;
+    var vistos = {};
+    function exige(k, todos) {
+      if (!k) return;
+      var ds = self.declsDe(k);
+      Object.keys(ds).forEach(function (n) {
+        var x = ds[n];
+        if (!todos && x.concreto) return;
+        var nomes = x.campo ? (x.final ? [n] : [n, n + "="]) : [n];
+        nomes.forEach(function (nn) { if (!concretos[nn] && !vistos[k.nome + "." + nn]) { vistos[k.nome + "." + nn] = 1; faltam.push({ nome: k.nome + "." + nn, p: x.p, len: x.len || n.length }); } });
+      });
+    }
+    (function sobe(k, viaInterface) {
+      if (!k) return;
+      exige(k, viaInterface);
+      (k.impls || []).forEach(function (i) { var ci = self.classes[i.nome]; if (ci) sobe(ci, true); });
+      if (k.sup && self.classes[k.sup.nome]) sobe(self.classes[k.sup.nome], viaInterface);
+    })(c, false);
+    // os abstratos da própria classe também contam (classe concreta com método sem corpo)
+    faltam = faltam.filter(function (f) { return f.nome.indexOf(c.nome + ".") !== 0 || true; });
+    if (!faltam.length) return;
+    this.erro("The non-abstract class '" + c.nome + "' is missing implementations for these members:\n" + faltam.map(function (f) { return " - " + f.nome; }).join("\n"), c.pNome, c.nome.length,
+      "Try to either\n - provide an implementation,\n - inherit an implementation from a superclass or mixin,\n - mark the class as abstract, or\n - provide a 'noSuchMethod' implementation.",
+      faltam.map(function (f) { return { msg: "'" + f.nome + "' is defined here.", pos: f.p, len: f.len }; })).fase = 0.5;
+  };
+  G.checarFinais = function (c) {
+    var self = this;
+    var finais = [];
+    c.membros.forEach(function (d) { if (d.k === "Field" && !d.estatico && d.final && !d.late) d.vars.forEach(function (v) { if (!v.init) finais.push(v); }); });
+    if (!finais.length) return;
+    var ctors = c.membros.filter(function (d) { return d.k === "Ctor" && !d.fabrica && !d.redir; });
+    if (!ctors.length) {
+      finais.forEach(function (v) { self.erro("Final field '" + v.nome + "' is not initialized.", v.p, v.nome.length, "Try to initialize the field in the declaration or in every constructor.").fase = 3; });
+      return;
+    }
+    ctors.forEach(function (k) {
+      var ini = {};
+      k.params.pos.concat(k.params.opc, k.params.nomeados).forEach(function (p) { if (p.campo) ini[p.nome] = 1; });
+      k.inits.forEach(function (it) { if (it.campo) ini[it.campo] = 1; });
+      finais.forEach(function (v) {
+        if (ini[v.nome]) return;
+        var pk = k.nome ? k.p : k.p;
+        self.erro("Final field '" + v.nome + "' is not initialized by this constructor.", k.pNomeCtor !== undefined ? k.pNomeCtor : k.p, (k.nome ? c.nome.length + 1 + k.nome.length : c.nome.length), "Try to initialize the field using an initializing formal or a field initializer.", { msg: "'" + v.nome + "' is defined here.", pos: v.p, len: v.nome.length }).fase = 3;
+      });
+    });
   };
   G.membrosDe = function (n) {
     var c = this.classes[n]; if (!c) return null;
@@ -1346,7 +1416,7 @@
   G.tipoTexto = function (t) {
     if (!t) return "dynamic";
     if (t.k === "TFun") return (t.ret ? this.tipoTexto(t.ret) : "dynamic") + " Function(" + t.params.pos.map(function (p) { return this.tipoTexto(p.tipo); }, this).join(", ") + ")" + (t.nul ? "?" : "");
-    if (t.k === "TRec") return "(" + t.pos.map(this.tipoTexto, this).join(", ") + (t.nomeados.length ? ", {" + t.nomeados.map(function (x) { return this.tipoTexto(x.tipo) + " " + x.nome; }, this).join(", ") + "}" : "") + ")" + (t.nul ? "?" : "");
+    if (t.k === "TRec") { var nm = t.nomeados.slice().sort(function (a, b) { return a.nome < b.nome ? -1 : 1; }); return "(" + t.pos.map(this.tipoTexto, this).join(", ") + (nm.length ? (t.pos.length ? ", " : "") + "{" + nm.map(function (x) { return this.tipoTexto(x.tipo) + " " + x.nome; }, this).join(", ") + "}" : "") + ")" + (t.nul ? "?" : ""); }
     return t.nome + (t.args && t.args.length ? "<" + t.args.map(this.tipoTexto, this).join(", ") + ">" : "") + (t.nul ? "?" : "");
   };
   // converte int → double quando o destino é double (o Dart faz isso com literais)
@@ -1583,7 +1653,7 @@
     if (d.async) { if (nome !== "Future" || !r.args.length) return; var a = r.args[0]; if (a.k !== "T" || a.nul) return; nome = a.nome; if (["void", "dynamic", "Null", "Object?"].indexOf(nome) >= 0) return; }
     if (["void", "dynamic", "Null", "FutureOr", "Never"].indexOf(nome) >= 0 || this.tparams.has(nome)) return;
     if (terminaSempre(d.corpo)) return;
-    this.erro("A non-null value must be returned since the return type '" + this.tipoTexto(r) + "' doesn't allow null.", r.p !== undefined ? r.p : d.p, 1, this.contexto([r]) || null);
+    this.erro("A non-null value must be returned since the return type '" + this.tipoTexto(r) + "' doesn't allow null.", d.pNome !== undefined && d.k !== "LocalFun" ? d.pNome : (r.p !== undefined ? r.p : d.p), 1, this.contexto([r]) || null);
   };
   G.genFuncao = function (d, esc, cabeca, nomeFrame, metodo, estatico) {
     if (d.k !== "Getter" && d.k !== "Setter") this.checarRetorno(d);
@@ -1963,6 +2033,14 @@
       case "Cond": { var x = this.tipoDe(e.a, filho(esc, this.promCond(e.cond, true))), y = this.tipoDe(e.b, filho(esc, this.promCond(e.cond, false))); return this.unirTipos([x, y]); }
       case "Record": return null;
       case "Get": {
+        if (e.alvo.k === "Ident" && this.classes[e.alvo.nome] && !esc.achar(e.alvo.nome)) {
+          var cE = this.classes[e.alvo.nome];
+          if (cE.k === "Enum" && e.nome === "values") return T("List", [T(cE.nome)]);
+          if (cE.k === "Enum" && cE.valores.some(function (v) { return v.nome === e.nome; })) return T(cE.nome);
+          var mE = this.membrosDe(cE.nome).est[e.nome];
+          if (mE && (mE.k === "campo" || mE.k === "get")) return mE.tipo || null;
+          return null;
+        }
         var at = this.tipoDe(e.alvo, esc);
         if (e.nome === "length" && at && at.k === "T" && ["String", "List", "Set", "Map", "Iterable"].indexOf(at.nome) >= 0) return T("int");
         if ((e.nome === "isEmpty" || e.nome === "isNotEmpty" || e.nome === "isEven" || e.nome === "isOdd") && at && at.k === "T") return T("bool");
@@ -1978,6 +2056,7 @@
           var tp2 = this.topo[e.alvo.nome];
           if (!esc.achar(e.alvo.nome) && tp2 && tp2.k === "fun") return tp2.decl.ret && !tp2.decl.async ? tp2.decl.ret : null;
           if (!esc.achar(e.alvo.nome) && tp2 && tp2.k === "classe") return T(e.alvo.nome);
+          if (!esc.achar(e.alvo.nome) && !tp2 && /^[A-Z]/.test(e.alvo.nome) && TIPOS_NATIVOS.has(e.alvo.nome) && ["Object", "Function", "List", "Map", "Set", "Future", "Stream", "Iterable"].indexOf(e.alvo.nome) < 0) return T(e.alvo.nome);
           var lf = esc.achar(e.alvo.nome);
           if (lf && lf.k === "localfun") return lf.decl.ret && !lf.decl.async ? lf.decl.ret : null;
         }
@@ -2086,6 +2165,15 @@
   };
   // erros de compilação mais comuns: atribuir um tipo errado
   var SUBTIPOS = { int: ["num", "Object", "Comparable", "dynamic"], double: ["num", "Object", "Comparable", "dynamic"], num: ["Object", "Comparable", "dynamic"], String: ["Object", "Comparable", "Pattern", "dynamic"], bool: ["Object", "dynamic"], Null: ["dynamic"] };
+  G.ehSubclasse = function (a, b) {
+    if (a === b) return true;
+    var c = this.classes[a]; if (!c) return true;
+    if (!this.classes[b] && !SUBTIPOS[b]) return true;
+    var sup = [].concat(c.sup ? [c.sup] : [], c.impls || [], c.mixins || [], c.on || []);
+    if (c.k === "Enum" && (b === "Enum" || b === "Comparable")) return true;
+    for (var i = 0; i < sup.length; i++) { if (!this.classes[sup[i].nome]) { if (sup[i].nome === b) return true; if (!TIPOS_NATIVOS.has(sup[i].nome)) return true; continue; } if (this.ehSubclasse(sup[i].nome, b)) return true; }
+    return false;
+  };
   G.atribuivel = function (de, para) {
     if (!de || !para || de.k !== "T" || para.k !== "T") return true;
     if (this.tparams.has(para.nome) || this.tparams.has(de.nome)) return true;
@@ -2103,7 +2191,9 @@
     }
     var s = SUBTIPOS[de.nome];
     if (s) return s.indexOf(para.nome) >= 0 || (para.nome === "FutureOr");
-    return true; // classes do usuário e o resto: não confere
+    if (this.classes[de.nome] && (this.classes[para.nome] || SUBTIPOS[para.nome])) return this.ehSubclasse(de.nome, para.nome);
+    if (TIPOS_NATIVOS.has(de.nome) && SUBTIPOS[para.nome] && ["Object", "dynamic", "Null", "Function", "Comparable", "Pattern", "FutureOr", "Never"].indexOf(de.nome) < 0) return false;
+    return true;
   };
   function offsetDe(e) {
     if (!e) return 0;
@@ -2441,7 +2531,9 @@
     // erros de tipo comuns: "texto" + 1, int + String
     var ta = this.tipoDe(e.a, esc), tb = this.tipoDe(e.b, esc);
     if (ta && tb && ta.k === "T" && tb.k === "T" && !ta.nul && !tb.nul) {
-      if (ta.nome === "String" && e.op === "+" && tb.nome !== "String" && SUBTIPOS[tb.nome])
+      if (ta.nome === "String" && e.op === "*" && tb.nome !== "int" && SUBTIPOS[tb.nome])
+        this.erro("A value of type '" + this.tipoTexto(tb) + "' can't be assigned to a variable of type 'int'.", offsetDe(e.b), 1);
+      else if (ta.nome === "String" && e.op === "+" && tb.nome !== "String" && SUBTIPOS[tb.nome])
         this.erro("A value of type '" + this.tipoTexto(tb) + "' can't be assigned to a variable of type 'String'.", e.b.p, 1);
       else if ((ta.nome === "int" || ta.nome === "double" || ta.nome === "num") && tb.nome === "String" && ["+", "-", "*", "/"].indexOf(e.op) >= 0)
         this.erro("A value of type 'String' can't be assigned to a variable of type 'num'.", e.b.p, 1);
@@ -2599,7 +2691,7 @@
   };
   G.checarArgs = function (d, e, nome, cl) {
     var ps = d.params, a = e.args;
-    var ctx = d.k === "Function" || d.k === "LocalFun" ? { msg: "Found this candidate, but the arguments don't match.", pos: d.pNome, len: d.nome.length } : null;
+    var ctx = d.k === "Function" || d.k === "LocalFun" ? { msg: "Found this candidate, but the arguments don't match.", pos: d.pNome, len: d.nome.length } : d.padrao && cl ? { msg: "The class '" + cl.nome + "' has a constructor that takes no arguments.", pos: cl.pNome, len: 1 } : null;
     var self0 = this;
     var tipoP = function (p) { return p.tipo || (p.campo && cl ? (self0.membrosDe(cl.nome).inst[p.nome] || {}).tipo : null); };
     var min = ps.pos.length, max = ps.pos.length + ps.opc.length;
@@ -2631,7 +2723,7 @@
   };
   G.checarArgsCtor = function (cl, nome, e) {
     var k = cl.membros.filter(function (d) { return d.k === "Ctor" && d.nome === nome; })[0];
-    if (!k) { if (!cl.membros.some(function (d) { return d.k === "Ctor"; })) k = { params: { pos: [], opc: [], nomeados: [] } }; else return; }
+    if (!k) { if (!cl.membros.some(function (d) { return d.k === "Ctor"; })) k = { params: { pos: [], opc: [], nomeados: [] }, padrao: true }; else return; }
     this.checarArgs(k, e, cl.nome, cl);
   };
   G.lvalue = function (alvo, esc) {
@@ -2740,7 +2832,7 @@
     function erroFmt(e) {
       var f = fonteDe(e.pos); var e2 = new ErroDart(e.msg, e.pos - f.base, e.len, e.extra); e2.rotulo = e.rotulo;
       var r = formatarErro(f.nome, f.src, e2);
-      if (e.ctx) { var c = new ErroDart(e.ctx.msg, e.ctx.pos, e.ctx.len, null); c.rotulo = "Context"; r += erroFmt(c); }
+      if (e.ctx) [].concat(e.ctx).forEach(function (cx) { var c = new ErroDart(cx.msg, cx.pos, cx.len, null); c.rotulo = "Context"; r += erroFmt(c); });
       return r;
     }
     var incluidos = {}; incluidos[arq] = true;
@@ -2787,7 +2879,13 @@
     if (g.erros.length) {
       var vistos = {};
       var errs = g.erros.filter(function (x) { var k = x.pos + x.msg; if (vistos[k]) return false; vistos[k] = 1; return true; });
-      errs.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || a.pos - b.pos; });
+      var fase = function (x) {
+        if (x.lex) return 0;
+        if (x.fase !== undefined) return x.fase;
+        if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Not a constant expression|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
+        return 2;
+      };
+      errs.sort(function (a, b) { return fase(a) - fase(b) || a.pos - b.pos; });
       var semMain = errs.filter(function (x) { return x.extra === "semMain"; });
       if (semMain.length && errs.length === 1) return { erros: arq + ": Error: Undefined name 'main'.\n", n: 1 };
       errs = errs.filter(function (x) { return x.extra !== "semMain"; });

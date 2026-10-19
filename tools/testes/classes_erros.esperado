@@ -1,0 +1,47 @@
+classes_erros.dart:7:7: Error: The non-abstract class 'Vale' is missing implementations for these members:
+ - Pagamento.nome
+ - Pagamento.taxa
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Vale extends Pagamento {
+      ^^^^
+classes_erros.dart:4:14: Context: 'Pagamento.nome' is defined here.
+  String get nome;
+             ^^^^
+classes_erros.dart:5:10: Context: 'Pagamento.taxa' is defined here.
+  double taxa();
+         ^^^^
+classes_erros.dart:16:19: Error: Too many positional arguments: 0 allowed, but 2 found.
+Try removing the extra positional arguments.
+  final p = Pessoa('Ana', 30);
+                  ^
+classes_erros.dart:10:7: Context: The class 'Pessoa' has a constructor that takes no arguments.
+class Pessoa {
+      ^
+classes_erros.dart:21:16: Error: Undefined name 'True'.
+  bool pagou = True;
+               ^^^^
+classes_erros.dart:18:13: Error: The getter 'preco' isn't defined for the type 'Cobertura'.
+ - 'Cobertura' is from 'classes_erros.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'preco'.
+    print(c.preco);
+            ^^^^^
+classes_erros.dart:20:14: Error: A value of type 'StringBuffer' can't be assigned to a variable of type 'String'.
+ - 'StringBuffer' is from 'dart:core'.
+  String r = StringBuffer();
+             ^
+classes_erros.dart:22:11: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int x = '1';
+          ^
+classes_erros.dart:11:16: Error: Final field 'nome' is not initialized.
+Try to initialize the field in the declaration or in every constructor.
+  final String nome;
+               ^^^^
+classes_erros.dart:12:13: Error: Final field 'idade' is not initialized.
+Try to initialize the field in the declaration or in every constructor.
+  final int idade;
+            ^^^^^
+[exit 254]
