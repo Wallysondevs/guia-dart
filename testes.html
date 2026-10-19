@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart testes — package:test e dart test | Guia Dart</title>
+<meta name="description" content="Testes automáticos no Dart para quem nunca programou: por que testar, a pasta test/ e o _test.dart, test() e expect(), dart test e a saída real (+1, -1, All tests passed!), group, closeTo, throwsArgumentError, lendo um teste que falha (Expected/Actual/Which), --name e o código de saída, e os erros reais do Dart 3.13 (exceção no código testado, import do package:test esquecido, arquivo sem _test, dart test fora do projeto).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Testes</span></h1>
+
+<p class="intro">Toda vez que você muda um programa, pode quebrar algo que já funcionava. Conferir tudo à mão, rodando e olhando a saída, cansa e falha. Um <strong>teste automático</strong> é um pequeno programa que confere o seu: "a média de 8, 6 e 10 tem de dar 8". Você escreve uma vez, e o comando <code>dart test</code> confere tudo em segundos, quantas vezes quiser. No Dart, os testes usam o pacote <code>test</code>, que já vem em todo projeto criado com <code>dart create</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um teste automático e por que ele vale a pena.</li>
+  <li>Onde os testes ficam (<code>test/</code>, arquivos terminados em <code>_test.dart</code>) e como escrever um com <code>test()</code> e <code>expect()</code>.</li>
+  <li>Como rodar com <code>dart test</code> e ler a saída: <code>+1</code>, <code>-1</code>, <code>All tests passed!</code>.</li>
+  <li>Como organizar com <code>group</code> e conferir números decimais (<code>closeTo</code>) e exceções (<code>throwsArgumentError</code>).</li>
+  <li>Como ler um teste que <strong>falha</strong>: <code>Expected</code>, <code>Actual</code>, <code>Which</code>.</li>
+  <li>Os erros reais: exceção no código testado, <code>import</code> do <code>package:test</code> esquecido, arquivo sem <code>_test</code> e <code>dart test</code> fora do projeto.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), num projeto criado com <code>dart create notas</code> (veja <a href="dart-create.html">Criando um Projeto</a>), com o pacote <code>test</code> que o <code>dart create</code> pôs em <code>dev_dependencies</code> (veja <a href="pubspec.html">O pubspec.yaml</a>). O <code>00:00</code> no começo de cada linha do <code>dart test</code> é o tempo passado (minutos:segundos); ele muda de computador para computador. A primeira execução num projeto novo leva alguns segundos a mais, porque o Dart compila os testes.</p>
+
+<div class="warning">
+<strong>O editor do guia não roda <code>dart test</code></strong>
+<p>O editor desta página não tem o pacote <code>test</code> nem o comando <code>dart test</code>. Os exemplos com <code>test()</code> e <code>expect()</code> são para o terminal do seu computador. As caixas "Experimente" usam um "testador caseiro", uma função de 3 linhas que faz o mesmo papel, para você praticar a ideia.</p>
+</div>
+
+<hr>
+
+<h2>A ideia: a prova dos nove da padaria</h2>
+<p>Antes de vender um bolo de uma receita nova, a confeiteira prova um pedaço. Se a receita muda (menos açúcar, outra farinha), ela prova de novo. Um teste é a prova: uma situação com resultado <strong>conhecido</strong> ("com 8, 6 e 10, a média é 8"), conferida pelo computador.</p>
+<p>Todo teste tem três partes:</p>
+<ol class="passo">
+  <li><strong>Preparar</strong>: os dados de entrada (as notas 8, 6 e 10).</li>
+  <li><strong>Executar</strong>: chamar a função testada (<code>media([8, 6, 10])</code>).</li>
+  <li><strong>Conferir</strong>: comparar o resultado com o esperado (tem de dar 8).</li>
+</ol>
+
+<hr>
+
+<h2>1. O código que vai ser testado</h2>
+<p>No projeto <code>notas</code>, a Ana escreve em <code>lib/notas.dart</code> as regras da turma: a média e a situação do aluno.</p>
+
+<pre class="file" data-file="lib/notas.dart">double media(List&lt;double&gt; notas) {
+  if (notas.isEmpty) {
+    throw ArgumentError('a lista de notas está vazia');
+  }
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double media) {
+  if (media &gt;= 7) return 'aprovado';
+  if (media &gt;= 5) return 'recuperação';
+  return 'reprovado';
+}
+</pre>
+
+<p>Testes conferem o código de <code>lib/</code>. Por isso vale separar as regras (em funções, em <code>lib/</code>) da parte que mostra na tela (em <code>bin/</code>).</p>
+
+<hr>
+
+<h2>2. O primeiro teste</h2>
+<p>Os testes ficam na pasta <code>test/</code>, em arquivos cujo nome <strong>termina em <code>_test.dart</code></strong>. O <code>dart create</code> já criou um; a Ana troca o conteúdo de <code>test/notas_test.dart</code> por:</p>
+
+<pre class="file" data-file="test/notas_test.dart">import 'package:notas/notas.dart';
+import 'package:test/test.dart';
+
+void main() {
+  test('média de três notas', () {
+    expect(media([8, 6, 10]), 8);
+  });
+
+  test('situação de quem tirou 7', () {
+    expect(situacao(7), 'aprovado');
+  });
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'package:notas/notas.dart';</dt><dd>Traz o código testado, da pasta <code>lib/</code> (veja <a href="imports.html">import</a>).</dd>
+  <dt>import 'package:test/test.dart';</dt><dd>Traz as funções de teste: <code>test</code>, <code>expect</code>, <code>group</code>…</dd>
+  <dt>void main()</dt><dd>Um arquivo de teste também começa pelo <code>main</code>: ele registra os testes.</dd>
+  <dt>test('média de três notas', () { … })</dt><dd>Um teste: um <strong>nome</strong> (que aparece na saída; escreva o que está sendo conferido) e uma <a href="funcoes-anonimas.html">função anônima</a> com o teste em si.</dd>
+  <dt>expect(media([8, 6, 10]), 8)</dt><dd>"Espero que": o primeiro valor é o <strong>obtido</strong> (chamar a função), o segundo é o <strong>esperado</strong>. Se forem diferentes, o teste falha.</dd>
+</dl>
+
+<p>Para rodar, dentro da pasta do projeto:</p>
+
+<pre class="term">$ dart test
+00:00 +0: loading test/notas_test.dart
+00:00 +0: test/notas_test.dart: média de três notas
+00:00 +1: test/notas_test.dart: situação de quem tirou 7
+00:00 +2: All tests passed!
+$ echo $?
+0
+</pre>
+
+<ul>
+  <li><code>loading test/notas_test.dart</code> — "carregando" (compilando) o arquivo de testes. O <code>dart test</code> roda <strong>todos</strong> os <code>*_test.dart</code> da pasta <code>test/</code>.</li>
+  <li><code>+0</code>, <code>+1</code>, <code>+2</code> — quantos testes já <strong>passaram</strong>. Cada linha mostra o teste que está rodando.</li>
+  <li><code>All tests passed!</code> — "todos os testes passaram". Código de saída 0.</li>
+</ul>
+
+<div class="trydart" data-goal="out:OK   situação de 7;;out:OK   situação de 9.5;;semerro">
+<p class="try-task"><strong>Missão:</strong> o "testador caseiro" <code>confere</code> faz o papel do <code>expect</code>. Um dos testes está falhando. Descubra o defeito na função <code>situacao</code> (compare com a regra: 7 <strong>ou mais</strong> é aprovado) e conserte.</p>
+<pre class="script" data-file="main.dart">String situacao(double media) {
+  if (media &gt; 7) return 'aprovado';
+  if (media &gt;= 5) return 'recuperação';
+  return 'reprovado';
+}
+
+void confere(String nome, Object obtido, Object esperado) {
+  final ok = obtido == esperado;
+  print('${ok ? 'OK  ' : 'FALHOU'} $nome${ok ? '' : ' (esperado: $esperado, obtido: $obtido)'}');
+}
+
+void main() {
+  confere('situação de 7', situacao(7), 'aprovado');
+  confere('situação de 9.5', situacao(9.5), 'aprovado');
+  confere('situação de 6', situacao(6), 'recuperação');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String situacao(double media) {
+  if (media &gt;= 7) return 'aprovado';
+  if (media &gt;= 5) return 'recuperação';
+  return 'reprovado';
+}
+
+void confere(String nome, Object obtido, Object esperado) {
+  final ok = obtido == esperado;
+  print('${ok ? 'OK  ' : 'FALHOU'} $nome${ok ? '' : ' (esperado: $esperado, obtido: $obtido)'}');
+}
+
+void main() {
+  confere('situação de 7', situacao(7), 'aprovado');
+  confere('situação de 9.5', situacao(9.5), 'aprovado');
+  confere('situação de 6', situacao(6), 'recuperação');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Mais testes: <code>group</code>, <code>closeTo</code> e exceções</h2>
+<p>A Ana amplia o arquivo: agrupa os testes de cada função com <code>group</code> ("grupo") e confere os casos de fronteira (exatamente 5, exatamente 7) e o erro da lista vazia.</p>
+
+<pre class="file" data-file="test/notas_test.dart">import 'package:notas/notas.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('media', () {
+    test('de três notas', () {
+      expect(media([8, 6, 10]), 8);
+    });
+
+    test('com decimais', () {
+      expect(media([7.5, 8.25]), closeTo(7.875, 0.001));
+    });
+
+    test('de lista vazia lança ArgumentError', () {
+      expect(() =&gt; media([]), throwsArgumentError);
+    });
+  });
+
+  group('situacao', () {
+    test('7 ou mais é aprovado', () {
+      expect(situacao(7), 'aprovado');
+      expect(situacao(10), 'aprovado');
+    });
+
+    test('entre 5 e 7 é recuperação', () {
+      expect(situacao(5), 'recuperação');
+      expect(situacao(6.9), 'recuperação');
+    });
+
+    test('menos de 5 é reprovado', () {
+      expect(situacao(4.9), 'reprovado');
+    });
+  });
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>group('media', () { … })</dt><dd>Junta testes relacionados. O nome do grupo vira o começo do nome de cada teste na saída (<code>media de três notas</code>).</dd>
+  <dt>closeTo(7.875, 0.001)</dt><dd>Um <strong>matcher</strong> ("comparador"): "perto de 7.875, com diferença de no máximo 0.001". Use em contas com <code>double</code>, que podem ter pequenos erros de arredondamento (veja <a href="int-double.html">Números</a>).</dd>
+  <dt>expect(() =&gt; media([]), throwsArgumentError)</dt><dd>Para conferir que algo <strong>lança uma exceção</strong>, passe uma <strong>função</strong> que faz a chamada (o <code>() =&gt;</code>), e não a chamada em si. O <code>expect</code> roda a função e confere que saiu um <code>ArgumentError</code>.</dd>
+  <dt>dois expect no mesmo teste</dt><dd>Pode. O teste só passa se todos passarem.</dd>
+</dl>
+
+<pre class="term">$ dart test
+00:00 +0: loading test/notas_test.dart
+00:00 +0: test/notas_test.dart: media de três notas
+00:00 +1: test/notas_test.dart: media com decimais
+00:00 +2: test/notas_test.dart: media de lista vazia lança ArgumentError
+00:00 +3: test/notas_test.dart: situacao 7 ou mais é aprovado
+00:00 +4: test/notas_test.dart: situacao entre 5 e 7 é recuperação
+00:00 +5: test/notas_test.dart: situacao menos de 5 é reprovado
+00:00 +6: All tests passed!
+$ echo $?
+0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Matcher</th><th>Passa quando…</th></tr>
+<tr><td><code>expect(x, 8)</code> ou <code>equals(8)</code></td><td><code>x == 8</code> (listas e mapas são comparados item por item)</td></tr>
+<tr><td><code>isTrue</code> / <code>isFalse</code></td><td><code>x</code> é <code>true</code> / <code>false</code></td></tr>
+<tr><td><code>isNull</code> / <code>isNotNull</code></td><td><code>x</code> é / não é <code>null</code></td></tr>
+<tr><td><code>closeTo(v, d)</code></td><td><code>x</code> está a no máximo <code>d</code> de <code>v</code></td></tr>
+<tr><td><code>greaterThan(v)</code> / <code>lessThan(v)</code></td><td><code>x &gt; v</code> / <code>x &lt; v</code></td></tr>
+<tr><td><code>contains(v)</code></td><td>o texto ou a lista contém <code>v</code></td></tr>
+<tr><td><code>hasLength(n)</code></td><td>tem tamanho <code>n</code></td></tr>
+<tr><td><code>throwsArgumentError</code>, <code>throwsStateError</code>, <code>throwsA(isA&lt;T&gt;())</code></td><td>a função lança essa exceção</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>4. Quando um teste falha</h2>
+<p>É para isso que os testes existem. A Ana "melhora" o código e, sem perceber, troca <code>media &gt;= 7</code> por <code>media &gt; 7</code>:</p>
+
+<pre class="file" data-file="lib/notas.dart">  if (media &gt; 7) return 'aprovado';
+</pre>
+
+<pre class="term">$ dart test
+00:00 +0: loading test/notas_test.dart
+00:00 +0: test/notas_test.dart: media de três notas
+00:00 +1: test/notas_test.dart: media com decimais
+00:00 +2: test/notas_test.dart: media de lista vazia lança ArgumentError
+00:00 +3: test/notas_test.dart: situacao 7 ou mais é aprovado
+00:00 +3 -1: test/notas_test.dart: situacao 7 ou mais é aprovado [E]
+  Expected: 'aprovado'
+    Actual: 'recuperação'
+     Which: is different.
+            Expected: aprovado
+              Actual: recuperaçã ...
+                      ^
+             Differ at offset 0
+
+  package:matcher            expect
+  test/notas_test.dart 21:7  main.&lt;fn&gt;.&lt;fn&gt;
+
+00:00 +3 -1: test/notas_test.dart: situacao entre 5 e 7 é recuperação
+00:00 +4 -1: test/notas_test.dart: situacao menos de 5 é reprovado
+00:00 +5 -1: Some tests failed.
+
+Failing tests:
+  test/notas_test.dart: situacao 7 ou mais é aprovado
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.
+$ echo $?
+1
+</pre>
+
+<p>Linha por linha:</p>
+<ul>
+  <li><code>+3 -1: … situacao 7 ou mais é aprovado [E]</code> — 3 passaram, <strong>1 falhou</strong> (o <code>-1</code>); o <code>[E]</code> marca o teste com erro.</li>
+  <li><code>Expected: 'aprovado'</code> / <code>Actual: 'recuperação'</code> — "esperado" × "obtido de verdade". Com nota 7, a função agora diz recuperação.</li>
+  <li><code>Which: is different.</code> — "que: é diferente". As linhas seguintes comparam os dois textos, e <code>Differ at offset 0</code> diz que já diferem no caractere 0 (o primeiro). O <code>...</code> só corta o texto longo.</li>
+  <li><code>test/notas_test.dart 21:7 main.&lt;fn&gt;.&lt;fn&gt;</code> — o <code>expect</code> que falhou: linha 21, coluna 7 do arquivo de teste (o <code>expect(situacao(7), 'aprovado')</code>). <code>&lt;fn&gt;.&lt;fn&gt;</code> = "dentro de uma função anônima dentro de outra" (o <code>group</code> e o <code>test</code>).</li>
+  <li>Os outros testes continuam rodando: uma falha não para os demais.</li>
+  <li><code>Some tests failed.</code> e a lista <code>Failing tests:</code> — "alguns testes falharam", e quais. A sugestão do <code>--chain-stack-traces</code> serve para código assíncrono complicado; aqui, pode ignorar.</li>
+  <li>Código de saída <strong>1</strong>. Ferramentas automáticas (como as que conferem o código antes de publicar) usam esse número para saber que algo quebrou.</li>
+</ul>
+<p>Repare que o teste <code>entre 5 e 7 é recuperação</code> passou: ele não testava o 7. Os testes de <strong>fronteira</strong> (o valor exato onde a regra muda) são os que pegam esse tipo de erro. Com o <code>&gt;=</code> de volta, tudo passa de novo.</p>
+
+<h3>Rodando só alguns testes</h3>
+<pre class="term">$ dart test --name recuperação
+00:00 +0: loading test/notas_test.dart
+00:00 +0: test/notas_test.dart: situacao entre 5 e 7 é recuperação
+00:00 +1: All tests passed!
+</pre>
+<p><code>--name</code> ("nome") roda só os testes cujo nome contém o texto. Para rodar um arquivo só: <code>dart test test/notas_test.dart</code>.</p>
+
+<hr>
+
+<h2 id="formas">Conferir à mão ou com testes?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Bom para</th><th>Problema</th></tr>
+<tr><td>rodar e olhar o <code>print</code></td><td>explorar, ver se a ideia funciona</td><td>você precisa lembrar o resultado certo e olhar tudo de novo a cada mudança</td></tr>
+<tr><td><code>assert</code> no código (aula <a href="assert.html">assert</a>)</td><td>conferir suposições enquanto o programa roda</td><td>só funciona com <code>--enable-asserts</code>; confere o programa em uso, não casos preparados</td></tr>
+<tr><td><code>package:test</code> + <code>dart test</code></td><td>conferir muitos casos, sempre, em segundos</td><td>precisa de um projeto e de escrever os testes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O código testado lançou uma exceção</strong>
+<pre class="file" data-file="test/vazia_test.dart">import 'package:notas/notas.dart';
+import 'package:test/test.dart';
+
+void main() {
+  test('média de uma lista vazia', () {
+    expect(media([]), 0);
+  });
+}
+</pre>
+<pre class="term">$ dart test
+00:00 +0: loading test/vazia_test.dart
+00:00 +0: test/vazia_test.dart: média de uma lista vazia
+00:00 +0 -1: test/vazia_test.dart: média de uma lista vazia [E]
+  Invalid argument(s): a lista de notas está vazia
+  package:notas/notas.dart 3:5  media
+  test/vazia_test.dart 6:12     main.&lt;fn&gt;
+
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/vazia_test.dart: média de uma lista vazia
+
+Consider enabling the flag chain-stack-traces to receive more detailed exceptions.
+For example, 'dart test --chain-stack-traces'.
+$ echo $?
+1
+</pre>
+<p>Desta vez não há <code>Expected</code>/<code>Actual</code>: o teste nem chegou a comparar. <code>Invalid argument(s): a lista de notas está vazia</code> é o <code>ArgumentError</code> lançado pela <code>media</code>; as duas linhas seguintes são o caminho: <code>notas.dart</code> linha 3 (o <code>throw</code>), chamado pelo teste na linha 6. <strong>Como consertar:</strong> se a exceção é o comportamento certo, teste-a com <code>expect(() =&gt; media([]), throwsArgumentError)</code> (seção 3). Se não é, conserte a função.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>import 'package:test/test.dart';</code></strong>
+<pre class="file" data-file="test/vazia_test.dart">import 'package:notas/notas.dart';
+
+void main() {
+  test('média de três notas', () {
+    expect(media([8, 6, 10]), 8);
+  });
+}
+</pre>
+<pre class="term">$ dart test
+00:00 +0: loading test/vazia_test.dart
+00:00 +0 -1: loading test/vazia_test.dart [E]
+  Failed to load "test/vazia_test.dart":
+  test/vazia_test.dart:5:5: Error: Method not found: 'expect'.
+      expect(media([8, 6, 10]), 8);
+      ^^^^^^
+  test/vazia_test.dart:4:3: Error: Method not found: 'test'.
+    test('média de três notas', () {
+    ^^^^
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  test/vazia_test.dart: loading test/vazia_test.dart
+$ echo $?
+1
+</pre>
+<p>"Falhou ao carregar": o arquivo de teste nem compilou (o <code>[E]</code> está na linha do <code>loading</code>). <code>Method not found: 'expect'</code> e <code>'test'</code> — sem o <code>import</code>, essas funções não existem. <strong>Como consertar:</strong> <code>import 'package:test/test.dart';</code> no topo.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo não termina em <code>_test.dart</code></strong>
+<p>A Ana salvou os testes como <code>test/notas_teste.dart</code> (em português):</p>
+<pre class="term">$ dart test
+No tests ran.
+No tests were found.
+$ echo $?
+79
+</pre>
+<p>"Nenhum teste rodou. Nenhum teste foi encontrado." O <code>dart test</code> só procura arquivos <code>*_test.dart</code> (com <code>test</code> em inglês). O código de saída 79 indica "nada para testar". Dando o caminho, o arquivo roda (<code>dart test test/notas_teste.dart</code>), mas o certo é seguir a convenção. <strong>Como consertar:</strong> renomeie para <code>notas_test.dart</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>dart test</code> fora do projeto</strong>
+<pre class="term">$ cd ..
+$ dart test
+No pubspec.yaml file found - run this command in your project folder.
+$ echo $?
+65
+</pre>
+<p>"Nenhum <code>pubspec.yaml</code> encontrado: rode este comando na pasta do seu projeto." <strong>Como consertar:</strong> <code>cd notas</code> e rode de novo.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código / comando</th><th>O que faz</th></tr>
+<tr><td><code>test/nome_test.dart</code></td><td>onde e como os testes se chamam</td></tr>
+<tr><td><code>import 'package:test/test.dart';</code></td><td>traz <code>test</code>, <code>expect</code>, <code>group</code> e os matchers</td></tr>
+<tr><td><code>test('nome', () { … });</code></td><td>declara um teste</td></tr>
+<tr><td><code>expect(obtido, esperado);</code></td><td>confere; o segundo pode ser um valor ou um matcher</td></tr>
+<tr><td><code>group('nome', () { … });</code></td><td>agrupa testes</td></tr>
+<tr><td><code>expect(() =&gt; f(), throwsArgumentError);</code></td><td>confere que <code>f()</code> lança a exceção</td></tr>
+<tr><td><code>dart test</code></td><td>roda todos os testes; código 0 = passou, 1 = falhou</td></tr>
+<tr><td><code>dart test test/arquivo_test.dart</code></td><td>roda um arquivo</td></tr>
+<tr><td><code>dart test --name texto</code></td><td>roda os testes cujo nome contém o texto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o teste</h3>
+<div class="ex-code">import 'package:<input data-answer="test/test.dart" aria-label="caminho do pacote">';<br><br>void main() {<br>&nbsp;&nbsp;<input data-answer="test" aria-label="função que declara o teste">('soma simples', () {<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="expect" aria-label="função que confere">(2 + 2, 4);<br>&nbsp;&nbsp;});<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Lendo a saída</h3>
+<p>A última linha do <code>dart test</code> foi <code>00:01 +8 -2: Some tests failed.</code>. Quantos testes passaram?</p>
+<div class="ex-code"><input data-answer="8" aria-label="testes que passaram"> testes passaram.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual nome de arquivo o <code>dart test</code> encontra sozinho?</p>
+<label><input type="radio" name="q3"> <code>test/teste_notas.dart</code></label>
+<label><input type="radio" name="q3"> <code>lib/notas_test.dart</code></label>
+<label><input type="radio" name="q3"> <code>test/notas_test.dart</code></label>
+<label><input type="radio" name="q3"> <code>test/notas.dart</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como conferir que <code>dividir(1, 0)</code> lança um <code>ArgumentError</code>?</p>
+<label><input type="radio" name="q4"> <code>expect(dividir(1, 0), throwsArgumentError);</code></label>
+<label><input type="radio" name="q4"> <code>expect(() =&gt; dividir(1, 0), throwsArgumentError);</code></label>
+<label><input type="radio" name="q4"> <code>expect(ArgumentError, dividir(1, 0));</code></label>
+<label><input type="radio" name="q4"> Não dá para testar exceções</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que usar <code>closeTo</code> em vez de <code>expect(x, 7.875)</code> para resultados <code>double</code>?</p>
+<label><input type="radio" name="q5"> Porque <code>expect</code> não aceita <code>double</code></label>
+<label><input type="radio" name="q5"> Porque <code>closeTo</code> é mais rápido</label>
+<label><input type="radio" name="q5"> Porque arredonda para inteiro</label>
+<label><input type="radio" name="q5"> Porque contas com <code>double</code> podem ter pequenos erros de arredondamento</label>
+</div>
+
+<h3>Missão final: escreva a função que os testes pedem</h3>
+
+<div class="trydart" data-goal="out:OK   10% de 50;;out:OK   sem desconto;;out:OK   25% de 80;;src:double\s+comDesconto">
+<p class="try-task"><strong>Missão:</strong> os testes já estão escritos (é assim que muita gente trabalha: primeiro o teste, depois o código). Escreva a função <code>double comDesconto(double preco, double porcento)</code>, que devolve <code>preco - preco * porcento / 100</code>, até os três testes darem OK.</p>
+<pre class="script" data-file="main.dart">// escreva a função comDesconto aqui
+
+void confere(String nome, Object obtido, Object esperado) {
+  final ok = obtido == esperado;
+  print('${ok ? 'OK  ' : 'FALHOU'} $nome${ok ? '' : ' (esperado: $esperado, obtido: $obtido)'}');
+}
+
+void main() {
+  confere('10% de 50', comDesconto(50, 10), 45.0);
+  confere('sem desconto', comDesconto(30, 0), 30.0);
+  confere('25% de 80', comDesconto(80, 25), 60.0);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double comDesconto(double preco, double porcento) {
+  return preco - preco * porcento / 100;
+}
+
+void confere(String nome, Object obtido, Object esperado) {
+  final ok = obtido == esperado;
+  print('${ok ? 'OK  ' : 'FALHOU'} $nome${ok ? '' : ' (esperado: $esperado, obtido: $obtido)'}');
+}
+
+void main() {
+  confere('10% de 50', comDesconto(50, 10), 45.0);
+  confere('sem desconto', comDesconto(30, 0), 30.0);
+  confere('25% de 80', comDesconto(80, 25), 60.0);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um teste prepara dados, executa a função e confere o resultado. O pacote <code>test</code> já vem em todo projeto do <code>dart create</code>.</li>
+  <li>Testes ficam em <code>test/*_test.dart</code>; cada um é um <code>test('nome', () { expect(obtido, esperado); })</code>, organizados com <code>group</code>.</li>
+  <li><code>dart test</code> roda tudo: <code>+N</code> passaram, <code>-N</code> falharam, código 0 ou 1.</li>
+  <li>Na falha, leia <code>Expected</code> (esperado), <code>Actual</code> (obtido) e a linha do <code>expect</code>.</li>
+  <li>Teste as fronteiras (o 7 exato, a lista vazia); use <code>closeTo</code> para <code>double</code> e <code>() =&gt;</code> com <code>throws…</code> para exceções.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
