@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart toString, == e hashCode — como um objeto aparece e se compara | Guia Dart</title>
+<meta name="description" content="toString, == e hashCode no Dart para quem nunca programou: o Instance of 'Produto', sobrescrever o toString, por que dois produtos iguais dão false no ==, identical, operator == com is, hashCode com Object.hash, o que acontece no Set e no Map sem hashCode, records que já comparam por valor, e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">toString, == e hashCode</span></h1>
+
+<p class="intro">Toda classe do Dart herda três coisas de <code>Object</code> (veja <a href="heranca.html">Herança</a>): o <code>toString()</code>, que diz como o objeto vira texto; o operador <code>==</code>, que diz quando dois objetos são iguais; e o <code>hashCode</code>, um número que o <code>Set</code> e o <code>Map</code> usam para achar as coisas depressa. As versões de <code>Object</code> funcionam, mas quase nunca do jeito que a Ana espera: o <code>print</code> mostra <code>Instance of 'Produto'</code>, e dois cafés de R$ 4,00 são "diferentes". Nesta aula, você vai sobrescrever os três.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que o <code>print</code> mostra <code>Instance of 'Produto'</code> e como trocar isso com <code>toString()</code>.</li>
+  <li>A diferença entre <strong>ser o mesmo objeto</strong> (<code>identical</code>) e <strong>ter os mesmos dados</strong>.</li>
+  <li>Como escrever o seu <code>operator ==</code>, com <code>Object other</code> e <code>is</code>.</li>
+  <li>Por que, ao mudar o <code>==</code>, é obrigatório mudar o <code>hashCode</code> (com <code>Object.hash</code>), e o que dá errado no <code>Set</code> e no <code>Map</code> se você esquecer.</li>
+  <li>Que os <a href="records.html">records</a> já fazem tudo isso sozinhos.</li>
+  <li>Os erros reais: parâmetro do <code>==</code> com o tipo errado, <code>toString</code> que não devolve texto, e o <code>as</code> dentro do <code>==</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Ajuda ter visto <a href="override.html">Sobrescrevendo (@override)</a>.</p>
+
+<hr>
+
+<h2>A ideia: gêmeos idênticos</h2>
+<p>Duas notas de R$ 10 são "iguais"? Para pagar o pão, sim: valem o mesmo. Mas são duas notas diferentes, cada uma com o seu número de série. Depende da pergunta:</p>
+<ul>
+  <li>"É <strong>a mesma</strong> nota?" (o mesmo objeto, no mesmo lugar da memória) → no Dart, <code>identical(a, b)</code>.</li>
+  <li>"<strong>Vale</strong> o mesmo?" (os mesmos dados) → no Dart, <code>a == b</code>, <strong>se</strong> você ensinar à classe o que "valer o mesmo" significa.</li>
+</ul>
+<p>O <code>==</code> que vem de <code>Object</code> responde à primeira pergunta: só dá <code>true</code> se for o mesmo objeto. Para os seus produtos, quase sempre você quer a segunda.</p>
+
+<hr>
+
+<h2>1. O <code>toString()</code> de fábrica e o seu</h2>
+
+<pre class="file" data-file="padrao.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final cafe = Produto('Café', 4.0);
+  print(cafe);
+  print('No carrinho: $cafe');
+  print([cafe, Produto('Bolo', 20.0)]);
+}
+</pre>
+
+<pre class="term">$ dart run padrao.dart
+Instance of 'Produto'
+No carrinho: Instance of 'Produto'
+[Instance of 'Produto', Instance of 'Produto']
+</pre>
+
+<p>"Uma instância de Produto": verdade, mas inútil. O <code>print</code>, a interpolação (<code>'$cafe'</code>) e o <code>print</code> de uma lista chamam o <code>toString()</code> de cada objeto, e o de <code>Object</code> só sabe o nome da classe. Sobrescrevendo:</p>
+
+<pre class="file" data-file="com_tostring.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String toString() =&gt; 'Produto($nome, R\$ ${preco.toStringAsFixed(2)})';
+}
+
+void main() {
+  final cafe = Produto('Café', 4.0);
+  print(cafe);
+  print('No carrinho: $cafe');
+  print([cafe, Produto('Bolo', 20.0)]);
+  print(cafe.toString().length);
+}
+</pre>
+
+<pre class="term">$ dart run com_tostring.dart
+Produto(Café, R$ 4.00)
+No carrinho: Produto(Café, R$ 4.00)
+[Produto(Café, R$ 4.00), Produto(Bolo, R$ 20.00)]
+22
+</pre>
+
+<dl class="anatomy">
+  <dt>@override</dt><dd>Estamos substituindo o <code>toString()</code> herdado de <code>Object</code>.</dd>
+  <dt>String toString()</dt><dd>Tem de ser exatamente assim: nome <code>toString</code>, sem parâmetros, devolvendo <code>String</code>.</dd>
+  <dt>'Produto($nome, R\$ …)'</dt><dd>O formato é você quem escolhe. O costume é <code>NomeDaClasse(dados)</code>, que facilita achar erros: ao imprimir uma lista, você vê o que tem dentro.</dd>
+</dl>
+
+<p>Até a lista ficou legível, e você não chamou <code>toString()</code> em lugar nenhum: o Dart chama sozinho. (A última linha mostra que dá para chamar à mão também: o texto tem 22 caracteres.)</p>
+
+<hr>
+
+<h2>2. O <code>==</code> de fábrica compara se é o mesmo objeto</h2>
+
+<pre class="file" data-file="igual_padrao.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final a = Produto('Café', 4.0);
+  final b = Produto('Café', 4.0);
+  final c = a;
+
+  print(a == b);
+  print(a == c);
+  print(identical(a, c));
+  print('Café' == 'Café');
+  print(4.0 == 4);
+  print([a].contains(b));
+}
+</pre>
+
+<pre class="term">$ dart run igual_padrao.dart
+false
+true
+true
+true
+true
+false
+</pre>
+
+<ul>
+  <li><code>a == b</code> deu <code>false</code>: são dois objetos criados separadamente (duas notas de R$ 10). Os dados são iguais, mas o <code>==</code> de <code>Object</code> não olha os dados.</li>
+  <li><code>a == c</code> deu <code>true</code>: <code>final c = a;</code> não criou outro produto; <code>c</code> é outro nome para <strong>o mesmo</strong>. O <code>identical(a, c)</code> confirma.</li>
+  <li><code>'Café' == 'Café'</code> e <code>4.0 == 4</code> deram <code>true</code>: os tipos do Dart (<code>String</code>, <code>int</code>, <code>double</code>, <code>bool</code>…) já vêm com um <code>==</code> que compara valores. As <strong>suas</strong> classes, não.</li>
+  <li><code>[a].contains(b)</code> deu <code>false</code>: o <code>contains</code> das listas usa o <code>==</code>. A Ana procuraria um café no carrinho e não acharia.</li>
+</ul>
+
+<hr>
+
+<h2>3. Escrevendo o seu <code>==</code> e o seu <code>hashCode</code></h2>
+
+<pre class="file" data-file="igual_proprio.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  bool operator ==(Object other) =&gt;
+      other is Produto &amp;&amp; other.nome == nome &amp;&amp; other.preco == preco;
+
+  @override
+  int get hashCode =&gt; Object.hash(nome, preco);
+
+  @override
+  String toString() =&gt; 'Produto($nome, $preco)';
+}
+
+void main() {
+  final a = Produto('Café', 4.0);
+  final b = Produto('Café', 4.0);
+  final d = Produto('Café', 4.5);
+
+  print(a == b);
+  print(a == d);
+  print(identical(a, b));
+  print([a].contains(b));
+  print(a.hashCode == b.hashCode);
+  print(a == 'Café');
+
+  final vitrine = {a, b, d};
+  print(vitrine);
+  print(vitrine.length);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>bool operator ==(Object other)</dt><dd>Operadores também são métodos, e se sobrescrevem com a palavra <code>operator</code>. O parâmetro <strong>tem de ser <code>Object</code></strong>, porque dá para comparar um produto com qualquer coisa (um texto, um número). O nome <code>other</code> ("o outro") é o costume.</dd>
+  <dt>other is Produto &amp;&amp; …</dt><dd>Primeiro pergunta se o outro <strong>é</strong> um produto. Se não for, o <code>&amp;&amp;</code> para ali e o resultado é <code>false</code>. Se for, o Dart passa a tratá-lo como <code>Produto</code> (promoção de tipo), e <code>other.nome</code> funciona.</dd>
+  <dt>other.nome == nome &amp;&amp; other.preco == preco</dt><dd>A sua definição de "iguais": mesmo nome <strong>e</strong> mesmo preço.</dd>
+  <dt>int get hashCode =&gt; Object.hash(nome, preco);</dt><dd>O <code>hashCode</code> é um getter que devolve um número calculado a partir dos <strong>mesmos campos</strong> usados no <code>==</code>. <code>Object.hash</code> faz a conta para você, com quantos campos quiser.</dd>
+</dl>
+
+<pre class="term">$ dart run igual_proprio.dart
+true
+false
+false
+true
+true
+false
+{Produto(Café, 4.0), Produto(Café, 4.5)}
+2
+</pre>
+
+<p>Agora <code>a == b</code> é <code>true</code> (mesmos dados), mesmo não sendo o mesmo objeto (<code>identical</code> continua <code>false</code>). O café de R$ 4,50 é diferente. Comparar com um texto dá <code>false</code>, sem erro. E o <code>Set</code> (veja <a href="set.html">Conjuntos</a>), que não guarda repetidos, ficou com <strong>dois</strong> produtos, não três: ele percebeu que <code>a</code> e <code>b</code> são o mesmo café.</p>
+
+<div class="tip">
+<strong>A regra de ouro</strong>
+<p>Se dois objetos são <code>==</code>, eles <strong>têm de</strong> ter o mesmo <code>hashCode</code>. Por isso: <strong>mudou o <code>==</code>, mude o <code>hashCode</code></strong>, usando os mesmos campos. (O contrário não precisa: objetos diferentes podem, raramente, ter o mesmo <code>hashCode</code>.) E prefira campos <code>final</code>: se o preço mudasse depois de o produto entrar num <code>Set</code>, o <code>hashCode</code> mudaria e o <code>Set</code> se perderia.</p>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> mude o <code>==</code> para comparar <strong>só o nome</strong> (apague o <code>&amp;&amp; other.preco == preco</code>) e o <code>hashCode</code> para <code>nome.hashCode</code>. Quantos produtos ficam na vitrine agora?</p>
+<pre class="script" data-file="main.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  bool operator ==(Object other) =&gt;
+      other is Produto &amp;&amp; other.nome == nome &amp;&amp; other.preco == preco;
+
+  @override
+  int get hashCode =&gt; Object.hash(nome, preco);
+
+  @override
+  String toString() =&gt; 'Produto($nome, $preco)';
+}
+
+void main() {
+  final vitrine = {
+    Produto('Café', 4.0),
+    Produto('Café', 4.0),
+    Produto('Café', 4.5),
+  };
+  print(vitrine);
+  print(vitrine.length);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O que acontece se esquecer o <code>hashCode</code></h2>
+<p>Este é o erro mais traiçoeiro da aula, porque o Dart não reclama de nada. O <code>==</code> foi sobrescrito, o <code>hashCode</code> não:</p>
+
+<pre class="file" data-file="sem_hashcode.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  bool operator ==(Object other) =&gt;
+      other is Produto &amp;&amp; other.nome == nome &amp;&amp; other.preco == preco;
+
+  @override
+  String toString() =&gt; 'Produto($nome, $preco)';
+}
+
+void main() {
+  final a = Produto('Café', 4.0);
+  final b = Produto('Café', 4.0);
+  print(a == b);
+  final vitrine = {a, b};
+  print(vitrine.length);
+  final estoque = {a: 10};
+  print(estoque[b]);
+}
+</pre>
+
+<pre class="term">$ dart run sem_hashcode.dart
+true
+2
+null
+</pre>
+
+<p>O <code>==</code> diz que <code>a</code> e <code>b</code> são iguais, mas o <code>Set</code> guardou os dois, e o <code>Map</code> (veja <a href="map.html">Mapas</a>) não achou o estoque do café ao procurar com <code>b</code>: deu <code>null</code>. Por quê? O <code>Set</code> e o <code>Map</code> funcionam como um armário de gavetas numeradas: primeiro usam o <code>hashCode</code> para escolher a <strong>gaveta</strong>, e só dentro dela usam o <code>==</code>. Com o <code>hashCode</code> de <code>Object</code>, cada objeto cai numa gaveta diferente, e o <code>==</code> nem chega a ser chamado. Com o <code>hashCode</code> da seção 3, o mesmo <code>estoque[b]</code> devolve <code>10</code> (conferido no lab).</p>
+
+<div class="note">
+<strong>O analisador avisa</strong>
+<p>O <code>dart run</code> não reclama, mas o <code>dart analyze</code> (aula <a href="analise.html">Análise e Formatação</a>) tem uma regra exatamente para isso. Num projeto criado com <code>dart create</code> (que já liga as regras recomendadas), este mesmo arquivo, posto em <code>bin/</code>, deu no lab:</p>
+<pre class="term">$ dart analyze bin/sem_hashcode.dart
+Analyzing sem_hashcode.dart...
+
+   info - sem_hashcode.dart:8:17 - Missing a corresponding override of 'hashCode'. Try overriding 'hashCode' or removing '=='. - hash_and_equals
+
+1 issue found.
+</pre>
+<p>"Falta a sobrescrita correspondente de <code>hashCode</code>. Sobrescreva o <code>hashCode</code> ou remova o <code>==</code>." (Num arquivo solto, fora de um projeto, essa regra não está ligada e o <code>dart analyze</code> responde <code>No issues found!</code>.) Os editores de código também têm um atalho que gera os dois juntos.</p>
+</div>
+
+<hr>
+
+<h2>5. Records já comparam por valor</h2>
+<p>Se você só precisa agrupar alguns dados, sem métodos, os <a href="records.html">records</a> (Dart 3.0) já vêm com <code>toString</code>, <code>==</code> e <code>hashCode</code> prontos, comparando os campos:</p>
+
+<pre class="file" data-file="record.dart">void main() {
+  final a = (nome: 'Café', preco: 4.0);
+  final b = (nome: 'Café', preco: 4.0);
+  print(a);
+  print(a == b);
+  print({a, b}.length);
+}
+</pre>
+
+<pre class="term">$ dart run record.dart
+(nome: Café, preco: 4.0)
+true
+1
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>O <code>print</code> do objeto mostra <code>Instance of '…'</code></td><td>Sobrescreva <code>toString()</code></td></tr>
+<tr><td>Dois objetos com os mesmos dados devem ser "iguais" (no <code>==</code>, <code>contains</code>, <code>Set</code>, chave de <code>Map</code>)</td><td>Sobrescreva <code>==</code> <strong>e</strong> <code>hashCode</code>, com os mesmos campos</td></tr>
+<tr><td>Só quero saber se é exatamente o mesmo objeto</td><td><code>identical(a, b)</code></td></tr>
+<tr><td>Só agrupar dados, sem métodos</td><td>Um record: <code>(nome: 'Café', preco: 4.0)</code></td></tr>
+<tr><td>Cada objeto é único mesmo com dados iguais (duas contas bancárias com saldo zero <strong>não</strong> são a mesma conta)</td><td>Não sobrescreva <code>==</code>: o de <code>Object</code> é o certo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O parâmetro do <code>==</code> com o tipo da sua classe</strong>
+<pre class="file" data-file="erro_param.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  bool operator ==(Produto other) =&gt; other.nome == nome &amp;&amp; other.preco == preco;
+
+  @override
+  int get hashCode =&gt; Object.hash(nome, preco);
+}
+
+void main() {
+  print(Produto('Café', 4.0) == Produto('Café', 4.0));
+}
+</pre>
+<pre class="term">$ dart run erro_param.dart
+erro_param.dart:8:28: Error: The parameter 'other' of the method 'Produto.==' has type 'Produto', which does not match the corresponding type, 'Object', in the overridden method, 'Object.=='.
+ - 'Produto' is from 'erro_param.dart'.
+ - 'Object' is from 'dart:core'.
+Change to a supertype of 'Object', or, for a covariant parameter, a subtype.
+  bool operator ==(Produto other) =&gt; other.nome == nome &amp;&amp; other.preco == preco;
+                           ^
+org-dartlang-sdk:///sdk/lib/_internal/vm/lib/object_patch.dart:21:26: Context: This is the overridden method ('==').
+  external bool operator ==(Object other);
+                         ^
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro_param.dart:8:28: Error:</code> erro de compilação (código 254), linha 8, no <code>other</code>.</li>
+  <li>"O parâmetro <code>other</code> do método <code>Produto.==</code> tem o tipo <code>Produto</code>, que não combina com o tipo correspondente, <code>Object</code>, no método sobrescrito, <code>Object.==</code>." A versão de <code>Object</code> aceita qualquer coisa; a sua não pode aceitar menos.</li>
+  <li>As duas linhas com tracinho dizem de onde vem cada tipo (<code>Object</code> vem de <code>dart:core</code>, a biblioteca básica do Dart).</li>
+  <li>"Troque por um supertipo de <code>Object</code>…" (a parte do <em>covariant</em> é um recurso avançado; ignore).</li>
+  <li>O <code>Context:</code> mostra a versão original, <strong>dentro do próprio Dart</strong> (<code>org-dartlang-sdk:///sdk/…</code>): é o <code>==</code> de <code>Object</code>, declarado como <code>external bool operator ==(Object other);</code>. Você não precisa abrir esse arquivo; ele está ali só para comparação.</li>
+</ul>
+<p><strong>Como consertar:</strong> <code>bool operator ==(Object other) =&gt; other is Produto &amp;&amp; …</code>, como na seção 3.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>toString()</code> devolve outra coisa que não texto</strong>
+<pre class="file" data-file="erro_tostring.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String toString() =&gt; preco;
+}
+
+void main() {
+  print(Produto('Café', 4.0));
+}
+</pre>
+<pre class="term">$ dart run erro_tostring.dart
+erro_tostring.dart:8:24: Error: A value of type 'double' can't be returned from a function with return type 'String'.
+  String toString() =&gt; preco;
+                       ^
+</pre>
+<p>"Um valor do tipo <code>double</code> não pode ser devolvido por uma função com tipo de retorno <code>String</code>." <strong>Como consertar:</strong> <code>'$preco'</code> ou <code>preco.toString()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>as</code> dentro do <code>==</code> (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_cast.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  bool operator ==(Object other) {
+    final outro = other as Produto;
+    return outro.nome == nome &amp;&amp; outro.preco == preco;
+  }
+
+  @override
+  int get hashCode =&gt; Object.hash(nome, preco);
+}
+
+void main() {
+  final cafe = Produto('Café', 4.0);
+  print(cafe == Produto('Café', 4.0));
+  print(cafe == 'Café');
+}
+</pre>
+<pre class="term">$ dart run erro_cast.dart
+true
+Unhandled exception:
+type 'String' is not a subtype of type 'Produto' in type cast
+#0      Produto.== (file:///home/ana/erro_cast.dart:9:25)
+#1      main (file:///home/ana/erro_cast.dart:20:14)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Compilou (o parâmetro é <code>Object</code>, como manda a regra) e a primeira comparação funcionou. Na segunda, o "outro" era um texto, e o <code>other as Produto</code> estourou: "o tipo <code>String</code> não é um subtipo de <code>Produto</code>". No stack trace, <code>#0 Produto.==</code> é o seu operador, linha 9 (o <code>as</code>); <code>#1 main</code>, linha 20, é quem comparou. Código de saída 255. Um <code>==</code> nunca deve lançar exceção: comparar coisas diferentes deve só dar <code>false</code>. <strong>Como consertar:</strong> troque o <code>as</code> pelo <code>is</code>: <code>other is Produto &amp;&amp; other.nome == nome &amp;&amp; …</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>@override String toString() =&gt; 'Produto($nome)';</code></td><td>Texto do objeto no <code>print</code>, na interpolação e nas listas</td></tr>
+<tr><td><code>@override bool operator ==(Object other) =&gt; other is Produto &amp;&amp; …;</code></td><td>Define quando dois objetos são iguais</td></tr>
+<tr><td><code>@override int get hashCode =&gt; Object.hash(nome, preco);</code></td><td>Número usado por <code>Set</code> e <code>Map</code>; mesmos campos do <code>==</code></td></tr>
+<tr><td><code>identical(a, b)</code></td><td><code>true</code> só se for o mesmo objeto</td></tr>
+<tr><td><code>Instance of 'X'</code></td><td>O <code>toString</code> de fábrica</td></tr>
+<tr><td><code>(nome: 'Café', preco: 4.0)</code></td><td>Record: <code>toString</code>, <code>==</code> e <code>hashCode</code> prontos</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma ou mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Instance of 'Produto'</code> no <code>print</code></td><td>Faltou sobrescrever <code>toString()</code></td></tr>
+<tr><td>Dois objetos com os mesmos dados dão <code>false</code> no <code>==</code></td><td>Faltou sobrescrever <code>==</code></td></tr>
+<tr><td><code>Set</code> com repetidos, <code>Map</code> que devolve <code>null</code> para uma chave "igual"</td><td>Sobrescreveu <code>==</code> e esqueceu o <code>hashCode</code></td></tr>
+<tr><td><code>The parameter 'other' of the method 'X.==' has type 'X', which does not match … 'Object'</code></td><td>O parâmetro do <code>==</code> tem de ser <code>Object</code></td></tr>
+<tr><td><code>type 'String' is not a subtype of type 'X' in type cast</code> vindo de <code>X.==</code></td><td><code>as</code> dentro do <code>==</code>; use <code>is</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o <code>==</code></h3>
+<div class="ex-code">@override<br>bool operator ==(<input data-answer="Object" aria-label="tipo do parâmetro"> other) =&gt;<br>&nbsp;&nbsp;&nbsp;&nbsp;other <input data-answer="is" aria-label="operador de tipo"> Produto &amp;&amp; other.nome == nome;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o <code>hashCode</code></h3>
+<div class="ex-code">@override<br>int get hashCode =&gt; Object.<input data-answer="hash" aria-label="método">(nome, preco);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Sem sobrescrever nada, <code>Produto('Café', 4.0) == Produto('Café', 4.0)</code> dá:</p>
+<label><input type="radio" name="q3"> <code>true</code>, porque os dados são iguais</label>
+<label><input type="radio" name="q3"> <code>false</code>, porque são dois objetos diferentes</label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Exceção durante a execução</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. A Ana sobrescreveu o <code>==</code> mas não o <code>hashCode</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> O <code>==</code> para de funcionar</label>
+<label><input type="radio" name="q4"> Exceção ao criar o objeto</label>
+<label><input type="radio" name="q4"> O programa roda, mas <code>Set</code> e <code>Map</code> tratam objetos "iguais" como diferentes</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual destas comparações já dá <code>true</code> sem você escrever nada?</p>
+<label><input type="radio" name="q5"> <code>(nome: 'Café', preco: 4.0) == (nome: 'Café', preco: 4.0)</code></label>
+<label><input type="radio" name="q5"> <code>Produto('Café', 4.0) == Produto('Café', 4.0)</code></label>
+<label><input type="radio" name="q5"> <code>identical(Produto('Café', 4.0), Produto('Café', 4.0))</code></label>
+<label><input type="radio" name="q5"> Nenhuma</label>
+</div>
+
+<h3>Missão final: clientes sem repetição</h3>
+
+<div class="trydart" data-goal="out:{Cliente(Bia), Cliente(Caio)};;out:2 clientes">
+<p class="try-task"><strong>Missão:</strong> a Bia foi cadastrada duas vezes, e o <code>Set</code> não percebeu. Faça a classe <code>Cliente</code> mostrar <code>Cliente(Bia)</code> no <code>print</code> e considerar iguais os clientes com o <strong>mesmo telefone</strong> (sobrescreva <code>toString</code>, <code>==</code> e <code>hashCode</code>). A saída deve ser <code>{Cliente(Bia), Cliente(Caio)}</code> e <code>2 clientes</code>.</p>
+<pre class="script" data-file="main.dart">class Cliente {
+  final String nome;
+  final String telefone;
+
+  Cliente(this.nome, this.telefone);
+}
+
+void main() {
+  final clientes = {
+    Cliente('Bia', '99999-1234'),
+    Cliente('Bia', '99999-1234'),
+    Cliente('Caio', '98888-0000'),
+  };
+  print(clientes);
+  print('${clientes.length} clientes');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Cliente {
+  final String nome;
+  final String telefone;
+
+  Cliente(this.nome, this.telefone);
+
+  @override
+  String toString() =&gt; 'Cliente($nome)';
+
+  @override
+  bool operator ==(Object other) =&gt; other is Cliente &amp;&amp; other.telefone == telefone;
+
+  @override
+  int get hashCode =&gt; telefone.hashCode;
+}
+
+void main() {
+  final clientes = {
+    Cliente('Bia', '99999-1234'),
+    Cliente('Bia', '99999-1234'),
+    Cliente('Caio', '98888-0000'),
+  };
+  print(clientes);
+  print('${clientes.length} clientes');
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial mostrou <code>{Instance of 'Cliente', Instance of 'Cliente', Instance of 'Cliente'}</code> e <code>3 clientes</code>; a solução, <code>{Cliente(Bia), Cliente(Caio)}</code> e <code>2 clientes</code>. Com um campo só, o <code>hashCode</code> pode ser o do próprio campo (<code>telefone.hashCode</code>).</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Toda classe herda <code>toString()</code>, <code>==</code> e <code>hashCode</code> de <code>Object</code>.</li>
+  <li><code>toString()</code> de fábrica dá <code>Instance of 'X'</code>; sobrescreva para o <code>print</code> e as listas ficarem legíveis.</li>
+  <li>O <code>==</code> de fábrica só diz se é <strong>o mesmo objeto</strong> (como <code>identical</code>). Para comparar dados, sobrescreva <code>bool operator ==(Object other)</code> com <code>other is X &amp;&amp; …</code>, nunca com <code>as</code>.</li>
+  <li>Mudou o <code>==</code>, mude o <code>hashCode</code> com os mesmos campos (<code>Object.hash(a, b)</code>). Sem isso, nada reclama, mas <code>Set</code> e <code>Map</code> erram calados.</li>
+  <li>Records já comparam por valor e se mostram bem no <code>print</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
