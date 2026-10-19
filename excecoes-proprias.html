@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Exceções Próprias — criando os seus tipos de exceção | Guia Dart</title>
+<meta name="description" content="Exceções próprias no Dart para quem nunca programou: class X implements Exception, campos com os detalhes do problema, toString para a mensagem, on X para pegar só o seu tipo, uma família de exceções com classe abstrata, sealed com switch, e os erros reais do Dart 3.13 (extends Exception, Instance of).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Exceções Próprias</span></h1>
+
+<p class="intro">Com o <a href="throw.html">throw</a> você já lança <code>Exception('Saldo insuficiente')</code>. Funciona, mas tem dois problemas: quem pega a exceção só recebe um <strong>texto</strong> (e se quiser saber quanto faltou?), e não dá para escrever um <code>on</code> só para "saldo insuficiente", porque toda <code>Exception('…')</code> é do mesmo tipo. A solução é criar o <strong>seu próprio tipo</strong> de exceção: uma classe com um nome que diz o problema e campos com os detalhes.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar uma exceção própria: <code>class SaldoInsuficienteException implements Exception</code>.</li>
+  <li>Por que ela aparece como <code>Instance of '…'</code>, e como o <code>toString</code> dá a ela uma mensagem.</li>
+  <li>Como guardar os detalhes do problema em campos e usá-los no <code>catch</code>.</li>
+  <li>Como montar uma família de exceções e pegar todas de uma vez com um <code>on</code> só.</li>
+  <li>Os erros reais: <code>extends Exception</code> e a classe que esqueceu o <code>implements Exception</code>.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="classes.html">classes</a>, <a href="construtores.html">construtores</a>, <a href="override.html">@override</a> e <a href="heranca.html">herança</a>. Todos os programas rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário de reclamação</h2>
+<p>Na padaria, quando algo dá errado com um pedido, a Ana não escreve só "deu problema" num papel. Ela preenche um <strong>formulário de reclamação</strong> com o tipo do problema marcado ("produto em falta", "pagamento recusado") e os detalhes: qual produto, quantos faltaram. Com o formulário, o gerente sabe na hora quem resolve e o que fazer.</p>
+<p>Uma exceção própria é esse formulário:</p>
+<ul>
+  <li>o <strong>nome da classe</strong> é o tipo do problema (<code>SaldoInsuficienteException</code>), e é por ele que o <code>on</code> separa os casos;</li>
+  <li>os <strong>campos</strong> são os detalhes (<code>pedido</code>, <code>saldo</code>);</li>
+  <li>o <strong><code>toString</code></strong> é o resumo escrito que aparece quando alguém mostra a exceção.</li>
+</ul>
+
+<hr>
+
+<h2>1. A primeira exceção própria</h2>
+
+<pre class="file" data-file="p1.dart">class SaldoInsuficienteException implements Exception {
+  final int pedido;
+  final int saldo;
+
+  SaldoInsuficienteException(this.pedido, this.saldo);
+}
+
+void main() {
+  throw SaldoInsuficienteException(500, 70);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class SaldoInsuficienteException</dt><dd>Uma classe comum. O nome termina em <code>Exception</code> por costume (o guia de estilo do Dart recomenda): quem lê já sabe para que ela serve.</dd>
+  <dt>implements Exception</dt><dd>"Implementa <code>Exception</code>" (veja <a href="interfaces.html">Interfaces</a>): avisa que esta classe <strong>é uma exceção</strong>. Assim, um <code>on Exception</code> também a pega, e qualquer pessoa que leia o código entende o papel dela.</dd>
+  <dt>final int pedido; final int saldo;</dt><dd>Os detalhes do problema, guardados na exceção.</dd>
+  <dt>SaldoInsuficienteException(this.pedido, this.saldo);</dt><dd>O construtor que preenche os campos.</dd>
+  <dt>throw SaldoInsuficienteException(500, 70);</dt><dd>Cria uma exceção desse tipo, com os detalhes, e a lança.</dd>
+</dl>
+
+<pre class="term">$ dart run p1.dart
+Unhandled exception:
+Instance of 'SaldoInsuficienteException'
+#0      main (file:///home/ana/p1.dart:9:3)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>Funcionou, mas a mensagem não ajuda: <code>Instance of 'SaldoInsuficienteException'</code> quer dizer só "um objeto da classe <code>SaldoInsuficienteException</code>". É o que todo objeto mostra quando a classe não diz como deve ser escrita. Falta o <code>toString</code>.</p>
+
+<hr>
+
+<h2>2. <code>toString</code>: a mensagem da exceção</h2>
+<p>Quando o Dart precisa mostrar um objeto como texto (num <code>print</code>, num <code>$e</code>, no <code>Unhandled exception</code>), ele chama o método <code>toString()</code> do objeto (veja <a href="tostring-igualdade.html">toString, == e hashCode</a>). Escrevendo o seu, você decide a mensagem. E dá para acrescentar o que mais quiser, como um <code>get</code> que calcula quanto falta:</p>
+
+<pre class="file" data-file="p2.dart">class SaldoInsuficienteException implements Exception {
+  final int pedido;
+  final int saldo;
+
+  SaldoInsuficienteException(this.pedido, this.saldo);
+
+  int get falta =&gt; pedido - saldo;
+
+  @override
+  String toString() =&gt;
+      'SaldoInsuficienteException: pediu R\$ $pedido, tem R\$ $saldo';
+}
+
+var saldo = 70;
+
+void sacar(int valor) {
+  if (valor &gt; saldo) {
+    throw SaldoInsuficienteException(valor, saldo);
+  }
+  saldo -= valor;
+  print('Saque de R\$ $valor. Saldo: R\$ $saldo');
+}
+
+void main() {
+  for (final pedido in [20, 500]) {
+    try {
+      sacar(pedido);
+    } on SaldoInsuficienteException catch (e) {
+      print('Recusado: $e');
+      print('Faltam R\$ ${e.falta}.');
+    }
+  }
+  sacar(90);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>int get falta =&gt; pedido - saldo;</dt><dd>Um <a href="getters-setters.html">getter</a>: quem pegar a exceção pode perguntar <code>e.falta</code>.</dd>
+  <dt>@override String toString() =&gt; '…';</dt><dd>Troca o <code>Instance of '…'</code> por uma mensagem útil. Começar com o nome do tipo (<code>SaldoInsuficienteException: </code>) imita as exceções do próprio Dart.</dd>
+  <dt>on SaldoInsuficienteException catch (e)</dt><dd>Pega <strong>só</strong> este tipo. Como o Dart sabe o tipo de <code>e</code>, dá para usar os campos e o getter: <code>e.falta</code>, <code>e.pedido</code>.</dd>
+  <dt>sacar(90);</dt><dd>Fora do <code>try</code>, de propósito, para ver como fica a exceção não tratada.</dd>
+</dl>
+
+<pre class="term">$ dart run p2.dart
+Saque de R$ 20. Saldo: R$ 50
+Recusado: SaldoInsuficienteException: pediu R$ 500, tem R$ 50
+Faltam R$ 450.
+Unhandled exception:
+SaldoInsuficienteException: pediu R$ 90, tem R$ 50
+#0      sacar (file:///home/ana/p2.dart:18:5)
+#1      main (file:///home/ana/p2.dart:33:3)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>Agora o <code>catch</code> tem números de verdade para trabalhar (<code>Faltam R$ 450.</code>), e até o <code>Unhandled exception</code> ficou legível: o Dart usou o seu <code>toString</code>.</p>
+
+<div class="trydart" data-goal="out:Cupom inválido: XYZ10">
+<p class="try-task"><strong>Missão:</strong> rode e veja a mensagem sem graça (<code>Instance of …</code>). Depois acrescente na classe um <code>toString</code> que devolva <code>'Cupom inválido: $codigo'</code> (não esqueça o <code>@override</code>).</p>
+<pre class="script" data-file="main.dart">class CupomInvalidoException implements Exception {
+  final String codigo;
+  CupomInvalidoException(this.codigo);
+}
+
+void main() {
+  try {
+    throw CupomInvalidoException('XYZ10');
+  } on CupomInvalidoException catch (e) {
+    print(e);
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class CupomInvalidoException implements Exception {
+  final String codigo;
+  CupomInvalidoException(this.codigo);
+
+  @override
+  String toString() =&gt; 'Cupom inválido: $codigo';
+}
+
+void main() {
+  try {
+    throw CupomInvalidoException('XYZ10');
+  } on CupomInvalidoException catch (e) {
+    print(e);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Uma família de exceções</h2>
+<p>A padaria tem vários problemas possíveis num pedido: o produto não existe, o estoque não dá. Às vezes você quer tratar cada um de um jeito; às vezes quer só dizer "pedido recusado" para todos. Para os dois casos, crie uma classe-mãe para a família e uma filha para cada problema:</p>
+
+<pre class="file" data-file="p3.dart">abstract class PedidoException implements Exception {
+  final String mensagem;
+  PedidoException(this.mensagem);
+
+  @override
+  String toString() =&gt; '$runtimeType: $mensagem';
+}
+
+class ProdutoNaoEncontrado extends PedidoException {
+  ProdutoNaoEncontrado(String produto) : super('não temos "$produto"');
+}
+
+class EstoqueInsuficiente extends PedidoException {
+  final int faltam;
+  EstoqueInsuficiente(String produto, this.faltam)
+      : super('faltam $faltam de "$produto"');
+}
+
+final estoque = {'pão': 30, 'bolo': 2};
+
+void vender(String produto, int qtd) {
+  final tem = estoque[produto];
+  if (tem == null) {
+    throw ProdutoNaoEncontrado(produto);
+  }
+  if (qtd &gt; tem) {
+    throw EstoqueInsuficiente(produto, qtd - tem);
+  }
+  estoque[produto] = tem - qtd;
+  print('Vendeu $qtd $produto');
+}
+
+void main() {
+  final pedidos = [('pão', 10), ('pizza', 1), ('bolo', 5)];
+  for (final (produto, qtd) in pedidos) {
+    try {
+      vender(produto, qtd);
+    } on EstoqueInsuficiente catch (e) {
+      print('Encomendar ${e.faltam}: $e');
+    } on PedidoException catch (e) {
+      print('Pedido recusado: $e');
+    }
+  }
+  print(estoque);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>abstract class PedidoException implements Exception</dt><dd>A mãe da família. É <a href="abstract.html">abstrata</a>: ninguém lança uma <code>PedidoException</code> "genérica", só as filhas. O <code>toString</code> dela usa o <code>runtimeType</code> (o nome da classe filha) e a mensagem, e vale para todas as filhas.</dd>
+  <dt>class ProdutoNaoEncontrado extends PedidoException</dt><dd>Uma filha (veja <a href="heranca.html">Herança</a>). O <code>: super('…')</code> passa a mensagem pronta para o construtor da mãe.</dd>
+  <dt>class EstoqueInsuficiente … final int faltam;</dt><dd>Outra filha, com um detalhe a mais: quantos faltam.</dd>
+  <dt>on EstoqueInsuficiente … on PedidoException</dt><dd>O primeiro <code>on</code> trata o caso específico (e usa o <code>e.faltam</code>). O segundo pega <strong>qualquer</strong> outra exceção da família. A ordem importa: do mais específico para o mais geral.</dd>
+  <dt>for (final (produto, qtd) in pedidos)</dt><dd>Cada pedido é um <a href="records.html">record</a> com o produto e a quantidade, desmontado direto no <code>for</code> (veja <a href="patterns.html">Patterns</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run p3.dart
+Vendeu 10 pão
+Pedido recusado: ProdutoNaoEncontrado: não temos "pizza"
+Encomendar 3: EstoqueInsuficiente: faltam 3 de "bolo"
+{pão: 20, bolo: 2}
+</pre>
+
+<p>A pizza caiu no <code>on PedidoException</code> (não havia um <code>on</code> só para <code>ProdutoNaoEncontrado</code>, mas ela é da família). O bolo caiu no <code>on EstoqueInsuficiente</code>, que veio antes. O estoque do bolo não mudou, porque o <code>throw</code> parou a venda.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Com uma família <a href="modificadores-classe.html"><code>sealed</code></a> (selada: todas as filhas ficam no mesmo arquivo), o Dart sabe quais são <strong>todas</strong> as exceções da família. Aí você pega a mãe com um <code>on</code> só e trata cada filha numa <a href="switch.html">expressão <code>switch</code></a>, e o Dart reclama se você esquecer alguma:</p>
+
+<pre class="file" data-file="selada.dart">sealed class PagamentoException implements Exception {}
+
+class CartaoRecusado extends PagamentoException {
+  final String motivo;
+  CartaoRecusado(this.motivo);
+}
+
+class PixExpirado extends PagamentoException {
+  final int minutos;
+  PixExpirado(this.minutos);
+}
+
+String explicar(PagamentoException e) =&gt; switch (e) {
+      CartaoRecusado(:final motivo) =&gt; 'Cartão recusado: $motivo',
+      PixExpirado(:final minutos) =&gt; 'O Pix expirou depois de $minutos minutos',
+    };
+
+void pagar(int caso) {
+  if (caso == 1) throw CartaoRecusado('sem limite');
+  if (caso == 2) throw PixExpirado(30);
+  print('Pago!');
+}
+
+void main() {
+  for (final caso in [0, 1, 2]) {
+    try {
+      pagar(caso);
+    } on PagamentoException catch (e) {
+      print(explicar(e));
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run selada.dart
+Pago!
+Cartão recusado: sem limite
+O Pix expirou depois de 30 minutos
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um problema simples, que ninguém vai tratar de um jeito especial</td><td><code>throw Exception('motivo')</code> ou <code>StateError</code>/<code>ArgumentError</code> (aula <a href="throw.html">throw</a>)</td></tr>
+<tr><td>Quem chama precisa reconhecer o problema ou usar os detalhes</td><td>Uma classe <code>… implements Exception</code> com campos e <code>toString</code></td></tr>
+<tr><td>Vários problemas parecidos, às vezes tratados juntos</td><td>Uma mãe <code>abstract</code> e filhas com <code>extends</code></td></tr>
+<tr><td>Tratar cada caso, sem esquecer nenhum</td><td>Uma mãe <code>sealed</code> e um <code>switch</code></td></tr>
+<tr><td>Um engano de programação (não é para tratar)</td><td>Os <code>Error</code> do Dart (<code>ArgumentError</code>, <code>StateError</code>…); não crie exceção própria para isso</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>extends Exception</code></strong>
+<pre class="file" data-file="p5.dart">class SaldoInsuficienteException extends Exception {
+  final int falta;
+  SaldoInsuficienteException(this.falta);
+}
+
+void main() {
+  throw SaldoInsuficienteException(30);
+}
+</pre>
+<pre class="term">$ dart run p5.dart
+p5.dart:1:42: Error: The class 'Exception' can't be extended outside of its library because it's an interface class.
+class SaldoInsuficienteException extends Exception {
+                                         ^
+p5.dart:3:3: Error: The superclass, 'Exception', has no unnamed constructor that takes no arguments.
+  SaldoInsuficienteException(this.falta);
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+</pre>
+<p>Duas mensagens:</p>
+<dl class="anatomy">
+  <dt>The class 'Exception' can't be extended outside of its library because it's an interface class.</dt><dd>"A classe <code>Exception</code> não pode ser estendida fora da biblioteca dela, porque é uma <code>interface class</code>." No Dart 3, <code>Exception</code> é marcada como <code>interface</code> (veja <a href="modificadores-classe.html">sealed, final, base e interface</a>): de fora, só dá para <strong>implementá-la</strong>, nunca herdar dela.</dd>
+  <dt>The superclass, 'Exception', has no unnamed constructor that takes no arguments.</dt><dd>"A superclasse <code>Exception</code> não tem um construtor sem nome e sem argumentos" para o seu construtor chamar. É consequência da primeira.</dd>
+</dl>
+<p><strong>Como consertar:</strong> troque <code>extends</code> por <code>implements</code>: <code>class SaldoInsuficienteException implements Exception</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>implements Exception</code></strong>
+<pre class="file" data-file="p4.dart">class SaldoInsuficiente {
+  final int falta;
+  SaldoInsuficiente(this.falta);
+}
+
+void main() {
+  try {
+    throw SaldoInsuficiente(30);
+  } on Exception catch (e) {
+    print('Tratado: $e');
+  }
+  print('Fim');
+}
+</pre>
+<pre class="term">$ dart run p4.dart
+Unhandled exception:
+Instance of 'SaldoInsuficiente'
+#0      main (file:///home/ana/p4.dart:8:5)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O Dart deixa lançar qualquer objeto, então compilou. Mas a classe não diz que é uma <code>Exception</code>, e o <code>on Exception</code> não a reconheceu: ela passou direto, e nem o <code>Fim</code> apareceu. <strong>Como consertar:</strong> <code>class SaldoInsuficiente implements Exception</code> (e, de quebra, um nome terminado em <code>Exception</code> e um <code>toString</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>A mensagem saiu <code>Instance of '…'</code></strong>
+<p>Você já viu na seção 1: sem <code>toString</code>, o <code>print</code> e o <code>Unhandled exception</code> mostram só <code>Instance of 'SaldoInsuficienteException'</code>. Não é erro do Dart, é a mensagem padrão de qualquer objeto. <strong>Como consertar:</strong> escreva o <code>@override String toString() =&gt; '…';</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class XException implements Exception { … }</code></td><td>Cria um tipo de exceção próprio</td></tr>
+<tr><td><code>final int campo;</code> + construtor</td><td>Guarda os detalhes do problema</td></tr>
+<tr><td><code>@override String toString() =&gt; '…';</code></td><td>A mensagem que aparece no <code>print</code> e no <code>Unhandled exception</code></td></tr>
+<tr><td><code>throw XException(…);</code></td><td>Lança a sua exceção</td></tr>
+<tr><td><code>on XException catch (e) { e.campo }</code></td><td>Pega só este tipo e usa os detalhes</td></tr>
+<tr><td><code>abstract class FamiliaException implements Exception</code> + <code>extends</code></td><td>Uma família: <code>on FamiliaException</code> pega todas as filhas</td></tr>
+<tr><td><code>sealed class …</code> + <code>switch</code></td><td>Família fechada: o <code>switch</code> confere se tratou todas</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a declaração</h3>
+<div class="ex-code">class CpfInvalidoException <input data-answer="implements" aria-label="palavra-chave"> <input data-answer="Exception" aria-label="tipo"> {<br>&nbsp;&nbsp;final String cpf;<br>&nbsp;&nbsp;CpfInvalidoException(this.cpf);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O método da mensagem</h3>
+<p>Qual método você sobrescreve para a exceção ter uma mensagem legível?</p>
+<div class="ex-code"><input data-answer="toString|toString()" aria-label="nome do método"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Sem <code>toString</code>, o que um <code>print(e)</code> de uma <code>CpfInvalidoException</code> mostra?</p>
+<label><input type="radio" name="q3"> <code>CpfInvalidoException: erro</code></label>
+<label><input type="radio" name="q3"> <code>Instance of 'CpfInvalidoException'</code></label>
+<label><input type="radio" name="q3"> Nada</label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>EstoqueInsuficiente extends PedidoException</code>. Num <code>try</code> com <code>on PedidoException</code> primeiro e <code>on EstoqueInsuficiente</code> depois, qual roda quando é lançada uma <code>EstoqueInsuficiente</code>?</p>
+<label><input type="radio" name="q4"> Os dois</label>
+<label><input type="radio" name="q4"> O <code>on EstoqueInsuficiente</code>, porque é mais específico</label>
+<label><input type="radio" name="q4"> Nenhum</label>
+<label><input type="radio" name="q4"> O <code>on PedidoException</code>, porque vem primeiro e combina</label>
+</div>
+
+<h3>Missão final: a nota inválida</h3>
+
+<div class="trydart" data-goal="out:Nota inválida: 12;;src:class\s+NotaInvalidaException\s+implements\s+Exception;;src:on\s+NotaInvalidaException">
+<p class="try-task"><strong>Missão:</strong> siga os três comentários. (1) Crie a classe <code>NotaInvalidaException implements Exception</code>, com um campo <code>final int nota</code>, o construtor e um <code>toString</code> que devolva <code>'Nota inválida: $nota (vai de 0 a 10)'</code>. (2) Lance <code>NotaInvalidaException(nota)</code> no lugar da <code>Exception</code>. (3) Troque o <code>on Exception</code> por <code>on NotaInvalidaException</code>.</p>
+<pre class="script" data-file="main.dart">// 1. crie aqui a classe NotaInvalidaException
+
+void registrar(int nota) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    throw Exception('nota fora da faixa'); // 2. lance a sua exceção
+  }
+  print('Registrada: $nota');
+}
+
+void main() {
+  for (final nota in [7, 12]) {
+    try {
+      registrar(nota);
+    } on Exception catch (e) { // 3. pegue só a sua exceção
+      print('$e');
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class NotaInvalidaException implements Exception {
+  final int nota;
+  NotaInvalidaException(this.nota);
+
+  @override
+  String toString() =&gt; 'Nota inválida: $nota (vai de 0 a 10)';
+}
+
+void registrar(int nota) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    throw NotaInvalidaException(nota);
+  }
+  print('Registrada: $nota');
+}
+
+void main() {
+  for (final nota in [7, 12]) {
+    try {
+      registrar(nota);
+    } on NotaInvalidaException catch (e) {
+      print('$e');
+    }
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Registrada: 7</code> e <code>Nota inválida: 12 (vai de 0 a 10)</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma exceção própria é uma classe com <code>implements Exception</code>. O nome diz o problema; por costume, termina em <code>Exception</code>.</li>
+  <li>Campos guardam os detalhes; quem pega com <code>on SeuTipo catch (e)</code> pode usá-los (<code>e.falta</code>).</li>
+  <li>Sem <code>toString</code>, a mensagem é <code>Instance of '…'</code>; com ele, você escolhe o texto.</li>
+  <li>Uma classe-mãe (<code>abstract</code> ou <code>sealed</code>) agrupa várias exceções: um <code>on</code> da mãe pega todas as filhas. Ponha os <code>on</code> do mais específico para o mais geral.</li>
+  <li>No Dart 3, <code>extends Exception</code> não compila: use <code>implements Exception</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
