@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart na Web — o Dart rodando no navegador | Guia Dart</title>
+<meta name="description" content="Visão geral do Dart na web para quem está aprendendo: como o Dart vira JavaScript ou WebAssembly, o modelo dart create -t web (index.html, main.dart, styles.css), o package:web no lugar do antigo dart:html, webdev serve, dart compile js e wasm, e o erro real de rodar código de navegador com dart run. Saídas reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart na <span class="hl">Web</span></h1>
+
+<p class="intro">O navegador (Chrome, Firefox, Safari…) não entende Dart: ele só roda <strong>JavaScript</strong> e <strong>WebAssembly</strong>. Mesmo assim, dá para fazer sites e apps web inteiros em Dart. O truque é <strong>compilar</strong>: o Dart traduz o seu programa para uma dessas duas línguas que o navegador conhece. Esta aula é uma <strong>visão geral</strong> do caminho, com o modelo de projeto web criado de verdade no lab da Ana. A parte que aparece na janela do navegador é <strong>ilustrativa</strong> (o lab não tem navegador); confira os detalhes em <a href="https://dart.dev/web">dart.dev/web</a>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o Dart chega ao navegador: compilado para JavaScript ou WebAssembly.</li>
+  <li>O que vem no modelo <code>dart create -t web</code>: <code>index.html</code>, <code>main.dart</code> e <code>styles.css</code>.</li>
+  <li>O que é o <code>package:web</code>, e por que ele substituiu o antigo <code>dart:html</code>.</li>
+  <li>Como ver o site no navegador (<code>webdev serve</code>) e como gerar o JavaScript à mão.</li>
+  <li>O que acontece quando se roda código de navegador com <code>dart run</code>.</li>
+</ul>
+</div>
+
+<p>Os comandos desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). Os programas do editor do guia rodam como programas de terminal: eles não mexem na página.</p>
+
+<hr>
+
+<h2>A ideia: o intérprete na reunião</h2>
+<p>A Ana só fala português, e o cliente da padaria só fala inglês. Ela contrata um <strong>tradutor</strong>, que prepara o texto em inglês antes da reunião. O cliente nunca ouve uma palavra em português, mas recebe exatamente o que a Ana quis dizer.</p>
+<p>O navegador é o cliente; o <strong>compilador</strong> é o tradutor. Você escreve em Dart; o compilador entrega JavaScript (<code>dart2js</code>) ou WebAssembly (<code>dart2wasm</code>), e é isso que o navegador recebe junto com a página HTML.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>JavaScript</th><th>WebAssembly (Wasm)</th></tr>
+<tr><td>Comando</td><td><code>dart compile js</code></td><td><code>dart compile wasm</code></td></tr>
+<tr><td>Arquivo gerado</td><td><code>.js</code> (texto)</td><td><code>.wasm</code> (binário)</td></tr>
+<tr><td>Funciona em</td><td>Todos os navegadores</td><td>Navegadores recentes, com suporte a WasmGC</td></tr>
+<tr><td>Vantagem</td><td>Compatibilidade</td><td>Velocidade</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. O modelo de projeto web</h2>
+<p>O <code>dart create</code> tem um modelo (<em>template</em>) para web, o <code>-t web</code>:</p>
+
+<pre class="term">$ dart create -t web vitrine
+Creating vitrine using template web...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  web/index.html
+  web/main.dart
+  web/styles.css
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 55 dependencies!
+  3 packages have newer versions incompatible with dependency constraints.
+  Try `dart pub outdated` for more information.
+
+Created project vitrine in vitrine! In order to get started, run the following commands:
+
+  cd vitrine
+  dart pub global activate webdev
+  webdev serve
+
+</pre>
+
+<p>Igual ao modelo de terminal (veja <a href="dart-create.html">Criando um Projeto</a>), com uma pasta <code>web</code> no lugar de <code>bin</code> e <code>lib</code>. O aviso "3 pacotes têm versões mais novas incompatíveis" é só informação: o projeto funciona. No fim, ele sugere dois comandos para ver o site (seção 3).</p>
+
+<h3>A página: <code>web/index.html</code></h3>
+<pre class="term">$ cat web/index.html
+&lt;!DOCTYPE html&gt;
+
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;meta http-equiv="X-UA-Compatible" content="IE=edge"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;meta name="scaffolded-by" content="https://github.com/dart-lang/sdk"&gt;
+    &lt;title&gt;vitrine&lt;/title&gt;
+    &lt;link rel="stylesheet" href="styles.css"&gt;
+    &lt;script defer src="main.dart.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+
+  &lt;div id="output"&gt;&lt;/div&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;link rel="stylesheet" href="styles.css"&gt;</dt><dd>As cores e fontes da página, no <code>styles.css</code>.</dd>
+  <dt>&lt;script defer src="main.dart.js"&gt;</dt><dd>A linha mais importante: carrega o <strong>JavaScript gerado</strong> a partir do <code>main.dart</code>. Repare: <code>main.dart.js</code>, não <code>main.dart</code>. Esse arquivo ainda não existe; ele é criado na compilação. O <code>defer</code> ("adiar") manda rodar só depois que a página carregou.</dd>
+  <dt>&lt;div id="output"&gt;&lt;/div&gt;</dt><dd>Uma caixa vazia com o nome (<code>id</code>) <code>output</code> ("saída"). O programa Dart vai escrever dentro dela.</dd>
+</dl>
+
+<h3>O programa: <code>web/main.dart</code></h3>
+<pre class="term">$ cat web/main.dart
+import 'package:web/web.dart' as web;
+
+void main() {
+  final now = DateTime.now();
+  final element = web.document.querySelector('#output') as web.HTMLDivElement;
+  element.textContent =
+      'The time is ${now.hour}:${now.minute} '
+      'and your Dart web app is running!';
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'package:web/web.dart' as web;</dt><dd>Traz o pacote <code>web</code>, com tudo que existe no navegador: a página, os botões, os eventos. O <code>as web</code> dá um apelido: tudo dele começa com <code>web.</code> (veja <a href="imports.html">import, export e Bibliotecas</a>).</dd>
+  <dt>web.document</dt><dd>A <strong>página</strong> aberta no navegador.</dd>
+  <dt>.querySelector('#output')</dt><dd>"Procure o elemento com <code>id</code> <code>output</code>": a <code>div</code> vazia do HTML. O <code>#</code> quer dizer "pelo id".</dd>
+  <dt>as web.HTMLDivElement</dt><dd>Diz ao Dart que o que veio é uma <code>div</code> (veja <a href="operadores-tipo.html">is, is! e as</a>).</dd>
+  <dt>element.textContent = …</dt><dd>Troca o texto dentro da <code>div</code>. Os dois textos seguidos se juntam sozinhos (são "strings adjacentes").</dd>
+</dl>
+
+<p>No navegador, a página mostraria uma linha centralizada como <em>The time is 17:4 and your Dart web app is running!</em> (ilustrativo: a hora é a do momento em que a página abre; e repare que <code>now.minute</code> não põe o zero na frente).</p>
+
+<h3>O <code>pubspec.yaml</code></h3>
+<pre class="term">$ cat pubspec.yaml | grep -v '^#' | sed '/^$/d'
+name: vitrine
+description: An absolute bare-bones web app.
+version: 1.0.0
+environment:
+  sdk: ^3.13.5
+dependencies:
+  web: ^1.1.1
+dev_dependencies:
+  build_runner: ^2.4.15
+  build_web_compilers: ^4.1.6
+  lints: ^6.0.0
+</pre>
+<p>A dependência <code>web</code> é o pacote do <code>import</code>. As de desenvolvimento (<code>build_runner</code> e <code>build_web_compilers</code>) são as que o <code>webdev</code> usa para compilar enquanto você trabalha.</p>
+
+<hr>
+
+<h2>2. <code>package:web</code> e o antigo <code>dart:html</code></h2>
+<p>Em código e tutoriais antigos, você vai ver <code>import 'dart:html';</code>. Era a biblioteca de navegador que vinha com o Dart. Hoje a documentação oficial diz que as bibliotecas web antigas, como <code>dart:html</code> e <code>dart:svg</code>, estão <strong>obsoletas</strong> (<em>deprecated</em>) e não funcionam quando se compila para Wasm, e que o <code>package:web</code> as substitui "a longo prazo" (<a href="https://dart.dev/interop/js-interop/package-web">dart.dev/interop/js-interop/package-web</a>). O <code>package:web</code> é construído sobre o <code>dart:js_interop</code>, a ponte entre Dart e JavaScript, e funciona tanto em JavaScript quanto em Wasm.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Biblioteca</th><th>Situação</th><th>Use?</th></tr>
+<tr><td><code>package:web</code></td><td>Atual; funciona em JS e Wasm</td><td><strong>Sim</strong></td></tr>
+<tr><td><code>dart:js_interop</code></td><td>Atual; conversa direto com JavaScript</td><td>Para chamar bibliotecas JavaScript</td></tr>
+<tr><td><code>dart:html</code></td><td>Obsoleta; não funciona em Wasm</td><td>Não em código novo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Vendo o site: <code>webdev serve</code> (ilustrativo)</h2>
+<p>O caminho sugerido pelo próprio <code>dart create</code> é:</p>
+<ol class="passo">
+  <li><code>dart pub global activate webdev</code>: instala a ferramenta <code>webdev</code> uma vez no computador.</li>
+  <li><code>webdev serve</code>, dentro da pasta do projeto: compila e abre um servidor local. A documentação usa como exemplo o endereço <code>localhost:8080</code>.</li>
+  <li>Abra esse endereço no Chrome. Mudou o <code>main.dart</code>? Salve e recarregue a página: o <code>webdev</code> recompila sozinho.</li>
+</ol>
+<p>Para publicar o site, o <code>webdev build</code> gera a pasta final com o JavaScript otimizado.</p>
+
+<h3>Ou à mão: <code>dart compile js</code></h3>
+<p>Sem o <code>webdev</code>, dá para gerar o <code>main.dart.js</code> que o <code>index.html</code> espera com o comando que você viu em <a href="compilar.html">Compilando</a>:</p>
+
+<pre class="term">$ dart compile js web/main.dart -o web/main.dart.js
+Compiled 13,454,337 input bytes (8,024,796 characters source) to 129,997 characters JavaScript in 1.29 seconds
+$ ls web
+index.html
+main.dart
+main.dart.js
+main.dart.js.deps
+main.dart.js.map
+styles.css
+</pre>
+<p>Agora a pasta <code>web</code> tem tudo que um navegador precisa: o HTML, o CSS e o JavaScript. Abrindo pelo servidor, a página funciona. Para Wasm, o comando é <code>dart compile wasm</code>:</p>
+<pre class="term">$ dart compile wasm web/main.dart -o web/main.wasm
+Generated wasm module 'web/main.wasm', and JS init file 'web/main.mjs'.
+</pre>
+<p>"Gerado o módulo wasm <code>web/main.wasm</code> e o arquivo JS de inicialização <code>web/main.mjs</code>": o navegador precisa de um pedacinho de JavaScript para carregar o Wasm (na pasta também apareceram <code>main.support.js</code> e <code>main.wasm.map</code>). Nesse caso, o <code>index.html</code> carrega o <code>.mjs</code> em vez do <code>main.dart.js</code>; veja os detalhes em <a href="https://dart.dev/web/wasm">dart.dev/web/wasm</a>.</p>
+
+<hr>
+
+<h2>4. O Dart do site é o mesmo Dart</h2>
+<p>A parte que mexe na página é pequena; o resto é Dart comum: listas, mapas, funções, classes. Um bom costume é separar a <strong>lógica</strong> (que você testa no terminal) da parte que mexe na página. Por exemplo, a Ana quer mostrar a vitrine da padaria no site. A função que monta o HTML de cada item é Dart puro, e roda no terminal:</p>
+
+<pre class="file" data-file="vitrine.dart">// Monta o HTML da vitrine da padaria como texto.
+String itemLista(String produto, double preco) =&gt;
+    '&lt;li&gt;$produto: R\$ ${preco.toStringAsFixed(2)}&lt;/li&gt;';
+
+void main() {
+  final produtos = {'Pão francês': 0.75, 'Sonho': 2.5, 'Café': 4.0};
+  final html = StringBuffer('&lt;ul id="vitrine"&gt;\n');
+  for (final item in produtos.entries) {
+    html.writeln('  ${itemLista(item.key, item.value)}');
+  }
+  html.write('&lt;/ul&gt;');
+  print(html);
+}
+</pre>
+
+<pre class="term">$ dart run vitrine.dart
+&lt;ul id="vitrine"&gt;
+  &lt;li&gt;Pão francês: R$ 0.75&lt;/li&gt;
+  &lt;li&gt;Sonho: R$ 2.50&lt;/li&gt;
+  &lt;li&gt;Café: R$ 4.00&lt;/li&gt;
+&lt;/ul&gt;
+</pre>
+
+<p>No site, em vez de <code>print</code>, ela poria esse texto dentro de um elemento da página (ou criaria os elementos com o <code>package:web</code>). O <code>toStringAsFixed(2)</code> deixa sempre dois dígitos depois do ponto (veja <a href="int-double.html">Números</a>), e o <code>StringBuffer</code> junta os pedaços (veja <a href="string-buffer.html">Montando Textos</a>).</p>
+
+<div class="trydart" data-goal="out:&lt;li&gt;Bolo de milho: R$ 12.00&lt;/li&gt;;;out:&lt;ul id=&quot;vitrine&quot;&gt;">
+<p class="try-task"><strong>Missão:</strong> ponha na vitrine o <code>'Bolo de milho'</code>, a R$ 12 (escreva <code>12.0</code>). A saída deve ganhar a linha <code>&lt;li&gt;Bolo de milho: R$ 12.00&lt;/li&gt;</code>.</p>
+<pre class="script" data-file="main.dart">String itemLista(String produto, double preco) =&gt;
+    '&lt;li&gt;$produto: R\$ ${preco.toStringAsFixed(2)}&lt;/li&gt;';
+
+void main() {
+  final produtos = {'Pão francês': 0.75, 'Sonho': 2.5, 'Café': 4.0};
+  final html = StringBuffer('&lt;ul id="vitrine"&gt;\n');
+  for (final item in produtos.entries) {
+    html.writeln('  ${itemLista(item.key, item.value)}');
+  }
+  html.write('&lt;/ul&gt;');
+  print(html);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String itemLista(String produto, double preco) =&gt;
+    '&lt;li&gt;$produto: R\$ ${preco.toStringAsFixed(2)}&lt;/li&gt;';
+
+void main() {
+  final produtos = {
+    'Pão francês': 0.75,
+    'Sonho': 2.5,
+    'Café': 4.0,
+    'Bolo de milho': 12.0,
+  };
+  final html = StringBuffer('&lt;ul id="vitrine"&gt;\n');
+  for (final item in produtos.entries) {
+    html.writeln('  ${itemLista(item.key, item.value)}');
+  }
+  html.write('&lt;/ul&gt;');
+  print(html);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Rodar o programa de navegador com <code>dart run</code></strong>
+<p>O <code>main.dart</code> do modelo web usa a página (<code>document</code>), que só existe dentro de um navegador. A Ana tentou rodar no terminal mesmo assim:</p>
+<pre class="term">$ dart run web/main.dart; echo "codigo: $?"
+../.pub-cache/hosted/pub.dev/web-1.1.1/lib/src/helpers.dart:24:8: Error: Dart library 'dart:js_interop' is not available on this platform.
+import 'dart:js_interop';
+       ^
+Context: The unavailable library 'dart:js_interop' is imported through these packages:
+
+    main.dart =&gt; package:web =&gt; dart:js_interop
+    ...
+« … mais de 22 mil linhas: 7.496 erros, todos dentro do pacote web … »
+codigo: 254
+</pre>
+<p>A primeira linha diz tudo: "a biblioteca <code>dart:js_interop</code> não está disponível nesta plataforma". A <strong>plataforma</strong> aqui é a máquina virtual do Dart, a que roda programas de terminal. Ela não tem navegador, então não tem a ponte com o JavaScript. A linha <code>Context</code> mostra o caminho: o seu <code>main.dart</code> importa o <code>package:web</code>, que importa o <code>dart:js_interop</code>. Os milhares de erros seguintes são consequência desse primeiro (de novo: leia sempre o primeiro). O código 254 é o de erro de compilação. <strong>Como consertar:</strong> código que usa <code>package:web</code> roda pelo <code>webdev serve</code> (ou compilado com <code>dart compile js</code>/<code>wasm</code>) e aberto no navegador; a lógica que não mexe na página, separe em funções Dart puras, que rodam e se testam no terminal.</p>
+</div>
+
+<div class="cenario">
+<strong>A página em branco</strong>
+<p>Se você abrir o <code>index.html</code> antes de compilar, o navegador procura o <code>main.dart.js</code>, não acha, e a <code>div</code> fica vazia. Não aparece erro na página: só nas ferramentas do desenvolvedor do navegador (<kbd>F12</kbd>, aba Console), como um arquivo não encontrado. <strong>Como consertar:</strong> use o <code>webdev serve</code> ou rode o <code>dart compile js</code> antes (ilustrativo: o lab não tem navegador).</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando / biblioteca</th><th>Para que serve</th></tr>
+<tr><td><code>dart create -t web nome</code></td><td>Cria um projeto web (<code>web/index.html</code>, <code>main.dart</code>, <code>styles.css</code>).</td></tr>
+<tr><td><code>dart pub global activate webdev</code></td><td>Instala a ferramenta <code>webdev</code>.</td></tr>
+<tr><td><code>webdev serve</code></td><td>Servidor local que recompila a cada mudança.</td></tr>
+<tr><td><code>webdev build</code></td><td>Gera a versão final para publicar.</td></tr>
+<tr><td><code>dart compile js web/main.dart -o web/main.dart.js</code></td><td>Gera o JavaScript à mão.</td></tr>
+<tr><td><code>dart compile wasm web/main.dart</code></td><td>Gera WebAssembly.</td></tr>
+<tr><td><code>import 'package:web/web.dart' as web;</code></td><td>Acesso à página: <code>web.document.querySelector('#id')</code>.</td></tr>
+<tr><td><code>dart:js_interop</code></td><td>Ponte com o JavaScript.</td></tr>
+</table>
+</div>
+<p>Para apps web com muitas telas, também existe o <a href="flutter.html">Flutter</a> para web, que desenha a interface inteira com widgets.</p>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete o comando que cria um projeto web chamado <code>loja</code>:</p>
+<div class="ex-code">dart create <input data-answer="-t" aria-label="opção do modelo"> <input data-answer="web" aria-label="nome do modelo"> loja</div>
+</div>
+
+<div class="exercise">
+<h3>2. O arquivo que o HTML carrega</h3>
+<p>No <code>index.html</code> do modelo, qual arquivo a tag <code>&lt;script&gt;</code> carrega?</p>
+<div class="ex-code"><input data-answer="main.dart.js" aria-label="nome do arquivo"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Por que o navegador consegue rodar um site feito em Dart?</p>
+<label><input type="radio" name="q3"> Porque todo navegador tem o Dart instalado</label>
+<label><input type="radio" name="q3"> Porque o Dart é compilado para JavaScript ou WebAssembly</label>
+<label><input type="radio" name="q3"> Porque o Dart é igual ao JavaScript</label>
+<label><input type="radio" name="q3"> Porque o <code>index.html</code> lê o <code>main.dart</code> direto</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Num projeto novo, qual biblioteca usar para mexer na página?</p>
+<label><input type="radio" name="q4"> <code>dart:html</code></label>
+<label><input type="radio" name="q4"> <code>dart:io</code></label>
+<label><input type="radio" name="q4"> <code>dart:svg</code></label>
+<label><input type="radio" name="q4"> <code>package:web</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>dart run web/main.dart</code> deu <code>Dart library 'dart:js_interop' is not available on this platform</code>. Por quê?</p>
+<label><input type="radio" name="q5"> Porque o terminal não é um navegador: a ponte com o JavaScript não existe ali</label>
+<label><input type="radio" name="q5"> Porque faltou o <code>dart pub get</code></label>
+<label><input type="radio" name="q5"> Porque o arquivo tem erro de digitação</label>
+<label><input type="radio" name="q5"> Porque o Dart está desatualizado</label>
+</div>
+
+<h3>Missão final: a lista de compras em HTML</h3>
+
+<div class="trydart" data-goal="out:&lt;li&gt;leite&lt;/li&gt;;;out:&lt;li&gt;pão&lt;/li&gt;;;out:&lt;/ol&gt;;;src:for">
+<p class="try-task"><strong>Missão:</strong> complete o laço para o programa montar uma lista numerada em HTML, com um <code>&lt;li&gt;</code> por item, entre <code>&lt;ol&gt;</code> e <code>&lt;/ol&gt;</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['pão', 'leite', 'café'];
+  print('&lt;ol&gt;');
+  // um print('  &lt;li&gt;…&lt;/li&gt;') para cada item
+
+  print('&lt;/ol&gt;');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['pão', 'leite', 'café'];
+  print('&lt;ol&gt;');
+  for (final item in compras) {
+    print('  &lt;li&gt;$item&lt;/li&gt;');
+  }
+  print('&lt;/ol&gt;');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O navegador só roda JavaScript e WebAssembly: o Dart chega lá <strong>compilado</strong> (<code>dart compile js</code> / <code>wasm</code>, ou pelo <code>webdev</code>).</li>
+  <li><code>dart create -t web</code> cria <code>web/index.html</code> (que carrega o <code>main.dart.js</code>), <code>web/main.dart</code> e <code>web/styles.css</code>.</li>
+  <li>Use <code>package:web</code> para mexer na página; o antigo <code>dart:html</code> está obsoleto e não funciona em Wasm.</li>
+  <li><code>webdev serve</code> mostra o site num servidor local; <code>webdev build</code> gera a versão final.</li>
+  <li>Código de navegador não roda com <code>dart run</code> (<code>dart:js_interop</code> não existe no terminal). Separe a lógica em Dart puro, que roda e se testa em qualquer lugar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
