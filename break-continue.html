@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart break e continue — saindo do laço e pulando uma volta | Guia Dart</title>
+<meta name="description" content="break e continue do Dart para quem nunca programou: parar a procura quando achar, while (true) com break, pular as faltas com continue, o continue que trava o while, laços dentro de laços, rótulos (break procura;) e os erros reais do Dart 3.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">break e continue</span></h1>
+
+<p class="intro">Os laços que você já conhece (<a href="for.html">for</a>, <a href="for-in.html">for-in</a>, <a href="while.html">while e do-while</a>) só param quando a condição fica falsa ou quando os itens acabam. Às vezes você quer mais controle: <strong>parar no meio</strong>, porque já achou o que procurava, ou <strong>pular uma volta</strong>, porque aquele item não interessa. Para isso existem duas palavras: <code>break</code> ("quebrar": sai do laço agora) e <code>continue</code> ("continuar": pula o resto desta volta e vai para a próxima).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>break</code>: sair do laço assim que achar o que procurava.</li>
+  <li>O <code>while (true)</code> com <code>break</code>: o laço com a saída no meio.</li>
+  <li>O <code>continue</code>: pular as voltas que não interessam.</li>
+  <li>A armadilha do <code>continue</code> dentro do <code>while</code>, que cria um laço infinito.</li>
+  <li>Laços dentro de laços: o <code>break</code> só sai do laço de dentro, e os <strong>rótulos</strong> (<code>break procura;</code>) resolvem isso.</li>
+  <li>Os erros reais: <code>break</code> fora de laço e rótulo que não existe.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: procurar o café na prateleira</h2>
+<p>A Ana está no mercado procurando o café. Ela olha a prateleira produto por produto, da esquerda para a direita. Quando acha o café, ela <strong>para de olhar</strong>: não faz sentido conferir o resto da prateleira. Isso é o <code>break</code>.</p>
+<p>Agora outra cena: a professora soma as notas da turma, mas quem faltou à prova está marcado com <code>-1</code>. Quando ela chega num <code>-1</code>, ela <strong>pula</strong> aquele aluno e segue para o próximo. Ela não para de somar; só ignora aquele. Isso é o <code>continue</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>O que faz</th><th>Na vida real</th></tr>
+<tr><td><code>break</code></td><td>Sai do laço <strong>inteiro</strong>, agora. O programa segue na primeira linha depois do laço.</td><td>"Achei o café, vou embora."</td></tr>
+<tr><td><code>continue</code></td><td>Abandona só <strong>esta volta</strong> e vai para a próxima.</td><td>"Este aluno faltou, próximo."</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. <code>break</code>: parar quando achar</h2>
+
+<pre class="file" data-file="procura.dart">void main() {
+  final prateleira = ['arroz', 'feijão', 'café', 'açúcar', 'leite'];
+  for (final produto in prateleira) {
+    print('Olhando: $produto');
+    if (produto == 'café') {
+      print('Achei o café!');
+      break;
+    }
+  }
+  print('Fim da procura.');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>for (final produto in prateleira)</dt><dd>Passa pelos produtos um por um (veja <a href="for-in.html">for-in</a>).</dd>
+  <dt>if (produto == 'café')</dt><dd>A pergunta de cada volta: "é este?".</dd>
+  <dt>break;</dt><dd>"Sai do laço agora." O Dart abandona o <code>for</code> no meio, sem olhar <code>açúcar</code> nem <code>leite</code>, e pula para a primeira linha depois do <code>}</code> do laço. Termina com <code>;</code>, como toda instrução.</dd>
+  <dt>print('Fim da procura.');</dt><dd>Fora do laço: é aqui que o <code>break</code> leva.</dd>
+</dl>
+
+<pre class="term">$ dart run procura.dart
+Olhando: arroz
+Olhando: feijão
+Olhando: café
+Achei o café!
+Fim da procura.
+</pre>
+
+<p>Só três produtos foram olhados. Numa prateleira com mil produtos, o <code>break</code> economiza todo o trabalho depois do achado.</p>
+
+<div class="trydart" data-goal="out:Achei o leite!;;outre:^[\s\S]*Achei o leite!\nFim da procura\.\n?$">
+<p class="try-task"><strong>Missão:</strong> agora a Ana procura o <strong>leite</strong>. A prateleira ganhou um <code>pão</code> no fim. Mude o programa para achar o leite e parar ali, sem olhar o pão.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final prateleira = ['arroz', 'feijão', 'café', 'açúcar', 'leite', 'pão'];
+  for (final produto in prateleira) {
+    print('Olhando: $produto');
+    if (produto == 'café') {
+      print('Achei o café!');
+      break;
+    }
+  }
+  print('Fim da procura.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final prateleira = ['arroz', 'feijão', 'café', 'açúcar', 'leite', 'pão'];
+  for (final produto in prateleira) {
+    print('Olhando: $produto');
+    if (produto == 'leite') {
+      print('Achei o leite!');
+      break;
+    }
+  }
+  print('Fim da procura.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>while (true)</code> com <code>break</code>: a saída no meio</h2>
+<p>Na aula <a href="while.html">while e do-while</a>, você viu que <code>while (true)</code> é um laço que nunca para sozinho, porque a condição é sempre verdadeira. Com um <code>break</code> lá dentro, ele vira um laço com a <strong>saída onde você quiser</strong>. A Ana enche uma caixa de 6 ovos:</p>
+
+<pre class="file" data-file="ovos.dart">void main() {
+  var ovos = 0;
+  while (true) {
+    ovos++;
+    print('Coloquei o ovo $ovos na caixa');
+    if (ovos == 6) {
+      break;
+    }
+  }
+  print('Caixa cheia: $ovos ovos.');
+}
+</pre>
+
+<pre class="term">$ dart run ovos.dart
+Coloquei o ovo 1 na caixa
+Coloquei o ovo 2 na caixa
+Coloquei o ovo 3 na caixa
+Coloquei o ovo 4 na caixa
+Coloquei o ovo 5 na caixa
+Coloquei o ovo 6 na caixa
+Caixa cheia: 6 ovos.
+</pre>
+
+<p>Aqui daria para escrever <code>while (ovos &lt; 6)</code>, sem <code>break</code>. O <code>while (true)</code> brilha quando a decisão de sair depende de algo que só se sabe <strong>no meio</strong> da volta, como a resposta que a pessoa digitou. Você vai usar muito esse formato na próxima aula, <a href="stdin.html">Lendo o Teclado</a>: "pergunte; se a resposta for <code>sair</code>, <code>break</code>; senão, trate a resposta e pergunte de novo".</p>
+
+<hr>
+
+<h2>3. <code>continue</code>: pular uma volta</h2>
+<p>As notas da turma, com <code>-1</code> para quem faltou. A média só deve contar quem fez a prova:</p>
+
+<pre class="file" data-file="notas.dart">void main() {
+  final notas = [8, -1, 6, 9, -1, 7];
+  var soma = 0;
+  var quantas = 0;
+  for (final nota in notas) {
+    if (nota &lt; 0) {
+      print('Faltou: pulando');
+      continue;
+    }
+    soma += nota;
+    quantas++;
+    print('Somei a nota $nota');
+  }
+  print('Média de $quantas provas: ${soma / quantas}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>if (nota &lt; 0) { … continue; }</dt><dd>Se a nota é de quem faltou, mostra o aviso e dá <code>continue</code>: "esquece o resto desta volta, vai para a próxima nota".</dd>
+  <dt>soma += nota; quantas++;</dt><dd>Só chegam aqui as notas que <strong>não</strong> foram puladas.</dd>
+  <dt>${soma / quantas}</dt><dd>A média: a soma dividida pela quantidade. O <code>/</code> sempre dá um <code>double</code> (veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run notas.dart
+Somei a nota 8
+Faltou: pulando
+Somei a nota 6
+Somei a nota 9
+Faltou: pulando
+Somei a nota 7
+Média de 4 provas: 7.5
+</pre>
+
+<p>Repare que o laço <strong>não parou</strong> no primeiro <code>-1</code>: ele pulou aquela volta e continuou até o fim. Com <code>break</code> no lugar do <code>continue</code>, o programa pararia de somar na segunda nota.</p>
+
+<h3>O <code>continue</code> numa linha só</h3>
+<p>Quando o <code>if</code> só tem o <code>continue</code>, muita gente escreve tudo numa linha. Este programa mostra só os números pares de 1 a 10, pulando os ímpares (<code>i % 2 != 0</code>: "o resto da divisão por 2 não é zero"):</p>
+
+<pre class="file" data-file="pares.dart">void main() {
+  for (var i = 1; i &lt;= 10; i++) {
+    if (i % 2 != 0) continue;
+    print(i);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run pares.dart
+2
+4
+6
+8
+10
+</pre>
+
+<p>Esse estilo se chama <strong>cláusula de guarda</strong>: as linhas do começo "barram" o que não interessa, e o resto do bloco fica sem um <code>if</code> em volta, mais fácil de ler.</p>
+
+<div class="trydart" data-goal="out:Média de 3 provas: 8.0;;src:\bcontinue\b">
+<p class="try-task"><strong>Missão:</strong> a professora decidiu que nota <strong>zero</strong> também é falta (o aluno entregou a prova em branco porque chegou atrasado). Mude a condição do <code>continue</code> para pular as notas menores <strong>ou iguais</strong> a zero.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [9, 0, 7, -1, 8];
+  var soma = 0;
+  var quantas = 0;
+  for (final nota in notas) {
+    if (nota &lt; 0) continue;
+    soma += nota;
+    quantas++;
+  }
+  print('Média de $quantas provas: ${soma / quantas}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [9, 0, 7, -1, 8];
+  var soma = 0;
+  var quantas = 0;
+  for (final nota in notas) {
+    if (nota &lt;= 0) continue;
+    soma += nota;
+    quantas++;
+  }
+  print('Média de $quantas provas: ${soma / quantas}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. A armadilha: <code>continue</code> no <code>while</code></h2>
+<p>No <code>for</code>, o passo (<code>i++</code>) fica no cabeçalho e roda <strong>mesmo depois de um <code>continue</code></strong>. No <code>while</code>, o passo é uma linha do bloco, e o <code>continue</code> pode pular por cima dele:</p>
+
+<pre class="file" data-file="continue_while.dart">void main() {
+  var i = 0;
+  while (i &lt; 5) {
+    if (i == 2) {
+      continue;
+    }
+    print('i = $i');
+    i++;
+  }
+  print('Fim!');
+}
+</pre>
+
+<pre class="term">$ timeout 3 dart run continue_while.dart
+i = 0
+i = 1
+$ echo $?
+124
+</pre>
+
+<p>O programa mostrou <code>i = 0</code> e <code>i = 1</code> e <strong>travou</strong>. Quando <code>i</code> vale 2, o <code>continue</code> volta para a condição <strong>sem passar pelo <code>i++</code></strong>; <code>i</code> continua 2, o <code>continue</code> acontece de novo, e assim para sempre. Quem parou o programa foi o <code>timeout 3</code>, depois de 3 segundos (o código 124 é o aviso do <code>timeout</code>: "precisei parar"). <strong>Como consertar:</strong> faça o passo <strong>antes</strong> do <code>continue</code>, ou use um <code>for</code>, que cuida do passo sozinho:</p>
+
+<pre class="file" data-file="continue_for.dart">void main() {
+  for (var i = 0; i &lt; 5; i++) {
+    if (i == 2) continue;
+    print('i = $i');
+  }
+  print('Fim!');
+}
+</pre>
+
+<hr>
+
+<h2>5. Laço dentro de laço: o <code>break</code> só sai de um</h2>
+<p>O <code>break</code> e o <code>continue</code> agem sobre o laço <strong>mais de dentro</strong>, aquele em que eles estão. Veja o que acontece com um <code>break</code> no laço das cadeiras, que está dentro do laço das mesas:</p>
+
+<pre class="file" data-file="aninhado.dart">void main() {
+  for (var mesa = 1; mesa &lt;= 3; mesa++) {
+    for (var cadeira = 1; cadeira &lt;= 3; cadeira++) {
+      if (cadeira == 2) break;
+      print('Mesa $mesa, cadeira $cadeira');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run aninhado.dart
+Mesa 1, cadeira 1
+Mesa 2, cadeira 1
+Mesa 3, cadeira 1
+</pre>
+
+<p>O <code>break</code> saiu só do laço das cadeiras. O laço das mesas continuou: mesa 2, mesa 3. Em cada mesa, a cadeira 2 interrompeu as cadeiras daquela mesa.</p>
+
+<h3>Rótulos: sair dos dois laços de uma vez</h3>
+<p>No cinema, a Ana quer a <strong>primeira</strong> cadeira livre. Achou, acabou: não deve olhar mais nenhuma fila. Para o <code>break</code> sair do laço de fora, dê um <strong>rótulo</strong> (um nome seguido de <code>:</code>) a esse laço e escreva <code>break nomeDoRotulo;</code>:</p>
+
+<pre class="file" data-file="rotulo.dart">void main() {
+  final cinema = [
+    ['ocupada', 'ocupada', 'livre'],
+    ['livre', 'ocupada', 'livre'],
+  ];
+  var fila = 0;
+  procura:
+  for (final linha in cinema) {
+    fila++;
+    var cadeira = 0;
+    for (final lugar in linha) {
+      cadeira++;
+      if (lugar == 'livre') {
+        print('Primeira cadeira livre: fila $fila, cadeira $cadeira');
+        break procura;
+      }
+    }
+  }
+  print('Fim.');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final cinema = [[…], […]];</dt><dd>Uma lista de filas; cada fila é uma lista de lugares (listas dentro de lista; veja <a href="list.html">Listas</a>).</dd>
+  <dt>procura:</dt><dd>O <strong>rótulo</strong>: um nome qualquer seguido de dois-pontos, logo antes do laço de fora. Ele não faz nada sozinho; só dá um nome ao laço.</dd>
+  <dt>break procura;</dt><dd>"Sai do laço chamado <code>procura</code>": abandona os <strong>dois</strong> laços de uma vez e vai para o <code>print('Fim.')</code>. Também existe <code>continue procura;</code>: pula para a próxima volta do laço de fora.</dd>
+</dl>
+
+<pre class="term">$ dart run rotulo.dart
+Primeira cadeira livre: fila 1, cadeira 3
+Fim.
+</pre>
+
+<p>A fila 2 também tem cadeiras livres, mas ninguém olhou: o <code>break procura;</code> saiu de tudo. Sem o rótulo, o <code>break</code> sairia só das cadeiras da fila 1, e o programa mostraria também a fila 2.</p>
+
+<div class="trydart" data-goal="outre:^Cadeira livre: fila 1, cadeira 3\n?$;;src:\bbreak\s+procura\s*;">
+<p class="try-task"><strong>Missão:</strong> este programa mostra uma cadeira livre de <strong>cada</strong> fila, porque o <code>break</code> só sai do laço de dentro. Dê o rótulo <code>procura:</code> ao laço de fora e troque o <code>break;</code> por <code>break procura;</code>, para mostrar só a primeira.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final cinema = [
+    ['ocupada', 'ocupada', 'livre'],
+    ['livre', 'ocupada', 'livre'],
+  ];
+  var fila = 0;
+  for (final linha in cinema) {
+    fila++;
+    var cadeira = 0;
+    for (final lugar in linha) {
+      cadeira++;
+      if (lugar == 'livre') {
+        print('Cadeira livre: fila $fila, cadeira $cadeira');
+        break;
+      }
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final cinema = [
+    ['ocupada', 'ocupada', 'livre'],
+    ['livre', 'ocupada', 'livre'],
+  ];
+  var fila = 0;
+  procura:
+  for (final linha in cinema) {
+    fila++;
+    var cadeira = 0;
+    for (final lugar in linha) {
+      cadeira++;
+      if (lugar == 'livre') {
+        print('Cadeira livre: fila $fila, cadeira $cadeira');
+        break procura;
+      }
+    }
+  }
+}
+</pre>
+</div>
+
+<div class="note">
+<strong>E o <code>break</code> no <code>switch</code>?</strong>
+<p>Quem vem de outras linguagens escreve <code>break</code> no fim de cada <code>case</code> de um <code>switch</code>. No Dart 3 ele não é necessário: cada <code>case</code> termina sozinho (veja <a href="switch.html">switch e Expressões switch</a>). Um <code>break</code> lá dentro é permitido, mas não muda nada.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A procura do café também pode ser escrita sem <code>break</code>, com um <code>while</code> e uma variável que diz se já achou:</p>
+
+<pre class="file" data-file="procura_while.dart">void main() {
+  final prateleira = ['arroz', 'feijão', 'café', 'açúcar', 'leite'];
+  var i = 0;
+  var achou = false;
+  while (i &lt; prateleira.length &amp;&amp; !achou) {
+    print('Olhando: ${prateleira[i]}');
+    if (prateleira[i] == 'café') {
+      achou = true;
+    }
+    i++;
+  }
+  print('Fim da procura.');
+}
+</pre>
+
+<p>Funciona, mas tem mais peças para cuidar (o índice <code>i</code>, a variável <code>achou</code>, a condição dupla). E, para só <strong>saber se existe</strong>, as listas têm um método pronto: <code>prateleira.contains('café')</code> devolve <code>true</code> ou <code>false</code> sem laço nenhum (veja <a href="list-metodos.html">Métodos de Lista</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Parar assim que achar o que procura, e fazer algo com o achado</td><td><code>for-in</code> com <code>break</code></td></tr>
+<tr><td>Só saber se o item existe</td><td><code>lista.contains(item)</code>, sem laço</td></tr>
+<tr><td>Repetir até alguém mandar parar (a decisão está no meio da volta)</td><td><code>while (true)</code> com <code>break</code></td></tr>
+<tr><td>Ignorar alguns itens e seguir com os outros</td><td><code>continue</code> no começo do bloco (cláusula de guarda)</td></tr>
+<tr><td>Sair de dois laços, um dentro do outro</td><td>rótulo + <code>break rotulo;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>break</code> fora de um laço</strong>
+<pre class="file" data-file="fora.dart">void main() {
+  final nota = 7;
+  if (nota &gt;= 6) {
+    print('Aprovada');
+    break;
+  }
+}
+</pre>
+<pre class="term">$ dart run fora.dart
+fora.dart:5:5: Error: A break statement can't be used outside of a loop or switch statement.
+Try removing the break statement.
+    break;
+    ^^^^^
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>fora.dart:5:5: Error:</dt><dd>Erro de compilação no arquivo <code>fora.dart</code>, linha 5, coluna 5.</dd>
+  <dt>A break statement can't be used outside of a loop or switch statement.</dt><dd>"Um <code>break</code> não pode ser usado fora de um laço ou de um <code>switch</code>." O <code>if</code> não é laço: não há nada para "quebrar".</dd>
+  <dt>Try removing the break statement.</dt><dd>"Tente remover o <code>break</code>." A sugestão do próprio Dart.</dd>
+  <dt>break; / ^^^^^</dt><dd>A linha com o problema, e o <code>^^^^^</code> embaixo da palavra culpada.</dd>
+</dl>
+<p>Com <code>continue</code> fora de laço, a mensagem é a mesma, trocando a palavra: <code>Error: A continue statement can't be used outside of a loop or switch statement.</code> <strong>Como consertar:</strong> apague o <code>break</code>; para encerrar a função inteira, o certo é o <code>return</code> (aula <a href="funcoes.html">Funções</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Rótulo que não existe</strong>
+<pre class="file" data-file="rotulo_errado.dart">void main() {
+  for (var i = 0; i &lt; 3; i++) {
+    for (var j = 0; j &lt; 3; j++) {
+      break externo;
+    }
+  }
+}
+</pre>
+<pre class="term">$ dart run rotulo_errado.dart
+rotulo_errado.dart:4:13: Error: Can't break to 'externo'.
+      break externo;
+            ^^^^^^^
+</pre>
+<p>"Não dá para sair para <code>externo</code>": nenhum laço em volta tem esse rótulo. <strong>Como consertar:</strong> escreva <code>externo:</code> antes do laço de fora (<code>externo: for (var i = 0; …)</code>), ou corrija o nome se ele foi digitado diferente.</p>
+</div>
+
+<div class="cenario">
+<strong>Código depois do <code>break</code>: nunca roda</strong>
+<pre class="file" data-file="morto.dart">void main() {
+  for (var i = 1; i &lt;= 3; i++) {
+    break;
+    print('nunca aparece');
+  }
+  print('ok');
+}
+</pre>
+<pre class="term">$ dart run morto.dart
+ok
+$ dart analyze morto.dart
+Analyzing morto.dart...
+
+warning - morto.dart:2:27 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - morto.dart:4:5 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+
+2 issues found.
+</pre>
+<p>O programa roda (só mostra <code>ok</code>), mas o <code>dart analyze</code> (o "revisor" do Dart; veja <a href="analise.html">Análise e Formatação</a>) avisa: <em>dead code</em>, "código morto", que nunca é alcançado. A linha 4 vem logo depois de um <code>break</code> sem <code>if</code>, então nunca roda; e o <code>i++</code> da linha 2 (coluna 27) também não, porque a primeira volta já sai do laço. <strong>Como consertar:</strong> um <code>break</code> quase sempre vem dentro de um <code>if</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>continue</code> que trava o <code>while</code></strong>
+<p>Revise a seção 4: no <code>while</code>, um <code>continue</code> antes do passo (<code>i++</code>) deixa a variável parada e o laço não termina. O Dart não acusa nada; o programa só fica "pensando". Pare com <kbd>Ctrl</kbd>+<kbd>C</kbd> (ou o ■ Parar do editor) e mova o passo para antes do <code>continue</code>.</p>
+</div>
+
+<div class="trydart" data-sem-fim data-goal="out:Fim!;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa trava quando <code>i</code> chega a 2. Rode, pare com ■ Parar e conserte: o <code>i++</code> tem de acontecer antes do <code>continue</code> (ou troque o <code>while</code> por um <code>for</code>). O resultado certo mostra 0, 1, 3, 4 e <code>Fim!</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var i = 0;
+  while (i &lt; 5) {
+    if (i == 2) {
+      continue;
+    }
+    print('i = $i');
+    i++;
+  }
+  print('Fim!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var i = 0;
+  while (i &lt; 5) {
+    if (i == 2) {
+      i++;
+      continue;
+    }
+    print('i = $i');
+    i++;
+  }
+  print('Fim!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>break;</code></td><td>Sai do laço mais de dentro, agora</td></tr>
+<tr><td><code>continue;</code></td><td>Pula o resto desta volta e vai para a próxima (no <code>for</code>, o passo ainda roda)</td></tr>
+<tr><td><code>if (condição) continue;</code></td><td>Cláusula de guarda: ignora os itens que não interessam</td></tr>
+<tr><td><code>while (true) { … if (…) break; … }</code></td><td>Laço com a saída no meio</td></tr>
+<tr><td><code>nome: for (…) { … break nome; … }</code></td><td>Sai do laço rotulado (mesmo de dentro de outro laço)</td></tr>
+<tr><td><code>continue nome;</code></td><td>Pula para a próxima volta do laço rotulado</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A break statement can't be used outside of a loop or switch statement.</code></td><td><code>break</code> num <code>if</code> que não está dentro de laço</td></tr>
+<tr><td><code>A continue statement can't be used outside of a loop or switch statement.</code></td><td>O mesmo, com <code>continue</code></td></tr>
+<tr><td><code>Can't break to 'nome'.</code></td><td>Nenhum laço em volta tem esse rótulo</td></tr>
+<tr><td><code>Dead code.</code> no <code>dart analyze</code></td><td>Linhas depois de um <code>break</code>/<code>continue</code> sem <code>if</code></td></tr>
+<tr><td>O <code>while</code> trava no meio</td><td><code>continue</code> antes do passo</td></tr>
+<tr><td>O laço de fora continuou depois do <code>break</code></td><td>O <code>break</code> só sai do laço de dentro: use um rótulo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o laço parar no primeiro número negativo e pular os zeros:</p>
+<div class="ex-code">for (final n in numeros) {<br>&nbsp;&nbsp;if (n &lt; 0) <input data-answer="break;|break" aria-label="sair do laço"><br>&nbsp;&nbsp;if (n == 0) <input data-answer="continue;|continue" aria-label="pular a volta"><br>&nbsp;&nbsp;print(n);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Quantos números este programa mostra? Responda com um número.</p>
+<pre class="file" data-file="conta.dart">for (var i = 1; i &lt;= 10; i++) {
+  if (i == 3) continue;
+  if (i == 6) break;
+  print(i);
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="4" aria-label="quantidade de números"> números.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Um <code>break</code> está dentro de um laço que está dentro de outro laço. O que ele faz?</p>
+<label><input type="radio" name="q3"> Sai dos dois laços</label>
+<label><input type="radio" name="q3"> Encerra o programa</label>
+<label><input type="radio" name="q3"> Sai só do laço de dentro; o de fora continua</label>
+<label><input type="radio" name="q3"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual a diferença entre <code>break</code> e <code>continue</code>?</p>
+<label><input type="radio" name="q4"> Nenhuma: são dois nomes para a mesma coisa</label>
+<label><input type="radio" name="q4"> <code>break</code> sai do laço; <code>continue</code> pula só a volta atual</label>
+<label><input type="radio" name="q4"> <code>continue</code> sai do laço; <code>break</code> pula só a volta atual</label>
+<label><input type="radio" name="q4"> <code>break</code> só funciona no <code>while</code>; <code>continue</code>, no <code>for</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que um <code>continue</code> pode travar um <code>while</code>, mas não um <code>for</code> comum?</p>
+<label><input type="radio" name="q5"> Porque o <code>while</code> não aceita <code>continue</code></label>
+<label><input type="radio" name="q5"> Porque o <code>continue</code> sempre cria um laço infinito</label>
+<label><input type="radio" name="q5"> Porque o <code>for</code> não tem condição</label>
+<label><input type="radio" name="q5"> Porque no <code>for</code> o passo fica no cabeçalho e roda mesmo assim; no <code>while</code>, o <code>continue</code> pode pular o passo</label>
+</div>
+
+<h3>Missão final: o primeiro múltiplo de 7</h3>
+
+<div class="trydart" data-goal="out:Primeiro múltiplo de 7 depois de 50: 56;;src:\bbreak\s*;">
+<p class="try-task"><strong>Missão:</strong> descubra o primeiro múltiplo de 7 maior que 50. Do jeito que está, o <code>break</code> sai na primeira volta, sem fazer nada. Antes dele, some 1 em <code>n</code>, e ponha o <code>break</code> dentro de um <code>if</code>: só saia quando <code>n % 7 == 0</code> ("o resto da divisão por 7 é zero").</p>
+<pre class="script" data-file="main.dart">void main() {
+  var n = 50;
+  while (true) {
+    // some 1 em n aqui
+    break; // saia só se n for múltiplo de 7
+  }
+  print('Primeiro múltiplo de 7 depois de 50: $n');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var n = 50;
+  while (true) {
+    n++;
+    if (n % 7 == 0) break;
+  }
+  print('Primeiro múltiplo de 7 depois de 50: $n');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>break;</code> sai do laço agora; o programa segue na linha depois dele.</li>
+  <li><code>continue;</code> abandona só a volta atual e vai para a próxima.</li>
+  <li><code>while (true)</code> + <code>break</code> é o laço com a saída no meio, ótimo para "repita até a pessoa mandar parar".</li>
+  <li>No <code>while</code>, cuidado: um <code>continue</code> antes do passo trava o laço.</li>
+  <li>Os dois agem no laço mais de dentro. Para sair do de fora, use um rótulo: <code>procura: for (…)</code> e <code>break procura;</code>.</li>
+  <li>Fora de um laço (ou <code>switch</code>), <code>break</code> e <code>continue</code> são erro de compilação.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
