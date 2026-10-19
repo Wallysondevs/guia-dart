@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart throw — lançando as suas próprias exceções | Guia Dart</title>
+<meta name="description" content="O throw do Dart para quem nunca programou: lançar Exception, ArgumentError, StateError e FormatException nas suas funções, pegar com on, throw como expressão (?? throw), rethrow para registrar e repassar, e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">throw</span></h1>
+
+<p class="intro">Na aula <a href="excecoes.html">Exceções</a>, quem lançava as exceções era o próprio Dart: o <code>int.parse</code> com um texto que não é número, a lista sem a posição pedida. Agora é a sua vez. Com o <code>throw</code> (em inglês, "lançar, arremessar") a <strong>sua</strong> função avisa: "não dá para fazer o que você me pediu". Quem chamou a função decide o que fazer com o aviso, com o <code>try</code>/<code>catch</code> que você já conhece.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que uma função deve <strong>lançar</strong> uma exceção em vez de só mostrar uma mensagem.</li>
+  <li>Como escrever <code>throw Exception('…')</code>, <code>throw ArgumentError('…')</code> e <code>throw StateError('…')</code>, e qual escolher.</li>
+  <li>Como o <code>throw</code> interrompe a função na hora, e como quem chamou pega o aviso com <code>on</code>.</li>
+  <li>Como usar o <code>throw</code> no meio de uma expressão: <code>?? (throw …)</code>.</li>
+  <li>Como pegar, anotar e <strong>repassar</strong> a mesma exceção com <code>rethrow</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o caixa eletrônico que recusa o saque</h2>
+<p>Você pede R$ 500 no caixa eletrônico e só tem R$ 70 na conta. O caixa não entrega R$ 70 fingindo que está tudo bem, nem trava a máquina: ele <strong>recusa</strong> e diz o motivo, "Saldo insuficiente". O que fazer com a recusa é com você: pedir menos, ir embora, ligar para o banco.</p>
+<p>Uma função sua deve agir igual. Uma função <code>sacar(valor)</code> não sabe se está num programa de terminal, num aplicativo de celular ou num site; ela não deveria decidir sozinha o que mostrar na tela. Ela só deve <strong>recusar</strong> o pedido impossível, com um motivo claro. Isso é <strong>lançar uma exceção</strong>:</p>
+<ul>
+  <li><code>throw</code> interrompe a função na hora: as linhas seguintes dela não rodam.</li>
+  <li>A exceção "sobe" para quem chamou a função. Se lá tiver um <code>try</code>/<code>catch</code>, ele a pega. Se não tiver, ela continua subindo até o <code>main</code>, e o programa termina com <code>Unhandled exception:</code>.</li>
+</ul>
+
+<hr>
+
+<h2>1. O primeiro <code>throw</code></h2>
+
+<pre class="file" data-file="sacar.dart">var saldo = 100;
+
+void sacar(int valor) {
+  if (valor &lt;= 0) {
+    throw ArgumentError('O valor tem de ser maior que zero: $valor');
+  }
+  if (valor &gt; saldo) {
+    throw Exception('Saldo insuficiente: pediu $valor, tem $saldo');
+  }
+  saldo -= valor;
+  print('Saque de $valor. Saldo: $saldo');
+}
+
+void main() {
+  sacar(30);
+  sacar(500);
+  print('Fim');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>if (valor &gt; saldo)</dt><dd>A função confere se o pedido é possível <strong>antes</strong> de mexer no saldo.</dd>
+  <dt>throw</dt><dd>"Lance". A palavra-chave que dispara a exceção. Depois dela vem o <strong>objeto</strong> que vai ser lançado.</dd>
+  <dt>Exception('Saldo insuficiente: …')</dt><dd>Cria uma exceção comum, com a mensagem entre parênteses. <code>Exception</code> é o tipo mais simples de exceção do Dart. Os parênteses são obrigatórios: eles <strong>criam</strong> o objeto (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>ArgumentError('…')</dt><dd>Outro tipo, para quando o <strong>argumento</strong> (o valor que veio entre parênteses na chamada) não presta: um saque de valor zero ou negativo.</dd>
+  <dt>saldo -= valor;</dt><dd>Só chega aqui quem passou pelos dois testes. Se um <code>throw</code> rodou, a função parou antes.</dd>
+</dl>
+
+<pre class="term">$ dart run sacar.dart
+Saque de 30. Saldo: 70
+Unhandled exception:
+Exception: Saldo insuficiente: pediu 500, tem 70
+#0      sacar (file:///home/ana/sacar.dart:8:5)
+#1      main (file:///home/ana/sacar.dart:16:3)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Saque de 30. Saldo: 70</dt><dd>O primeiro saque deu certo.</dd>
+  <dt>Exception: Saldo insuficiente: pediu 500, tem 70</dt><dd>A sua exceção, com a sua mensagem. O Dart escreve <code>Exception: </code> na frente.</dd>
+  <dt>#0      sacar (file:///home/ana/sacar.dart:8:5)</dt><dd>Onde ela foi lançada: na função <code>sacar</code>, linha 8 (a do <code>throw</code>).</dd>
+  <dt>#1      main (file:///home/ana/sacar.dart:16:3)</dt><dd>Quem chamou o <code>sacar</code>: o <code>main</code>, na linha 16 (<code>sacar(500)</code>). O stack trace mostra o caminho todo, de dentro para fora.</dd>
+  <dt>255</dt><dd>Ninguém pegou a exceção: o programa terminou com erro, e o <code>Fim</code> não apareceu.</dd>
+</dl>
+
+<h3>Quem chama, decide</h3>
+<p>Agora o <code>main</code> faz vários pedidos e trata cada recusa. A função <code>sacar</code> não mudou nada:</p>
+
+<pre class="file" data-file="sacar2.dart">void main() {
+  for (final pedido in [30, 500, -5, 70]) {
+    try {
+      sacar(pedido);
+    } on ArgumentError catch (e) {
+      print('Pedido recusado: ${e.message}');
+    } on Exception catch (e) {
+      print('Não deu: $e');
+    }
+  }
+  print('Saldo final: $saldo');
+}
+</pre>
+
+<pre class="term">$ dart run sacar2.dart
+Saque de 30. Saldo: 70
+Não deu: Exception: Saldo insuficiente: pediu 500, tem 70
+Pedido recusado: O valor tem de ser maior que zero: -5
+Saque de 70. Saldo: 0
+Saldo final: 0
+</pre>
+
+<p>(O <code>saldo</code> e a função <code>sacar</code> são os mesmos de <code>sacar.dart</code>; no arquivo, eles vêm antes do <code>main</code>.) O <code>-5</code> caiu no <code>on ArgumentError</code> e o <code>500</code> caiu no <code>on Exception</code>: cada tipo de recusa recebeu o tratamento certo. Nenhum pedido ruim mexeu no saldo, porque o <code>throw</code> parou a função antes do <code>saldo -= valor</code>.</p>
+
+<div class="trydart" data-goal="out:Nota inválida;;src:\bthrow\b">
+<p class="try-task"><strong>Missão:</strong> a função <code>registrarNota</code> aceita qualquer número, até 15. Faça ela <strong>lançar</strong> um <code>ArgumentError</code> quando a nota for menor que 0 ou maior que 10 (<code>if (nota &lt; 0 || nota &gt; 10) { throw ArgumentError('…'); }</code>). O <code>main</code> já está pronto para pegar e mostrar <code>Nota inválida</code>.</p>
+<pre class="script" data-file="main.dart">void registrarNota(int nota) {
+  print('Nota registrada: $nota');
+}
+
+void main() {
+  for (final nota in [8, 15]) {
+    try {
+      registrarNota(nota);
+    } on ArgumentError catch (e) {
+      print('Nota inválida: ${e.message}');
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void registrarNota(int nota) {
+  if (nota &lt; 0 || nota &gt; 10) {
+    throw ArgumentError('a nota tem de ser de 0 a 10, veio $nota');
+  }
+  print('Nota registrada: $nota');
+}
+
+void main() {
+  for (final nota in [8, 15]) {
+    try {
+      registrarNota(nota);
+    } on ArgumentError catch (e) {
+      print('Nota inválida: ${e.message}');
+    }
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Nota registrada: 8</code> e <code>Nota inválida: a nota tem de ser de 0 a 10, veio 15</code>.</p>
+
+<hr>
+
+<h2>2. Qual tipo lançar?</h2>
+<p>O Dart já vem com vários tipos prontos. A Ana lançou e pegou um de cada num programa de teste; o <code>$e</code> (a mensagem) e o <code>e.runtimeType</code> (o tipo) de cada um saíram assim:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que foi lançado</th><th>Tipo</th><th>O que o <code>print('$e')</code> mostrou</th><th>Use quando…</th></tr>
+<tr><td><code>throw Exception('caixa fechado')</code></td><td><code>_Exception</code></td><td><code>Exception: caixa fechado</code></td><td>Um problema esperado, sem tipo melhor</td></tr>
+<tr><td><code>throw FormatException('CPF com letras', 'abc.123')</code></td><td><code>FormatException</code></td><td><code>FormatException: CPF com letras</code> e, na linha de baixo, <code>abc.123</code></td><td>Um texto fora do formato (o segundo valor é o texto que veio)</td></tr>
+<tr><td><code>throw ArgumentError.value(-3, 'quantidade', 'não pode ser negativa')</code></td><td><code>ArgumentError</code></td><td><code>Invalid argument (quantidade): não pode ser negativa: -3</code></td><td>O argumento recebido não presta</td></tr>
+<tr><td><code>throw RangeError.range(15, 0, 10, 'nota')</code></td><td><code>RangeError</code></td><td><code>RangeError (nota): Invalid value: Not in inclusive range 0..10: 15</code></td><td>Um número fora da faixa permitida</td></tr>
+<tr><td><code>throw StateError('o pedido já foi entregue')</code></td><td><code>StateError</code></td><td><code>Bad state: o pedido já foi entregue</code></td><td>O pedido até é válido, mas não <strong>agora</strong> (o estado das coisas não deixa)</td></tr>
+<tr><td><code>throw UnimplementedError('ainda não fiz o desconto')</code></td><td><code>UnimplementedError</code></td><td><code>UnimplementedError: ainda não fiz o desconto</code></td><td>Uma parte do programa que você ainda não escreveu</td></tr>
+<tr><td><code>throw 'um texto qualquer'</code></td><td><code>String</code></td><td><code>um texto qualquer</code></td><td>Nunca: funciona, mas ninguém consegue pegar com um <code>on</code> que faça sentido</td></tr>
+</table>
+</div>
+
+<ul>
+  <li>O tipo de <code>Exception('…')</code> aparece como <code>_Exception</code>, com sublinhado: é a versão "por dentro" do Dart. Para pegar, escreva <code>on Exception</code> mesmo.</li>
+  <li><code>ArgumentError.value</code> e <code>RangeError.range</code> são <strong>construtores nomeados</strong> (veja <a href="construtores-nomeados.html">Construtores Nomeados</a>): jeitos prontos de montar uma mensagem completa, com o nome e o valor.</li>
+  <li>Lembre da regra da aula anterior: <code>…Exception</code> é problema que vem de fora e merece tratamento; <code>…Error</code> é sinal de engano de quem chamou a função. Na aula <a href="excecoes-proprias.html">Exceções Próprias</a>, você cria os seus próprios tipos, como <code>SaldoInsuficienteException</code>.</li>
+</ul>
+
+<hr>
+
+<h2>3. <code>throw</code> no meio de uma expressão</h2>
+<p>O <code>throw</code> também funciona no lugar de um valor. Isso combina com o <code>??</code> ("se for nulo, use o outro"): "converta; se não der, lance":</p>
+
+<pre class="file" data-file="expr.dart">int lerQuantidade(String texto) =&gt;
+    int.tryParse(texto) ?? (throw FormatException('Quantidade inválida', texto));
+
+void main() {
+  print(lerQuantidade('3'));
+  print(lerQuantidade('três'));
+}
+</pre>
+
+<pre class="term">$ dart run expr.dart
+3
+Unhandled exception:
+FormatException: Quantidade inválida
+três
+#0      lerQuantidade (file:///home/ana/expr.dart:2:29)
+#1      main (file:///home/ana/expr.dart:6:9)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>O <code>int.tryParse('3')</code> deu 3, então o <code>??</code> nem olhou para o lado direito. O <code>int.tryParse('três')</code> deu <code>null</code>, então o <code>??</code> usou o lado direito, e o lado direito era um <code>throw</code>. Os parênteses em volta do <code>throw</code> são necessários. A função é de uma linha só (<code>=&gt;</code>; veja <a href="arrow.html">Funções de Uma Linha</a>).</p>
+
+<hr>
+
+<h2>4. <code>rethrow</code>: anotar e passar adiante</h2>
+<p>Às vezes você quer <strong>saber</strong> que a exceção passou por ali (para anotar num registro), mas não é você quem deve tratá-la. O <code>rethrow</code> ("lance de novo") só existe dentro de um <code>catch</code>/<code>on</code>: ele lança a <strong>mesma</strong> exceção de novo, para cima, com o stack trace original:</p>
+
+<pre class="file" data-file="rethrow.dart">int converter(String texto) {
+  try {
+    return int.parse(texto);
+  } on FormatException {
+    print('[registro] falhou ao converter "$texto"');
+    rethrow;
+  }
+}
+
+void main() {
+  try {
+    print(converter('8'));
+    print(converter('oito'));
+  } on FormatException catch (e) {
+    print('No main: ${e.message} -&gt; ${e.source}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run rethrow.dart
+8
+[registro] falhou ao converter "oito"
+No main: Invalid radix-10 number -&gt; oito
+</pre>
+
+<p>A exceção passou por dois lugares: o <code>on</code> do <code>converter</code> anotou o registro e a repassou; o <code>on</code> do <code>main</code> a pegou de vez. O <code>e.source</code> de uma <code>FormatException</code> é o texto que não deu para converter.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Uma função que recebe um pedido impossível pode reagir de três jeitos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Exemplo</th><th>Quando faz sentido</th></tr>
+<tr><td>Lançar uma exceção</td><td><code>throw StateError('Estoque insuficiente')</code></td><td>O pedido é impossível e quem chamou <strong>precisa</strong> saber. É o padrão.</td></tr>
+<tr><td>Devolver <code>null</code></td><td><code>int? buscar(…)</code> devolve <code>null</code> se não achar</td><td>"Não achei" é um resultado normal, não um problema (como o <code>int.tryParse</code>)</td></tr>
+<tr><td>Devolver <code>true</code>/<code>false</code></td><td><code>bool sacar(…)</code></td><td>Só importa se deu certo ou não, sem motivo</td></tr>
+<tr><td>Só dar <code>print</code> do problema</td><td><code>print('Saldo insuficiente'); return;</code></td><td>Evite: quem chamou acha que deu certo, e a mensagem vai para a tela mesmo onde não há tela</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Criou a exceção, mas esqueceu o <code>throw</code></strong>
+<pre class="file" data-file="r2.dart">void sacar(int valor) {
+  if (valor &lt;= 0) {
+    Exception('Valor inválido: $valor');
+  }
+  print('Saque de $valor');
+}
+
+void main() {
+  sacar(-5);
+}
+</pre>
+<pre class="term">$ dart run r2.dart
+Saque de -5
+</pre>
+<p>Nenhuma mensagem de erro, e esse é o problema: <code>Exception('…')</code> sem o <code>throw</code> só <strong>cria</strong> o objeto e o joga fora. O saque de -5 passou. <strong>Como consertar:</strong> <code>throw Exception('Valor inválido: $valor');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses: lançou o tipo, não uma exceção</strong>
+<pre class="file" data-file="r4.dart">void main() {
+  throw Exception;
+}
+</pre>
+<pre class="term">$ dart run r4.dart
+Unhandled exception:
+Exception
+#0      main (file:///home/ana/r4.dart:2:3)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Parece que funcionou, mas repare: não tem o <code>Exception: </code> com mensagem. Sem parênteses, <code>Exception</code> é o <strong>nome do tipo</strong>, e foi esse nome que foi lançado, não uma exceção. Um <code>on Exception</code> <strong>não</strong> pega isso. <strong>Como consertar:</strong> <code>throw Exception('o motivo');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>rethrow</code> fora de um <code>catch</code></strong>
+<pre class="file" data-file="r1.dart">void sacar(int valor) {
+  if (valor &lt;= 0) {
+    rethrow;
+  }
+  print('Saque de $valor');
+}
+
+void main() {
+  sacar(-5);
+}
+</pre>
+<pre class="term">$ dart run r1.dart
+r1.dart:3:5: Error: 'rethrow' can only be used in catch clauses.
+    rethrow;
+    ^^^^^^^
+</pre>
+<p>"O <code>rethrow</code> só pode ser usado dentro de um <code>catch</code>". Ele lança <strong>de novo</strong> uma exceção que foi pega; aqui não havia nenhuma. <strong>Como consertar:</strong> para uma exceção nova, use <code>throw ArgumentError('…')</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Lançar um valor que pode ser nulo</strong>
+<pre class="file" data-file="r3.dart">void main() {
+  String? nome;
+  throw nome;
+}
+</pre>
+<pre class="term">$ dart run r3.dart
+r3.dart:3:9: Error: Can't throw a value of 'String?' since it is neither dynamic nor non-nullable.
+  throw nome;
+        ^
+</pre>
+<p>"Não dá para lançar um valor do tipo <code>String?</code>, porque ele não é <code>dynamic</code> nem não-anulável". O <code>throw</code> precisa de um objeto de verdade, nunca <code>null</code> (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>). <strong>Como consertar:</strong> lance uma exceção: <code>throw StateError('nome vazio')</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma função que nem sempre devolve um valor</strong>
+<pre class="file" data-file="r5.dart">int dobro(int n) {
+  if (n &lt; 0) {
+    throw ArgumentError('negativo');
+  }
+}
+
+void main() {
+  print(dobro(2));
+}
+</pre>
+<pre class="term">$ dart run r5.dart
+r5.dart:1:5: Error: A non-null value must be returned since the return type 'int' doesn't allow null.
+int dobro(int n) {
+    ^
+</pre>
+<p>"Um valor não nulo tem de ser devolvido, porque o tipo de retorno <code>int</code> não aceita <code>null</code>". O <code>throw</code> cuidou do caminho ruim, mas o caminho bom ficou sem <code>return</code>. <strong>Como consertar:</strong> acrescente <code>return n * 2;</code> depois do <code>if</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>throw Exception('motivo')</code></td><td>Lança uma exceção comum; mostra <code>Exception: motivo</code></td></tr>
+<tr><td><code>throw ArgumentError('motivo')</code></td><td>O argumento recebido não presta</td></tr>
+<tr><td><code>throw ArgumentError.value(v, 'nome', 'motivo')</code></td><td>Idem, com o nome e o valor na mensagem</td></tr>
+<tr><td><code>throw RangeError.range(v, min, max, 'nome')</code></td><td>Número fora da faixa</td></tr>
+<tr><td><code>throw StateError('motivo')</code></td><td>Pedido impossível no estado atual; mostra <code>Bad state: motivo</code></td></tr>
+<tr><td><code>throw FormatException('motivo', texto)</code></td><td>Texto fora do formato</td></tr>
+<tr><td><code>throw UnimplementedError()</code></td><td>Parte ainda não escrita</td></tr>
+<tr><td><code>x ?? (throw …)</code></td><td><code>throw</code> como expressão</td></tr>
+<tr><td><code>rethrow;</code></td><td>Dentro de um <code>catch</code>: lança de novo a mesma exceção</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para recusar uma idade negativa:</p>
+<div class="ex-code">if (idade &lt; 0) {<br>&nbsp;&nbsp;<input data-answer="throw" aria-label="palavra-chave que lança"> <input data-answer="ArgumentError" aria-label="tipo de erro de argumento">('idade negativa');<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Repassar</h3>
+<p>Qual palavra, dentro de um <code>catch</code>, lança de novo a mesma exceção?</p>
+<div class="ex-code"><input data-answer="rethrow" aria-label="palavra-chave"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Numa função, a linha <code>throw StateError('x');</code> roda. O que acontece com as linhas seguintes da função?</p>
+<label><input type="radio" name="q3"> Rodam normalmente</label>
+<label><input type="radio" name="q3"> Não rodam: a função para ali e a exceção sobe para quem chamou</label>
+<label><input type="radio" name="q3"> Rodam depois do <code>catch</code></label>
+<label><input type="radio" name="q3"> O Dart pede para você confirmar</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>print('$e')</code> mostra para <code>e = StateError('pedido entregue')</code>?</p>
+<label><input type="radio" name="q4"> <code>StateError: pedido entregue</code></label>
+<label><input type="radio" name="q4"> <code>Exception: pedido entregue</code></label>
+<label><input type="radio" name="q4"> <code>Bad state: pedido entregue</code></label>
+<label><input type="radio" name="q4"> <code>pedido entregue</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma função tem a linha <code>Exception('erro');</code>, sem <code>throw</code>. O que acontece quando ela roda?</p>
+<label><input type="radio" name="q5"> Nada: o objeto é criado e jogado fora</label>
+<label><input type="radio" name="q5"> O programa termina com <code>Unhandled exception</code></label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<label><input type="radio" name="q5"> Mostra <code>Exception: erro</code> na tela</label>
+</div>
+
+<h3>Missão final: o estoque que não fica negativo</h3>
+
+<div class="trydart" data-goal="out:recusado: Estoque insuficiente;;out:Sobrou: 2;;src:throw\s+StateError">
+<p class="try-task"><strong>Missão:</strong> o estoque da lojinha começa com 10. Hoje o pedido de 8 deixa o estoque negativo. Na função <code>retirar</code>, antes de mexer no estoque, <strong>lance</strong> um <code>StateError('Estoque insuficiente: tem $estoque')</code> quando <code>qtd</code> for maior que o <code>estoque</code>. O <code>main</code> já pega o <code>StateError</code>. No fim deve aparecer <code>Sobrou: 2</code>.</p>
+<pre class="script" data-file="main.dart">var estoque = 10;
+
+void retirar(int qtd) {
+  // escreva o throw aqui
+  estoque -= qtd;
+  print('Retirou $qtd. Sobrou: $estoque');
+}
+
+void main() {
+  for (final pedido in [5, 8, 3]) {
+    try {
+      retirar(pedido);
+    } on StateError catch (e) {
+      print('Pedido de $pedido recusado: ${e.message}');
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">var estoque = 10;
+
+void retirar(int qtd) {
+  if (qtd &gt; estoque) {
+    throw StateError('Estoque insuficiente: tem $estoque');
+  }
+  estoque -= qtd;
+  print('Retirou $qtd. Sobrou: $estoque');
+}
+
+void main() {
+  for (final pedido in [5, 8, 3]) {
+    try {
+      retirar(pedido);
+    } on StateError catch (e) {
+      print('Pedido de $pedido recusado: ${e.message}');
+    }
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run estoque.dart
+Retirou 5. Sobrou: 5
+Pedido de 8 recusado: Estoque insuficiente: tem 5
+Retirou 3. Sobrou: 2
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>throw objeto</code> lança uma exceção: a função para na hora e a exceção sobe até alguém pegá-la (ou até o programa terminar com código 255).</li>
+  <li>Use o tipo que descreve o problema: <code>ArgumentError</code> (argumento ruim), <code>RangeError</code> (fora da faixa), <code>StateError</code> (não dá agora), <code>FormatException</code> (texto fora do formato), <code>Exception</code> (o resto).</li>
+  <li>Sempre com parênteses e mensagem: <code>throw Exception('motivo')</code>. Não lance textos soltos nem <code>null</code>.</li>
+  <li>A função recusa; <strong>quem chama</strong> decide o que fazer, com <code>try</code> e <code>on</code>.</li>
+  <li><code>throw</code> também é expressão: <code>valor ?? (throw …)</code>.</li>
+  <li><code>rethrow</code>, só dentro de um <code>catch</code>, repassa a mesma exceção para cima.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
