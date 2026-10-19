@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Nomes de Variáveis — regras e estilo lowerCamelCase | Guia Dart</title>
+<meta name="description" content="Como dar nome a variáveis em Dart para quem nunca programou: as regras (letras sem acento, dígitos, _ e $, sem começar com número, sem espaço, sem palavras reservadas), maiúsculas e minúsculas, o estilo lowerCamelCase do Effective Dart, o que o dart analyze avisa, e os erros reais (The non-ASCII character 'ç' can't be used in identifiers, 'class' can't be used as an identifier because it's a keyword) explicados.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Nomes de Variáveis</span></h1>
+
+<p class="intro">Toda variável precisa de um nome, a etiqueta do pote. Você escolhe o nome, mas o Dart tem <strong>regras</strong> (o que não segue a regra não compila) e a comunidade Dart tem um <strong>estilo</strong> (o que não segue o estilo compila, mas fica estranho para todo mundo que lê). Esta aula mostra as duas coisas, e os erros que aparecem quando um nome quebra uma regra, como o mais comum entre quem fala português: o acento.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As regras: quais caracteres valem num nome e onde.</li>
+  <li>Por que <code>preço</code> não pode, e <code>preco</code> pode.</li>
+  <li>Que <code>nome</code>, <code>Nome</code> e <code>NOME</code> são três variáveis diferentes.</li>
+  <li>As palavras reservadas, que não podem ser nomes.</li>
+  <li>O estilo oficial: <code>lowerCamelCase</code> para variáveis e constantes, e os outros formatos que você vai ver no guia.</li>
+  <li>O que faz um nome ser bom.</li>
+  <li>Os erros reais de nome com acento, com número no começo, com espaço, com hífen e com palavra reservada.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>nv</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: etiquetas que a máquina consegue ler</h2>
+<p>Pense numa etiquetadora de supermercado, aquela que imprime etiquetas com um teclado pequeno. O teclado dela só tem letras sem acento, números e alguns sinais. Você pode escrever <code>PRECO</code>, mas não <code>PREÇO</code>; e um espaço no meio faria parecer que são duas etiquetas. Os nomes no Dart funcionam assim: só um conjunto pequeno de caracteres, tudo grudado.</p>
+
+<p>Em programação, um nome desses se chama <strong>identificador</strong> (em inglês, <em>identifier</em>). A palavra aparece em várias mensagens de erro desta aula.</p>
+
+<hr>
+
+<h2>1. As regras</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Vale</th><th>Não vale</th></tr>
+<tr><td>Letras de <code>a</code> a <code>z</code> e de <code>A</code> a <code>Z</code>, <strong>sem acento</strong> nem <code>ç</code></td><td><code>preco</code>, <code>acucar</code></td><td><code>preço</code>, <code>açúcar</code></td></tr>
+<tr><td>Dígitos de <code>0</code> a <code>9</code>, mas <strong>não no começo</strong></td><td><code>item2</code>, <code>mesa10</code></td><td><code>2item</code></td></tr>
+<tr><td>Os sinais <code>_</code> (sublinhado) e <code>$</code> (cifrão)</td><td><code>_segredo</code>, <code>$total</code></td><td><code>preco-pao</code>, <code>preco.pao</code>, <code>preco!</code></td></tr>
+<tr><td><strong>Sem espaços</strong></td><td><code>precoDoPao</code></td><td><code>preco do pao</code></td></tr>
+<tr><td>Não pode ser palavra reservada</td><td><code>turma</code>, <code>classe</code></td><td><code>class</code>, <code>if</code>, <code>var</code></td></tr>
+</table>
+</div>
+
+<p>Este programa usa vários nomes válidos, alguns deles feios (você vai ver por quê na seção 4):</p>
+
+<pre class="file" data-file="validos.dart">void main() {
+  var preco = 0.9;
+  var precoDoPao = 0.9;
+  var item2 = 'leite';
+  var _segredo = 'receita da vó';
+  var $total = 10;
+  var cliente_antigo = 'Caio';
+  print(preco);
+  print(precoDoPao);
+  print(item2);
+  print(_segredo);
+  print($total);
+  print(cliente_antigo);
+}
+</pre>
+
+<pre class="term">$ dart run validos.dart
+0.9
+0.9
+leite
+receita da vó
+10
+Caio
+</pre>
+
+<p>Repare: o <strong>valor</strong> <code>'receita da vó'</code> tem acento e espaços sem problema nenhum, porque está entre aspas. A regra vale só para o <strong>nome</strong>.</p>
+
+<div class="note">
+<strong>O <code>_</code> no começo tem um significado</strong>
+<p>Um nome que começa com <code>_</code> é <strong>privado</strong>: só pode ser usado dentro do próprio arquivo. Dentro do <code>main</code> isso não faz diferença, mas com funções e classes faz (aula <a href="privado.html">Privacidade (_)</a>). Por isso, não comece nomes com <code>_</code> sem motivo. E o <code>$</code>, embora permitido, quase ninguém usa em nomes: ele já tem outro papel dentro dos textos (<a href="interpolacao.html">Interpolação</a>).</p>
+</div>
+
+<hr>
+
+<h2>2. Maiúsculas e minúsculas contam</h2>
+
+<pre class="file" data-file="maiusculas.dart">void main() {
+  var nome = 'Ana';
+  var Nome = 'Bia';
+  var NOME = 'Caio';
+  print(nome);
+  print(Nome);
+  print(NOME);
+}
+</pre>
+
+<pre class="term">$ dart run maiusculas.dart
+Ana
+Bia
+Caio
+</pre>
+
+<p>Três variáveis diferentes, cada uma com o seu valor. O Dart compara os nomes letra por letra, e <code>n</code> e <code>N</code> são letras diferentes. Funciona, mas é uma péssima ideia: quem lê vai confundir. A lição é a outra direção: se você criou <code>precoPao</code>, tem de escrever <code>precoPao</code> sempre, com o mesmo <code>P</code> maiúsculo; <code>precopao</code> seria outro nome, que não existe (<code>Undefined name</code>, aula <a href="variaveis.html">Variáveis</a>).</p>
+
+<hr>
+
+<h2>3. Palavras reservadas</h2>
+<p>Algumas palavras são da própria linguagem: <code>var</code>, <code>final</code>, <code>const</code>, <code>void</code>, <code>if</code>, <code>else</code>, <code>for</code>, <code>while</code>, <code>class</code>, <code>true</code>, <code>false</code>, <code>null</code>, <code>return</code> e outras. Elas são <strong>reservadas</strong>: não podem ser usadas como nome de variável. A lista completa está em <a href="ref-palavras-reservadas.html">Palavras Reservadas</a>.</p>
+
+<p>Uma armadilha para quem fala português: <code>class</code> é reservada, mas <code>classe</code> e <code>turma</code> não são. Escrever os nomes em português tem essa vantagem extra: quase nunca bate com uma palavra do Dart.</p>
+
+<div class="trydart" data-goal="semerro;;outre:^Turma A\n32\n$">
+<p class="try-task"><strong>Missão:</strong> os dois nomes deste programa quebram regras (rode e veja). Troque-os por <code>turma</code> e <code>quantidadeAlunos</code> em <strong>todos</strong> os lugares em que aparecem.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var class = 'Turma A';
+  var quantidade de alunos = 32;
+  print(class);
+  print(quantidade de alunos);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var turma = 'Turma A';
+  var quantidadeAlunos = 32;
+  print(turma);
+  print(quantidadeAlunos);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O estilo: <code>lowerCamelCase</code></h2>
+<p>Quando o nome tem mais de uma palavra, como "preço do pão", é preciso grudar as palavras. O estilo oficial do Dart (o guia <em>Effective Dart</em>) manda escrever variáveis e constantes em <strong>lowerCamelCase</strong>: tudo junto, a primeira palavra em minúsculas e cada palavra seguinte começando com maiúscula, como as corcovas de um camelo:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ideia</th><th>Nome em lowerCamelCase</th></tr>
+<tr><td>preço do pão</td><td><code>precoDoPao</code> ou <code>precoPao</code></td></tr>
+<tr><td>quantidade de alunos</td><td><code>quantidadeAlunos</code></td></tr>
+<tr><td>está aberta</td><td><code>estaAberta</code></td></tr>
+<tr><td>taxa de entrega (uma constante)</td><td><code>taxaEntrega</code></td></tr>
+</table>
+</div>
+
+<p>Outros formatos aparecem em outros lugares, cada um com o seu uso:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Formato</th><th>Exemplo</th><th>Usado em Dart para</th></tr>
+<tr><td><code>lowerCamelCase</code></td><td><code>precoDoPao</code></td><td>Variáveis, constantes, funções</td></tr>
+<tr><td><code>UpperCamelCase</code></td><td><code>ContaBancaria</code></td><td>Tipos e classes (por isso <code>String</code> tem S maiúsculo; aula <a href="classes.html">Classes</a>)</td></tr>
+<tr><td><code>snake_case</code></td><td><code>lista_compras.dart</code></td><td>Nomes de arquivos e pacotes</td></tr>
+<tr><td><code>SCREAMING_CAPS</code></td><td><code>TAXA_ENTREGA</code></td><td><strong>Nada</strong> no código novo (é o costume de outras linguagens para constantes)</td></tr>
+</table>
+</div>
+
+<h3>O <code>dart analyze</code> confere o estilo</h3>
+<p>O compilador não liga para o estilo: <code>Preco_Do_Pao</code> roda. Quem avisa é o <code>dart analyze</code>, o verificador de código do SDK, num projeto criado com <code>dart create</code> (aula <a href="dart-create.html">Criando um Projeto</a>), que já vem com as regras de estilo recomendadas ligadas. A Ana criou o projeto <code>padaria</code> e escreveu, no arquivo principal dele:</p>
+
+<pre class="file" data-file="bin/padaria.dart">void main() {
+  var Preco_Do_Pao = 0.9;
+  const TAXA_ENTREGA = 5;
+  print(Preco_Do_Pao * 10 + TAXA_ENTREGA);
+}
+</pre>
+
+<pre class="term">$ dart run
+14.0
+$ dart analyze
+Analyzing padaria...
+
+   info - bin/padaria.dart:2:7 - The variable name 'Preco_Do_Pao' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - bin/padaria.dart:3:9 - The constant name 'TAXA_ENTREGA' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - constant_identifier_names
+
+2 issues found.
+</pre>
+
+<dl class="anatomy">
+  <dt>dart run → 14.0</dt><dd>O programa roda normalmente: estilo não é erro.</dd>
+  <dt>info</dt><dd>O nível do aviso: "informação", o mais leve. Não é erro (<code>error</code>) nem alerta (<code>warning</code>).</dd>
+  <dt>bin/padaria.dart:2:7</dt><dd>Arquivo, linha e coluna, como nos erros.</dd>
+  <dt>The variable name 'Preco_Do_Pao' isn't a lowerCamelCase identifier.</dt><dd>"O nome de variável <code>Preco_Do_Pao</code> não está em lowerCamelCase. Tente mudar o nome para seguir o estilo lowerCamelCase."</dd>
+  <dt>non_constant_identifier_names</dt><dd>O nome da <strong>regra</strong> de estilo que reclamou (a de nomes de variáveis). A de baixo, <code>constant_identifier_names</code>, é a dos nomes de constantes.</dd>
+</dl>
+
+<p>Num arquivo solto, fora de um projeto, o <code>dart analyze</code> não liga essas regras, e o mesmo código passa calado. Mais sobre o verificador em <a href="analise.html">Análise e Formatação</a>.</p>
+
+<h3>O que faz um nome ser bom</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ruim</th><th>Melhor</th><th>Por quê</th></tr>
+<tr><td><code>x</code>, <code>a</code>, <code>coisa</code></td><td><code>totalCompra</code></td><td>Diga o que está guardado</td></tr>
+<tr><td><code>qtdPpc</code></td><td><code>quantidadePaesPorCliente</code></td><td>Abreviação só se todo mundo entender; nomes longos e claros são normais em Dart</td></tr>
+<tr><td><code>numero</code> (para um nome de pessoa)</td><td><code>nomeCliente</code></td><td>O nome não pode mentir sobre o conteúdo</td></tr>
+<tr><td><code>flag</code></td><td><code>estaAberta</code>, <code>temEstoque</code></td><td>Para <code>bool</code>, um nome que soe como pergunta de sim ou não</td></tr>
+<tr><td><code>listaNomes</code> com tipo <code>String</code></td><td><code>nomes</code> (para uma lista)</td><td>Plural para coleções; o tipo já diz que é lista</td></tr>
+</table>
+</div>
+
+<p>Este guia escreve os nomes em <strong>português, sem acento</strong> (<code>preco</code>, <code>quantidade</code>), para você ler o código como uma frase. Em projetos com pessoas de outros países, o costume é escrever em inglês (<code>price</code>, <code>quantity</code>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Acento ou <code>ç</code> no nome</strong>
+<pre class="file" data-file="acento.dart">void main() {
+  var preço = 0.9;
+  print(preço);
+}
+</pre>
+<pre class="term">$ dart run acento.dart
+acento.dart:2:10: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  var preço = 0.9;
+         ^
+acento.dart:3:12: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  print(preço);
+           ^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>The non-ASCII character 'ç' (U+00E7)</dt><dd>"O caractere não ASCII <code>ç</code>". O <strong>ASCII</strong> é a tabela antiga de caracteres dos computadores, com só as letras do inglês, sem acentos. O <code>U+00E7</code> é o número oficial do <code>ç</code> na tabela Unicode, que tem todas as letras do mundo.</dd>
+  <dt>can't be used in identifiers, only in strings and comments.</dt><dd>"Não pode ser usado em nomes, só em textos e comentários." Ou seja: <code>'preço'</code> entre aspas pode; <code>preço</code> como nome, não.</dd>
+  <dt>Try using an US-ASCII letter, a digit, '_' …, or '$' …</dt><dd>A dica: use uma letra sem acento, um dígito, <code>_</code> ou <code>$</code>. São exatamente as regras da seção 1.</dd>
+  <dt>coluna 10 e coluna 12</dt><dd>O <code>^</code> aponta para o próprio <code>ç</code>, e o erro aparece em cada lugar em que o nome foi escrito.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>preco</code>. Vale para todos os acentos: <code>açúcar</code> → <code>acucar</code>, <code>pão</code> → <code>pao</code>, <code>média</code> → <code>media</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Número no começo</strong>
+<pre class="file" data-file="digito.dart">void main() {
+  var 2item = 'leite';
+  print(2item);
+}
+</pre>
+<pre class="term">$ dart run digito.dart
+digito.dart:2:7: Error: Expected an identifier, but got '2'.
+Try inserting an identifier before '2'.
+  var 2item = 'leite';
+      ^
+digito.dart:2:7: Error: Expected ';' after this.
+  var 2item = 'leite';
+      ^
+digito.dart:2:8: Error: Setter not found: 'item'.
+  var 2item = 'leite';
+       ^^^^
+digito.dart:3:10: Error: Expected ',' before this.
+  print(2item);
+         ^^^^
+digito.dart:3:10: Error: Undefined name 'item'.
+  print(2item);
+         ^^^^
+digito.dart:3:8: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print(2item);
+       ^
+org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context: Found this candidate, but the arguments don't match.
+void print(Object? object) {
+     ^^^^^
+</pre>
+<p>Muitas mensagens, uma causa só. A primeira diz tudo: "esperava um identificador (um nome), mas achou <code>2</code>". Quando o Dart vê um dígito, ele lê um <strong>número</strong>: para ele, <code>2item</code> é o número <code>2</code> grudado no nome <code>item</code>, e o resto das mensagens é ele tentando entender essa mistura. <strong>Como consertar:</strong> o número no fim, <code>item2</code>, ou um nome melhor, <code>segundoItem</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Espaço no nome</strong>
+<pre class="file" data-file="espaco.dart">void main() {
+  var preco do pao = 0.9;
+  print(preco do pao);
+}
+</pre>
+<pre class="term">$ dart run espaco.dart
+espaco.dart:2:7: Error: Expected ';' after this.
+  var preco do pao = 0.9;
+      ^^^^^
+espaco.dart:2:16: Error: Setter not found: 'pao'.
+  var preco do pao = 0.9;
+               ^^^
+espaco.dart:3:3: Error: Expected 'while' before this.
+  print(preco do pao);
+  ^^^^^
+espaco.dart:3:3: Error: Expected to find '('.
+  print(preco do pao);
+  ^^^^^
+espaco.dart:3:3: Error: Expected an identifier, but got 'print'.
+Try inserting an identifier before 'print'.
+  print(preco do pao);
+  ^^^^^
+espaco.dart:2:25: Error: Expected ';' after this.
+  var preco do pao = 0.9;
+                        ^
+espaco.dart:3:15: Error: Expected ')' before this.
+  print(preco do pao);
+              ^^
+</pre>
+<p>Para o Dart, o espaço separa palavras: ele criou a variável <code>preco</code> e esperava um <code>;</code> logo depois (a primeira mensagem). E aqui veio um azar: <code>do</code> é uma palavra reservada, o começo do laço <code>do … while</code> (aula <a href="while.html">while e do-while</a>). Por isso aparece o estranho <code>Expected 'while' before this</code>. <strong>Como consertar:</strong> tudo junto, <code>precoDoPao</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Hífen no nome</strong>
+<pre class="file" data-file="hifen.dart">void main() {
+  var preco-pao = 0.9;
+  print(preco-pao);
+}
+</pre>
+<pre class="term">$ dart run hifen.dart
+hifen.dart:2:7: Error: Expected ';' after this.
+  var preco-pao = 0.9;
+      ^^^^^
+hifen.dart:2:13: Error: Undefined name 'pao'.
+  var preco-pao = 0.9;
+            ^^^
+hifen.dart:2:17: Error: Can't assign to this.
+  var preco-pao = 0.9;
+                ^
+hifen.dart:3:15: Error: Undefined name 'pao'.
+  print(preco-pao);
+              ^^^
+</pre>
+<p>O hífen é o sinal de <strong>menos</strong>: o Dart leu <code>preco - pao</code>, uma conta. Daí o <code>Undefined name 'pao'</code> (não existe variável <code>pao</code> para subtrair) e o <code>Can't assign to this</code> ("não dá para guardar valor nisto": não se guarda nada numa conta). <strong>Como consertar:</strong> <code>precoPao</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Palavra reservada</strong>
+<pre class="file" data-file="reservada.dart">void main() {
+  var class = 'Turma A';
+  print(class);
+}
+</pre>
+<pre class="term">$ dart run reservada.dart
+reservada.dart:2:7: Error: 'class' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  var class = 'Turma A';
+      ^^^^^
+reservada.dart:3:9: Error: 'class' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  print(class);
+        ^^^^^
+</pre>
+<p>"<code>class</code> não pode ser usada como nome porque é uma palavra-chave (<em>keyword</em>). Tente renomear para um nome que não seja palavra-chave." Esta é a mensagem mais clara do grupo. Com outras palavras reservadas, como <code>if</code>, a mensagem é menos direta: <code>Expected an identifier, but got 'if'.</code>, seguida de várias outras. <strong>Como consertar:</strong> <code>turma</code>.</p>
+<p>Curiosidade: <code>int</code>, <code>double</code> e <code>String</code> <strong>não</strong> são reservadas (são nomes de tipos), e o Dart até aceita <code>var int = 3;</code>. Mas não faça isso: a partir dessa linha, <code>int</code> deixa de ser o tipo naquele trecho, e o código fica confuso.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pode</th><th>Não pode</th></tr>
+<tr><td>Letras sem acento: <code>preco</code></td><td>Acento e <code>ç</code>: <code>preço</code></td></tr>
+<tr><td>Dígitos depois da primeira letra: <code>item2</code></td><td>Dígito no começo: <code>2item</code></td></tr>
+<tr><td><code>_</code> e <code>$</code>: <code>_segredo</code></td><td>Espaço, hífen, ponto, outros sinais</td></tr>
+<tr><td>Palavras comuns: <code>turma</code>, <code>classe</code></td><td>Palavras reservadas: <code>class</code>, <code>if</code>, <code>do</code>, <code>var</code></td></tr>
+<tr><td><code>precoDoPao</code> (lowerCamelCase)</td><td>Compila, mas fora do estilo: <code>Preco_Do_Pao</code>, <code>PRECO</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The non-ASCII character 'ç' (U+00E7) can't be used in identifiers…</code></td><td>Acento ou <code>ç</code> no nome</td></tr>
+<tr><td><code>Expected an identifier, but got '2'.</code></td><td>Nome começando com número</td></tr>
+<tr><td><code>Expected ';' after this.</code> + <code>Setter not found</code></td><td>Espaço no meio do nome</td></tr>
+<tr><td><code>Undefined name</code> + <code>Can't assign to this.</code></td><td>Hífen no nome (virou conta de menos)</td></tr>
+<tr><td><code>'class' can't be used as an identifier because it's a keyword.</code></td><td>Palavra reservada como nome</td></tr>
+<tr><td><code>info - … isn't a lowerCamelCase identifier.</code> (no <code>dart analyze</code>)</td><td>Nome fora do estilo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Sem acento</h3>
+<p>Escreva o nome válido para a variável que guarda o preço do açúcar, em lowerCamelCase:</p>
+<div class="ex-code">var <input data-answer="precoAcucar|precoDoAcucar" aria-label="nome"> = 4.5;</div>
+</div>
+
+<div class="exercise">
+<h3>2. lowerCamelCase</h3>
+<p>Escreva "total da compra" em lowerCamelCase, sem a palavra "da":</p>
+<div class="ex-code"><input data-answer="totalCompra" aria-label="nome"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O formato dos arquivos</h3>
+<p>Qual o nome certo do arquivo de um programa chamado "Lista de Compras"? (formato <code>snake_case</code>, com a extensão)</p>
+<div class="ex-code"><input data-answer="lista_de_compras.dart|lista_compras.dart" aria-label="arquivo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destes nomes é <strong>válido</strong> no Dart?</p>
+<label><input type="radio" name="q4"> <code>1lugar</code></label>
+<label><input type="radio" name="q4"> <code>média</code></label>
+<label><input type="radio" name="q4"> <code>nota1</code></label>
+<label><input type="radio" name="q4"> <code>nota-final</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual nome segue o estilo oficial do Dart para uma variável?</p>
+<label><input type="radio" name="q5"> <code>Quantidade_Pao</code></label>
+<label><input type="radio" name="q5"> <code>quantidadePao</code></label>
+<label><input type="radio" name="q5"> <code>QUANTIDADE_PAO</code></label>
+<label><input type="radio" name="q5"> <code>quantidade_pao</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O programa tem <code>var total = 10;</code> e, mais abaixo, <code>print(Total);</code>. O que acontece?</p>
+<label><input type="radio" name="q6"> Erro: <code>Undefined name 'Total'</code></label>
+<label><input type="radio" name="q6"> Mostra 10</label>
+<label><input type="radio" name="q6"> Mostra <code>Total</code></label>
+</div>
+
+<h3>Missão final: renomeando a planilha da padaria</h3>
+
+<div class="trydart" data-goal="semerro;;outre:^Pão francês: 30\nAçúcar: 4\.5\nAberta: true\n$;;src:\bpaesFrances\b;;src:\bprecoAcucar\b;;src:\bestaAberta\b">
+<p class="try-task"><strong>Missão:</strong> os nomes abaixo quebram as regras. Troque por <code>paesFrances</code>, <code>precoAcucar</code> e <code>estaAberta</code>, em todos os lugares. Os textos entre aspas, com acento, ficam como estão.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var pães-franceses = 30;
+  var preço do açúcar = 4.5;
+  var 1aberta = true;
+  print('Pão francês: $pães-franceses');
+  print('Açúcar: $preço do açúcar');
+  print('Aberta: $1aberta');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var paesFrances = 30;
+  var precoAcucar = 4.5;
+  var estaAberta = true;
+  print('Pão francês: $paesFrances');
+  print('Açúcar: $precoAcucar');
+  print('Aberta: $estaAberta');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Nomes (identificadores) usam letras sem acento, dígitos (não no começo), <code>_</code> e <code>$</code>. Nada de espaço, hífen ou <code>ç</code>.</li>
+  <li>Acento só dentro de aspas e comentários: <code>'pão'</code> pode; <code>pão</code> como nome, não.</li>
+  <li>Maiúsculas contam: <code>nome</code> e <code>Nome</code> são variáveis diferentes.</li>
+  <li>Palavras reservadas (<code>class</code>, <code>if</code>, <code>do</code>, <code>var</code>…) não podem ser nomes.</li>
+  <li>Estilo: variáveis e constantes em <code>lowerCamelCase</code> (<code>precoDoPao</code>), tipos em <code>UpperCamelCase</code>, arquivos em <code>snake_case.dart</code>. O <code>dart analyze</code> de um projeto avisa quando o nome foge do estilo.</li>
+  <li>Bons nomes dizem o que guardam: <code>totalCompra</code>, <code>estaAberta</code>, <code>nomes</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
