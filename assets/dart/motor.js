@@ -40,7 +40,22 @@
       }
       if (i >= n) {
         if (interp) throw new ErroDart("Can't find '}' to match '${'.", inicio - 2, 2);
-        toks.push({ t: "eof", v: "", p: n, e: n, nl: true }); break;
+        toks.push({ t: "eof", v: "", p: n, e: n, nl: true });
+        // como o scanner do CFE: parênteses, colchetes e chaves sem par
+        var pilhaB = [], PAR = { "(": ")", "[": "]", "{": "}" }, ABRE = { ")": "(", "]": "[", "}": "{" };
+        toks.forEach(function (t) {
+          if (t.t !== "op") return;
+          if (PAR[t.v]) pilhaB.push(t);
+          else if (ABRE[t.v]) {
+            var k = pilhaB.length - 1;
+            while (k >= 0 && pilhaB[k].v !== ABRE[t.v]) k--;
+            if (k < 0) return;
+            for (var j = pilhaB.length - 1; j > k; j--) lexErros.push(new ErroDart("Can't find '" + PAR[pilhaB[j].v] + "' to match '" + pilhaB[j].v + "'.", pilhaB[j].p, 1));
+            pilhaB.length = k;
+          }
+        });
+        for (var jb = pilhaB.length - 1; jb >= 0; jb--) lexErros.push(new ErroDart("Can't find '" + PAR[pilhaB[jb].v] + "' to match '" + pilhaB[jb].v + "'.", pilhaB[jb].p, 1));
+        break;
       }
       if (interp && src[i] === "}" && prof === 0) { toks.push({ t: "eof", v: "", p: i, e: i }); return { toks: toks, fim: i }; }
       var c0 = src[i], p0 = i;
@@ -86,7 +101,12 @@
       else if (tripla && src[i] === "\r" && src[i + 1] === "\n") i += 2;
       var partes = [], buf = "";
       while (true) {
-        if (i >= n || (!tripla && src[i] === "\n")) { var fl = src.indexOf("\n", p0); err("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0)); }
+        if (i >= n || (!tripla && src[i] === "\n")) {
+          var fl = src.indexOf("\n", p0);
+          if (tripla || interp) err("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0));
+          lexErros.push(new ErroDart("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0)));
+          break;
+        }
         if (src.startsWith(fecho, i)) { i += fecho.length; break; }
         var ch = src[i];
         if (ch === "\\" && !crua) {
@@ -135,6 +155,9 @@
   var CONT_CORINGA = 0;
   var CONST_SDK = new Set(["Duration", "Object", "MapEntry", "Symbol", "JsonEncoder", "JsonEncoder.withIndent", "JsonDecoder", "Exception", "Error", "StateError", "FormatException", "ArgumentError", "UnsupportedError", "UnimplementedError", "Deprecated", "LineSplitter", "Point", "RangeError", "Utf8Codec", "Utf8Encoder", "Utf8Decoder", "Base64Codec"]);
   var ERROS_LEX = [];
+  var SEQ_LEX = 0;
+  ERROS_LEX.push = function (e) { e.seq = ++SEQ_LEX; e.lex = true; return Array.prototype.push.call(this, e); };
+  var ERROS_PARSE = [];
   var MODIFICADORES_CLASSE = new Set(["abstract", "base", "final", "interface", "sealed", "mixin"]);
 
   function Parser(toks, src) { this.t = toks; this.i = 0; this.src = src; }
@@ -904,6 +927,12 @@
     var l = this.parseExprBin(nivel + 1);
     while (true) {
       var t = this.peek();
+      if (t.t === "id" && (t.v === "and" || t.v === "or") && !t.nl && (nivel === 1 && t.v === "or" || nivel === 2 && t.v === "and")) {
+        var simb = t.v === "and" ? "&" : "|";
+        ERROS_PARSE.push(new ErroDart("Binary operator '" + t.v + "' is written as '" + simb + "' instead of the written out word.", t.p, t.v.length, "Try replacing '" + t.v + "' with '" + simb + "'."));
+        t = { t: "op", v: t.v === "and" ? "&&" : "||", p: t.p, e: t.e };
+        this.t[this.i] = t;
+      }
       if (!((t.t === "op" || t.t === "id") && BIN[nivel].indexOf(t.v) >= 0)) break;
       if (t.t === "id" && t.v !== "is" && t.v !== "as") break;
       this.next();
@@ -980,7 +1009,8 @@
       if (!this.accept(",")) {
         if (!this.isOp(")")) {
           var t = this.peek();
-          if (t.t === "eof" || t.v === ";" || t.v === "}") { var pv = this.prev(); throw new ErroDart("Expected ')' before this.", t.p, Math.max(1, t.e - t.p)); }
+          if (t.t === "eof" || t.v === "}" || (t.v === ";" && t.nl)) throw new ErroDart("Can't find ')' to match '('.", ini.p, 1);
+          if (t.v === ";") throw new ErroDart("Expected ')' before this.", t.p, Math.max(1, t.e - t.p));
           this.fail("Expected ',' before this.", t);
         }
         break;
@@ -2882,7 +2912,7 @@
       return r;
     }
     var incluidos = {}; incluidos[arq] = true;
-    ERROS_LEX.length = 0;
+    ERROS_LEX.length = 0; ERROS_PARSE.length = 0;
     var imports = [];
     var errosRec = [];
     try {
@@ -2922,7 +2952,7 @@
         });
       }
     } catch (e) {
-      if (e instanceof ErroDart) { ERROS_LEX.forEach(function (x) { x.lex = true; }); var todos = ERROS_LEX.slice().concat(errosRec); todos.push(e); todos.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || a.pos - b.pos; }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
+      if (e instanceof ErroDart) { ERROS_LEX.forEach(function (x) { x.lex = true; }); var todos = ERROS_LEX.slice().concat(errosRec, ERROS_PARSE); todos.push(e); var vistosT = {}; todos = todos.filter(function (x) { var k = x.pos + x.msg; if (vistosT[k]) return false; vistosT[k] = 1; return true; }); todos.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || (a.lex && b.lex ? a.seq - b.seq : a.pos - b.pos); }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
       throw e;
     }
     var g = new Gerador(prog, combinado, arq);
@@ -2931,6 +2961,7 @@
     g.arqPrincipal = arq;
     ERROS_LEX.forEach(function (e) { e.lex = true; g.erros.push(e); });
     errosRec.forEach(function (e) { g.erros.push(e); });
+    ERROS_PARSE.forEach(function (e) { g.erros.push(e); });
     var js;
     try { js = g.gerar(); }
     catch (e) {
@@ -2946,7 +2977,7 @@
         return 2;
       };
       var posOrd = function (x) { return x.ordemPos !== undefined && x.ordemPos !== null ? x.ordemPos : x.pos; };
-      errs.sort(function (a, b) { return fase(a) - fase(b) || posOrd(a) - posOrd(b); });
+      errs.sort(function (a, b) { return fase(a) - fase(b) || (a.lex && b.lex ? a.seq - b.seq : posOrd(a) - posOrd(b)); });
       var semMain = errs.filter(function (x) { return x.extra === "semMain"; });
       if (semMain.length && errs.length === 1) return { erros: arq + ": Error: Undefined name 'main'.\n", n: 1 };
       errs = errs.filter(function (x) { return x.extra !== "semMain"; });
