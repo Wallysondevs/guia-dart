@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart for — repetindo um número conhecido de vezes | Guia Dart</title>
+<meta name="description" content="O laço for do Dart para quem nunca programou: for (var i = 1; i &lt;= 5; i++), as três partes (início, condição e passo), contar de 0 ou de 1, contagem regressiva, de 5 em 5, acumular uma soma, a tabuada, percorrer uma lista pelo índice, for dentro de for, e os erros reais do Dart 3 (vírgulas no lugar de ponto e vírgula, for i in range, final no contador, i usado depois do laço, RangeError do &lt;= length, laço infinito e o ; depois do for).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">for</span></h1>
+
+<p class="intro">Mostrar a tabuada do 7, somar os 30 dias do mês, imprimir as cadeiras do cinema: tudo isso é <strong>repetir</strong>. Copiar a mesma linha dez vezes até funciona, mas e se fossem mil? Para repetir existem os <strong>laços</strong> (em inglês, <em>loops</em>). O <code>for</code> ("para") é o laço de quando você <strong>sabe quantas vezes</strong> vai repetir: "para cada número de 1 a 10, faça isto".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As três partes do <code>for</code>: início, condição e passo, separadas por <code>;</code>.</li>
+  <li>Como contar de 1 a 5, de 0 a 2, de trás para a frente e de 5 em 5.</li>
+  <li>Como <strong>acumular</strong> uma soma e montar a tabuada.</li>
+  <li>Como percorrer uma lista pela posição (o índice) e por que se começa do 0.</li>
+  <li><code>for</code> dentro de <code>for</code>.</li>
+  <li>Os erros reais: vírgulas no lugar de <code>;</code>, o <code>for i in range</code> do Python, <code>final</code> no contador, o contador usado depois do laço, o <code>RangeError</code> do <code>&lt;=</code>, o laço infinito e o <code>;</code> depois do <code>for</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: as voltas na pista</h2>
+<p>O professor de educação física manda: "Deem 5 voltas na pista." A Ana sabe o que fazer sem pensar:</p>
+<ol class="passo">
+  <li><strong>Início:</strong> começa a contar do 1.</li>
+  <li><strong>Pergunta:</strong> antes de cada volta, "já dei menos de 5 voltas, ou exatamente a 5ª?" Se sim, corre.</li>
+  <li><strong>Passo:</strong> terminou a volta, conta mais uma.</li>
+  <li>Quando a pergunta der "não", para e vai beber água.</li>
+</ol>
+<p>Essas são as três partes do <code>for</code>, escritas numa linha só: <strong>início</strong>, <strong>condição</strong> e <strong>passo</strong>.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>for</code></h2>
+
+<pre class="file" data-file="for1.dart">void main() {
+  for (var i = 1; i &lt;= 5; i++) {
+    print('Volta $i');
+  }
+  print('Fim!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>for</dt><dd>A palavra-chave do laço: "para".</dd>
+  <dt>var i = 1;</dt><dd>O <strong>início</strong>: cria a variável contadora <code>i</code> e dá o valor inicial. Roda <strong>uma vez só</strong>, antes de tudo. O nome <code>i</code> (de "índice") é tradição; poderia ser <code>volta</code>.</dd>
+  <dt>i &lt;= 5;</dt><dd>A <strong>condição</strong>, testada <strong>antes de cada volta</strong>. Enquanto for <code>true</code>, o bloco roda.</dd>
+  <dt>i++</dt><dd>O <strong>passo</strong>: roda <strong>depois de cada volta</strong>, e soma 1 ao contador (veja <a href="atribuicao.html">Atribuição e Incremento</a>). Sem <code>;</code> no fim, porque logo vem o <code>)</code>.</dd>
+  <dt>{ print('Volta $i'); }</dt><dd>O <strong>corpo</strong> do laço: o que se repete.</dd>
+  <dt>print('Fim!');</dt><dd>Depois da <code>}</code>: roda uma vez, quando o laço termina.</dd>
+</dl>
+
+<pre class="term">$ dart run for1.dart
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim!
+</pre>
+
+<h3>Passo a passo: o que o Dart fez</h3>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th><code>i</code></th><th><code>i &lt;= 5</code>?</th><th>O que acontece</th></tr>
+<tr><td>início</td><td>1</td><td></td><td>cria <code>i</code> valendo 1</td></tr>
+<tr><td>1º teste</td><td>1</td><td><code>true</code></td><td>mostra <code>Volta 1</code>; o passo faz <code>i</code> virar 2</td></tr>
+<tr><td>2º teste</td><td>2</td><td><code>true</code></td><td>mostra <code>Volta 2</code>; <code>i</code> vira 3</td></tr>
+<tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+<tr><td>5º teste</td><td>5</td><td><code>true</code></td><td>mostra <code>Volta 5</code>; <code>i</code> vira 6</td></tr>
+<tr><td>6º teste</td><td>6</td><td><strong><code>false</code></strong></td><td>sai do laço e vai para o <code>print('Fim!')</code></td></tr>
+</table>
+</div>
+
+<p>Cada execução do corpo se chama uma <strong>volta</strong> ou <strong>iteração</strong>. A condição foi testada 6 vezes para o corpo rodar 5.</p>
+
+<div class="trydart" data-goal="out:Volta 10;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> faça o laço dar <strong>10</strong> voltas em vez de 5. Depois, por curiosidade, troque o <code>var i = 1</code> por <code>var i = 8</code> e conte quantas voltas sobram.</p>
+<pre class="script" data-file="main.dart">void main() {
+  for (var i = 1; i &lt;= 5; i++) {
+    print('Volta $i');
+  }
+  print('Fim!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  for (var i = 1; i &lt;= 10; i++) {
+    print('Volta $i');
+  }
+  print('Fim!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Outras contagens</h2>
+
+<h3>Começando do 0</h3>
+<p>Em programação, é muito comum contar a partir do <strong>zero</strong> (você vai ver o porquê com as listas, na seção 4). Para dar 3 voltas começando do 0, a condição usa <code>&lt;</code> ("menor que"), não <code>&lt;=</code>:</p>
+
+<pre class="file" data-file="for_zero.dart">void main() {
+  for (var i = 0; i &lt; 3; i++) {
+    print('i = $i');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run for_zero.dart
+i = 0
+i = 1
+i = 2
+</pre>
+
+<p>Três voltas: 0, 1 e 2. O padrão <code>for (var i = 0; i &lt; N; i++)</code> dá exatamente <code>N</code> voltas, e é o que você mais vai ver em código Dart.</p>
+
+<h3>De trás para a frente</h3>
+<pre class="file" data-file="regressiva.dart">void main() {
+  for (var s = 5; s &gt; 0; s--) {
+    print('$s...');
+  }
+  print('Feliz Ano Novo!');
+}
+</pre>
+
+<pre class="term">$ dart run regressiva.dart
+5...
+4...
+3...
+2...
+1...
+Feliz Ano Novo!
+</pre>
+
+<p>Começa do maior (5), a condição é "maior que zero" e o passo é <code>s--</code> (tira 1). Quando <code>s</code> chega a 0, <code>0 &gt; 0</code> é <code>false</code>, e o laço acaba.</p>
+
+<h3>De 5 em 5</h3>
+<pre class="file" data-file="passo.dart">void main() {
+  for (var n = 0; n &lt;= 20; n += 5) {
+    print(n);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run passo.dart
+0
+5
+10
+15
+20
+</pre>
+
+<p>O passo pode ser qualquer atribuição: <code>n += 5</code>, <code>n += 2</code> (só os pares, começando do 0), <code>n *= 2</code> (dobrando).</p>
+
+<hr>
+
+<h2>3. Acumulando: somar e montar a tabuada</h2>
+<p>A Ana vai guardar dinheiro: 1 real no dia 1, 2 reais no dia 2, e assim por diante, até o dia 30. Quanto ela junta? Uma variável <strong>acumuladora</strong>, criada <strong>antes</strong> do laço, recebe um pouco a cada volta:</p>
+
+<pre class="file" data-file="soma.dart">void main() {
+  var total = 0;
+  for (var dia = 1; dia &lt;= 30; dia++) {
+    total += dia;
+  }
+  print('Se a Ana guardar 1 real no dia 1, 2 no dia 2... em 30 dias: R\$ $total');
+}
+</pre>
+
+<pre class="term">$ dart run soma.dart
+Se a Ana guardar 1 real no dia 1, 2 no dia 2... em 30 dias: R$ 465
+</pre>
+
+<p>Por que <code>total</code> fica fora do laço? Se ele fosse criado <strong>dentro</strong> das chaves, nasceria valendo 0 a cada volta e sumiria no <code>}</code>. Fora, ele sobrevive às 30 voltas e ainda está lá para o <code>print</code>.</p>
+
+<p>Usar o contador dentro de uma conta dá a tabuada:</p>
+
+<pre class="file" data-file="tabuada.dart">void main() {
+  final numero = 7;
+  for (var i = 1; i &lt;= 10; i++) {
+    print('$numero x $i = ${numero * i}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run tabuada.dart
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+7 x 4 = 28
+7 x 5 = 35
+7 x 6 = 42
+7 x 7 = 49
+7 x 8 = 56
+7 x 9 = 63
+7 x 10 = 70
+</pre>
+
+<hr>
+
+<h2>4. Percorrendo uma lista pela posição</h2>
+<p>Uma lista guarda vários valores em ordem (aula <a href="list.html">Listas</a>). Cada um tem uma <strong>posição</strong>, o <strong>índice</strong>, que começa em <strong>0</strong>: em <code>['arroz', 'feijão', 'café']</code>, o arroz está na posição 0 e o café na 2. O <code>compras.length</code> é o tamanho da lista (3). Juntando com o padrão "do 0 até menos que N":</p>
+
+<pre class="file" data-file="lista_indice.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  for (var i = 0; i &lt; compras.length; i++) {
+    print('${i + 1}. ${compras[i]}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run lista_indice.dart
+1. arroz
+2. feijão
+3. café
+</pre>
+
+<p><code>compras[i]</code> pega o item da posição <code>i</code>. Para mostrar a numeração "de gente" (1, 2, 3), o programa soma 1: <code>${i + 1}</code>. A condição é <code>i &lt; compras.length</code>, com <code>&lt;</code>: a última posição é 2, e não 3 (veja o que o <code>&lt;=</code> faz em <a href="#errado">Quando dá errado</a>). Quando você não precisa do número da posição, existe um jeito mais simples de percorrer a lista, o <a href="for-in.html">for-in</a>, assunto da próxima aula.</p>
+
+<hr>
+
+<h2>5. <code>for</code> dentro de <code>for</code></h2>
+<p>O corpo de um laço pode ter outro laço. O de fora conta as filas do cinema; para <strong>cada</strong> fila, o de dentro conta as cadeiras:</p>
+
+<pre class="file" data-file="aninhado.dart">void main() {
+  for (var fila = 1; fila &lt;= 3; fila++) {
+    var linha = '';
+    for (var cadeira = 1; cadeira &lt;= 4; cadeira++) {
+      linha += '[$fila-$cadeira] ';
+    }
+    print(linha);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run aninhado.dart
+[1-1] [1-2] [1-3] [1-4]
+[2-1] [2-2] [2-3] [2-4]
+[3-1] [3-2] [3-3] [3-4]
+</pre>
+
+<p>O laço de dentro dá as 4 voltas <strong>inteiras</strong> a cada volta do laço de fora: 3 × 4 = 12 cadeiras. A variável <code>linha</code> começa vazia em cada fila, junta as quatro cadeiras com <code>+=</code> e é mostrada no fim da fila. (Cada linha termina com um espaço, depois do último <code>]</code>: o <code>+=</code> pôs um espaço depois de cada cadeira.) Use nomes que digam o que é cada contador (<code>fila</code>, <code>cadeira</code>): com <code>i</code> e <code>j</code>, é fácil trocar um pelo outro.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Qualquer <code>for</code> pode ser escrito com <a href="while.html">while</a>, separando as três partes:</p>
+
+<pre class="file" data-file="com_while.dart">var i = 1;          // início
+while (i &lt;= 5) {    // condição
+  print('Volta $i');
+  i++;              // passo
+}
+</pre>
+
+<p>O <code>for</code> junta as três partes numa linha, o que deixa claro, logo de cara, de onde o laço começa, até onde vai e como anda. Se você precisa do valor do contador <strong>depois</strong> do laço, crie-o antes e deixe o início vazio: <code>var i = 0; for (; i &lt; 3; i++) { … }</code> (no lab, depois desse laço, <code>i</code> valia 3).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Contar um número conhecido de vezes (de 1 a 10, de 10 a 0)</td><td><code>for (var i = 1; i &lt;= 10; i++)</code></td></tr>
+<tr><td>Percorrer uma lista e precisar da posição</td><td><code>for (var i = 0; i &lt; lista.length; i++)</code></td></tr>
+<tr><td>Percorrer uma lista só pelos itens</td><td><a href="for-in.html">for-in</a>: <code>for (final item in lista)</code></td></tr>
+<tr><td>Não se sabe quantas voltas (até o usuário digitar 0, até juntar a meta)</td><td><a href="while.html">while</a></td></tr>
+<tr><td>Sair antes do fim, ou pular uma volta</td><td><a href="break-continue.html">break e continue</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Vírgulas no lugar dos <code>;</code></strong>
+<pre class="file" data-file="err_virgula.dart">void main() {
+  for (var i = 0, i &lt; 5, i++) {
+    print(i);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_virgula.dart
+err_virgula.dart:2:19: Error: 'i' is already declared in this scope.
+  for (var i = 0, i &lt; 5, i++) {
+                  ^
+err_virgula.dart:2:12: Context: Previous declaration of 'i'.
+  for (var i = 0, i &lt; 5, i++) {
+           ^
+err_virgula.dart:2:19: Error: Expected ';' after this.
+  for (var i = 0, i &lt; 5, i++) {
+                  ^
+err_virgula.dart:2:23: Error: Expected a type, but got '5'.
+  for (var i = 0, i &lt; 5, i++) {
+                      ^
+err_virgula.dart:2:23: Error: This couldn't be parsed.
+  for (var i = 0, i &lt; 5, i++) {
+                      ^
+err_virgula.dart:2:23: Error: Expected '[' before this.
+  for (var i = 0, i &lt; 5, i++) {
+                      ^
+err_virgula.dart:2:21: Error: Expected ';' after this.
+  for (var i = 0, i &lt; 5, i++) {
+                    ^
+err_virgula.dart:2:23: Error: A value of type 'List&lt;invalid-type&gt;' can't be assigned to a variable of type 'bool'.
+ - 'List' is from 'dart:core'.
+  for (var i = 0, i &lt; 5, i++) {
+                      ^
+</pre>
+<p>Oito mensagens para um erro só. O que aconteceu: com a vírgula, <code>var i = 0, i …</code> virou "crie <code>i</code> e crie outro <code>i</code>" (é assim que se criam duas variáveis numa linha), e o Dart disse <code>'i' is already declared in this scope</code>, "<code>i</code> já foi declarada aqui" (o <code>Context:</code> mostra onde foi a primeira). A partir daí, ele se perdeu: leu <code>&lt; 5</code> como o começo de um tipo, como em <code>List&lt;int&gt;</code>. O importante está repetido em duas mensagens: <code>Expected ';' after this.</code>. <strong>Como consertar:</strong> as três partes se separam com <strong>ponto e vírgula</strong>: <code>for (var i = 0; i &lt; 5; i++)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu o <code>for</code> do Python</strong>
+<pre class="file" data-file="err_python.dart">void main() {
+  for i in range(5) {
+    print(i);
+  }
+}
+</pre>
+<p>O lab respondeu com <strong>oito</strong> erros; os dois primeiros:</p>
+<pre class="term">$ dart run err_python.dart
+err_python.dart:2:7: Error: Expected '(' before this.
+  for i in range(5) {
+      ^
+err_python.dart:2:7: Error: Expected ';' after this.
+  for i in range(5) {
+      ^
+</pre>
+<p>"Era esperado <code>(</code> antes disto": no Dart, o que vem depois do <code>for</code> fica sempre entre parênteses. Os outros seis (<code>Undefined name 'i'</code>, <code>'in' can't be used as an identifier because it's a keyword</code>…) são o Dart tentando entender o resto. E o <code>range</code> não existe no Dart. <strong>Como consertar:</strong> <code>for (var i = 0; i &lt; 5; i++)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>final</code> no contador</strong>
+<pre class="file" data-file="err_final.dart">void main() {
+  for (final i = 0; i &lt; 3; i++) {
+    print(i);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_final.dart
+err_final.dart:2:28: Error: Can't assign to the final variable 'i'.
+  for (final i = 0; i &lt; 3; i++) {
+                           ^
+</pre>
+<p>"Não dá para atribuir à variável final <code>i</code>": o passo <code>i++</code> precisa mudar o contador, e uma <code>final</code> não muda. A regra "<code>final</code> por padrão" tem esta exceção: no <code>for</code> clássico, o contador é <code>var</code>. (No <a href="for-in.html">for-in</a>, ao contrário, o <code>final</code> é o certo.)</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>var</code></strong>
+<pre class="file" data-file="err_semvar.dart">void main() {
+  for (i = 0; i &lt; 3; i++) {
+    print(i);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_semvar.dart
+err_semvar.dart:2:15: Error: Undefined name 'i'.
+  for (i = 0; i &lt; 3; i++) {
+              ^
+err_semvar.dart:3:11: Error: Undefined name 'i'.
+    print(i);
+          ^
+err_semvar.dart:2:22: Error: Getter not found: 'i'.
+  for (i = 0; i &lt; 3; i++) {
+                     ^
+err_semvar.dart:2:8: Error: Setter not found: 'i'.
+  for (i = 0; i &lt; 3; i++) {
+       ^
+</pre>
+<p>Quatro vezes a mesma queixa, em cada lugar onde aparece o <code>i</code>: "nome não definido", "não achei como ler <code>i</code>" (<em>getter</em>), "não achei onde guardar <code>i</code>" (<em>setter</em>). Sem o <code>var</code>, o <code>i = 0</code> tenta guardar numa variável que não existe. <strong>Como consertar:</strong> <code>for (var i = 0; …)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o contador depois do laço</strong>
+<pre class="file" data-file="err_depois.dart">void main() {
+  for (var i = 0; i &lt; 3; i++) {
+    print(i);
+  }
+  print('Terminou com i = $i');
+}
+</pre>
+<pre class="term">$ dart run err_depois.dart
+err_depois.dart:5:28: Error: Undefined name 'i'.
+  print('Terminou com i = $i');
+                           ^
+</pre>
+<p>A variável criada no início do <code>for</code> só existe dentro do laço; depois da <code>}</code>, ela some. <strong>Como consertar:</strong> se precisa do valor depois, crie a variável antes do <code>for</code> (veja <a href="#formas">Formas diferentes</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>&lt;=</code> no tamanho da lista: uma volta a mais</strong>
+<pre class="file" data-file="err_indice.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  for (var i = 0; i &lt;= compras.length; i++) {
+    print(compras[i]);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_indice.dart
+arroz
+feijão
+café
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/err_indice.dart:4:18)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Os três itens apareceram, e aí o programa parou. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa compilou, rodou, e quebrou no meio.</dd>
+  <dt>RangeError (length): Invalid value: Not in inclusive range 0..2: 3</dt><dd>"Erro de faixa (do tamanho): valor inválido, fora da faixa de 0 a 2: 3." A lista tem as posições 0, 1 e 2; com <code>i &lt;= 3</code>, o laço deu uma quarta volta com <code>i = 3</code>, e <code>compras[3]</code> não existe.</dd>
+  <dt>#0 List.[] …</dt><dd>De dentro do Dart: o <code>[ ]</code> da lista, quem reclamou.</dd>
+  <dt>#1 main (file:///home/ana/err_indice.dart:4:18)</dt><dd>A linha do seu código: 4, o <code>compras[i]</code>.</dd>
+</dl>
+<p>Esse erro de "uma volta a mais" (ou a menos) é tão comum que tem nome: erro <strong>por um</strong> (<em>off-by-one</em>). <strong>Como consertar:</strong> com listas, <code>i &lt; lista.length</code>, sempre com <code>&lt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo para o lado errado: laço infinito</strong>
+<pre class="file" data-file="err_infinito.dart">void main() {
+  for (var i = 1; i &lt;= 5; i--) {
+    print('Volta $i');
+  }
+}
+</pre>
+<p>Com <code>i--</code>, o contador vai 1, 0, −1, −2… e <code>i &lt;= 5</code> é verdade para sempre. A Ana deixou rodar por 2 segundos (com o comando <code>timeout 2</code>) e olhou o começo e o fim do que saiu:</p>
+<pre class="term">$ timeout 2 dart run err_infinito.dart | head -4
+Volta 1
+Volta 0
+Volta -1
+Volta -2
+$ timeout 2 dart run err_infinito.dart | tail -2
+Volta -1258877
+Volta -1258878
+</pre>
+<p>Mais de um milhão de voltas em 2 segundos (o número muda de computador para computador), e nunca ia acabar. No terminal, um programa assim se para com <kbd>Ctrl</kbd>+<kbd>C</kbd>. <strong>Como consertar:</strong> o passo tem de levar a condição a ficar falsa: contando para cima (<code>i++</code>) com <code>&lt;=</code>, ou para baixo (<code>i--</code>) com <code>&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>;</code> depois do <code>for (…)</code>: sem erro, uma volta só</strong>
+<pre class="file" data-file="err_pv.dart">void main() {
+  var total = 0;
+  for (var i = 1; i &lt;= 3; i++); {
+    total += 10;
+  }
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_pv.dart
+10
+</pre>
+<p>Esperava 30 e veio 10. Como no <a href="if-else.html">if</a>, o <code>;</code> logo depois do <code>)</code> é um corpo <strong>vazio</strong>: o laço deu as 3 voltas sem fazer nada, e o bloco de baixo, solto, rodou uma vez. <strong>Como consertar:</strong> nada de <code>;</code> entre o <code>)</code> e o <code>{</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Soma de 1 a 4: 10;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa deveria somar 1 + 2 + 3 + 4. Ele não compila. Leia o erro (são cinco mensagens, todas por causa das vírgulas), conserte e confira se a soma dá <code>10</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var soma = 0;
+  for (var n = 1, n &lt;= 4, n++) {
+    soma += n;
+  }
+  print('Soma de 1 a 4: $soma');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var soma = 0;
+  for (var n = 1; n &lt;= 4; n++) {
+    soma += n;
+  }
+  print('Soma de 1 a 4: $soma');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (início; condição; passo) { … }</code></td><td>Roda o início uma vez; antes de cada volta testa a condição; depois de cada volta roda o passo</td></tr>
+<tr><td><code>for (var i = 1; i &lt;= N; i++)</code></td><td>De 1 até N</td></tr>
+<tr><td><code>for (var i = 0; i &lt; N; i++)</code></td><td>N voltas, de 0 até N − 1</td></tr>
+<tr><td><code>for (var i = N; i &gt; 0; i--)</code></td><td>De N até 1, para trás</td></tr>
+<tr><td><code>for (var i = 0; i &lt;= 20; i += 5)</code></td><td>De 5 em 5</td></tr>
+<tr><td><code>for (var i = 0; i &lt; lista.length; i++)</code></td><td>Todas as posições de uma lista</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>Muitos erros, entre eles <code>'i' is already declared in this scope</code> e <code>Expected ';'</code></td><td>Vírgulas no lugar de <code>;</code></td></tr>
+<tr><td><code>Expected '(' before this.</code></td><td>Faltaram os parênteses (estilo Python)</td></tr>
+<tr><td><code>Can't assign to the final variable 'i'.</code></td><td><code>final</code> no contador: use <code>var</code></td></tr>
+<tr><td><code>Undefined name 'i'.</code> / <code>Setter not found: 'i'.</code></td><td>Faltou o <code>var</code>, ou o <code>i</code> foi usado depois do laço</td></tr>
+<tr><td><code>RangeError (length): … Not in inclusive range 0..N</code></td><td><code>&lt;=</code> no lugar de <code>&lt;</code> com <code>length</code></td></tr>
+<tr><td>Saída que não para</td><td>Passo para o lado errado (laço infinito)</td></tr>
+<tr><td>O corpo roda uma vez só</td><td><code>;</code> depois do <code>for (…)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar os números de 1 a 10:</p>
+<div class="ex-code">for (var i = 1<input data-answer=";" aria-label="separador"> i &lt;= 10; i<input data-answer="++" aria-label="passo">) {<br>&nbsp;&nbsp;print(i);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas voltas?</h3>
+<div class="ex-code"><code>for (var i = 0; i &lt; 4; i++)</code> → <input data-answer="4" aria-label="voltas do primeiro laço"> voltas<br><code>for (var i = 10; i &gt; 0; i -= 2)</code> → <input data-answer="5" aria-label="voltas do segundo laço"> voltas<br><code>for (var i = 5; i &lt; 5; i++)</code> → <input data-answer="0" aria-label="voltas do terceiro laço"> voltas</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Numa lista de 3 itens, qual condição percorre todas as posições sem erro?</p>
+<label><input type="radio" name="q3"> <code>i &lt;= lista.length</code>, começando de 0</label>
+<label><input type="radio" name="q3"> <code>i &lt; lista.length</code>, começando de 1</label>
+<label><input type="radio" name="q3"> <code>i &lt; lista.length</code>, começando de 0</label>
+<label><input type="radio" name="q3"> <code>i &lt;= 3</code>, começando de 0</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Em que ordem as partes do <code>for</code> rodam?</p>
+<label><input type="radio" name="q4"> início, passo, condição, corpo</label>
+<label><input type="radio" name="q4"> início (uma vez); depois, a cada volta: condição, corpo, passo</label>
+<label><input type="radio" name="q4"> condição, início, corpo, passo</label>
+<label><input type="radio" name="q4"> as três partes rodam juntas a cada volta, antes do corpo</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que <code>for (final i = 0; i &lt; 3; i++)</code> não compila?</p>
+<label><input type="radio" name="q5"> Porque falta o tipo <code>int</code></label>
+<label><input type="radio" name="q5"> Porque o <code>for</code> não aceita começar do 0</label>
+<label><input type="radio" name="q5"> Porque <code>final</code> não existe no Dart</label>
+<label><input type="radio" name="q5"> Porque o <code>i++</code> tenta mudar uma variável <code>final</code></label>
+</div>
+
+<h3>Missão final: a tabuada do 9, de trás para a frente</h3>
+
+<div class="trydart" data-goal="out:9 x 10 = 90;;out:9 x 1 = 9;;src:\bfor\s*\(;;src:--|-=">
+<p class="try-task"><strong>Missão:</strong> escreva um <code>for</code> que mostre a tabuada do 9 <strong>de trás para a frente</strong>: começando em <code>9 x 10 = 90</code> e terminando em <code>9 x 1 = 9</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final numero = 9;
+  // escreva o for aqui
+
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final numero = 9;
+  for (var i = 10; i &gt;= 1; i--) {
+    print('$numero x $i = ${numero * i}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (início; condição; passo) { … }</code>: o início roda uma vez; a condição é testada antes de cada volta; o passo roda depois de cada volta. As partes se separam com <code>;</code>.</li>
+  <li><code>for (var i = 1; i &lt;= N; i++)</code> conta de 1 a N; <code>for (var i = 0; i &lt; N; i++)</code> dá N voltas a partir do 0, o jeito de percorrer listas (posições de 0 a <code>length - 1</code>).</li>
+  <li>O passo pode ser <code>i--</code>, <code>i += 5</code>, o que for preciso, desde que leve a condição a ficar falsa; senão, o laço é infinito.</li>
+  <li>O contador é <code>var</code> e só existe dentro do laço; acumuladores (<code>total</code>) são criados antes.</li>
+  <li>Cuidado com o <code>&lt;=</code> no <code>length</code> (<code>RangeError</code>) e com o <code>;</code> depois do <code>for (…)</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
