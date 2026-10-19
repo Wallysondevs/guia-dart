@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Erros em Código Assíncrono — try/catch com await | Guia Dart</title>
+<meta name="description" content="Erros em código assíncrono no Dart para quem nunca programou: try/catch/finally com await, o try que não pega nada sem await, o stack trace com asynchronous suspension, Future.wait com uma tarefa que falha, timeout e TimeoutException, catchError e o erro real 'must return a value of the future's type' no Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Erros em Código Assíncrono</span></h1>
+
+<p class="intro">Tarefas demoradas falham: a internet cai, o servidor responde "não encontrado", o arquivo não existe. Quando a tarefa é um <a href="future.html">Future</a>, o erro acontece <strong>no futuro</strong>, e isso muda as regras que você aprendeu em <a href="excecoes.html">Exceções</a>. A boa notícia: com <code>await</code>, o velho <code>try</code>/<code>catch</code> volta a funcionar do jeito de sempre. A má: sem o <code>await</code>, ele não pega nada, e o Dart não avisa.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como usar <code>try</code>/<code>catch</code>/<code>finally</code> com <code>await</code>.</li>
+  <li>Por que um <code>try</code> sem <code>await</code> deixa o erro escapar.</li>
+  <li>Como ler o stack trace assíncrono, com as linhas <code>&lt;asynchronous suspension&gt;</code>.</li>
+  <li>O que acontece com <code>Future.wait</code> quando uma das tarefas falha.</li>
+  <li>Como desistir de uma tarefa que demora demais: <code>timeout</code> e <code>TimeoutException</code>.</li>
+  <li>A pegadinha do <code>catchError</code>, com o erro real.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="async-await.html">async e await</a>. Todos os programas rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. As tarefas demoradas são simuladas com <code>Future.delayed</code>.</p>
+
+<hr>
+
+<h2>A ideia: a encomenda que não chegou</h2>
+<p>A Ana encomenda farinha ao fornecedor por telefone. Há dois jeitos de lidar com o risco de a encomenda dar errado:</p>
+<ul>
+  <li>Ela <strong>espera na linha</strong> a resposta ("aguarde um momento…"). Se o fornecedor disser "acabou a farinha", ela ouve na hora e já pensa no plano B. É o <code>try</code> com <code>await</code>.</li>
+  <li>Ela <strong>desliga logo</strong> depois de pedir e vai cuidar do caixa. Se o fornecedor ligar de volta com uma má notícia, ninguém está perto do telefone para atender. É o <code>try</code> <strong>sem</strong> <code>await</code>: quando o erro chega, o <code>try</code> já acabou faz tempo.</li>
+</ul>
+
+<hr>
+
+<h2>1. <code>try</code>/<code>catch</code> com <code>await</code></h2>
+
+<pre class="file" data-file="r1.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  if (produto == 'pizza') {
+    throw StateError('não vendemos $produto');
+  }
+  return 30;
+}
+
+Future&lt;void&gt; main() async {
+  for (final p in ['pão', 'pizza', 'bolo']) {
+    try {
+      final n = await lerEstoque(p);
+      print('$p: $n');
+    } on StateError catch (e) {
+      print('$p: ${e.message}');
+    } finally {
+      print('  (consulta de $p encerrada)');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run r1.dart
+pão: 30
+  (consulta de pão encerrada)
+pizza: não vendemos pizza
+  (consulta de pizza encerrada)
+bolo: 30
+  (consulta de bolo encerrada)
+</pre>
+
+<dl class="anatomy">
+  <dt>throw StateError(…) numa função async</dt><dd>Numa função <code>async</code>, o <code>throw</code> não estoura na hora: ele faz o Future devolvido <strong>terminar com erro</strong>.</dd>
+  <dt>await lerEstoque(p) dentro do try</dt><dd>O <code>await</code> espera o Future. Se ele terminar com erro, o <code>await</code> <strong>lança</strong> esse erro ali mesmo, na linha do <code>await</code>, dentro do <code>try</code>. Daí em diante é tudo igual ao que você já sabe.</dd>
+  <dt>on StateError catch (e)</dt><dd>Pega o erro do Future como pegaria um erro comum.</dd>
+  <dt>finally</dt><dd>Roda no fim de cada consulta, com ou sem erro, também com <code>await</code>.</dd>
+</dl>
+
+<p>Repare que a pizza falhou e o laço seguiu para o bolo: o erro foi tratado dentro da volta.</p>
+
+<hr>
+
+<h2>2. O <code>try</code> sem <code>await</code> não pega nada</h2>
+<p>Agora o mesmo tipo de erro, mas a Ana esqueceu o <code>await</code>:</p>
+
+<pre class="file" data-file="r2.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  throw StateError('não vendemos $produto');
+}
+
+Future&lt;void&gt; main() async {
+  try {
+    lerEstoque('pizza');
+    print('Pedido enviado');
+  } catch (e) {
+    print('Tratado: $e');
+  }
+  print('Fim do main');
+}
+</pre>
+
+<pre class="term">$ dart run r2.dart
+Pedido enviado
+Fim do main
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque (file:///home/ana/r2.dart:3:3)
+&lt;asynchronous suspension&gt;
+$ echo $?
+255
+</pre>
+
+<p>O que aconteceu, na ordem:</p>
+<ol class="passo">
+  <li><code>lerEstoque('pizza')</code> começou, chegou no <code>await</code> dela e devolveu um Future. Nenhum erro <strong>ainda</strong>.</li>
+  <li>O <code>try</code> terminou sem problema: <code>Pedido enviado</code>. O <code>catch</code> não teve nada para pegar.</li>
+  <li>O <code>main</code> mostrou <code>Fim do main</code> e acabou.</li>
+  <li>Um segundo depois, o Future falhou. Não havia mais <code>try</code> nenhum esperando: <code>Unhandled exception</code>, código 255.</li>
+</ol>
+<p>Linha por linha da mensagem:</p>
+<dl class="anatomy">
+  <dt>Bad state: não vendemos pizza</dt><dd>O <code>StateError</code> lançado.</dd>
+  <dt>#0      lerEstoque (file:///home/ana/r2.dart:3:3)</dt><dd>Onde o erro foi lançado: linha 3, o <code>throw</code>.</dd>
+  <dt>&lt;asynchronous suspension&gt;</dt><dd>"Suspensão assíncrona": a função tinha <strong>pausado</strong> num <code>await</code> antes disso. É o jeito de o stack trace dizer "aqui houve uma espera". E repare: o <code>main</code> nem aparece, porque ninguém estava aguardando esse Future.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Tratado: Bad state: não vendemos pizza;;semerro;;src:await\s+lerEstoque">
+<p class="try-task"><strong>Missão:</strong> este é o programa acima. Ponha um <code>await</code> antes de <code>lerEstoque('pizza')</code>, para o erro chegar enquanto o <code>try</code> ainda está esperando. Deve aparecer <code>Tratado: …</code>, sem <code>Unhandled exception</code>.</p>
+<pre class="script" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  throw StateError('não vendemos $produto');
+}
+
+Future&lt;void&gt; main() async {
+  try {
+    lerEstoque('pizza');
+    print('Pedido enviado');
+  } catch (e) {
+    print('Tratado: $e');
+  }
+  print('Fim do main');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  throw StateError('não vendemos $produto');
+}
+
+Future&lt;void&gt; main() async {
+  try {
+    await lerEstoque('pizza');
+    print('Pedido enviado');
+  } catch (e) {
+    print('Tratado: $e');
+  }
+  print('Fim do main');
+}
+</pre>
+</div>
+
+<p>No lab, com o <code>await</code>, saiu <code>Tratado: Bad state: não vendemos pizza</code> e <code>Fim do main</code>. O <code>Pedido enviado</code> não aparece mais: o erro interrompeu o <code>try</code> antes dele.</p>
+
+<hr>
+
+<h2>3. O erro sobe pelos <code>await</code></h2>
+<p>Quando uma função <code>async</code> chama outra com <code>await</code>, e ninguém trata o erro, ele vai subindo de função em função, como numa exceção comum:</p>
+
+<pre class="file" data-file="r3.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  if (produto == 'pizza') {
+    throw StateError('não vendemos $produto');
+  }
+  return 30;
+}
+
+Future&lt;void&gt; verificar(String produto) async {
+  final n = await lerEstoque(produto);
+  print('$produto: $n');
+}
+
+Future&lt;void&gt; main() async {
+  await verificar('pão');
+  await verificar('pizza');
+  print('Fim');
+}
+</pre>
+
+<pre class="term">$ dart run r3.dart
+pão: 30
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque (file:///home/ana/r3.dart:4:5)
+&lt;asynchronous suspension&gt;
+#1      verificar (file:///home/ana/r3.dart:10:13)
+&lt;asynchronous suspension&gt;
+#2      main (file:///home/ana/r3.dart:16:3)
+&lt;asynchronous suspension&gt;
+$ echo $?
+255
+</pre>
+
+<p>Agora o stack trace mostra o caminho inteiro, porque cada função estava <strong>aguardando</strong> a de baixo: o erro nasceu em <code>lerEstoque</code> (linha 4), passou pelo <code>await</code> da <code>verificar</code> (linha 10) e pelo <code>await</code> do <code>main</code> (linha 16). Cada <code>&lt;asynchronous suspension&gt;</code> marca uma espera. Você pode tratar o erro em qualquer um desses andares; a missão final faz isso na <code>verificar</code>.</p>
+
+<hr>
+
+<h2>4. <code>Future.wait</code> quando uma tarefa falha</h2>
+
+<pre class="file" data-file="r4.dart">Future&lt;int&gt; lerEstoque(String produto, int segundos) async {
+  await Future.delayed(Duration(seconds: segundos));
+  if (produto == 'pizza') {
+    throw StateError('não vendemos $produto');
+  }
+  print('  $produto respondeu');
+  return 30;
+}
+
+Future&lt;void&gt; main() async {
+  try {
+    final todos = await Future.wait([
+      lerEstoque('pão', 1),
+      lerEstoque('pizza', 2),
+      lerEstoque('bolo', 3),
+    ]);
+    print('Todos: $todos');
+  } catch (e) {
+    print('Falhou: $e');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run r4.dart
+  pão respondeu
+  bolo respondeu
+Falhou: Bad state: não vendemos pizza
+</pre>
+
+<p>Repare na ordem: a pizza falhou aos 2 segundos, mas o <code>Falhou</code> só apareceu depois de <code>bolo respondeu</code> (aos 3). O <code>Future.wait</code> esperou <strong>todas</strong> as tarefas terminarem e só então lançou o erro da pizza. E a lista <code>todos</code> nunca existiu: o resultado do pão e do bolo se perdeu, mesmo eles tendo respondido. Se você precisa dos resultados que deram certo, trate o erro <strong>dentro</strong> de cada tarefa (com <code>try</code> na função, devolvendo, por exemplo, <code>0</code> ou <code>null</code> quando falhar).</p>
+
+<hr>
+
+<h2>5. Demorou demais: <code>timeout</code></h2>
+<p>Às vezes o problema não é um erro, é a <strong>demora</strong>: o fornecedor não responde nunca. O método <code>timeout</code> ("tempo esgotado") dá um prazo ao Future. Se o prazo acabar antes, ele lança uma <code>TimeoutException</code>, que mora na biblioteca <code>dart:async</code> (por isso o <code>import</code>; veja <a href="imports.html">import</a>):</p>
+
+<pre class="file" data-file="r5.dart">import 'dart:async';
+
+Future&lt;String&gt; consultarFornecedor() async {
+  await Future.delayed(Duration(seconds: 3));
+  return 'farinha chega amanhã';
+}
+
+Future&lt;void&gt; main() async {
+  try {
+    final resposta =
+        await consultarFornecedor().timeout(Duration(seconds: 1));
+    print(resposta);
+  } on TimeoutException catch (e) {
+    print('Demorou demais: $e');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run r5.dart
+Demorou demais: TimeoutException after 0:00:01.000000: Future not completed
+</pre>
+
+<p>"Tempo esgotado depois de 1 segundo: o Future não terminou". O fornecedor levaria 3 segundos; o prazo era 1.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Com <code>then</code>, o erro se trata com <code>catchError</code> (aula <a href="future.html">Future</a>). Há uma pegadinha: o <code>catchError</code> de um <code>Future&lt;int&gt;</code> tem de <strong>devolver um <code>int</code></strong>, o valor que vai ficar no lugar do que falhou:</p>
+
+<pre class="file" data-file="r7.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  throw StateError('não vendemos $produto');
+}
+
+Future&lt;void&gt; main() async {
+  final n = await lerEstoque('pizza').catchError((e) {
+    print('Erro: $e');
+    return 0;
+  });
+  print('n = $n');
+}
+</pre>
+
+<pre class="term">$ dart run r7.dart
+Erro: Bad state: não vendemos pizza
+n = 0
+</pre>
+
+<p>Sem o <code>return 0;</code>, dá erro (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Código com <code>async</code>/<code>await</code> (o normal hoje)</td><td><code>try { await … } on Tipo catch (e) { … } finally { … }</code></td></tr>
+<tr><td>Uma cadeia de <code>then</code></td><td><code>.catchError((e) { …; return valorPadrao; })</code></td></tr>
+<tr><td>Uma tarefa que pode não responder nunca</td><td><code>await f.timeout(Duration(…))</code> + <code>on TimeoutException</code></td></tr>
+<tr><td>Várias tarefas, e você quer os resultados das que deram certo</td><td><code>try</code> dentro de cada tarefa, e depois <code>Future.wait</code></td></tr>
+<tr><td>Chamar sem esperar ("dispare e esqueça")</td><td>Só se a função tratar os próprios erros por dentro; senão, o erro derruba o programa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>catchError</code> não devolveu um valor do tipo do Future</strong>
+<pre class="file" data-file="r6.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  throw StateError('não vendemos $produto');
+}
+
+Future&lt;void&gt; main() async {
+  final n = await lerEstoque('pizza').catchError((e) {
+    print('Erro: $e');
+  });
+  print('n = $n');
+}
+</pre>
+<pre class="term">$ dart run r6.dart
+Erro: Bad state: não vendemos pizza
+Unhandled exception:
+Invalid argument(s) (onError): The error handler of Future.catchError must return a value of the future's type
+#0      _FutureListener.handleError (dart:async/future_impl.dart:262:7)
+#1      Future._propagateToListeners.handleError (dart:async/future_impl.dart:960:47)
+#2      Future._propagateToListeners (dart:async/future_impl.dart:981:13)
+#3      Future._completeErrorObject (dart:async/future_impl.dart:738:5)
+#4      Future._completeError (dart:async/future_impl.dart:742:5)
+&lt;asynchronous suspension&gt;
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Erro: Bad state: não vendemos pizza</dt><dd>O <code>catchError</code> rodou: o <code>print</code> funcionou.</dd>
+  <dt>Invalid argument(s) (onError): The error handler of Future.catchError must return a value of the future's type</dt><dd>"Argumento inválido (o tratador de erro): o tratador do <code>catchError</code> tem de devolver um valor do tipo do Future". O Future era <code>Future&lt;int&gt;</code>; a função do <code>catchError</code> não devolveu nada, então o Dart não tinha um <code>int</code> para pôr no <code>n</code>. O Dart compilou, mas o erro apareceu ao rodar.</dd>
+  <dt>#0 … #4 (dart:async/future_impl.dart)</dt><dd>Só código interno dos Futures: nenhuma linha sua. É um sinal de que o problema está no jeito de usar o <code>catchError</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> devolva um valor (<code>return 0;</code>), como em <a href="#formas">Formas diferentes</a>, ou troque por <code>try</code>/<code>catch</code> com <code>await</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>try</code> sem <code>await</code></strong>
+<p>Já visto na seção 2: o programa mostra tudo o que vem depois do <code>try</code> e, mais tarde, morre com <code>Unhandled exception</code>, sem o seu <code>main</code> no stack trace. <strong>Como consertar:</strong> <code>await</code> na chamada dentro do <code>try</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>throw</code> numa função <code>async</code></td><td>O Future devolvido termina com erro</td></tr>
+<tr><td><code>try { await f(); } catch (e) { … }</code></td><td>Pega o erro do Future na linha do <code>await</code></td></tr>
+<tr><td><code>try { f(); } catch (e) { … }</code> (sem <code>await</code>)</td><td><strong>Não</strong> pega o erro do Future</td></tr>
+<tr><td><code>&lt;asynchronous suspension&gt;</code></td><td>No stack trace: houve um <code>await</code> ali</td></tr>
+<tr><td><code>await Future.wait([…])</code></td><td>Lança o erro se alguma tarefa falhar; os resultados se perdem</td></tr>
+<tr><td><code>await f.timeout(Duration(seconds: n))</code></td><td>Lança <code>TimeoutException</code> se passar do prazo (<code>import 'dart:async';</code>)</td></tr>
+<tr><td><code>f.catchError((e) { …; return v; })</code></td><td>Trata o erro e põe <code>v</code> no lugar; <code>v</code> tem de ser do tipo do Future</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para o <code>catch</code> pegar o erro do Future:</p>
+<div class="ex-code">try {<br>&nbsp;&nbsp;final n = <input data-answer="await" aria-label="palavra-chave"> lerEstoque('pizza');<br>} <input data-answer="catch" aria-label="palavra-chave"> (e) {<br>&nbsp;&nbsp;print(e);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. A exceção do prazo</h3>
+<p>Qual é o tipo da exceção lançada pelo <code>timeout</code>?</p>
+<div class="ex-code"><input data-answer="TimeoutException" aria-label="tipo da exceção"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Num <code>try</code>, a linha <code>lerEstoque('pizza');</code> (sem <code>await</code>) devolve um Future que falha 1 segundo depois. O que acontece?</p>
+<label><input type="radio" name="q3"> O <code>catch</code> pega o erro</label>
+<label><input type="radio" name="q3"> O <code>try</code> termina sem erro; mais tarde o programa morre com <code>Unhandled exception</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> O erro é ignorado para sempre</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que <code>&lt;asynchronous suspension&gt;</code> quer dizer num stack trace?</p>
+<label><input type="radio" name="q4"> Que o programa foi suspenso pelo sistema</label>
+<label><input type="radio" name="q4"> Que faltou um <code>async</code></label>
+<label><input type="radio" name="q4"> Que o erro foi tratado</label>
+<label><input type="radio" name="q4"> Que naquele ponto a função tinha pausado num <code>await</code></label>
+</div>
+
+<h3>Missão final: a verificação que não derruba o programa</h3>
+
+<div class="trydart" data-goal="out:pizza: não vendemos pizza;;out:Fim;;semerro;;src:\btry\b">
+<p class="try-task"><strong>Missão:</strong> este é o programa da seção 3: a pizza derruba tudo e o <code>Fim</code> não aparece. Na função <code>verificar</code>, ponha as duas linhas dentro de um <code>try</code> e trate com <code>on StateError catch (e) { print('$produto: ${e.message}'); }</code>.</p>
+<pre class="script" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  if (produto == 'pizza') {
+    throw StateError('não vendemos $produto');
+  }
+  return 30;
+}
+
+Future&lt;void&gt; verificar(String produto) async {
+  final n = await lerEstoque(produto);
+  print('$produto: $n');
+}
+
+Future&lt;void&gt; main() async {
+  await verificar('pão');
+  await verificar('pizza');
+  print('Fim');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  if (produto == 'pizza') {
+    throw StateError('não vendemos $produto');
+  }
+  return 30;
+}
+
+Future&lt;void&gt; verificar(String produto) async {
+  try {
+    final n = await lerEstoque(produto);
+    print('$produto: $n');
+  } on StateError catch (e) {
+    print('$produto: ${e.message}');
+  }
+}
+
+Future&lt;void&gt; main() async {
+  await verificar('pão');
+  await verificar('pizza');
+  print('Fim');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>pão: 30</code>, <code>pizza: não vendemos pizza</code> e <code>Fim</code>, com código de saída 0.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Numa função <code>async</code>, o <code>throw</code> faz o Future terminar com erro.</li>
+  <li>O <code>await</code> transforma esse erro numa exceção comum, na linha do <code>await</code>: o <code>try</code>/<code>catch</code>/<code>finally</code> funciona como sempre.</li>
+  <li>Sem <code>await</code>, o <code>try</code> termina antes do erro chegar e não pega nada; o programa morre depois com <code>Unhandled exception</code>.</li>
+  <li><code>&lt;asynchronous suspension&gt;</code> no stack trace marca cada <code>await</code> pelo caminho.</li>
+  <li><code>Future.wait</code> falha inteiro se uma tarefa falhar; <code>timeout</code> lança <code>TimeoutException</code>.</li>
+  <li>O <code>catchError</code> tem de devolver um valor do tipo do Future; com <code>await</code>, prefira <code>try</code>/<code>catch</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
