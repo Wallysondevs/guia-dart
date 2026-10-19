@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Null Safety — o que é e por que existe | Guia Dart</title>
+<meta name="description" content="Null safety no Dart para quem nunca programou: o que é o null, o erro que ele causava (The getter 'length' was called on null), como o Dart 3 recusa o null antes de rodar, String e String?, a conferência com != null, de onde vem o null (tryParse, mapas), e os erros de compilação reais: null em String, variável sem valor, argumento null, campo sem valor, int? em int.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Null Safety</span></h1>
+
+<p class="intro">Este é o assunto que mais confunde quem está começando no Dart, e também um dos que mais protegem o seu programa. A ideia cabe numa frase: <strong>no Dart, uma variável só pode ficar "vazia" se você disser, no tipo, que ela pode</strong>. Nesta aula você vai ver o que é esse "vazio" (o <code>null</code>), que estrago ele fazia, e como o Dart pega o problema <strong>antes</strong> de o programa rodar, com as mensagens de erro reais que você vai encontrar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o <code>null</code> e por que ele é perigoso.</li>
+  <li>O erro que o <code>null</code> causa quando ninguém confere: <code>The getter 'length' was called on null</code>.</li>
+  <li>O que é <strong>null safety</strong> ("segurança contra o nulo"): tipos que não aceitam <code>null</code> (<code>String</code>) e tipos que aceitam (<code>String?</code>).</li>
+  <li>Como conferir com <code>!= null</code> antes de usar.</li>
+  <li>De onde vem o <code>null</code> no dia a dia: <code>tryParse</code>, mapas, o teclado.</li>
+  <li>As cinco mensagens de erro de compilação mais comuns, explicadas linha por linha.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a gaveta vazia</h2>
+<p>Pense numa variável como uma <strong>gaveta com etiqueta</strong>. A gaveta <code>nome</code> guarda um texto; a gaveta <code>idade</code>, um número. Agora imagine que alguém abre a gaveta <code>nome</code> para ler o nome da cliente e… ela está <strong>vazia</strong>. Não tem um texto em branco lá dentro: não tem <strong>nada</strong>. Esse "nada" se chama <code>null</code> (em inglês, "nulo").</p>
+<p>O problema não é a gaveta vazia em si. É <strong>não saber</strong> que ela podia estar vazia. Quem abre a gaveta esperando um texto e tenta contar as letras do nada… quebra o programa. Por décadas, esse foi um dos erros mais comuns da programação: o inventor do <code>null</code>, Tony Hoare, chamou a própria invenção de "o erro de um bilhão de dólares".</p>
+<p>A solução do Dart é simples: <strong>a etiqueta da gaveta diz se ela pode ficar vazia</strong>.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Etiqueta (tipo)</th><th>Lê-se</th><th>Pode ficar vazia (<code>null</code>)?</th></tr>
+<tr><td><code>String</code></td><td>"um texto"</td><td><strong>Nunca.</strong> Sempre tem um texto dentro.</td></tr>
+<tr><td><code>String?</code></td><td>"um texto <strong>ou nada</strong>"</td><td>Pode. E o Dart obriga você a conferir antes de usar.</td></tr>
+</table>
+</div>
+<p>O mesmo vale para todos os tipos: <code>int</code> e <code>int?</code>, <code>double</code> e <code>double?</code>, <code>bool</code> e <code>bool?</code>.</p>
+
+<hr>
+
+<h2>1. O problema: o <code>null</code> sem conferência</h2>
+<p>Primeiro, veja o estrago que o <code>null</code> faz quando ninguém confere. Para isso, a Ana usou <a href="dynamic-object.html">dynamic</a>, o tipo que <strong>desliga</strong> a conferência do Dart (era assim que todo programa Dart funcionava antes do null safety):</p>
+
+<pre class="file" data-file="antigo.dart">void main() {
+  dynamic apelido = null;
+  print('Tamanho do apelido: ${apelido.length}');
+}
+</pre>
+
+<pre class="term">$ dart run antigo.dart
+Unhandled exception:
+NoSuchMethodError: The getter 'length' was called on null.
+Receiver: null
+Tried calling: length
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/antigo.dart:3:40)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa <strong>começou a rodar</strong> e parou no meio. Num aplicativo, é a hora em que ele fecha na mão do cliente.</dd>
+  <dt>NoSuchMethodError: The getter 'length' was called on null.</dt><dd>"A propriedade <code>length</code> foi chamada em <code>null</code>." Você pediu o tamanho de um texto, e não havia texto nenhum.</dd>
+  <dt>Receiver: null / Tried calling: length</dt><dd>"Receptor: <code>null</code>. Tentou chamar: <code>length</code>."</dd>
+  <dt>#1 main (file:///home/ana/antigo.dart:3:40)</dt><dd>Onde: linha 3, coluna 40, o <code>apelido.length</code>.</dd>
+</dl>
+
+<p>O pior desse erro é <strong>quando</strong> ele aparece: só no dia em que o valor vier vazio. O programa pode funcionar por meses e quebrar com o primeiro cliente sem apelido.</p>
+
+<hr>
+
+<h2>2. A solução: o Dart recusa o <code>null</code> antes de rodar</h2>
+<p>Com tipos de verdade, o Dart confere tudo <strong>antes</strong> de executar a primeira linha. Tente guardar <code>null</code> numa variável <code>String</code>:</p>
+
+<pre class="file" data-file="nulo.dart">void main() {
+  print('Antes');
+  String nome = null;
+  print(nome);
+}
+</pre>
+
+<pre class="term">$ dart run nulo.dart
+nulo.dart:3:17: Error: A value of type 'Null' can't be assigned to a variable of type 'String'.
+  String nome = null;
+                ^
+$ echo $?
+254
+</pre>
+
+<dl class="anatomy">
+  <dt>nulo.dart:3:17:</dt><dd>Arquivo, <strong>linha 3</strong>, <strong>coluna 17</strong>: bem em cima do <code>null</code>.</dd>
+  <dt>Error:</dt><dd>Erro de <strong>compilação</strong>. Repare que nem o <code>Antes</code> da linha 2 apareceu: o programa não chegou a rodar.</dd>
+  <dt>A value of type 'Null' can't be assigned to a variable of type 'String'.</dt><dd>"Um valor do tipo <code>Null</code> não pode ser atribuído a uma variável do tipo <code>String</code>." O <code>null</code> tem um tipo só dele, <code>Null</code>, e ele não cabe numa gaveta com a etiqueta <code>String</code>.</dd>
+  <dt>^</dt><dd>Aponta o valor culpado.</dd>
+  <dt>echo $? → 254</dt><dd>Código de saída de erro de compilação.</dd>
+</dl>
+
+<p>Isso é o <strong>null safety</strong>: o erro que antes quebrava o programa na mão do cliente agora aparece para <strong>você</strong>, no seu computador, antes de tudo. Ele existe desde o Dart 2.12 e, a partir do <span class="versao">Dart 3.0</span>, é obrigatório: não há como desligar.</p>
+
+<hr>
+
+<h2>3. Quando o "nada" é um valor válido: <code>String?</code></h2>
+<p>Às vezes a gaveta vazia faz sentido: nem toda cliente tem apelido. Aí você põe um <code>?</code> no fim do tipo:</p>
+
+<pre class="file" data-file="anulavel.dart">void main() {
+  String nome = 'Ana';
+  String? apelido = null;
+  print(nome);
+  print(apelido);
+  apelido = 'Aninha';
+  print(apelido);
+}
+</pre>
+
+<pre class="term">$ dart run anulavel.dart
+Ana
+null
+Aninha
+</pre>
+
+<p><code>String?</code> se lê "<code>String</code> ou nada" e se chama <strong>tipo anulável</strong> (<em>nullable</em>). A gaveta <code>apelido</code> começou vazia (o <code>print</code> mostra a palavra <code>null</code>) e depois recebeu um texto. Mas o Dart cobra um preço pela liberdade. Tente usar o texto direto:</p>
+
+<pre class="file" data-file="chamar.dart">void main() {
+  String? apelido = null;
+  print(apelido.length);
+}
+</pre>
+
+<pre class="term">$ dart run chamar.dart
+chamar.dart:3:17: Error: Property 'length' cannot be accessed on 'String?' because it is potentially null.
+Try accessing using ?. instead.
+  print(apelido.length);
+                ^^^^^^
+</pre>
+
+<dl class="anatomy">
+  <dt>Property 'length' cannot be accessed on 'String?'</dt><dd>"A propriedade <code>length</code> não pode ser acessada num <code>String?</code>…"</dd>
+  <dt>because it is potentially null.</dt><dd>"…porque ele <strong>pode ser</strong> <code>null</code>." O Dart não espera o dia do cliente sem apelido: ele sabe que <code>String?</code> pode estar vazio e recusa já.</dd>
+  <dt>Try accessing using ?. instead.</dt><dd>"Tente acessar com <code>?.</code>." Uma das saídas, que você vai ver em <a href="operadores-null.html">?. , ?? e ??=</a>.</dd>
+</dl>
+
+<p>Compare com a seção 1: <strong>o mesmo engano</strong> (pedir o tamanho de um apelido que pode não existir). Lá, o programa quebrou no meio. Aqui, o Dart nem deixou rodar.</p>
+
+<hr>
+
+<h2>4. Conferir antes de usar: <code>!= null</code></h2>
+<p>O jeito mais simples de usar um <code>String?</code> é perguntar se ele tem algo dentro. Depois do <code>if (apelido != null)</code>, o Dart <strong>sabe</strong> que ali dentro a gaveta está cheia, e libera o uso:</p>
+
+<pre class="file" data-file="checar.dart">void main() {
+  String? apelido = null;
+  if (apelido != null) {
+    print('Tamanho: ${apelido.length}');
+  } else {
+    print('Sem apelido');
+  }
+  apelido = 'Aninha';
+  if (apelido != null) {
+    print('Tamanho: ${apelido.length}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run checar.dart
+Sem apelido
+Tamanho: 6
+</pre>
+
+<p>O <code>!=</code> quer dizer "diferente de". Dentro do bloco do <code>if</code>, <code>apelido</code> passa a ser tratado como <code>String</code> (sem <code>?</code>): é a mesma <strong>promoção de tipo</strong> que você viu com o <code>is</code> em <a href="dynamic-object.html">dynamic e Object</a>. O Dart acompanha o caminho do programa para saber, em cada linha, se a variável pode ou não ser <code>null</code>.</p>
+
+<div class="trydart" data-goal="out:Sem apelido;;semerro;;src:!=\s*null">
+<p class="try-task"><strong>Missão:</strong> este programa não compila (<code>String?</code> pode ser <code>null</code>). Use um <code>if (apelido != null)</code> para mostrar o apelido em maiúsculas quando ele existir e <code>Sem apelido</code> quando não existir.</p>
+<pre class="script" data-file="main.dart">void main() {
+  String? apelido = null;
+  print(apelido.toUpperCase());
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String? apelido = null;
+  if (apelido != null) {
+    print(apelido.toUpperCase());
+  } else {
+    print('Sem apelido');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. De onde vem o <code>null</code></h2>
+<p>Você quase nunca escreve <code>null</code> à mão. Ele chega de funções que <strong>podem não ter resposta</strong>:</p>
+
+<pre class="file" data-file="fontes.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  print(int.tryParse('abc'));
+  print(precos['torta']);
+  print(precos['bolo']);
+}
+</pre>
+
+<pre class="term">$ dart run fontes.dart
+null
+null
+25
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>De onde</th><th>Devolve</th><th>Por que pode vir <code>null</code></th></tr>
+<tr><td><code>int.tryParse(texto)</code></td><td><code>int?</code></td><td>O texto pode não ser um número (<a href="conversao.html">Conversão</a>)</td></tr>
+<tr><td><code>mapa[chave]</code></td><td>o tipo do valor, com <code>?</code></td><td>A chave pode não existir: não há <code>'torta'</code> nos preços (<a href="map.html">Mapas</a>)</td></tr>
+<tr><td><code>stdin.readLineSync()</code></td><td><code>String?</code></td><td>A entrada pode acabar sem nenhuma linha (<a href="stdin.html">Lendo o Teclado</a>)</td></tr>
+<tr><td><code>bool.tryParse(texto)</code></td><td><code>bool?</code></td><td>O texto pode não ser <code>true</code>/<code>false</code> (<a href="bool.html">Booleanos</a>)</td></tr>
+</table>
+</div>
+
+<p>Em todos esses casos, o tipo do resultado tem o <code>?</code>, e o Dart vai cobrar que você trate o "nada". É isso que as próximas aulas ensinam.</p>
+
+<hr>
+
+<h2 id="formas">Formas de lidar com o <code>null</code></h2>
+<p>Você já viu duas; o resto do grupo "Null Safety" ensina as outras:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>O que fazer</th><th>Aula</th></tr>
+<tr><td>O valor sempre existe</td><td>Tipo sem <code>?</code> e um valor logo na criação: <code>String nome = 'Ana';</code></td><td>esta</td></tr>
+<tr><td>O valor pode não existir</td><td>Tipo com <code>?</code>: <code>String? apelido;</code></td><td><a href="tipos-anulaveis.html">Tipos Anuláveis</a></td></tr>
+<tr><td>Usar só se existir</td><td><code>if (x != null) { … }</code> ou <code>x?.length</code></td><td><a href="tipos-anulaveis.html">Tipos Anuláveis</a>, <a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td>Usar um valor padrão se não existir</td><td><code>x ?? 'padrão'</code></td><td><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td>O valor vai existir, mas só é preenchido depois</td><td><code>late String nome;</code></td><td><a href="late.html">late e o Operador !</a></td></tr>
+<tr><td>Você tem certeza de que não é <code>null</code></td><td><code>x!</code> (com risco)</td><td><a href="late.html">late e o Operador !</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado: as mensagens do null safety</h2>
+<p>Todas estas são de <strong>compilação</strong>: o Dart recusa o programa inteiro (código 254), e nada roda. Vale a pena aprender a reconhecer cada uma.</p>
+
+<div class="cenario">
+<strong>1. <code>null</code> numa variável que não aceita</strong>
+<p>Seção 2: <code>A value of type 'Null' can't be assigned to a variable of type 'String'.</code> <strong>Como consertar:</strong> se o "nada" faz sentido, <code>String? nome = null;</code>; se não faz, dê um valor de verdade: <code>String nome = 'Ana';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>2. Variável criada sem valor e usada</strong>
+<pre class="file" data-file="semvalor.dart">void main() {
+  String nome;
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run semvalor.dart
+semvalor.dart:3:9: Error: Non-nullable variable 'nome' must be assigned before it can be used.
+  print(nome);
+        ^^^^
+</pre>
+<p>"A variável não anulável <code>nome</code> precisa receber um valor antes de ser usada." <em>Non-nullable</em> = "não anulável", isto é, sem <code>?</code>. Criar <code>String nome;</code> sem valor é permitido; <strong>usar</strong> antes de dar um valor, não, porque ela estaria vazia. <strong>Como consertar:</strong> <code>String nome = 'Ana';</code>, ou dê o valor antes do <code>print</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>3. Usar um <code>String?</code> como se fosse <code>String</code></strong>
+<p>Seção 3: <code>Property 'length' cannot be accessed on 'String?' because it is potentially null.</code> Com um método, a mensagem é parecida: <code>Method 'toUpperCase' cannot be called on 'String?' because it is potentially null.</code> (você vê na missão da seção 4). <strong>Como consertar:</strong> <code>if (x != null)</code> antes, ou os operadores de <a href="operadores-null.html">?. , ?? e ??=</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>4. Passar <code>null</code> para uma função que espera <code>String</code></strong>
+<pre class="file" data-file="funcao.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+  saudar(null);
+}
+</pre>
+<pre class="term">$ dart run funcao.dart
+funcao.dart:7:10: Error: The argument type 'Null' can't be assigned to the parameter type 'String'.
+  saudar(null);
+         ^
+</pre>
+<p>"O tipo do argumento, <code>Null</code>, não pode ser atribuído ao tipo do parâmetro, <code>String</code>." O <strong>parâmetro</strong> é a gaveta que a função tem (<code>String nome</code>); o <strong>argumento</strong> é o que você mandou (<code>null</code>). Repare que nem o <code>saudar('Ana')</code>, que estava certo, rodou (funções em <a href="funcoes.html">Funções</a>). <strong>Como consertar:</strong> mande um texto, ou mude o parâmetro para <code>String? nome</code> e trate o <code>null</code> dentro da função.</p>
+</div>
+
+<div class="cenario">
+<strong>5. Guardar um <code>int?</code> num <code>int</code></strong>
+<pre class="file" data-file="mapa.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  int preco = precos['torta'];
+  print(preco);
+}
+</pre>
+<pre class="term">$ dart run mapa.dart
+mapa.dart:3:21: Error: A value of type 'int?' can't be assigned to a variable of type 'int'.
+  int preco = precos['torta'];
+                    ^
+</pre>
+<p>"Um valor do tipo <code>int?</code> não pode ser atribuído a uma variável do tipo <code>int</code>." A busca no mapa pode não achar a chave, então o resultado é <code>int?</code>. A mesma mensagem aparece com <code>int idade = int.tryParse(texto);</code>. <strong>Como consertar:</strong> dê um valor para o caso do "nada": <code>int preco = precos['torta'] ?? 0;</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>6. Campo de classe sem valor</strong>
+<pre class="file" data-file="classe.dart">class Cliente {
+  String nome;
+}
+
+void main() {
+  var c = Cliente();
+  print(c.nome);
+}
+</pre>
+<pre class="term">$ dart run classe.dart
+classe.dart:2:10: Error: Field 'nome' should be initialized because its type 'String' doesn't allow null.
+  String nome;
+         ^^^^
+</pre>
+<p>"O campo <code>nome</code> deveria receber um valor inicial, porque o tipo dele, <code>String</code>, não permite <code>null</code>." Você ainda vai ver classes em <a href="classes.html">Classes</a>; por ora, guarde a mensagem: <code>doesn't allow null</code> ("não permite <code>null</code>"). <strong>Como consertar:</strong> um valor inicial (<code>String nome = '';</code>), um construtor que exige o nome (<a href="construtores.html">Construtores</a>), <code>String? nome;</code> ou <code>late String nome;</code> (<a href="late.html">late</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que quer dizer</th></tr>
+<tr><td><code>null</code></td><td>"Nada": a ausência de valor. O tipo dele é <code>Null</code></td></tr>
+<tr><td><code>String</code>, <code>int</code>, <code>bool</code>…</td><td>Não anulável: nunca é <code>null</code></td></tr>
+<tr><td><code>String?</code>, <code>int?</code>, <code>bool?</code>…</td><td>Anulável: o valor ou <code>null</code></td></tr>
+<tr><td><code>if (x != null) { … }</code></td><td>Dentro do bloco, <code>x</code> é tratado como não anulável</td></tr>
+<tr><td><code>int.tryParse</code>, <code>mapa[chave]</code>, <code>stdin.readLineSync()</code></td><td>Devolvem tipos com <code>?</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Quer dizer</th></tr>
+<tr><td><code>A value of type 'Null' can't be assigned to a variable of type 'String'.</code></td><td><code>null</code> numa variável sem <code>?</code></td></tr>
+<tr><td><code>Non-nullable variable '…' must be assigned before it can be used.</code></td><td>Usou a variável antes de dar valor</td></tr>
+<tr><td><code>Property/Method '…' cannot be accessed/called on 'String?' because it is potentially null.</code></td><td>Usou um anulável sem conferir</td></tr>
+<tr><td><code>The argument type 'Null' can't be assigned to the parameter type 'String'.</code></td><td>Mandou <code>null</code> para um parâmetro sem <code>?</code></td></tr>
+<tr><td><code>A value of type 'int?' can't be assigned to a variable of type 'int'.</code></td><td>Guardou um anulável numa variável sem <code>?</code></td></tr>
+<tr><td><code>Field '…' should be initialized because its type '…' doesn't allow null.</code></td><td>Campo de classe sem valor inicial</td></tr>
+<tr><td><code>NoSuchMethodError: The getter '…' was called on null.</code></td><td>O erro antigo, em tempo de execução: só com <code>dynamic</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o tipo</h3>
+<p>Complete para a variável poder começar vazia:</p>
+<div class="ex-code"><input data-answer="String?" aria-label="tipo anulável"> telefone = null;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a conferência</h3>
+<div class="ex-code">if (telefone <input data-answer="!=" aria-label="operador"> null) {<br>&nbsp;&nbsp;print(telefone.length);<br>}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Quando o Dart 3 avisa que você usou um <code>String?</code> sem conferir?</p>
+<label><input type="radio" name="q3"> Só quando o valor for <code>null</code> de verdade, durante a execução</label>
+<label><input type="radio" name="q3"> Antes de rodar, na compilação, mesmo que o valor nunca seja <code>null</code></label>
+<label><input type="radio" name="q3"> Nunca: é preciso rodar o <code>dart analyze</code></label>
+<label><input type="radio" name="q3"> Só se a variável for <code>dynamic</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas linhas compila?</p>
+<label><input type="radio" name="q4"> <code>int idade = null;</code></label>
+<label><input type="radio" name="q4"> <code>int idade = int.tryParse('30');</code></label>
+<label><input type="radio" name="q4"> <code>String s = precos['bolo'].toString(); int n = s;</code></label>
+<label><input type="radio" name="q4"> <code>int? idade = int.tryParse('30');</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é a vantagem do null safety?</p>
+<label><input type="radio" name="q5"> O erro do "nada" aparece antes de rodar, e não na mão de quem usa o programa</label>
+<label><input type="radio" name="q5"> O Dart não tem mais <code>null</code></label>
+<label><input type="radio" name="q5"> O programa nunca mais tem erros</label>
+<label><input type="radio" name="q5"> As variáveis não precisam mais de tipo</label>
+</div>
+
+<h3>Missão final: três gavetas</h3>
+
+<div class="trydart" data-goal="out:Cliente: Ana;;out:Apelido: nenhum;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa tem dois erros de null safety. (1) <code>nome</code> nunca fica vazio: dê a ele o valor <code>'Ana'</code> em vez de <code>null</code>. (2) <code>apelido</code> pode ficar vazio: mude o tipo para <code>String?</code>. A saída deve ser <code>Cliente: Ana</code> e <code>Apelido: nenhum</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  String nome = null;
+  String apelido = null;
+  print('Cliente: $nome');
+  if (apelido != null) {
+    print('Apelido: $apelido');
+  } else {
+    print('Apelido: nenhum');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String nome = 'Ana';
+  String? apelido = null;
+  print('Cliente: $nome');
+  if (apelido != null) {
+    print('Apelido: $apelido');
+  } else {
+    print('Apelido: nenhum');
+  }
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial deu os dois erros, e a solução mostrou:</p>
+<pre class="term">$ dart run gavetas.dart
+Cliente: Ana
+Apelido: nenhum
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>null</code> é o "nada": a gaveta vazia. Usá-lo sem saber quebrava programas no meio da execução (<code>The getter 'length' was called on null</code>).</li>
+  <li>Com null safety (obrigatório no Dart 3), um tipo sem <code>?</code> <strong>nunca</strong> é <code>null</code>; um tipo com <code>?</code> (<code>String?</code>) pode ser.</li>
+  <li>O Dart confere antes de rodar: <code>null</code> em <code>String</code>, variável sem valor, <code>String?</code> usado direto e <code>int?</code> em <code>int</code> são erros de compilação.</li>
+  <li><code>if (x != null)</code> libera o uso dentro do bloco (promoção de tipo).</li>
+  <li><code>tryParse</code>, mapas e o teclado devolvem tipos com <code>?</code>: trate o "nada".</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
