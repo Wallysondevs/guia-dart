@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart O Editor do Guia — as caixas Experimente | Guia Dart</title>
+<meta name="description" content="Como funcionam as caixas Experimente do Guia Dart: o Dart do editor rodando no navegador, as partes da caixa (Rodar, Restaurar, Ver solução, o terminal e o código de saída), atalhos do teclado, cada Rodar começando do zero, stdin.readLineSync digitado ou pelo campo Entrada, abas com vários arquivos, Argumentos, erros de compilação e exceções, o que o editor não faz, as missões e as diferenças para o dart run do terminal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">O Editor do Guia</span></h1>
+
+<p class="intro">Em toda aula deste guia aparecem caixas <strong>Experimente</strong>. Você escreve um programa em Dart, clica em <strong>Rodar</strong> e vê, logo embaixo, o que o programa escreveu. Não precisa instalar nada: o editor roda o programa dentro do seu navegador. Nesta página você conhece cada parte do editor e aprende a responder quando o programa pergunta alguma coisa. Também vê como parar um programa que não termina, como o editor mostra os erros e o que muda quando você roda o mesmo programa no terminal.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As partes de uma caixa Experimente: o código, <strong>Rodar</strong>, o terminal da caixa, <strong>Restaurar</strong> e <strong>Ver solução</strong>, e os atalhos do teclado.</li>
+  <li>Por que cada Rodar começa do zero.</li>
+  <li>Como responder ao <code>stdin.readLineSync()</code>: digitando no terminal da caixa ou pelo campo <strong>Entrada</strong>.</li>
+  <li>Como funcionam as <strong>abas</strong> (vários arquivos) e o campo <strong>Argumentos</strong>.</li>
+  <li>Como aparecem os erros de compilação e as exceções, e como parar um programa que não termina.</li>
+  <li>O que o editor <strong>não</strong> faz, como funcionam as <strong>missões</strong>, e as diferenças para o <code>dart run</code> do terminal.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: uma bancada de treino dentro da página</h2>
+<p>Pense numa escola de culinária. O professor explica a receita no quadro, mas a aula só vale a pena quando cada aluno vai para a sua bancada e faz o bolo com as próprias mãos. Se o bolo desanda, tudo bem: a bancada é de treino, e no dia seguinte ela está limpa de novo.</p>
+<p>O editor do guia é essa bancada. A receita é o seu programa. Cada vez que você clica em <strong>Rodar</strong>, o editor:</p>
+<ol class="passo">
+  <li>prepara uma pasta nova, a <code>/home/ana</code> (a pasta pessoal da Ana, a usuária das aulas), só com os arquivos da caixa;</li>
+  <li>grava o seu código num arquivo, o <code>main.dart</code>;</li>
+  <li>confere o programa e roda, como quem digita <code>dart run main.dart</code> no terminal;</li>
+  <li>mostra tudo o que o programa escreveu e, no fim, o <strong>código de saída</strong> (0 quer dizer "terminou bem").</li>
+</ol>
+<p>Por dentro, o editor é um <strong>tradutor de Dart para JavaScript</strong>, a linguagem que os navegadores sabem executar, feito para este guia. Ele imita o Dart SDK 3.13.5 (a versão das aulas) com as mesmas mensagens de erro, as mesmas saídas do <code>print</code> e os mesmos códigos de saída. Tudo acontece no seu computador, dentro do navegador: o seu código não é enviado para lugar nenhum. E o programa roda separado da página, então, mesmo que ele trave, a página continua funcionando.</p>
+
+<div class="warning">
+<strong>O editor não é o Dart oficial</strong>
+<p>Os programas que aparecem nos quadros pretos das aulas (os que começam com <code>$ dart run</code>) foram rodados com o <strong>Dart SDK oficial</strong>, na máquina da Ana. O editor imita esse Dart muito de perto, mas não em tudo: as diferenças estão no fim desta página. Quando o editor e o terminal discordarem, quem vale é o terminal.</p>
+</div>
+
+<hr>
+
+<h2>As partes da caixa</h2>
+<p>Esta é uma caixa livre, sem missão. Clique em <strong>▶ Rodar</strong>:</p>
+
+<div class="trydart">
+<pre class="script" data-file="main.dart">void main() {
+  final nome = 'Ana';
+  print('Olá, $nome!');
+  print('Bem-vinda ao Dart.');
+}
+</pre>
+</div>
+
+<p>Na primeira vez, o editor avisa <strong>"Carregando o Dart do editor (…, só na primeira vez)…"</strong>: o navegador está baixando o editor, uns 180 KB (menos que uma foto). Isso leva um instante e só acontece uma vez. Depois, cada Rodar leva uma fração de segundo. Em seguida aparece o <strong>terminal da caixa</strong>, com a resposta. Repare nas partes:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<thead><tr><th>Parte</th><th>O que faz</th></tr></thead>
+<tbody>
+<tr><td><code>main.dart</code></td><td>A aba com o nome do arquivo. Os programas em Dart ficam em arquivos que terminam em <code>.dart</code>.</td></tr>
+<tr><td>O código</td><td>A área onde você digita, com o número de cada linha do lado. Pode apagar, mudar e escrever o que quiser.</td></tr>
+<tr><td><strong>▶ Rodar</strong></td><td>Roda o programa. Enquanto ele roda, o botão vira <strong>■ Parar</strong>.</td></tr>
+<tr><td><strong>Restaurar</strong></td><td>Volta ao código original da caixa (todas as abas). Use quando se perder.</td></tr>
+<tr><td><strong>Ver solução</strong></td><td>Só aparece nas missões. Pergunta antes ("Trocar o seu código pela solução?") e, se você clicar em <strong>Sim, mostrar</strong>, põe a resposta no editor.</td></tr>
+<tr><td><code>ana@notebook:~$ dart run main.dart</code></td><td>A primeira linha do terminal: o comando que rodaria este programa num computador de verdade (a usuária <code>ana</code>, no computador <code>notebook</code>).</td></tr>
+<tr><td><code>Olá, Ana!</code></td><td>O que o programa escreveu com o <code>print</code>.</td></tr>
+<tr><td><code>[código de saída: 0]</code></td><td>Como o programa terminou: <strong>0</strong> = tudo certo; <strong>254</strong> = o Dart recusou o programa (erro de compilação); <strong>255</strong> = o programa parou no meio com uma exceção (aula <a href="executar.html">Rodando um Programa</a>).</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Atalhos do teclado</h3>
+<div class="table-wrap">
+<table class="ref">
+<thead><tr><th>Tecla</th><th>O que faz</th></tr></thead>
+<tbody>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Enter</kbd></td><td>Roda o programa, igual ao botão Rodar (no Mac, <kbd>⌘</kbd>+<kbd>Enter</kbd>).</td></tr>
+<tr><td><kbd>Enter</kbd></td><td>Nova linha, já com o mesmo recuo da linha de cima. Depois de uma linha que termina em <code>{</code>, <code>(</code> ou <code>[</code>, o editor recua mais 2 espaços sozinho (aula <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>). A chave que fecha, você escreve.</td></tr>
+<tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Põe / tira 2 espaços de recuo (com várias linhas selecionadas, o <kbd>Tab</kbd> recua todas).</td></tr>
+<tr><td><kbd>Backspace</kbd> no recuo</td><td>Apaga os 2 espaços de uma vez.</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Sai do editor (o <kbd>Tab</kbd> volta a andar pela página).</td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Experimente agora na caixa de cima: troque <code>'Ana'</code> pelo seu nome e aperte <kbd>Ctrl</kbd>+<kbd>Enter</kbd>. Depois clique em <strong>Restaurar</strong>.</p>
+
+<hr>
+
+<h2>Cada Rodar começa do zero</h2>
+<p>O programa abaixo olha se o arquivo <code>diario.txt</code> existe. Se existe, avisa; senão, diz que o diário é novo. Depois, acrescenta uma linha ao diário e mostra tudo o que tem nele. Rode duas ou três vezes:</p>
+
+<div class="trydart">
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  final diario = File('diario.txt');
+  if (diario.existsSync()) {
+    print('O diário já existia!');
+  } else {
+    print('Diário novo.');
+  }
+  diario.writeAsStringSync('Hoje estudei Dart.\n', mode: FileMode.append);
+  for (final linha in diario.readAsLinesSync()) {
+    print('No diário: $linha');
+  }
+}
+</pre>
+</div>
+
+<p>Todas as vezes ele responde <strong>Diário novo.</strong> e uma linha só no diário. No computador da Ana, a segunda vez é diferente, porque o arquivo fica gravado no disco (o mesmo programa, salvo como <code>diario.dart</code>):</p>
+
+<pre class="term" data-cwd="~/sim">$ dart run diario.dart
+Diário novo.
+No diário: Hoje estudei Dart.
+$ dart run diario.dart
+O diário já existia!                               « o arquivo ficou no disco
+No diário: Hoje estudei Dart.
+No diário: Hoje estudei Dart.
+</pre>
+
+<p>No editor, cada Rodar é um <code>dart run main.dart</code> novinho: memória nova, variáveis zeradas e a pasta só com os arquivos das abas da caixa. O que o programa cria existe até o fim daquele Rodar e some no próximo. Não se preocupe com o <code>File</code> agora; ele tem aula própria: <a href="arquivos.html">Arquivos</a>.</p>
+
+<div class="tip">
+<strong>Por que isso é bom</strong>
+<p>Você pode criar, mudar e apagar arquivos à vontade: nada "estraga" os exemplos das outras aulas, e o resultado é sempre o que o texto da aula descreve. A contrapartida é que nada fica guardado entre um Rodar e outro: o programa que grava e o que lê precisam estar <strong>no mesmo Rodar</strong>.</p>
+</div>
+
+<hr>
+
+<h2>Quando o programa pergunta: o <code>stdin.readLineSync()</code></h2>
+<p>O <code>stdin.readLineSync()</code> ("ler uma linha da entrada") faz o programa <strong>parar e esperar</strong> você digitar uma resposta (aula <a href="stdin.html">Lendo o Teclado</a>). Rode a caixa abaixo: o terminal mostra a pergunta e, do lado, um campo para você digitar. Escreva o seu nome e tecle <kbd>Enter</kbd>:</p>
+
+<div class="trydart" data-digitar="Ana">
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Qual é o seu nome? ');
+  final nome = stdin.readLineSync();
+  print('Olá, $nome!');
+}
+</pre>
+</div>
+
+<p>O que você digitou aparece no terminal, como num terminal de verdade, e o programa continua. Se, em vez de responder, você teclar <kbd>Ctrl</kbd>+<kbd>D</kbd> ("fim da entrada"), o <code>readLineSync()</code> devolve <code>null</code>, e o programa mostra <code>Olá, null!</code>. O <kbd>Ctrl</kbd>+<kbd>C</kbd> no campo para o programa, como o ■ Parar.</p>
+
+<div class="note">
+<strong>Por dentro</strong>
+<p>O editor não consegue "pausar" o programa no meio. Então, a cada linha que você digita, ele roda o programa <strong>de novo desde o começo</strong>, já com as respostas que você deu, e mostra só o que ainda não estava na tela. Para você, parece um programa só. A diferença só aparece num programa que sorteia números com <code>Random()</code> ou usa a hora antes de perguntar: os sorteios do editor ficam iguais entre as repetições, mas a hora anda.</p>
+</div>
+
+<h3>Caixas com o campo Entrada</h3>
+<p>Algumas caixas já trazem as respostas prontas num campo <strong>Entrada</strong>, embaixo do código: cada linha do campo é uma resposta, como se alguém tivesse digitado e teclado <kbd>Enter</kbd>. O terminal mostra o que foi lido, e você pode mudar o campo antes de rodar:</p>
+
+<div class="trydart" data-stdin="Bia\n30">
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Nome: ');
+  final nome = stdin.readLineSync()!;
+  stdout.write('Idade: ');
+  final idade = int.parse(stdin.readLineSync()!);
+  print('$nome faz ${idade + 1} anos no ano que vem.');
+}
+</pre>
+</div>
+
+<p>Troque <code>30</code> por <code>trinta</code> no campo Entrada e rode: o <code>int.parse</code> não entende o texto, e o programa para com uma exceção (aula <a href="conversao.html">Conversão de Tipos</a>).</p>
+
+<hr>
+
+<h2>Vários arquivos: as abas</h2>
+<p>Algumas caixas têm mais de uma aba. A primeira é sempre a que roda (<code>main.dart</code>); as outras ficam na mesma pasta. Um programa Dart pode usar funções de outro arquivo com <code>import</code> (aula <a href="imports.html">Imports</a>), e ler arquivos de dados, como um <code>.txt</code>:</p>
+
+<div class="trydart">
+<pre class="script" data-file="main.dart">import 'dart:io';
+import 'contas.dart';
+
+void main() {
+  final precos = File('precos.txt').readAsLinesSync().map(double.parse).toList();
+  print('Itens: $precos');
+  print('Total: R\$ ${somar(precos).toStringAsFixed(2)}');
+}
+</pre>
+<pre class="script" data-file="contas.dart">double somar(List&lt;double&gt; valores) {
+  var total = 0.0;
+  for (final v in valores) {
+    total += v;
+  }
+  return total;
+}
+</pre>
+<pre class="script" data-file="precos.txt">1.50
+9.50
+4.25
+</pre>
+</div>
+
+<p>Clique nas abas para ver cada arquivo. Mude um preço em <code>precos.txt</code> e rode de novo. Se você apagar a linha do <code>import 'contas.dart';</code>, o Dart não acha a função: <code>Method not found: 'somar'.</code></p>
+
+<h3>O campo Argumentos</h3>
+<p>Um programa pode receber palavras na linha de comando, os <strong>argumentos</strong> (aula <a href="argumentos.html">Argumentos da Linha de Comando</a>). Nas caixas com o campo <strong>Argumentos</strong>, o que você escreve ali chega na lista <code>args</code> do <code>main</code>, e aparece também no comando da primeira linha do terminal. Palavras entre aspas viram um argumento só:</p>
+
+<div class="trydart" data-args="pão leite 'queijo minas'">
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  print('Recebi ${args.length} argumento(s): $args');
+}
+</pre>
+</div>
+
+<p>No terminal da Ana, o mesmo programa (salvo como <code>args.dart</code>) responde igual:</p>
+
+<pre class="term" data-cwd="~/sim">$ dart run args.dart pão leite 'queijo minas'
+Recebi 3 argumento(s): [pão, leite, queijo minas]
+</pre>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Errar faz parte, e as mensagens de erro são as do Dart, em inglês. O editor mostra em <strong>vermelho</strong> e explica com o código de saída. São dois tipos de erro.</p>
+
+<h3>Erro de compilação (código 254)</h3>
+<p>Antes de rodar, o Dart confere o programa inteiro. Se achar um erro, ele <strong>nem começa</strong>: mostra onde está o problema e termina com o código 254.</p>
+
+<div class="trydart">
+<pre class="script" data-file="main.dart">void main() {
+  Print('Olá!');
+}
+</pre>
+</div>
+
+<div class="cenario">
+<p>No terminal da Ana, o mesmo erro (o programa salvo como <code>erro.dart</code>):</p>
+<pre class="term" data-cwd="~/sim">$ dart run erro.dart
+erro.dart:2:3: Error: Method not found: 'Print'.
+  Print('Olá!');
+  ^^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt><code>erro.dart:2:3</code></dt><dd>O arquivo, a <strong>linha 2</strong> e a <strong>coluna 3</strong> (a 3ª letra da linha), onde o Dart achou o problema.</dd>
+  <dt><code>Error: Method not found: 'Print'.</code></dt><dd>"Método não encontrado: 'Print'". O Dart diferencia maiúsculas de minúsculas: a função se chama <code>print</code>, com p minúsculo.</dd>
+  <dt>A linha do código e o <code>^^^^^</code></dt><dd>A linha com o erro e, embaixo, setinhas apontando o trecho exato.</dd>
+  <dt><code>254</code></dt><dd>O código de saída de "o Dart recusou o programa".</dd>
+</dl>
+</div>
+
+<h3>Exceção (código 255)</h3>
+<p>Às vezes o programa está escrito certo, mas algo dá errado <strong>enquanto ele roda</strong>: o programa para no meio com uma <strong>exceção</strong> e termina com o código 255.</p>
+
+<div class="trydart">
+<pre class="script" data-file="main.dart">void main() {
+  final idade = int.parse('dez');
+  print(idade);
+}
+</pre>
+</div>
+
+<div class="cenario">
+<p>No terminal da Ana (o programa salvo como <code>conta.dart</code>):</p>
+<pre class="term" data-cwd="~/sim">$ dart run conta.dart
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+dez
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/sim/conta.dart:2:21)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt><code>Unhandled exception:</code></dt><dd>"Exceção não tratada": o programa parou no meio, e ninguém cuidou do problema (aula <a href="excecoes.html">Exceções</a>).</dd>
+  <dt><code>FormatException: Invalid radix-10 number</code></dt><dd>O tipo do problema e a explicação: <code>'dez'</code> não é um número em base 10.</dd>
+  <dt><code>#4      main (file:///home/ana/sim/conta.dart:2:21)</code></dt><dd>O <strong>stack trace</strong> ("rastro da pilha"): o caminho até o erro. Procure a linha com o <strong>seu</strong> arquivo: linha 2, coluna 21. As linhas com <code>dart:core-patch</code> são de dentro do Dart.</dd>
+</dl>
+</div>
+
+<h3>Um programa que não termina</h3>
+<p>Um laço que nunca acaba deixa o programa rodando para sempre. No editor, o botão vira <strong>■ Parar</strong>: clique nele. Se você não clicar, o editor para o programa sozinho depois de <strong>10 segundos</strong> e avisa. Rode e pare:</p>
+
+<div class="trydart" data-sem-fim>
+<pre class="script" data-file="main.dart">void main() {
+  var voltas = 0;
+  while (true) {
+    voltas++;
+  }
+}
+</pre>
+</div>
+
+<p>No terminal, o equivalente ao ■ Parar é o <kbd>Ctrl</kbd>+<kbd>C</kbd>.</p>
+
+<hr>
+
+<h2>O que o editor não faz</h2>
+<div class="table-wrap">
+<table class="ref">
+<thead><tr><th>No editor</th><th>Por quê, e onde fazer</th></tr></thead>
+<tbody>
+<tr><td>Nada fica salvo entre um Rodar e outro</td><td>Cada Rodar ganha uma pasta nova. Para guardar arquivos de verdade, rode no seu computador.</td></tr>
+<tr><td>Sem pacotes: <code>import 'package:…'</code> responde <code>Couldn't resolve the package</code></td><td>O editor não baixa pacotes do pub.dev. O <code>dart pub</code> fica para o terminal (aula <a href="pacotes.html">Pacotes</a>).</td></tr>
+<tr><td>Sem outros programas nem internet: <code>Process.run</code>, <code>HttpClient</code></td><td>Dentro do navegador não existe um sistema com outros programas.</td></tr>
+<tr><td>Sem Flutter</td><td>O Flutter desenha telas de aplicativo; o editor só tem o terminal (aula <a href="flutter.html">Flutter</a>).</td></tr>
+<tr><td>O <code>assert</code> não confere nada</td><td>Igual ao <code>dart run</code> sem <code>--enable-asserts</code> (aula <a href="assert.html">assert</a>).</td></tr>
+<tr><td>Erros de sintaxe: mostra só o primeiro</td><td>Quando há vários, o Dart do terminal às vezes mostra mais de um. Conserte o primeiro e rode de novo.</td></tr>
+<tr><td>Programa que roda mais de 10 segundos é parado; saída com mais de 2 milhões de caracteres também</td><td>Para a página não travar. Nenhum exemplo do guia chega perto disso.</td></tr>
+</tbody>
+</table>
+</div>
+
+<hr>
+
+<h2>As missões</h2>
+<p>Muitas caixas têm uma <strong>Missão</strong>: uma tarefa escrita em cima do código. Embaixo da caixa fica uma linha de status que confere a sua resposta a cada Rodar:</p>
+<ul>
+  <li><strong>Missão em andamento…</strong> enquanto ainda não está certo, com uma pista entre parênteses (por exemplo, "a saída ainda não é a esperada" ou "o programa ainda termina com erro");</li>
+  <li><strong>✔ Missão cumprida!</strong>, quando você acerta. Depois de cumprida, ela fica cumprida.</li>
+</ul>
+<p>O guia não compara o seu código letra por letra com a resposta: ele <strong>roda</strong> o seu programa e confere o que ele escreveu. Por isso, quase sempre existe mais de um jeito certo. Às vezes a missão também pede um recurso (como "use um <code>for</code>"), ou um arquivo criado pelo programa, ou até um erro de propósito, para você aprender a reconhecê-lo. Faça a primeira:</p>
+
+<div class="trydart" data-goal="out:Total: R$ 23.50;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 3 pães de R$ 1,50 e 2 litros de leite de R$ 9,50. O programa tem um erro: rode, leia a mensagem (a linha, a coluna e o nome entre aspas) e conserte. A saída deve ser <code>Total: R$ 23.50</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final paes = 3 * 1.50;
+  final leite = 2 * 9.50;
+  final total = paes + leites;
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final paes = 3 * 1.50;
+  final leite = 2 * 9.50;
+  final total = paes + leite;
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<p>Rodou antes de consertar? Então viu <code>main.dart:4:24: Error: Undefined name 'leites'.</code>: a variável se chama <code>leite</code>, sem o "s", e ninguém criou uma <code>leites</code>. (O <code>toStringAsFixed(2)</code> mostra o número com duas casas decimais, e o <code>\$</code> escreve o cifrão: aula <a href="interpolacao.html">Interpolação</a>.) As missões são feitas para você errar, ler a mensagem e consertar. Se travar de vez, use <strong>Ver solução</strong>; mas tente antes, e depois de ver a solução, digite-a você mesmo.</p>
+
+<hr>
+
+<h2 id="terminal">O mesmo programa no terminal</h2>
+<p>O editor é ótimo para aprender, mas no dia a dia o Dart roda no seu computador, com o comando <strong><code>dart</code></strong> no <strong>terminal</strong>. A aula <a href="instalar.html">Instalar o Dart</a> mostra como instalá-lo, e <a href="executar.html">Rodando um Programa</a> ensina o caminho completo. O mesmo programa dá as mesmas mensagens nos dois lugares. O que muda:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<thead><tr><th>O que muda</th><th>No editor</th><th>No terminal</th></tr></thead>
+<tbody>
+<tr><td>Arquivos</td><td>Somem no próximo Rodar</td><td>Ficam gravados no disco</td></tr>
+<tr><td>A hora (<code>DateTime.now()</code>)</td><td>A do seu computador</td><td>A do computador onde o programa roda</td></tr>
+<tr><td>Sorteios com <code>Random()</code> sem semente</td><td>Mudam a cada Rodar</td><td>Mudam a cada execução (com semente, <code>Random(42)</code>, os números são os mesmos nos dois)</td></tr>
+<tr><td>Detalhes internos</td><td>Nomes internos do Dart e as linhas <code>dart:core-patch</code> do stack trace podem sair um pouco diferentes</td><td>Os nomes e linhas reais do SDK</td></tr>
+<tr><td>Velocidade</td><td>Mais lento em contas muito pesadas</td><td>O Dart compilado, bem mais rápido</td></tr>
+<tr><td>Pacotes, Flutter, outros programas</td><td>Não tem</td><td>Tem (<code>dart pub</code>, <code>flutter</code>)</td></tr>
+</tbody>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A tecla</h3>
+<p>Qual tecla, junto com <kbd>Ctrl</kbd>, roda o programa da caixa?</p>
+<div class="ex-code">Ctrl + <input data-answer="Enter|enter" aria-label="tecla"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O código de saída</h3>
+<p>Que código de saída aparece quando o Dart recusa o programa por um erro de compilação?</p>
+<div class="ex-code">[código de saída: <input data-answer="254" aria-label="código">]</div>
+</div>
+
+<div class="exercise">
+<h3>3. O nome do arquivo</h3>
+<p>Com que nome o editor grava o código da primeira aba?</p>
+<div class="ex-code"><input data-answer="main.dart" aria-label="nome do arquivo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Um programa cria o arquivo <code>lista.txt</code> no editor. Você clica em Rodar de novo. O que acontece com o arquivo?</p>
+<label><input type="radio" name="q4"> Continua lá, com o conteúdo da vez anterior.</label>
+<label><input type="radio" name="q4"> É salvo no seu computador, na pasta Downloads.</label>
+<label><input type="radio" name="q4"> Sumiu: cada Rodar começa com uma pasta nova, só com os arquivos das abas.</label>
+<label><input type="radio" name="q4"> O editor dá erro, porque o arquivo já existe.</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. A caixa mostrou <code>Qual é o seu nome?</code> e um campo para digitar. O que fazer?</p>
+<label><input type="radio" name="q5"> Clicar em Rodar de novo.</label>
+<label><input type="radio" name="q5"> Digitar a resposta no campo e teclar <kbd>Enter</kbd>.</label>
+<label><input type="radio" name="q5"> Escrever a resposta dentro do código.</label>
+<label><input type="radio" name="q5"> Esperar 10 segundos.</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. O terminal da caixa terminou com <code>Unhandled exception:</code> e <code>[código de saída: 255]</code>. O que isso quer dizer?</p>
+<label><input type="radio" name="q6"> O Dart recusou o programa antes de rodar.</label>
+<label><input type="radio" name="q6"> O editor está quebrado.</label>
+<label><input type="radio" name="q6"> O programa terminou bem.</label>
+<label><input type="radio" name="q6"> O programa começou a rodar e parou no meio com uma exceção.</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">7. Um laço não para nunca. O que o editor faz?</p>
+<label><input type="radio" name="q7"> Você pode clicar em <strong>■ Parar</strong>; se não clicar, ele para sozinho depois de 10 segundos.</label>
+<label><input type="radio" name="q7"> A página trava, e é preciso fechar o navegador.</label>
+<label><input type="radio" name="q7"> O laço roda para sempre, escondido.</label>
+<label><input type="radio" name="q7"> O editor apaga o seu código.</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>As caixas Experimente rodam o programa dentro do seu navegador, com um editor que imita o <strong>Dart 3.13.5</strong> (baixado uma vez, uns 180 KB). O seu código não sai do seu computador. As saídas das aulas vêm do Dart oficial, no terminal.</li>
+  <li>Cada <strong>Rodar</strong> é um <code>dart run main.dart</code> novo, numa pasta <code>/home/ana</code> nova, só com os arquivos das abas. O terminal da caixa mostra o comando, a saída, os erros em vermelho e o <strong>código de saída</strong>: 0 (tudo certo), 254 (erro de compilação), 255 (exceção).</li>
+  <li><strong>Restaurar</strong> volta ao código original; <strong>Ver solução</strong> (nas missões) pergunta antes de trocar o seu código. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> roda; o <kbd>Enter</kbd> recua 2 espaços depois de <code>{</code>.</li>
+  <li>O <code>stdin.readLineSync()</code> espera você digitar no terminal da caixa (<kbd>Ctrl</kbd>+<kbd>D</kbd> = fim da entrada, e ele devolve <code>null</code>), ou lê do campo <strong>Entrada</strong>. O campo <strong>Argumentos</strong> vira a lista <code>args</code> do <code>main</code>.</li>
+  <li>Um laço sem fim para com <strong>■ Parar</strong> ou sozinho, em 10 segundos.</li>
+  <li>O editor não tem pacotes, Flutter, internet nem outros programas; isso fica para o terminal.</li>
+  <li>As missões rodam o seu programa e conferem a saída: <strong>✔ Missão cumprida!</strong> quando dá certo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
