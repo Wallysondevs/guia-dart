@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart argumentos — main(List&lt;String&gt; args) | Guia Dart</title>
+<meta name="description" content="Argumentos da linha de comando no Dart para quem nunca programou: main(List&lt;String&gt; args), dart run arquivo.dart a b c, aspas para argumentos com espaço, converter para número, mensagem de uso com stderr e exit, opções como --gritar, e os erros reais do Dart 3 (RangeError sem argumentos, FormatException no int.parse, main com tipo errado, opção antes do arquivo).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Argumentos da Linha de Comando</span></h1>
+
+<p class="intro">Na aula <a href="stdin.html">Lendo o Teclado</a>, o programa <strong>perguntava</strong> e esperava a resposta. Há outro jeito de passar informação para um programa: escrever tudo <strong>junto com o comando</strong>, na mesma linha: <code>dart run tabuada.dart 7</code>. Esse <code>7</code> é um <strong>argumento da linha de comando</strong>, e ele chega no <code>main</code> numa lista chamada <code>args</code>. É assim que funcionam quase todos os comandos do terminal (<code>ls receitas</code>, <code>cat compras.txt</code>), e o próprio <code>dart</code> (<code>run</code> é um argumento dele).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como o <code>main</code> recebe os argumentos: <code>void main(List&lt;String&gt; args)</code>.</li>
+  <li>Como o terminal separa os argumentos (espaços) e como juntar palavras num argumento só (aspas).</li>
+  <li>Como tratar o caso de nenhum argumento e como converter um argumento em número.</li>
+  <li>Como mostrar uma mensagem de uso no <code>stderr</code> e sair com um código de erro (<code>exit</code>).</li>
+  <li>Como aceitar opções do tipo <code>--gritar</code>.</li>
+  <li>Os erros reais: <code>args[0]</code> sem argumento, <code>int.parse</code> de um texto, <code>main</code> com o tipo errado e a opção no lugar errado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), no terminal, com <code>dart run arquivo.dart</code> seguido dos argumentos.</p>
+
+<hr>
+
+<h2>A ideia: o pedido já vem escrito no bilhete</h2>
+<p>Você pode chegar à padaria e esperar o atendente perguntar "o que vai ser?" (é o <code>stdin</code>). Ou pode entregar um <strong>bilhete</strong> já escrito: "3 pães, 1 leite". O atendente não pergunta nada: lê o bilhete e trabalha. Os argumentos são o bilhete: vêm escritos no comando, antes de o programa começar.</p>
+<p>A vantagem do bilhete: dá para repetir o mesmo pedido sem digitar de novo (a seta para cima no terminal traz o comando de volta), e outros programas e scripts conseguem chamar o seu programa passando o pedido pronto.</p>
+
+<hr>
+
+<h2>1. Recebendo os argumentos</h2>
+
+<pre class="file" data-file="mostrar.dart">void main(List&lt;String&gt; args) {
+  print('Recebi ${args.length} argumento(s): $args');
+  for (var i = 0; i &lt; args.length; i++) {
+    print('args[$i] = ${args[i]}');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>void main(List&lt;String&gt; args)</dt><dd>O mesmo <code>main</code> de sempre, agora com um parâmetro: uma <a href="list.html">lista</a> de textos. O nome <code>args</code> (de <em>arguments</em>) é só costume; poderia ser <code>palavras</code>. O tipo, não: tem de ser <code>List&lt;String&gt;</code>.</dd>
+  <dt>args.length</dt><dd>Quantos argumentos vieram.</dd>
+  <dt>args[i]</dt><dd>Cada argumento, a partir do índice 0. O nome do programa (<code>mostrar.dart</code>) <strong>não</strong> entra na lista.</dd>
+</dl>
+
+<pre class="term">$ dart run mostrar.dart
+Recebi 0 argumento(s): []
+$ dart run mostrar.dart pão leite café
+Recebi 3 argumento(s): [pão, leite, café]
+args[0] = pão
+args[1] = leite
+args[2] = café
+</pre>
+
+<p>Sem nada depois do nome do arquivo, a lista vem <strong>vazia</strong> (não dá erro). Com três palavras, três argumentos: o terminal separa nos <strong>espaços</strong>.</p>
+
+<h3>Argumento com espaço: aspas</h3>
+<p>E se o item for "pão de queijo"? Sem aspas, seriam 3 argumentos (<code>pão</code>, <code>de</code>, <code>queijo</code>). Com aspas, duplas ou simples, vira um só:</p>
+
+<pre class="term">$ dart run mostrar.dart "pão de queijo" 'bolo de fubá' 3
+Recebi 3 argumento(s): [pão de queijo, bolo de fubá, 3]
+args[0] = pão de queijo
+args[1] = bolo de fubá
+args[2] = 3
+</pre>
+
+<p>As aspas são do <strong>terminal</strong>: ele as usa para agrupar e as tira antes de entregar ao Dart (por isso não aparecem na saída). E repare no <code>3</code>: ele chegou como o <strong>texto</strong> <code>'3'</code>, não como número. Todo argumento é <code>String</code>.</p>
+
+<div class="trydart" data-args="Ana Bia Caio" data-goal="out:Recebi 3 argumento(s);;out:args[2] = Caio">
+<p class="try-task"><strong>Missão:</strong> esta caixa roda o programa como <code>dart run main.dart Ana Bia Caio</code>. O <code>for</code> está mostrando só os dois primeiros. Conserte a condição do laço para mostrar todos.</p>
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  print('Recebi ${args.length} argumento(s): $args');
+  for (var i = 0; i &lt; 2; i++) {
+    print('args[$i] = ${args[i]}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main(List&lt;String&gt; args) {
+  print('Recebi ${args.length} argumento(s): $args');
+  for (var i = 0; i &lt; args.length; i++) {
+    print('args[$i] = ${args[i]}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. E se não vier nenhum?</h2>
+<p>Quem usa o programa pode esquecer o argumento. Confira com <code>args.isEmpty</code> antes de usar <code>args[0]</code>:</p>
+
+<pre class="file" data-file="saudar.dart">void main(List&lt;String&gt; args) {
+  if (args.isEmpty) {
+    print('Olá, pessoa sem nome!');
+  } else {
+    print('Olá, ${args[0]}!');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run saudar.dart
+Olá, pessoa sem nome!
+$ dart run saudar.dart Ana
+Olá, Ana!
+</pre>
+
+<p>Sem essa conferência, <code>args[0]</code> numa lista vazia derruba o programa (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>3. Argumentos que são números</h2>
+<p>Como tudo chega como texto, para fazer conta é preciso converter (veja <a href="conversao.html">Conversão de Tipos</a>). Esta calculadora soma todos os preços passados:</p>
+
+<pre class="file" data-file="somar.dart">void main(List&lt;String&gt; args) {
+  var total = 0.0;
+  for (final arg in args) {
+    total += double.parse(arg);
+  }
+  print('Total: ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run somar.dart 4.50 12 0.75
+Total: 17.25
+</pre>
+
+<p>Repare que no terminal o decimal se escreve com <strong>ponto</strong> (<code>4.50</code>), como no Dart. Com vírgula (<code>4,50</code>), o <code>double.parse</code> dá erro.</p>
+
+<hr>
+
+<h2>4. Mensagem de uso, <code>stderr</code> e <code>exit</code></h2>
+<p>Programas de terminal bem-educados, quando recebem argumentos errados, explicam como usar e terminam com um <strong>código de saída</strong> diferente de 0 (o 0 quer dizer "deu tudo certo"). Para isso, duas ferramentas do <code>dart:io</code>:</p>
+<ul>
+  <li><code>stderr.writeln(…)</code>: escreve na <strong>saída de erros</strong> (<em>standard error</em>). No terminal aparece igual ao <code>print</code>, mas é um canal separado: quem guarda a saída do programa num arquivo não recebe as mensagens de erro misturadas.</li>
+  <li><code>exit(n)</code>: termina o programa na hora, com o código <code>n</code>. O 64 é o código tradicional para "uso incorreto do comando".</li>
+</ul>
+
+<pre class="file" data-file="tabuada.dart">import 'dart:io';
+
+void main(List&lt;String&gt; args) {
+  if (args.length != 1) {
+    stderr.writeln('Uso: dart run tabuada.dart NUMERO');
+    exit(64);
+  }
+  final numero = int.tryParse(args[0]);
+  if (numero == null) {
+    stderr.writeln('Erro: "${args[0]}" não é um número inteiro.');
+    exit(64);
+  }
+  for (var i = 1; i &lt;= 3; i++) {
+    print('$numero x $i = ${numero * i}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run tabuada.dart 7
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+$ dart run tabuada.dart
+Uso: dart run tabuada.dart NUMERO
+$ echo $?
+64
+$ dart run tabuada.dart sete
+Erro: "sete" não é um número inteiro.
+$ echo $?
+64
+</pre>
+
+<dl class="anatomy">
+  <dt>args.length != 1</dt><dd>Exatamente um argumento; nem zero, nem dois.</dd>
+  <dt>int.tryParse(args[0])</dt><dd>"Tenta converter": devolve o número, ou <code>null</code> se o texto não for um inteiro. Diferente do <code>int.parse</code>, não derruba o programa.</dd>
+  <dt>echo $?</dt><dd>Comando do terminal que mostra o código de saída do último programa: 64, o que o <code>exit(64)</code> pediu.</dd>
+</dl>
+
+<p>Para ver que o <code>stderr</code> é mesmo outro canal, o terminal pode jogar fora só ele com <code>2&gt;/dev/null</code> ("mande a saída de erros para o nada"):</p>
+
+<pre class="term">$ dart run tabuada.dart 7 2&gt;/dev/null
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+$ dart run tabuada.dart 2&gt;/dev/null
+</pre>
+
+<p>Com o argumento certo, nada mudou (tudo era <code>print</code>). Sem argumento, a mensagem de uso sumiu: ela ia pelo <code>stderr</code>.</p>
+
+<hr>
+
+<h2>5. Opções: <code>--gritar</code></h2>
+<p>Muitos comandos aceitam <strong>opções</strong> que começam com <code>--</code> e ligam um comportamento. Um jeito simples: procure a opção na lista com <code>contains</code>, e trate o resto como dados:</p>
+
+<pre class="file" data-file="opcoes.dart">void main(List&lt;String&gt; args) {
+  final gritar = args.contains('--gritar');
+  final nomes = args.where((a) =&gt; !a.startsWith('--')).toList();
+  for (final nome in nomes) {
+    final frase = 'Bom dia, $nome!';
+    print(gritar ? frase.toUpperCase() : frase);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run opcoes.dart Ana Bia
+Bom dia, Ana!
+Bom dia, Bia!
+$ dart run opcoes.dart --gritar Ana Bia
+BOM DIA, ANA!
+BOM DIA, BIA!
+</pre>
+
+<p><code>where((a) =&gt; !a.startsWith('--'))</code> fica só com o que <strong>não</strong> começa com <code>--</code> (veja <a href="iterables.html">map, where…</a>), e o <a href="ternario.html">ternário</a> escolhe entre a frase normal e a gritada.</p>
+
+<div class="tip">
+<strong>Para muitas opções: o pacote <code>args</code></strong>
+<p>Quando o programa tem várias opções (<code>--saida=arquivo.txt</code>, <code>-v</code>, <code>--help</code>), fazer tudo à mão cansa. A equipe do Dart mantém o pacote <code>args</code>, que lê as opções e monta a ajuda sozinho. Ele é instalado com <code>dart pub add args</code>, assunto da aula <a href="pacotes.html">Pacotes do pub.dev</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de receber dados</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Exemplo</th><th>Bom para</th></tr>
+<tr><td>argumentos</td><td><code>dart run tabuada.dart 7</code></td><td>poucos dados, conhecidos antes de rodar; scripts e automação</td></tr>
+<tr><td>teclado (<a href="stdin.html">stdin</a>)</td><td><code>stdin.readLineSync()</code></td><td>conversar com a pessoa; perguntas que dependem de respostas anteriores</td></tr>
+<tr><td><a href="arquivos.html">arquivo</a></td><td><code>File('dados.txt').readAsLinesSync()</code></td><td>muitos dados; dados que ficam guardados</td></tr>
+<tr><td>argumento com o nome do arquivo</td><td><code>dart run media.dart notas.txt</code></td><td>o melhor dos dois: o programa serve para qualquer arquivo</td></tr>
+</table>
+</div>
+
+<p>E se o seu <code>main</code> não precisa de argumentos? Pode continuar com <code>void main()</code>: os argumentos digitados são simplesmente ignorados.</p>
+<pre class="term">$ dart run sem_args.dart pão leite
+Este main não recebe argumentos.
+</pre>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>args[0]</code> e ninguém passou argumento</strong>
+<pre class="file" data-file="erro_indice.dart">void main(List&lt;String&gt; args) {
+  print('Olá, ${args[0]}!');
+}
+</pre>
+<pre class="term">$ dart run erro_indice.dart
+Unhandled exception:
+RangeError (length): Invalid value: Valid value range is empty: 0
+#0      _Array.[] (dart:core-patch/array.dart)
+#1      main (file:///home/ana/erro_indice.dart:2:21)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:311:33)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<ul>
+  <li><code>RangeError (length)</code> — "erro de faixa (no tamanho)": o índice pedido está fora da lista.</li>
+  <li><code>Invalid value: Valid value range is empty: 0</code> — "valor inválido: a faixa de valores válidos está vazia: 0". A lista não tem nenhum item, então nenhum índice vale; você pediu o 0.</li>
+  <li><code>#0 _Array.[]</code> — o erro nasceu no operador <code>[]</code> da lista. <code>#1 main (…:2:21)</code> — chamado na sua linha 2, coluna 21: o <code>args[0]</code>.</li>
+  <li>Código de saída 255: exceção não tratada.</li>
+</ul>
+<p><strong>Como consertar:</strong> confira antes, com <code>if (args.isEmpty)</code> (seção 2), ou dê um valor padrão: <code>final nome = args.isNotEmpty ? args[0] : 'pessoa';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>int.parse</code> de um texto que não é número</strong>
+<pre class="file" data-file="erro_parse.dart">void main(List&lt;String&gt; args) {
+  final idade = int.parse(args[0]);
+  print('Ano que vem você terá ${idade + 1} anos.');
+}
+</pre>
+<pre class="term">$ dart run erro_parse.dart trinta
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+trinta
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/erro_parse.dart:2:21)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:311:33)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Exceção de formato: número inválido na base 10 (no caractere 1)". A linha <code>trinta</code> com o <code>^</code> embaixo mostra onde a leitura falhou: logo na primeira letra. A sua linha é a <code>#4 main (…:2:21)</code>. <strong>Como consertar:</strong> use <code>int.tryParse</code> e trate o <code>null</code>, como na <code>tabuada.dart</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>main</code> com o tipo errado</strong>
+<pre class="file" data-file="erro_tipo.dart">void main(List&lt;int&gt; args) {
+  print(args);
+}
+</pre>
+<pre class="term">$ dart run erro_tipo.dart
+erro_tipo.dart:1:6: Error: The type 'List&lt;int&gt;' of the first parameter of the 'main' method is not a supertype of 'List&lt;String&gt;'.
+ - 'List' is from 'dart:core'.
+void main(List&lt;int&gt; args) {
+     ^^^^
+$ echo $?
+254
+</pre>
+<p>"O tipo <code>List&lt;int&gt;</code> do primeiro parâmetro do método <code>main</code> não é um supertipo de <code>List&lt;String&gt;</code>". Em português: o terminal sempre entrega textos, então o <code>main</code> precisa aceitar <code>List&lt;String&gt;</code>. Código 254: o programa nem compilou. <strong>Como consertar:</strong> <code>void main(List&lt;String&gt; args)</code> e converta o que for número lá dentro.</p>
+</div>
+
+<div class="cenario">
+<strong>A opção antes do nome do arquivo</strong>
+<pre class="term">$ dart run --gritar opcoes.dart Ana
+Could not find an option named "--gritar".
+
+Usage: dart run [vm-options] &lt;dart-file&gt;|&lt;local-pkg&gt;|&lt;remote-pkg&gt;@&lt;descriptor&gt; &lt;program-args...&gt;
+-h, --help                                   Print this usage information.
+
+Debugging options:
+    --observe=&lt;[&lt;port&gt;[/&lt;bind-address&gt;]]&gt;    The observe flag is a convenience flag used to run a program with a set of common options useful for debugging. Run `dart help -v run` for details.
+    --[no-]enable-asserts                    Enable assert statements.
+
+Logging options:
+    --verbosity                              Sets the verbosity level of the compilation.
+
+          [error]                            Show only error messages
+          [warning]                          Show only error and warning messages
+          [info]                             Show error, warning, and info messages
+          [all] (default)                    Show all messages
+
+Run "dart help" to see global options.
+</pre>
+<p>Quem reclamou foi o <strong>próprio <code>dart run</code></strong>, não o seu programa: "não encontrei uma opção chamada <code>--gritar</code>". Tudo o que vem <strong>antes</strong> do nome do arquivo é opção do <code>dart run</code> (como <code>--enable-asserts</code>, da aula <a href="assert.html">assert</a>); só o que vem <strong>depois</strong> vai para o seu <code>args</code>. A linha <code>Usage: dart run [vm-options] &lt;dart-file&gt; … &lt;program-args...&gt;</code> mostra justamente essa ordem. <strong>Como consertar:</strong> <code>dart run opcoes.dart --gritar Ana</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>void main(List&lt;String&gt; args)</code></td><td>recebe os argumentos (sempre textos)</td></tr>
+<tr><td><code>dart run prog.dart a b "c d"</code></td><td>roda com 3 argumentos: <code>a</code>, <code>b</code> e <code>c d</code></td></tr>
+<tr><td><code>args.isEmpty</code> / <code>args.length</code></td><td>veio algum? / quantos</td></tr>
+<tr><td><code>int.tryParse(args[0])</code></td><td>número ou <code>null</code></td></tr>
+<tr><td><code>args.contains('--opcao')</code></td><td>a opção foi passada?</td></tr>
+<tr><td><code>stderr.writeln('…')</code></td><td>mensagem na saída de erros (precisa de <code>dart:io</code>)</td></tr>
+<tr><td><code>exit(64)</code></td><td>termina com o código 64 (precisa de <code>dart:io</code>)</td></tr>
+<tr><td><code>echo $?</code> (no terminal)</td><td>mostra o código de saída do último comando</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o <code>main</code></h3>
+<div class="ex-code">void main(<input data-answer="List&lt;String&gt;" aria-label="tipo do parâmetro"> args) {<br>&nbsp;&nbsp;print(args.<input data-answer="length" aria-label="propriedade">); // quantos argumentos vieram<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos argumentos?</h3>
+<p>Quantos itens tem <code>args</code> em <code>dart run mostrar.dart "arroz integral" feijão 2</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="número de argumentos"> argumentos.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Em <code>dart run somar.dart 10 20</code>, o que é <code>args[0]</code>?</p>
+<label><input type="radio" name="q3"> O número inteiro 10</label>
+<label><input type="radio" name="q3"> O texto <code>'10'</code></label>
+<label><input type="radio" name="q3"> O texto <code>'somar.dart'</code></label>
+<label><input type="radio" name="q3"> O texto <code>'run'</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que acontece com <code>dart run prog.dart</code> (sem argumentos) se o programa faz <code>print(args[0])</code>?</p>
+<label><input type="radio" name="q4"> Mostra uma linha vazia</label>
+<label><input type="radio" name="q4"> Mostra <code>null</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>RangeError</code> e código de saída 255</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual comando passa <code>--gritar</code> para o <strong>seu</strong> programa?</p>
+<label><input type="radio" name="q5"> <code>dart run opcoes.dart --gritar Ana</code></label>
+<label><input type="radio" name="q5"> <code>dart run --gritar opcoes.dart Ana</code></label>
+<label><input type="radio" name="q5"> <code>dart --gritar run opcoes.dart Ana</code></label>
+<label><input type="radio" name="q5"> Nenhum: o Dart não aceita opções com <code>--</code></label>
+</div>
+
+<h3>Missão final: a média das notas</h3>
+
+<div class="trydart" data-args="9 7.5 8" data-goal="out:Média: 8.17;;src:args">
+<p class="try-task"><strong>Missão:</strong> esta caixa roda <code>dart run main.dart 9 7.5 8</code>. Complete o programa: some as notas de <code>args</code> (cada uma com <code>double.parse</code>) e mostre a média com duas casas: <code>Média: 8.17</code>.</p>
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  if (args.isEmpty) {
+    print('Passe as notas: dart run main.dart 9 7.5 8');
+    return;
+  }
+  var soma = 0.0;
+  // some as notas aqui
+
+  final media = soma / args.length;
+  print('Média: ${media.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main(List&lt;String&gt; args) {
+  if (args.isEmpty) {
+    print('Passe as notas: dart run main.dart 9 7.5 8');
+    return;
+  }
+  var soma = 0.0;
+  for (final nota in args) {
+    soma += double.parse(nota);
+  }
+  final media = soma / args.length;
+  print('Média: ${media.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O que vem depois do nome do arquivo em <code>dart run arquivo.dart …</code> chega em <code>main(List&lt;String&gt; args)</code>.</li>
+  <li>O terminal separa nos espaços; aspas juntam palavras num argumento só. Todo argumento é <code>String</code>: converta com <code>int.tryParse</code> / <code>double.parse</code>.</li>
+  <li>Sem argumentos, a lista vem vazia: confira com <code>args.isEmpty</code> antes de usar <code>args[0]</code>.</li>
+  <li>Argumento errado: mensagem de uso no <code>stderr</code> e <code>exit(64)</code>.</li>
+  <li>Opções do seu programa vão <strong>depois</strong> do nome do arquivo; antes dele, são opções do <code>dart run</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
