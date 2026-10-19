@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart pubspec.yaml — a ficha do projeto | Guia Dart</title>
+<meta name="description" content="O pubspec.yaml do Dart para quem nunca programou: o formato YAML, os campos name, description, version, environment, dependencies e dev_dependencies, as restrições de versão (^1.9.0, intervalos, any), o pubspec.lock, dart pub get, dart pub deps e dart pub outdated, e os erros reais do Dart 3.13 (tab na indentação, nome com traço, SDK incompatível, versão que não existe, indentação esquecida).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">pubspec.yaml</span></h1>
+
+<p class="intro">Todo projeto criado com <a href="dart-create.html">dart create</a> tem, na raiz, um arquivo chamado <code>pubspec.yaml</code>. Ele é a <strong>ficha de identidade</strong> do projeto: o nome, a versão, com qual Dart ele funciona e de quais <strong>pacotes</strong> ele precisa. É ele que o <code>dart pub get</code> lê para baixar os pacotes, e é por causa dele que o <code>dart run</code> sabe que está dentro de um projeto.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O formato YAML: <code>chave: valor</code>, indentação com espaços e comentários.</li>
+  <li>Para que serve cada campo: <code>name</code>, <code>description</code>, <code>version</code>, <code>environment</code>, <code>dependencies</code>, <code>dev_dependencies</code>.</li>
+  <li>Como ler uma restrição de versão como <code>^1.9.0</code>.</li>
+  <li>O que é o <code>pubspec.lock</code> e quando rodar <code>dart pub get</code>.</li>
+  <li>Como ver os pacotes do projeto com <code>dart pub deps</code> e <code>dart pub outdated</code>.</li>
+  <li>Os erros reais: tab na indentação, nome com traço, SDK incompatível, versão que não existe e a indentação esquecida (que não dá erro, mas estraga).</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), num projeto criado com <code>dart create confeitaria</code>, com internet. As versões de pacotes mostradas (<code>path 1.9.1</code>, <code>lints 6.0.0</code>…) eram as do dia em que a aula foi feita; no seu computador podem ser mais novas.</p>
+
+<div class="warning">
+<strong>No editor do guia não há <code>pubspec.yaml</code></strong>
+<p>O editor desta página roda só código Dart, sem projeto e sem baixar pacotes. Tudo o que envolve <code>pubspec.yaml</code> e <code>dart pub</code> é para o terminal do seu computador. As caixas "Experimente" praticam as ideias (versões, mapas de dependências) em código Dart.</p>
+</div>
+
+<hr>
+
+<h2>A ideia: a ficha da receita</h2>
+<p>Na confeitaria, cada receita tem uma ficha: o nome do bolo, a versão da receita ("versão 2: menos açúcar"), o forno em que ela funciona ("forno a gás, 180 °C ou mais") e a lista de ingredientes que vêm de fora ("chocolate da marca X, qualquer lote da linha 1"). Qualquer confeiteira que pega a ficha sabe o que comprar antes de começar.</p>
+<p>O <code>pubspec.yaml</code> é essa ficha. "<em>pub</em>" é o nome do gerenciador de pacotes do Dart; "<em>spec</em>" vem de <em>specification</em>, "especificação"; e <code>.yaml</code> é o formato do arquivo.</p>
+
+<hr>
+
+<h2>1. O arquivo que o <code>dart create</code> fez</h2>
+
+<pre class="term">$ cat pubspec.yaml
+name: confeitaria
+description: A sample command-line application.
+version: 1.0.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.13.5
+
+# Add regular dependencies here.
+dependencies:
+  path: ^1.9.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
+</pre>
+
+<h3>O formato YAML em 3 regras</h3>
+<ol class="passo">
+  <li><strong><code>chave: valor</code></strong>, com um espaço depois dos dois-pontos. <code>name: confeitaria</code> quer dizer "o nome é confeitaria".</li>
+  <li><strong>Indentação com espaços</strong> (nunca tab) diz o que está <strong>dentro</strong> de quê. <code>sdk</code> tem 2 espaços na frente: ele pertence ao <code>environment</code>. É parecido com um <a href="map.html">mapa</a> dentro de outro: <code>{'environment': {'sdk': '^3.13.5'}}</code>.</li>
+  <li><strong><code>#</code></strong> começa um comentário, como o <code>//</code> do Dart. A linha <code># repository: …</code> está "desligada".</li>
+</ol>
+
+<h3>Campo por campo</h3>
+<dl class="anatomy">
+  <dt>name: confeitaria</dt><dd>O nome do pacote. É o nome usado no <code>import 'package:confeitaria/…'</code>. Só letras minúsculas, números e <code>_</code>, começando com letra. <strong>Obrigatório.</strong></dd>
+  <dt>description: …</dt><dd>Uma frase sobre o projeto. O modelo traz <code>A sample command-line application.</code> ("um exemplo de aplicativo de linha de comando"); troque pela sua.</dd>
+  <dt>version: 1.0.0</dt><dd>A versão do <strong>seu</strong> projeto, no formato <code>MAIOR.MENOR.CORREÇÃO</code> (veja a seção 2).</dd>
+  <dt>environment: / sdk: ^3.13.5</dt><dd>"Ambiente": com quais versões do Dart o projeto funciona. O <code>dart create</code> põe a versão instalada (aqui, 3.13.5). <strong>Obrigatório.</strong></dd>
+  <dt>dependencies:</dt><dd>"Dependências": os pacotes que o programa usa para funcionar. O modelo traz o <code>path</code> (para trabalhar com caminhos de arquivos).</dd>
+  <dt>dev_dependencies:</dt><dd>"Dependências de desenvolvimento": pacotes que só quem <strong>escreve</strong> o programa usa: <code>lints</code> (regras de estilo, para o <a href="analise.html">dart analyze</a>) e <code>test</code> (para os <a href="testes.html">testes</a>). Quem só usa o programa não precisa deles.</dd>
+</dl>
+
+<p>Para mudar a descrição e a versão, a Ana edita o arquivo (num editor de texto, como o <code>nano</code>) e roda <code>dart pub get</code> para o Dart conferir:</p>
+
+<pre class="file" data-file="pubspec.yaml">name: confeitaria
+description: Calcula os pedidos da confeitaria da Ana.
+version: 0.1.0
+…
+</pre>
+
+<pre class="term">$ dart pub get
+Resolving dependencies...
+Downloading packages...
+Got dependencies!
+$ echo $?
+0
+</pre>
+
+<p><code>Got dependencies!</code> = "dependências obtidas": o arquivo está certo e os pacotes estão no lugar.</p>
+
+<hr>
+
+<h2>2. Lendo as versões: o <code>^</code></h2>
+<p>Versões de pacotes seguem o <strong>versionamento semântico</strong> (<em>semver</em>): três números, <code>MAIOR.MENOR.CORREÇÃO</code>.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Muda o…</th><th>Quando</th><th>Exemplo</th></tr>
+<tr><td>CORREÇÃO (3º)</td><td>conserto de defeito; nada muda para quem usa</td><td>1.9.0 → 1.9.1</td></tr>
+<tr><td>MENOR (2º)</td><td>coisa nova, mas o que já existia continua funcionando</td><td>1.9.1 → 1.10.0</td></tr>
+<tr><td>MAIOR (1º)</td><td>mudança que pode <strong>quebrar</strong> o código de quem usa</td><td>1.10.0 → 2.0.0</td></tr>
+</table>
+</div>
+
+<p>O <code>^</code> ("circunflexo", em inglês <em>caret</em>) quer dizer: "<strong>esta versão ou qualquer mais nova que não quebre</strong>". Ou seja, pode subir o MENOR e a CORREÇÃO, mas não o MAIOR:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No pubspec</th><th>Quer dizer</th><th>Aceita</th><th>Não aceita</th></tr>
+<tr><td><code>path: ^1.9.0</code></td><td><code>&gt;=1.9.0 &lt;2.0.0</code></td><td>1.9.0, 1.9.1, 1.12.3</td><td>1.8.3, 2.0.0</td></tr>
+<tr><td><code>sdk: ^3.13.5</code></td><td><code>&gt;=3.13.5 &lt;4.0.0</code></td><td>3.13.5, 3.14.0</td><td>3.12.0, 4.0.0</td></tr>
+<tr><td><code>intl: ^0.20.3</code></td><td><code>&gt;=0.20.3 &lt;0.21.0</code></td><td>0.20.3, 0.20.9</td><td>0.21.0</td></tr>
+<tr><td><code>path: '&gt;=1.8.0 &lt;3.0.0'</code></td><td>o intervalo escrito por extenso (entre aspas)</td><td>1.8.0 até 2.x</td><td>3.0.0</td></tr>
+<tr><td><code>path: any</code></td><td>qualquer versão (evite)</td><td>todas</td><td>—</td></tr>
+</table>
+</div>
+
+<p>Repare na linha do <code>intl</code>: quando o MAIOR é <code>0</code>, o pacote ainda é "jovem", e o <code>^</code> só deixa subir a CORREÇÃO.</p>
+
+<div class="trydart" data-goal="out:1.9.1: aceita;;out:1.12.0: aceita;;out:2.0.0: não aceita;;out:1.8.3: não aceita">
+<p class="try-task"><strong>Missão:</strong> a função <code>aceita</code> deveria seguir a regra de <code>^1.9.0</code> (MAIOR igual a 1 e MENOR pelo menos 9), mas está aceitando o <code>2.0.0</code>. Conserte a condição do <code>return</code>.</p>
+<pre class="script" data-file="main.dart">bool aceita(String versao) {
+  final partes = versao.split('.').map(int.parse).toList();
+  final maior = partes[0];
+  final menor = partes[1];
+  return maior &gt;= 1 &amp;&amp; menor &gt;= 0;
+}
+
+void main() {
+  for (final v in ['1.9.1', '1.12.0', '2.0.0', '1.8.3']) {
+    print('$v: ${aceita(v) ? 'aceita' : 'não aceita'}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">bool aceita(String versao) {
+  final partes = versao.split('.').map(int.parse).toList();
+  final maior = partes[0];
+  final menor = partes[1];
+  return maior == 1 &amp;&amp; menor &gt;= 9;
+}
+
+void main() {
+  for (final v in ['1.9.1', '1.12.0', '2.0.0', '1.8.3']) {
+    print('$v: ${aceita(v) ? 'aceita' : 'não aceita'}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O <code>pubspec.lock</code>: as versões exatas</h2>
+<p>O <code>pubspec.yaml</code> diz o que é <strong>aceitável</strong> (<code>^1.9.0</code>). Na hora de baixar, o <code>dart pub get</code> escolhe uma versão <strong>exata</strong> para cada pacote, e anota no <code>pubspec.lock</code> ("trava"):</p>
+
+<pre class="term">$ head -30 pubspec.lock
+# Generated by pub
+# See https://dart.dev/tools/pub/glossary#lockfile
+packages:
+  _fe_analyzer_shared:
+    dependency: transitive
+    description:
+      name: _fe_analyzer_shared
+      sha256: "48e48f73a431eb269eec66d243a63a07ed90ef9417a74047a3b98d52338626ad"
+      url: "https://pub.dev"
+    source: hosted
+    version: "109.0.0"
+  analyzer:
+    dependency: transitive
+    description:
+      name: analyzer
+      sha256: "6d377901d198536b648172974d9d4f277910502cad92193466869cac0ff34990"
+      url: "https://pub.dev"
+    source: hosted
+    version: "14.5.0"
+  args:
+    dependency: transitive
+    description:
+      name: args
+      sha256: d0481093c50b1da8910eb0bb301626d4d8eb7284aa739614d2b394ee09e3ea04
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.7.0"
+  async:
+    dependency: transitive
+    description:
+$ grep -c 'name:' pubspec.lock
+50
+</pre>
+
+<ul>
+  <li><code># Generated by pub</code> — "gerado pelo pub": não edite à mão.</li>
+  <li><code>dependency: transitive</code> — dependência <strong>transitiva</strong>: ninguém pediu esse pacote no <code>pubspec.yaml</code>; ele veio porque um pacote que você pediu (o <code>test</code>, o <code>lints</code>) precisa dele. As que você pediu aparecem como <code>"direct main"</code> (o <code>path</code>) ou <code>"direct dev"</code> (o <code>lints</code> e o <code>test</code>).</li>
+  <li><code>sha256</code> — uma "impressão digital" do pacote, para conferir que ninguém o alterou.</li>
+  <li><code>version: "2.7.0"</code> — a versão exata escolhida.</li>
+  <li>O <code>grep -c</code> contou 50 pacotes: os mesmos 50 do <code>Changed 50 dependencies!</code> do <code>dart create</code>. Quase todos são transitivos.</li>
+</ul>
+
+<p>Para que serve? Para que o projeto funcione <strong>igual</strong> em qualquer computador: quem copiar a pasta com o <code>.lock</code> e rodar <code>dart pub get</code> recebe exatamente as mesmas versões, mesmo que já existam mais novas.</p>
+
+<h3>Vendo os pacotes</h3>
+<pre class="term">$ dart pub deps --no-dev
+Dart SDK 3.13.5
+confeitaria 1.0.0
+└── path 1.9.1
+$ dart pub outdated
+Showing outdated packages.
+[*] indicates versions that are not the latest available.
+
+Found no outdated packages
+</pre>
+<p><code>dart pub deps</code> desenha a árvore de dependências (<code>--no-dev</code> esconde as de desenvolvimento): o projeto usa o <code>path</code>, e a versão escolhida foi a <code>1.9.1</code>, que cabe no <code>^1.9.0</code>. <code>dart pub outdated</code> ("desatualizados") lista os pacotes que têm versão mais nova; naquele dia, nenhum.</p>
+
+<h3>Quando rodar <code>dart pub get</code></h3>
+<ul>
+  <li>depois de <strong>editar</strong> o <code>pubspec.yaml</code> à mão;</li>
+  <li>depois de copiar ou baixar um projeto de outra pessoa;</li>
+  <li>não precisa depois do <code>dart pub add</code> (ele já roda o <code>get</code>, veja <a href="pacotes.html">Pacotes</a>), e o próprio <code>dart run</code> roda o <code>get</code> sozinho quando percebe que falta.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Duas formas de mudar as dependências</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Exemplo</th><th>Quando</th></tr>
+<tr><td>comando</td><td><code>dart pub add intl</code> / <code>dart pub remove intl</code></td><td>o jeito recomendado: escolhe a versão, edita o arquivo e baixa (aula <a href="pacotes.html">Pacotes</a>)</td></tr>
+<tr><td>à mão</td><td>escrever <code>intl: ^0.20.3</code> em <code>dependencies:</code> e rodar <code>dart pub get</code></td><td>para ajustar uma restrição, ou quando o tutorial do pacote manda copiar a linha</td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:intl: ^0.20.3;;out:Dependências: 2;;src:'intl'">
+<p class="try-task"><strong>Missão:</strong> o mapa abaixo imita a parte <code>dependencies</code> de um pubspec. Acrescente o pacote <code>'intl'</code> com a restrição <code>'^0.20.3'</code> e rode: devem aparecer 2 dependências.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final dependencias = {
+    'path': '^1.9.0',
+  };
+  print('Dependências: ${dependencias.length}');
+  dependencias.forEach((pacote, versao) {
+    print('  $pacote: $versao');
+  });
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final dependencias = {
+    'path': '^1.9.0',
+    'intl': '^0.20.3',
+  };
+  print('Dependências: ${dependencias.length}');
+  dependencias.forEach((pacote, versao) {
+    print('  $pacote: $versao');
+  });
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tab na indentação</strong>
+<p>A Ana apertou <kbd>Tab</kbd> em vez de dois espaços antes do <code>sdk</code>:</p>
+<pre class="term">$ dart pub get
+Error on line 4, column 1 of pubspec.yaml: Tab characters are not allowed as indentation.
+  ╷
+4 │     sdk: ^3.13.5
+  │ ^^^^
+  ╵
+$ echo $?
+65
+</pre>
+<p>"Erro na linha 4, coluna 1 do <code>pubspec.yaml</code>: caracteres de tabulação não são permitidos como indentação". O desenho com <code>│</code> mostra a linha 4, e os <code>^^^^</code> marcam o tab (que a tela mostra como 4 espaços). O código de saída 65 quer dizer "dados de entrada inválidos". <strong>Como consertar:</strong> apague o tab e digite 2 espaços. Muitos editores têm a opção "inserir espaços ao apertar Tab".</p>
+</div>
+
+<div class="cenario">
+<strong>Nome com traço</strong>
+<pre class="file" data-file="pubspec.yaml">name: confeitaria-ana
+…
+</pre>
+<pre class="term">$ dart pub get
+Resolving dependencies...
+Error on line 1, column 7 of pubspec.yaml: "name" field must be a valid Dart identifier.
+  ╷
+1 │ name: confeitaria-ana
+  │       ^^^^^^^^^^^^^^^
+  ╵
+$ echo $?
+65
+</pre>
+<p>"O campo <code>name</code> precisa ser um identificador Dart válido": as mesmas regras de nome de variável (veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>). O traço não pode: o Dart leria <code>confeitaria - ana</code> como uma subtração. <strong>Como consertar:</strong> <code>name: confeitaria_ana</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O projeto pede um Dart que você não tem</strong>
+<pre class="file" data-file="pubspec.yaml">environment:
+  sdk: ^4.0.0
+</pre>
+<pre class="term">$ dart pub get
+Resolving dependencies...
+The current Dart SDK version is 3.13.5.
+
+Because confeitaria requires SDK version ^4.0.0, version solving failed.
+$ echo $?
+1
+</pre>
+<p>"A versão atual do SDK do Dart é 3.13.5. Como <code>confeitaria</code> exige a versão <code>^4.0.0</code> do SDK, a resolução de versões falhou." Isso acontece de verdade quando você baixa um projeto feito com um Dart mais novo que o seu. <strong>Como consertar:</strong> atualize o Dart (veja <a href="instalar.html">Instalar</a> e <a href="versoes.html">Versões</a>) ou, se o projeto é seu e não usa nada novo, baixe a restrição.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma versão de pacote que não existe</strong>
+<pre class="file" data-file="pubspec.yaml">dependencies:
+  path: ^99.0.0
+</pre>
+<pre class="term">$ dart pub get
+Resolving dependencies...
+Because confeitaria depends on path ^99.0.0 which doesn't match any versions, version solving failed.
+
+
+You can try the following suggestion to make the pubspec resolve:
+* Consider downgrading your constraint on path: dart pub add path:^1.9.1
+$ echo $?
+1
+</pre>
+<p>"Como <code>confeitaria</code> depende de <code>path ^99.0.0</code>, que não corresponde a nenhuma versão, a resolução falhou." E o <code>pub</code> ainda sugere a correção: "considere baixar a sua restrição do <code>path</code>: <code>dart pub add path:^1.9.1</code>". <strong>Como consertar:</strong> rode a sugestão, ou volte para <code>^1.9.0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu a indentação (não dá erro, e esse é o problema)</strong>
+<pre class="file" data-file="pubspec.yaml">dependencies:
+path: ^1.9.0
+</pre>
+<pre class="term">$ dart pub get
+Resolving dependencies...
+Downloading packages...
+  path 1.9.1 (from direct dependency to transitive dependency)
+Changed 1 dependency!
+$ echo $?
+0
+</pre>
+<p>Sem os 2 espaços, <code>path</code> deixou de estar <strong>dentro</strong> de <code>dependencies</code>: virou um campo solto, que o <code>pub</code> ignora. A única pista é a linha <code>from direct dependency to transitive dependency</code> ("de dependência direta para transitiva"): o <code>path</code> só continua baixado porque outro pacote precisa dele. Um arquivo do projeto que use o <code>path</code> (aqui, <code>lib/caminho.dart</code>, com <code>import 'package:path/path.dart' as p;</code>) ainda roda, mas o <a href="analise.html">dart analyze</a> reclama:</p>
+<pre class="term">$ dart analyze
+Analyzing confeitaria...
+
+   info - lib/caminho.dart:1:8 - The imported package 'path' isn't a dependency of the importing package. Try adding a dependency for 'path' in the 'pubspec.yaml' file. - depend_on_referenced_packages
+
+1 issue found.
+</pre>
+<p>"O pacote importado <code>path</code> não é uma dependência do pacote que o importa. Tente acrescentar uma dependência de <code>path</code> no <code>pubspec.yaml</code>." E se o outro pacote deixar de precisar do <code>path</code>, o programa quebra. <strong>Como consertar:</strong> devolva os 2 espaços. Ao rodar <code>dart pub get</code> de novo, aparece <code>(from transitive dependency to direct dependency)</code>: voltou a ser direta.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Campo / comando</th><th>O que é</th></tr>
+<tr><td><code>name:</code></td><td>nome do pacote (minúsculas, números, <code>_</code>); obrigatório</td></tr>
+<tr><td><code>description:</code> / <code>version:</code></td><td>frase sobre o projeto / versão do projeto (<code>1.0.0</code>)</td></tr>
+<tr><td><code>environment: sdk:</code></td><td>versões do Dart aceitas; obrigatório</td></tr>
+<tr><td><code>dependencies:</code></td><td>pacotes que o programa usa</td></tr>
+<tr><td><code>dev_dependencies:</code></td><td>pacotes só para desenvolver (testes, lints)</td></tr>
+<tr><td><code>^1.9.0</code></td><td><code>&gt;=1.9.0 &lt;2.0.0</code></td></tr>
+<tr><td><code>^0.20.3</code></td><td><code>&gt;=0.20.3 &lt;0.21.0</code></td></tr>
+<tr><td><code>pubspec.lock</code></td><td>as versões exatas escolhidas (gerado; não edite)</td></tr>
+<tr><td><code>dart pub get</code></td><td>lê o pubspec e baixa o que falta</td></tr>
+<tr><td><code>dart pub deps</code> / <code>dart pub outdated</code></td><td>árvore de pacotes / pacotes com versão mais nova</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o pubspec</h3>
+<div class="ex-code"><input data-answer="name" aria-label="campo do nome">: lojinha<br>version: 1.0.0<br><input data-answer="environment" aria-label="campo do ambiente">:<br>&nbsp;&nbsp;sdk: ^3.13.5<br><input data-answer="dependencies" aria-label="campo das dependências">:<br>&nbsp;&nbsp;path: ^1.9.0</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o limite?</h3>
+<p><code>^2.4.1</code> aceita versões a partir de 2.4.1 e menores que qual versão?</p>
+<div class="ex-code">Menores que <input data-answer="3.0.0" aria-label="versão limite"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Em qual seção fica o pacote <code>test</code>, que só é usado para rodar os testes?</p>
+<label><input type="radio" name="q3"> <code>dependencies</code></label>
+<label><input type="radio" name="q3"> <code>dev_dependencies</code></label>
+<label><input type="radio" name="q3"> <code>environment</code></label>
+<label><input type="radio" name="q3"> No <code>pubspec.lock</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A restrição <code>path: ^1.9.0</code> aceita a versão…</p>
+<label><input type="radio" name="q4"> 2.0.0</label>
+<label><input type="radio" name="q4"> 1.8.9</label>
+<label><input type="radio" name="q4"> 1.15.2</label>
+<label><input type="radio" name="q4"> 0.9.0</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>dart pub get</code> respondeu <code>Tab characters are not allowed as indentation</code>. O que fazer?</p>
+<label><input type="radio" name="q5"> Trocar o tab da linha indicada por espaços</label>
+<label><input type="radio" name="q5"> Atualizar o Dart</label>
+<label><input type="radio" name="q5"> Apagar o <code>pubspec.lock</code></label>
+<label><input type="radio" name="q5"> Rodar <code>dart create --force</code></label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>pubspec.yaml</code> é a ficha do projeto, em YAML: <code>chave: valor</code>, indentação com <strong>espaços</strong>, <code>#</code> para comentários.</li>
+  <li><code>name</code> e <code>environment: sdk:</code> são obrigatórios; <code>dependencies</code> são os pacotes do programa; <code>dev_dependencies</code>, os de desenvolvimento.</li>
+  <li><code>^1.9.0</code> aceita de 1.9.0 até antes de 2.0.0 (com MAIOR 0, só a CORREÇÃO sobe).</li>
+  <li>O <code>pubspec.lock</code> guarda as versões exatas; quem tem o <code>.lock</code> recebe as mesmas versões.</li>
+  <li>Editou à mão? <code>dart pub get</code>. Os erros do pub mostram a linha e a coluna do <code>pubspec.yaml</code>, e às vezes sugerem a correção.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
