@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Métodos de List, Set e Map — tabela de consulta com resultados reais | Guia Dart</title>
+<meta name="description" content="Referência rápida das coleções do Dart 3: métodos de List (add, insert, remove, sort, sublist…), os de qualquer Iterable (map, where, reduce, fold, any, every, firstWhere, take, skip, indexed, expand), de Set (union, intersection, difference) e de Map (keys, values, entries, putIfAbsent, update, removeWhere). Cada exemplo com o resultado do Dart SDK 3.13 e os erros comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Métodos de List, Set e Map</span></h1>
+
+<p class="intro">Esta é a página de consulta das três coleções do Dart: a <strong>List</strong> (lista em ordem, com repetição), o <strong>Set</strong> (conjunto, sem repetição) e o <strong>Map</strong> (mapa de chave para valor). Também estão aqui os métodos que <strong>toda</strong> coleção tem, por ser um <code>Iterable</code> ("percorrível"): <code>map</code>, <code>where</code>, <code>fold</code> e companhia. As aulas com a explicação completa são <a href="list.html">Listas</a>, <a href="list-metodos.html">Métodos de Lista</a>, <a href="set.html">Set</a>, <a href="map.html">Map</a>, <a href="map-metodos.html">Percorrendo Mapas</a> e <a href="iterables.html">map, where, reduce e Outros</a>.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Cada tabela segue a história de uma variável: os exemplos são executados <strong>em ordem</strong>, e cada um parte de como a coleção ficou no anterior.</li>
+  <li><strong>Resultado</strong> é o que o Dart SDK 3.13.5 mostrou com <code>print</code> no computador da Ana. O programa inteiro está no fim da página.</li>
+  <li>Métodos marcados com <strong>(muda)</strong> alteram a própria coleção; os outros devolvem algo novo.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="list">List</h2>
+<p>Começando com <code>final compras = ['pão', 'leite', 'café'];</code></p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>length</code>, <code>first</code>, <code>last</code>, <code>[i]</code></td><td>Tamanho, primeiro, último, o da posição <code>i</code> (começa em 0).</td><td><code>compras.length</code>, <code>.first</code>, <code>.last</code>, <code>compras[1]</code></td><td><code>3</code>, <code>pão</code>, <code>café</code>, <code>leite</code></td></tr>
+<tr><td><code>add(x)</code> (muda)</td><td>Põe no fim.</td><td><code>compras.add('ovos')</code></td><td><code>[pão, leite, café, ovos]</code></td></tr>
+<tr><td><code>addAll(lista)</code> (muda)</td><td>Põe vários no fim.</td><td><code>compras.addAll(['sal', 'açúcar'])</code></td><td><code>[pão, leite, café, ovos, sal, açúcar]</code></td></tr>
+<tr><td><code>insert(i, x)</code> (muda)</td><td>Põe na posição <code>i</code>, empurrando os outros.</td><td><code>compras.insert(0, 'manteiga')</code></td><td><code>[manteiga, pão, leite, café, ovos, sal, açúcar]</code></td></tr>
+<tr><td><code>remove(x)</code> (muda)</td><td>Tira a primeira ocorrência; devolve se achou.</td><td><code>compras.remove('sal')</code>, <code>compras.remove('arroz')</code></td><td><code>true</code>, <code>false</code></td></tr>
+<tr><td><code>removeAt(i)</code>, <code>removeLast()</code> (muda)</td><td>Tira pela posição / o último; devolve o item tirado.</td><td><code>compras.removeAt(0)</code>, <code>compras.removeLast()</code></td><td><code>manteiga</code>, <code>açúcar</code>; fica <code>[pão, leite, café, ovos]</code></td></tr>
+<tr><td><code>contains(x)</code>, <code>indexOf(x)</code></td><td>Tem? Em que posição (<code>-1</code> = não tem)?</td><td><code>compras.contains('café')</code>, <code>.indexOf('café')</code>, <code>.indexOf('chá')</code></td><td><code>true</code>, <code>2</code>, <code>-1</code></td></tr>
+<tr><td><code>lista[i] = x</code> (muda)</td><td>Troca o item da posição.</td><td><code>compras[0] = 'pão integral'</code></td><td><code>[pão integral, leite, café, ovos]</code></td></tr>
+<tr><td><code>sort()</code> (muda)</td><td>Ordena (números do menor ao maior; textos pelos códigos: maiúsculas antes).</td><td><code>[5, 3, 8, 1]</code> → <code>sort()</code><br><code>['Bia', 'ana', 'Caio']</code> → <code>sort()</code></td><td><code>[1, 3, 5, 8]</code><br><code>[Bia, Caio, ana]</code></td></tr>
+<tr><td><code>sort((a, b) =&gt; …)</code> (muda)</td><td>Ordena com uma regra sua.</td><td><code>numeros.sort((a, b) =&gt; b.compareTo(a))</code></td><td><code>[8, 5, 3, 1]</code></td></tr>
+<tr><td><code>reversed</code></td><td>Ao contrário (um <code>Iterable</code>; <code>.toList()</code> faz lista).</td><td><code>numeros.reversed.toList()</code></td><td><code>[1, 3, 5, 8]</code></td></tr>
+<tr><td><code>sublist(inicio, fim)</code></td><td>Pedaço da lista (sem o <code>fim</code>).</td><td><code>numeros.sublist(1, 3)</code> (com <code>[8, 5, 3, 1]</code>)</td><td><code>[5, 3]</code></td></tr>
+<tr><td><code>isEmpty</code> / <code>isNotEmpty</code></td><td>Está vazia?</td><td><code>numeros.isEmpty</code>, <code>&lt;int&gt;[].isEmpty</code></td><td><code>false</code>, <code>true</code></td></tr>
+<tr><td><code>List.filled(n, x)</code>, <code>List.generate(n, f)</code></td><td>Cria com <code>n</code> itens iguais / calculados pela posição.</td><td><code>List.filled(3, 0)</code>, <code>List.generate(4, (i) =&gt; i * i)</code></td><td><code>[0, 0, 0]</code>, <code>[0, 1, 4, 9]</code></td></tr>
+<tr><td><code>clear()</code> (muda)</td><td>Esvazia. Uma cópia com <code>[...lista]</code> não afeta a original.</td><td><code>copia = [...numeros]; copia.clear()</code></td><td><code>copia</code>: <code>[]</code>; <code>numeros</code>: <code>[8, 5, 3, 1]</code></td></tr>
+<tr><td><code>removeWhere(teste)</code> (muda)</td><td>Tira todos os que passam no teste.</td><td><code>nomes.removeWhere((n) =&gt; n.startsWith('C'))</code></td><td><code>[Bia, ana]</code></td></tr>
+</table>
+</div>
+
+<h2 id="iterable">Para qualquer coleção (Iterable)</h2>
+<p>Com <code>final precos = [4.5, 12.0, 7.25, 30.0];</code>. Nenhum destes muda a lista. Vários devolvem um <code>Iterable</code> "preguiçoso", que só é calculado quando usado; o <code>.toList()</code> o transforma em lista (o <code>print</code> de um <code>Iterable</code> usa parênteses, como em <code>I8</code>).</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>map(f)</code></td><td>Transforma cada item.</td><td><code>precos.map((p) =&gt; p * 2).toList()</code></td><td><code>[9.0, 24.0, 14.5, 60.0]</code></td></tr>
+<tr><td><code>where(teste)</code></td><td>Filtra: fica com os que passam.</td><td><code>precos.where((p) =&gt; p &gt; 10).toList()</code></td><td><code>[12.0, 30.0]</code></td></tr>
+<tr><td><code>reduce(f)</code>, <code>fold(inicio, f)</code></td><td>Combina tudo num valor só (aqui, a soma). <code>reduce</code> quebra com coleção vazia; <code>fold</code> não.</td><td><code>precos.reduce((a, b) =&gt; a + b)</code>, <code>precos.fold(0.0, (s, p) =&gt; s + p)</code></td><td><code>53.75</code>, <code>53.75</code></td></tr>
+<tr><td><code>any(teste)</code>, <code>every(teste)</code></td><td>Algum passa? Todos passam?</td><td><code>precos.any((p) =&gt; p &gt; 20)</code>, <code>precos.every((p) =&gt; p &gt; 5)</code></td><td><code>true</code>, <code>false</code></td></tr>
+<tr><td><code>firstWhere(teste, orElse: …)</code></td><td>O primeiro que passa; sem achar, usa o <code>orElse</code> (sem ele, <code>Bad state: No element</code>).</td><td><code>precos.firstWhere((p) =&gt; p &gt; 5)</code>, <code>…((p) =&gt; p &gt; 100, orElse: () =&gt; -1)</code></td><td><code>12.0</code>, <code>-1.0</code></td></tr>
+<tr><td><code>take(n)</code>, <code>skip(n)</code></td><td>Os <code>n</code> primeiros / pula os <code>n</code> primeiros.</td><td><code>precos.take(2).toList()</code>, <code>precos.skip(2).toList()</code></td><td><code>[4.5, 12.0]</code>, <code>[7.25, 30.0]</code></td></tr>
+<tr><td><code>join(sep)</code></td><td>Junta num texto.</td><td><code>precos.join(' | ')</code></td><td><code>4.5 | 12.0 | 7.25 | 30.0</code></td></tr>
+<tr><td><code>toList()</code>, <code>toSet()</code></td><td>Converte.</td><td><code>[3, 1, 2].toSet()</code></td><td><code>{3, 1, 2}</code></td></tr>
+<tr><td><code>indexed</code> <span class="versao">Dart 3.0</span></td><td>Cada item com a posição, num record <code>(i, item)</code>.</td><td><code>['a', 'b'].indexed.toList()</code></td><td><code>[(0, a), (1, b)]</code></td></tr>
+<tr><td><code>expand(f)</code></td><td>Cada item vira vários; achata listas de listas.</td><td><code>[[1, 2], [3]].expand((l) =&gt; l).toList()</code></td><td><code>[1, 2, 3]</code></td></tr>
+</table>
+</div>
+
+<h2 id="set">Set</h2>
+<p>Com <code>final cores = {'azul', 'verde'};</code>. O <code>Set</code> literal guarda a ordem em que os itens entraram.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>add(x)</code> (muda)</td><td>Põe, se ainda não tiver; devolve se pôs.</td><td><code>cores.add('azul')</code>, <code>cores.add('rosa')</code></td><td><code>false</code>, <code>true</code>; fica <code>{azul, verde, rosa}</code></td></tr>
+<tr><td><code>contains(x)</code>, <code>remove(x)</code></td><td>Tem? Tira (muda).</td><td><code>cores.contains('verde')</code>, <code>cores.remove('verde')</code></td><td><code>true</code>, <code>true</code>; fica <code>{azul, rosa}</code></td></tr>
+<tr><td><code>union</code>, <code>intersection</code>, <code>difference</code></td><td>Junção, os em comum, os só do primeiro.</td><td>com <code>a = {1, 2, 3}</code> e <code>b = {2, 3, 4}</code></td><td><code>{1, 2, 3, 4}</code>, <code>{2, 3}</code>, <code>{1}</code></td></tr>
+<tr><td><code>lista.toSet().toList()</code></td><td>Tira as repetições de uma lista.</td><td><code>[1, 1, 2, 3, 3].toSet().toList()</code></td><td><code>[1, 2, 3]</code></td></tr>
+<tr><td><code>&lt;String&gt;{}</code> × <code>{}</code></td><td>Chaves vazias sem tipo são um <strong>Map</strong>, não um Set!</td><td><code>&lt;String&gt;{}.runtimeType</code>, <code>{}.runtimeType</code></td><td><code>_Set&lt;String&gt;</code>, <code>_Map&lt;dynamic, dynamic&gt;</code></td></tr>
+</table>
+</div>
+
+<h2 id="map">Map</h2>
+<p>Com <code>final estoque = {'pão': 30, 'bolo': 4};</code></p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>mapa[chave]</code></td><td>O valor da chave; <code>null</code> se não existir. O tipo é anulável (<code>int?</code>).</td><td><code>estoque['pão']</code>, <code>estoque['torta']</code>, <code>estoque.length</code></td><td><code>30</code>, <code>null</code>, <code>2</code></td></tr>
+<tr><td><code>mapa[chave] = valor</code> (muda)</td><td>Cria ou troca.</td><td><code>estoque['torta'] = 2; estoque['pão'] = 25;</code></td><td><code>{pão: 25, bolo: 4, torta: 2}</code></td></tr>
+<tr><td><code>keys</code>, <code>values</code></td><td>As chaves / os valores (Iterables).</td><td><code>estoque.keys</code>, <code>estoque.values</code>, <code>estoque.keys.toList()</code></td><td><code>(pão, bolo, torta)</code>, <code>(25, 4, 2)</code>, <code>[pão, bolo, torta]</code></td></tr>
+<tr><td><code>containsKey</code>, <code>containsValue</code></td><td>Tem a chave? Tem o valor?</td><td><code>estoque.containsKey('bolo')</code>, <code>estoque.containsValue(99)</code></td><td><code>true</code>, <code>false</code></td></tr>
+<tr><td><code>remove(chave)</code> (muda)</td><td>Tira; devolve o valor que estava (ou <code>null</code>).</td><td><code>estoque.remove('bolo')</code>, <code>estoque.remove('xyz')</code></td><td><code>4</code>, <code>null</code>; fica <code>{pão: 25, torta: 2}</code></td></tr>
+<tr><td><code>putIfAbsent(chave, f)</code> (muda)</td><td>Cria só se a chave não existir.</td><td><code>putIfAbsent('café', () =&gt; 10)</code>, <code>putIfAbsent('pão', () =&gt; 999)</code></td><td><code>{pão: 25, torta: 2, café: 10}</code></td></tr>
+<tr><td><code>update(chave, f, ifAbsent: …)</code> (muda)</td><td>Atualiza a partir do valor antigo; <code>ifAbsent</code> cria se não existir.</td><td><code>update('pão', (q) =&gt; q - 5)</code>, <code>update('chá', (q) =&gt; q + 1, ifAbsent: () =&gt; 1)</code></td><td><code>{pão: 20, torta: 2, café: 10, chá: 1}</code></td></tr>
+<tr><td><code>mapa[chave] ?? padrao</code></td><td>Valor ou um padrão, se não existir.</td><td><code>estoque['pão'] ?? 0</code>, <code>estoque['suco'] ?? 0</code></td><td><code>20</code>, <code>0</code></td></tr>
+<tr><td><code>entries</code></td><td>Os pares, para percorrer com <code>for</code>.</td><td><code>for (final MapEntry(:key, :value) in estoque.entries)</code></td><td><code>pão → 20</code>, <code>torta → 2</code>…</td></tr>
+<tr><td><code>forEach((k, v) =&gt; …)</code></td><td>Roda uma função para cada par.</td><td><code>estoque.forEach((k, v) =&gt; print('$k=$v'))</code></td><td><code>pão=20</code>, <code>torta=2</code>…</td></tr>
+<tr><td><code>map((k, v) =&gt; MapEntry(…))</code></td><td>Um mapa novo, transformado.</td><td><code>estoque.map((k, v) =&gt; MapEntry(k.toUpperCase(), v * 2))</code></td><td><code>{PÃO: 40, TORTA: 4, CAFÉ: 20, CHÁ: 2}</code></td></tr>
+<tr><td><code>removeWhere((k, v) =&gt; …)</code> (muda)</td><td>Tira os pares que passam no teste.</td><td><code>estoque.removeWhere((k, v) =&gt; v &lt; 5)</code></td><td><code>{pão: 20, café: 10}</code></td></tr>
+<tr><td><code>Map.fromIterables</code>, <code>{for …}</code></td><td>Cria a partir de duas listas / com um <code>for</code> dentro.</td><td><code>Map.fromIterables(['a', 'b'], [1, 2])</code>, <code>{for (final n in [1, 2, 3]) n: n * n}</code></td><td><code>{a: 1, b: 2}</code>, <code>{1: 1, 2: 4, 3: 9}</code></td></tr>
+<tr><td>contar</td><td>O padrão "quantas vezes cada um aparece".</td><td><code>contagem[letra] = (contagem[letra] ?? 0) + 1;</code> para <code>'banana'</code></td><td><code>{b: 1, a: 3, n: 2}</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Posição que não existe</strong>
+<pre class="file" data-file="indice.dart">void main() {
+  final compras = ['pão', 'leite', 'café'];
+  print(compras[3]);
+}
+</pre>
+<pre class="term">$ dart run indice.dart
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/indice.dart:3:16)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Três itens ocupam as posições 0, 1 e 2: "valor inválido, fora da faixa 0..2: 3". A última posição é sempre <code>length - 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mexer na lista enquanto a percorre</strong>
+<pre class="file" data-file="percorrer.dart">void main() {
+  final compras = ['pão', 'leite', 'café'];
+  for (final item in compras) {
+    if (item == 'leite') compras.remove(item);
+  }
+  print(compras);
+}
+</pre>
+<pre class="term">$ dart run percorrer.dart
+Unhandled exception:
+Concurrent modification during iteration: Instance(length:2) of '_GrowableList'.
+#0      ListIterator.moveNext (dart:_internal/iterable.dart:366:7)
+#1      main (file:///home/ana/percorrer.dart:3:22)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Modificação simultânea durante a iteração": a lista encolheu (agora tem <code>length:2</code>) no meio do <code>for</code>. Use <code>compras.removeWhere((i) =&gt; i == 'leite')</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Lista <code>const</code> não aceita mudança</strong>
+<pre class="file" data-file="fixa.dart">void main() {
+  const dias = ['seg', 'ter'];
+  dias.add('qua');
+  print(dias);
+}
+</pre>
+<pre class="term">$ dart run fixa.dart
+Unhandled exception:
+Unsupported operation: Cannot add to an unmodifiable list
+#0      UnmodifiableListMixin.add (dart:_internal/list.dart:112:5)
+#1      main (file:///home/ana/fixa.dart:3:8)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Operação não suportada: não dá para acrescentar a uma lista que não pode ser modificada." Compila, mas quebra ao rodar. Com <code>final</code>, a variável não muda, mas a lista sim; com <code>const</code>, nem a lista (veja <a href="final-const.html">final e const</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Valor do mapa pode ser nulo</strong>
+<pre class="file" data-file="mapa.dart">void main() {
+  final estoque = {'pão': 30};
+  final mais = estoque['pão'] + 10;
+  print(mais);
+}
+</pre>
+<pre class="term">$ dart run mapa.dart
+mapa.dart:3:31: Error: Operator '+' cannot be called on 'int?' because it is potentially null.
+  final mais = estoque['pão'] + 10;
+                              ^
+</pre>
+<p>Para o Dart, <code>estoque['pão']</code> é <code>int?</code>: a chave podia não existir. Use <code>(estoque['pão'] ?? 0) + 10</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Item do tipo errado</strong>
+<pre class="term">$ dart run tipo.dart
+tipo.dart:3:13: Error: The argument type 'String' can't be assigned to the parameter type 'int'.
+  notas.add('nove');
+            ^
+</pre>
+<p>Em <code>final notas = &lt;int&gt;[7, 8];</code> só cabem <code>int</code>: "o argumento do tipo <code>String</code> não pode ser passado para um parâmetro <code>int</code>" (veja <a href="genericos.html">Genéricos</a>).</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-goal="out:{maçã: 2, pera: 1, uva: 3};;semerro">
+<p class="try-task"><strong>Missão:</strong> conte quantas vezes cada fruta aparece na lista de vendas e mostre o mapa: <code>{maçã: 2, pera: 1, uva: 3}</code>. Use o padrão <code>contagem[f] = (contagem[f] ?? 0) + 1;</code> ou o <code>update</code> com <code>ifAbsent</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final vendas = ['maçã', 'pera', 'uva', 'maçã', 'uva', 'uva'];
+  final contagem = &lt;String, int&gt;{};
+  // conte aqui
+  print(contagem);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final vendas = ['maçã', 'pera', 'uva', 'maçã', 'uva', 'uva'];
+  final contagem = &lt;String, int&gt;{};
+  for (final f in vendas) {
+    contagem[f] = (contagem[f] ?? 0) + 1;
+  }
+  print(contagem);
+}
+</pre>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Livre:</strong> o programa que gerou as tabelas. Cada linha da saída começa com um código: L = List, I = Iterable, S = Set, M = Map.</p>
+<pre class="script" data-file="main.dart">void main() {
+  // ===== List =====
+  final compras = ['pão', 'leite', 'café'];
+  print('L1 ${compras.length} ${compras.first} ${compras.last} ${compras[1]}');
+  compras.add('ovos');
+  print('L2 $compras');
+  compras.addAll(['sal', 'açúcar']);
+  print('L3 $compras');
+  compras.insert(0, 'manteiga');
+  print('L4 $compras');
+  print('L5 ${compras.remove('sal')} ${compras.remove('arroz')} $compras');
+  print('L6 ${compras.removeAt(0)} ${compras.removeLast()} $compras');
+  print('L7 ${compras.contains('café')} ${compras.indexOf('café')} ${compras.indexOf('chá')}');
+  compras[0] = 'pão integral';
+  print('L8 $compras');
+  final numeros = [5, 3, 8, 1];
+  numeros.sort();
+  print('L9 $numeros');
+  numeros.sort((a, b) =&gt; b.compareTo(a));
+  print('L10 $numeros ${numeros.reversed.toList()}');
+  print('L11 ${numeros.sublist(1, 3)} ${numeros.isEmpty} ${&lt;int&gt;[].isEmpty}');
+  final nomes = ['Bia', 'ana', 'Caio'];
+  nomes.sort();
+  print('L12 $nomes');
+  print('L13 ${List.filled(3, 0)} ${List.generate(4, (i) =&gt; i * i)}');
+  final copia = [...numeros];
+  copia.clear();
+  print('L14 $copia $numeros');
+  nomes.removeWhere((n) =&gt; n.startsWith('C'));
+  print('L15 $nomes');
+  // ===== Iterable =====
+  final precos = [4.5, 12.0, 7.25, 30.0];
+  print('I1 ${precos.map((p) =&gt; p * 2).toList()}');
+  print('I2 ${precos.where((p) =&gt; p &gt; 10).toList()}');
+  print('I3 ${precos.reduce((a, b) =&gt; a + b)} ${precos.fold(0.0, (s, p) =&gt; s + p)}');
+  print('I4 ${precos.any((p) =&gt; p &gt; 20)} ${precos.every((p) =&gt; p &gt; 5)}');
+  print('I5 ${precos.firstWhere((p) =&gt; p &gt; 5)} ${precos.firstWhere((p) =&gt; p &gt; 100, orElse: () =&gt; -1)}');
+  print('I6 ${precos.take(2).toList()} ${precos.skip(2).toList()}');
+  print('I7 ${precos.join(' | ')}');
+  print('I8 ${[3, 1, 2].toSet()} ${precos.map((p) =&gt; p.round())}');
+  print('I9 ${['a', 'b'].indexed.toList()}');
+  for (final (i, p) in precos.indexed.take(2)) {
+    print('I10 $i: $p');
+  }
+  print('I11 ${[[1, 2], [3]].expand((l) =&gt; l).toList()}');
+  // ===== Set =====
+  final cores = {'azul', 'verde'};
+  print('S1 ${cores.add('azul')} ${cores.add('rosa')} $cores ${cores.length}');
+  print('S2 ${cores.contains('verde')} ${cores.remove('verde')} $cores');
+  final a = {1, 2, 3};
+  final b = {2, 3, 4};
+  print('S3 ${a.union(b)} ${a.intersection(b)} ${a.difference(b)}');
+  print('S4 ${[1, 1, 2, 3, 3].toSet().toList()}');
+  final vazio = &lt;String&gt;{};
+  print('S5 ${vazio.runtimeType} ${{}.runtimeType}');
+  // ===== Map =====
+  final estoque = {'pão': 30, 'bolo': 4};
+  print('M1 ${estoque['pão']} ${estoque['torta']} ${estoque.length}');
+  estoque['torta'] = 2;
+  estoque['pão'] = 25;
+  print('M2 $estoque');
+  print('M3 ${estoque.keys} ${estoque.values} ${estoque.keys.toList()}');
+  print('M4 ${estoque.containsKey('bolo')} ${estoque.containsValue(99)}');
+  print('M5 ${estoque.remove('bolo')} ${estoque.remove('xyz')} $estoque');
+  estoque.putIfAbsent('café', () =&gt; 10);
+  estoque.putIfAbsent('pão', () =&gt; 999);
+  print('M6 $estoque');
+  estoque.update('pão', (q) =&gt; q - 5);
+  estoque.update('chá', (q) =&gt; q + 1, ifAbsent: () =&gt; 1);
+  print('M7 $estoque');
+  print('M8 ${estoque['pão'] ?? 0} ${estoque['suco'] ?? 0}');
+  for (final MapEntry(:key, :value) in estoque.entries) {
+    print('M9 $key → $value');
+  }
+  estoque.forEach((k, v) =&gt; print('M10 $k=$v'));
+  print('M11 ${estoque.map((k, v) =&gt; MapEntry(k.toUpperCase(), v * 2))}');
+  estoque.removeWhere((k, v) =&gt; v &lt; 5);
+  print('M12 $estoque');
+  print('M13 ${Map.fromIterables(['a', 'b'], [1, 2])} ${{for (final n in [1, 2, 3]) n: n * n}}');
+  final contagem = &lt;String, int&gt;{};
+  for (final letra in 'banana'.split('')) {
+    contagem[letra] = (contagem[letra] ?? 0) + 1;
+  }
+  print('M14 $contagem');
+}
+</pre>
+</div>
+
+<p>A saída completa no lab:</p>
+<pre class="term">$ dart run colecoes.dart
+L1 3 pão café leite
+L2 [pão, leite, café, ovos]
+L3 [pão, leite, café, ovos, sal, açúcar]
+L4 [manteiga, pão, leite, café, ovos, sal, açúcar]
+L5 true false [manteiga, pão, leite, café, ovos, açúcar]
+L6 manteiga açúcar [pão, leite, café, ovos]
+L7 true 2 -1
+L8 [pão integral, leite, café, ovos]
+L9 [1, 3, 5, 8]
+L10 [8, 5, 3, 1] [1, 3, 5, 8]
+L11 [5, 3] false true
+L12 [Bia, Caio, ana]
+L13 [0, 0, 0] [0, 1, 4, 9]
+L14 [] [8, 5, 3, 1]
+L15 [Bia, ana]
+I1 [9.0, 24.0, 14.5, 60.0]
+I2 [12.0, 30.0]
+I3 53.75 53.75
+I4 true false
+I5 12.0 -1.0
+I6 [4.5, 12.0] [7.25, 30.0]
+I7 4.5 | 12.0 | 7.25 | 30.0
+I8 {3, 1, 2} (5, 12, 7, 30)
+I9 [(0, a), (1, b)]
+I10 0: 4.5
+I10 1: 12.0
+I11 [1, 2, 3]
+S1 false true {azul, verde, rosa} 3
+S2 true true {azul, rosa}
+S3 {1, 2, 3, 4} {2, 3} {1}
+S4 [1, 2, 3]
+S5 _Set&lt;String&gt; _Map&lt;dynamic, dynamic&gt;
+M1 30 null 2
+M2 {pão: 25, bolo: 4, torta: 2}
+M3 (pão, bolo, torta) (25, 4, 2) [pão, bolo, torta]
+M4 true false
+M5 4 null {pão: 25, torta: 2}
+M6 {pão: 25, torta: 2, café: 10}
+M7 {pão: 20, torta: 2, café: 10, chá: 1}
+M8 20 0
+M9 pão → 20
+M9 torta → 2
+M9 café → 10
+M9 chá → 1
+M10 pão=20
+M10 torta=2
+M10 café=10
+M10 chá=1
+M11 {PÃO: 40, TORTA: 4, CAFÉ: 20, CHÁ: 2}
+M12 {pão: 20, café: 10}
+M13 {a: 1, b: 2} {1: 1, 2: 4, 3: 9}
+M14 {b: 1, a: 3, n: 2}
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>List: <code>add</code>, <code>insert</code>, <code>remove</code>/<code>removeAt</code>, <code>sort</code>, <code>sublist</code>; posições de 0 a <code>length - 1</code>.</li>
+  <li>Todo Iterable: <code>map</code>, <code>where</code>, <code>fold</code>, <code>any</code>/<code>every</code>, <code>firstWhere</code>, <code>take</code>/<code>skip</code>, <code>join</code>, <code>toList</code>.</li>
+  <li>Set: sem repetição; <code>union</code>, <code>intersection</code>, <code>difference</code>. <code>{}</code> vazio é Map.</li>
+  <li>Map: <code>mapa[chave]</code> é anulável; <code>??</code>, <code>putIfAbsent</code>, <code>update</code>, <code>entries</code>, <code>removeWhere</code>.</li>
+  <li>Não remova itens dentro de um <code>for-in</code> da mesma coleção: use <code>removeWhere</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
