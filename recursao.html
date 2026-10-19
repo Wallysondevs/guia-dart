@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Recursão — a função que chama a si mesma | Guia Dart</title>
+<meta name="description" content="Recursão no Dart para quem nunca programou: o caso base e o passo recursivo, a contagem regressiva, o fatorial passo a passo, somar uma lista, mostrar pastas dentro de pastas, Fibonacci, recursão × laço e os erros reais do Dart 3 (Stack Overflow, A non-null value must be returned, o int que estoura).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Recursão</span></h1>
+
+<p class="intro">Uma função pode chamar outra função. E pode também chamar <strong>a si mesma</strong>. Isso se chama <strong>recursão</strong>. Parece um truque estranho (como uma função que ainda não terminou pode se usar?), mas é um jeito muito natural de resolver problemas que <strong>contêm uma versão menor deles mesmos</strong>: pastas dentro de pastas, a contagem de 3 que é "3 e depois a contagem de 2", o fatorial de 4 que é "4 vezes o fatorial de 3".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>As duas partes de toda função recursiva: o <strong>caso base</strong> (quando parar) e o <strong>passo recursivo</strong> (chamar a si mesma com um problema menor).</li>
+  <li>A contagem regressiva e o fatorial, com o passo a passo de cada chamada na tela.</li>
+  <li>Como somar uma lista e mostrar pastas dentro de pastas com recursão.</li>
+  <li>Quando é melhor usar um laço (<code>for</code>) em vez de recursão.</li>
+  <li>Os erros reais: o <code>Stack Overflow</code> (a recursão sem fim), o <code>return</code> esquecido e o <code>int</code> que estoura.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a fila do pão</h2>
+<p>A Ana está no fim de uma fila enorme na padaria e quer saber em que lugar está. Ela não consegue contar as pessoas lá da frente. Então pergunta para a pessoa da frente: "em que lugar você está?". Essa pessoa também não sabe, e pergunta para a da frente dela… e assim por diante, até chegar à <strong>primeira da fila</strong>, que sabe a resposta sem perguntar para ninguém: "estou em 1º".</p>
+<p>Aí a resposta volta: a segunda pessoa diz "então estou em 2º", a terceira "3º"… até chegar à Ana. Repare nas duas peças:</p>
+<ul>
+  <li><strong>Caso base</strong>: a primeira da fila responde direto, sem perguntar. É o que faz a pergunta <strong>parar</strong> de ser repassada.</li>
+  <li><strong>Passo recursivo</strong>: cada uma das outras faz <strong>a mesma pergunta</strong> para alguém mais perto do começo (um problema um pouco menor) e soma 1 à resposta.</li>
+</ul>
+<p>Sem o caso base, a pergunta seria repassada para sempre. Com programas é igual.</p>
+
+<hr>
+
+<h2>1. A primeira função recursiva: contagem regressiva</h2>
+
+<pre class="file" data-file="regressiva.dart">void contar(int n) {
+  if (n == 0) {
+    print('Já!');
+    return;
+  }
+  print('$n...');
+  contar(n - 1);
+}
+
+void main() {
+  contar(3);
+}
+</pre>
+
+<pre class="term">$ dart run regressiva.dart
+3...
+2...
+1...
+Já!
+</pre>
+
+<dl class="anatomy">
+  <dt>if (n == 0) { print('Já!'); return; }</dt><dd>O <strong>caso base</strong>: quando chega a zero, mostra <code>Já!</code> e o <code>return</code> encerra esta chamada sem chamar mais ninguém. Ele vem <strong>primeiro</strong>, antes de qualquer outra coisa.</dd>
+  <dt>print('$n...');</dt><dd>O trabalho desta chamada: mostrar o seu número.</dd>
+  <dt>contar(n - 1);</dt><dd>O <strong>passo recursivo</strong>: a função chama a si mesma com um número <strong>menor</strong>. "Para contar a partir de 3, mostre 3 e depois conte a partir de 2."</dd>
+</dl>
+
+<p>As chamadas foram: <code>contar(3)</code> → <code>contar(2)</code> → <code>contar(1)</code> → <code>contar(0)</code>, e esta última parou. Cada chamada tem o <strong>seu próprio</strong> <code>n</code>: são quatro chamadas da mesma função, cada uma com o seu valor, como quatro pessoas na fila.</p>
+
+<div class="trydart" data-goal="out:5...;;out:Já!;;src:contar\(\s*5\s*\)">
+<p class="try-task"><strong>Missão:</strong> faça a contagem começar do 5. Depois, por curiosidade, troque o <code>'Já!'</code> por <code>'Fogo!'</code>.</p>
+<pre class="script" data-file="main.dart">void contar(int n) {
+  if (n == 0) {
+    print('Já!');
+    return;
+  }
+  print('$n...');
+  contar(n - 1);
+}
+
+void main() {
+  contar(3);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void contar(int n) {
+  if (n == 0) {
+    print('Já!');
+    return;
+  }
+  print('$n...');
+  contar(n - 1);
+}
+
+void main() {
+  contar(5);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Recursão que devolve um valor: o fatorial</h2>
+<p>O <strong>fatorial</strong> de um número é a multiplicação dele por todos os números menores até 1. O fatorial de 4 é 4 × 3 × 2 × 1 = 24. (Serve para contar de quantas formas dá para arrumar coisas: 4 pães numa vitrine podem ser arrumados de 24 jeitos.) Repare que 4 × 3 × 2 × 1 é "4 vezes o fatorial de 3": o problema contém uma versão menor dele mesmo.</p>
+
+<pre class="file" data-file="fatorial.dart">int fatorial(int n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  return n * fatorial(n - 1);
+}
+
+void main() {
+  print(fatorial(1));
+  print(fatorial(4));
+  print(fatorial(10));
+}
+</pre>
+
+<pre class="term">$ dart run fatorial.dart
+1
+24
+3628800
+</pre>
+
+<dl class="anatomy">
+  <dt>if (n &lt;= 1) return 1;</dt><dd>Caso base: o fatorial de 1 (e de 0) é 1. Responde direto.</dd>
+  <dt>return n * fatorial(n - 1);</dt><dd>Passo recursivo: "o fatorial de <code>n</code> é <code>n</code> vezes o fatorial de <code>n - 1</code>". Para fazer a multiplicação, esta chamada precisa <strong>esperar</strong> a resposta da chamada de baixo.</dd>
+</dl>
+
+<h3>Passo a passo: as chamadas na tela</h3>
+<p>Para ver a "fila" de chamadas, a Ana acrescentou <code>print</code>s e um recuo que cresce a cada nível (o parâmetro opcional <code>recuo</code>; veja <a href="parametros-opcionais.html">Parâmetros Opcionais</a>):</p>
+
+<pre class="file" data-file="rastro.dart">int fatorial(int n, [String recuo = '']) {
+  print('${recuo}fatorial($n) começou');
+  if (n &lt;= 1) {
+    print('${recuo}fatorial($n) devolve 1');
+    return 1;
+  }
+  final resultado = n * fatorial(n - 1, '$recuo  ');
+  print('${recuo}fatorial($n) devolve $resultado');
+  return resultado;
+}
+
+void main() {
+  print(fatorial(4));
+}
+</pre>
+
+<pre class="term">$ dart run rastro.dart
+fatorial(4) começou
+  fatorial(3) começou
+    fatorial(2) começou
+      fatorial(1) começou
+      fatorial(1) devolve 1
+    fatorial(2) devolve 2
+  fatorial(3) devolve 6
+fatorial(4) devolve 24
+24
+</pre>
+
+<p>Leia de cima para baixo. As chamadas <strong>descem</strong> (4, 3, 2, 1), cada uma esperando a de baixo. Quando o caso base responde, as respostas <strong>sobem</strong>: 1, depois 2 × 1 = 2, depois 3 × 2 = 6, depois 4 × 6 = 24. O Dart guarda as chamadas que estão esperando numa estrutura chamada <strong>pilha de chamadas</strong> (<em>call stack</em>), a mesma que aparece nos stack traces (os <code>#0</code>, <code>#1</code>…).</p>
+
+<hr>
+
+<h2>3. Recursão com listas: somar as compras</h2>
+<p>"A soma de uma lista é o primeiro item mais a soma do resto." E a soma de uma lista vazia é 0 (caso base):</p>
+
+<pre class="file" data-file="soma.dart">double somar(List&lt;double&gt; precos) {
+  if (precos.isEmpty) {
+    return 0;
+  }
+  return precos.first + somar(precos.sublist(1));
+}
+
+void main() {
+  print(somar([4.5, 12.9, 3.25]));
+  print(somar([]));
+}
+</pre>
+
+<pre class="term">$ dart run soma.dart
+20.65
+0.0
+</pre>
+
+<p><code>precos.first</code> é o primeiro item; <code>precos.sublist(1)</code> é uma lista nova com todos os itens a partir da posição 1 (o "resto"). A cada chamada, a lista diminui um item, até ficar vazia. (Os métodos de lista estão em <a href="list-metodos.html">Métodos de Lista</a>. Para somar de verdade no dia a dia, um <code>for</code> é mais simples; aqui o objetivo é ver o padrão "primeiro + resto".)</p>
+
+<div class="trydart" data-goal="out:4;;src:contarItens\([^)]*sublist">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>contarItens</code> no mesmo padrão: uma lista vazia tem 0 itens; senão, são 1 + os itens do resto (<code>lista.sublist(1)</code>). Não vale usar <code>.length</code>!</p>
+<pre class="script" data-file="main.dart">int contarItens(List&lt;String&gt; lista) {
+  if (lista.isEmpty) {
+    return 0;
+  }
+  return 0; // troque por: 1 + a contagem do resto
+}
+
+void main() {
+  print(contarItens(['pão', 'leite', 'café', 'manteiga']));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int contarItens(List&lt;String&gt; lista) {
+  if (lista.isEmpty) {
+    return 0;
+  }
+  return 1 + contarItens(lista.sublist(1));
+}
+
+void main() {
+  print(contarItens(['pão', 'leite', 'café', 'manteiga']));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Onde a recursão brilha: pastas dentro de pastas</h2>
+<p>Até aqui, um laço também resolveria. Mas há problemas em que a recursão é o jeito natural: estruturas que têm <strong>pedaços do mesmo tipo dentro</strong>. Uma pasta pode ter arquivos e <strong>outras pastas</strong>, que têm arquivos e outras pastas… sem limite de níveis. A Ana representou a pasta pessoal dela com mapas dentro de mapas (veja <a href="map.html">Mapas</a>): cada pasta é um mapa; cada arquivo é um nome com o valor <code>1</code>:</p>
+
+<pre class="file" data-file="pastas.dart">void mostrar(Map&lt;String, dynamic&gt; pasta, int nivel) {
+  for (final nome in pasta.keys) {
+    final recuo = '  ' * nivel;
+    final conteudo = pasta[nome];
+    if (conteudo is Map&lt;String, dynamic&gt;) {
+      print('$recuo$nome/');
+      mostrar(conteudo, nivel + 1);
+    } else {
+      print('$recuo$nome');
+    }
+  }
+}
+
+void main() {
+  final home = &lt;String, dynamic&gt;{
+    'Documentos': &lt;String, dynamic&gt;{
+      'escola': &lt;String, dynamic&gt;{
+        'notas.txt': 1,
+      },
+      'receitas.txt': 1,
+    },
+    'Imagens': &lt;String, dynamic&gt;{
+      'gato.png': 1,
+    },
+    'lista.txt': 1,
+  };
+  mostrar(home, 0);
+}
+</pre>
+
+<pre class="term">$ dart run pastas.dart
+Documentos/
+  escola/
+    notas.txt
+  receitas.txt
+Imagens/
+  gato.png
+lista.txt
+</pre>
+
+<p>A função <code>mostrar</code> não sabe quantos níveis de pastas existem, e não precisa saber: quando encontra uma pasta (<code>conteudo is Map…</code>, veja <a href="operadores-tipo.html">is, is! e as</a>), ela chama a si mesma para mostrar o que tem dentro, com um nível de recuo a mais. O caso base aqui é <strong>escondido</strong>: uma pasta sem subpastas não chama ninguém, e o <code>for</code> simplesmente termina. (<code>'  ' * nivel</code> repete o texto de 2 espaços <code>nivel</code> vezes.)</p>
+
+<hr>
+
+<h2>5. Fibonacci: duas chamadas de uma vez</h2>
+<p>Na sequência de Fibonacci, cada número é a soma dos dois anteriores: 0, 1, 1, 2, 3, 5, 8… A definição já é recursiva, e cabe numa linha com a seta e o ternário (veja <a href="ternario.html">O Operador Ternário</a>):</p>
+
+<pre class="file" data-file="fib.dart">int fib(int n) =&gt; n &lt; 2 ? n : fib(n - 1) + fib(n - 2);
+
+void main() {
+  for (var i = 0; i &lt;= 10; i++) {
+    print('fib($i) = ${fib(i)}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run fib.dart
+fib(0) = 0
+fib(1) = 1
+fib(2) = 1
+fib(3) = 2
+fib(4) = 3
+fib(5) = 5
+fib(6) = 8
+fib(7) = 13
+fib(8) = 21
+fib(9) = 34
+fib(10) = 55
+</pre>
+
+<div class="warning">
+<strong>Bonito, mas lento</strong>
+<p>Cada <code>fib</code> chama <strong>duas</strong> outras, que chamam duas cada uma… O <code>fib(40)</code> faz centenas de milhões de chamadas, refazendo as mesmas contas muitas vezes. Recursão é elegante, mas nem sempre é o caminho mais rápido.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Todo problema resolvido com recursão também pode ser resolvido com um laço. O fatorial com <code>for</code> (veja <a href="for.html">for</a>):</p>
+
+<pre class="file" data-file="lacofat.dart">int fatorial(int n) {
+  var resultado = 1;
+  for (var i = 2; i &lt;= n; i++) {
+    resultado = resultado * i;
+  }
+  return resultado;
+}
+
+void main() {
+  print(fatorial(4));
+  print(fatorial(10));
+}
+</pre>
+
+<pre class="term">$ dart run lacofat.dart
+24
+3628800
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Contar, somar, repetir um número conhecido de vezes</td><td>Laço (<code>for</code>, <code>while</code>): mais simples e não tem limite de profundidade</td></tr>
+<tr><td>Estruturas com "o mesmo tipo dentro": pastas, menus com submenus, categorias, árvores</td><td>Recursão: o código fica do tamanho do problema, sem precisar saber quantos níveis há</td></tr>
+<tr><td>Uma definição que já é recursiva (fatorial, Fibonacci) e números pequenos</td><td>Qualquer um; a recursão costuma ficar mais parecida com a definição</td></tr>
+<tr><td>Milhares de níveis de profundidade</td><td>Laço: a recursão estoura a pilha (veja abaixo)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Sem caso base: <code>Stack Overflow</code></strong>
+<p>A Ana esqueceu o <code>if</code> que para a contagem:</p>
+<pre class="file" data-file="err_semfim.dart">void contar(int n) {
+  print('$n...');
+  contar(n - 1);
+}
+
+void main() {
+  contar(3);
+}
+</pre>
+<p>O programa conta 3, 2, 1, 0, −1, −2… e não para. A saída é tão longa que a Ana a guardou num arquivo (<code>&gt; saida.txt 2&gt;&amp;1</code> manda a saída normal e a de erro para o arquivo) e olhou só os pedaços que interessam:</p>
+<pre class="term">$ dart run err_semfim.dart &gt; saida.txt 2&gt;&amp;1; echo $?
+255
+$ head -4 saida.txt
+3...
+2...
+1...
+0...
+$ sed -n "18956,18966p" saida.txt
+-18952...
+-18953...
+-18954...
+Unhandled exception:
+Stack Overflow
+#0      int._negativeToString (dart:core-patch/integers.dart:703:3)
+#1      int.toString (dart:core-patch/integers.dart:645:26)
+#2      _StringBase._interpolate (dart:core-patch/string_patch.dart:888:19)
+#3      contar (file:///home/ana/err_semfim.dart:2:9)
+#4      contar (file:///home/ana/err_semfim.dart:3:3)
+#5      contar (file:///home/ana/err_semfim.dart:3:3)
+$ tail -6 saida.txt
+#10907  contar (file:///home/ana/err_semfim.dart:3:3)
+#10908  contar (file:///home/ana/err_semfim.dart:3:3)
+#10909  contar (file:///home/ana/err_semfim.dart:3:3)
+#10910  main (file:///home/ana/err_semfim.dart:7:3)
+#10911  _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#10912  _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>255</dt><dd>O código de saída de uma exceção não tratada.</dd>
+  <dt>-18954...</dt><dd>O último número mostrado. Nesta vez, a contagem foi até −18954; em outra, o número muda um pouco.</dd>
+  <dt>Stack Overflow</dt><dd>"Estouro da pilha." Cada chamada que ainda não terminou ocupa um pedaço da <strong>pilha de chamadas</strong>, e ela tem tamanho limitado. Sem caso base, as chamadas nunca terminam, a pilha enche e o Dart desiste.</dd>
+  <dt>#0 a #2</dt><dd>Onde o Dart estava no instante do estouro: transformando o número em texto para o <code>print</code>. Não é ali o defeito; é só o último lugar que coube.</dd>
+  <dt>#3, #4, #5… contar (…:3:3)</dt><dd>A mesma função, milhares de vezes, sempre na linha 3 (a chamada a si mesma). Uma lista enorme de linhas iguais no stack trace é a "impressão digital" da recursão sem fim. (No meio da lista, o próprio Dart corta as linhas e põe <code>...</code> para não encher a tela.)</dd>
+  <dt>#10910 main (…:7:3)</dt><dd>Lá no fundo, quem começou tudo: o <code>main</code>, na linha 7.</dd>
+</dl>
+<p><strong>Como consertar:</strong> o caso base primeiro: <code>if (n == 0) { print('Já!'); return; }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O caso base existe, mas nunca é alcançado</strong>
+<pre class="file" data-file="err_negativo.dart">int fatorial(int n) {
+  if (n == 1) {
+    return 1;
+  }
+  return n * fatorial(n - 1);
+}
+
+void main() {
+  print(fatorial(0));
+}
+</pre>
+<pre class="term">$ dart run err_negativo.dart
+Unhandled exception:
+Stack Overflow
+#0      fatorial (file:///home/ana/err_negativo.dart:1:1)
+#1      fatorial (file:///home/ana/err_negativo.dart:5:14)
+#2      fatorial (file:///home/ana/err_negativo.dart:5:14)
+«… até a #43, depois ... ... …»
+#16255  fatorial (file:///home/ana/err_negativo.dart:5:14)
+#16256  main (file:///home/ana/err_negativo.dart:9:9)
+#16257  _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#16258  _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O caso base é <code>n == 1</code>, mas a conta começou do 0: 0, −1, −2… passa longe do 1 e nunca para. <strong>Como consertar:</strong> faça o caso base cobrir tudo o que "já acabou": <code>if (n &lt;= 1)</code>. É por isso que o fatorial da seção 2 usa <code>&lt;=</code> e não <code>==</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code> no passo recursivo</strong>
+<pre class="file" data-file="err_return.dart">int fatorial(int n) {
+  if (n &lt;= 1) {
+    return 1;
+  }
+  n * fatorial(n - 1);
+}
+
+void main() {
+  print(fatorial(4));
+}
+</pre>
+<pre class="term">$ dart run err_return.dart
+err_return.dart:1:5: Error: A non-null value must be returned since the return type 'int' doesn't allow null.
+int fatorial(int n) {
+    ^
+</pre>
+<p>"Um valor não nulo tem de ser devolvido, já que o tipo de retorno <code>int</code> não aceita <code>null</code>." A linha 5 faz a conta, mas joga o resultado fora: falta o <code>return</code>. Sem ele, a função chegaria ao fim sem devolver nada (devolveria <code>null</code>), e o null safety do Dart pega isso antes de rodar (veja <a href="null-safety.html">Null Safety</a>). <strong>Como consertar:</strong> <code>return n * fatorial(n - 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O resultado ficou negativo: o <code>int</code> estourou</strong>
+<pre class="file" data-file="err_grande.dart">int fatorial(int n) =&gt; n &lt;= 1 ? 1 : n * fatorial(n - 1);
+
+void main() {
+  print(fatorial(20));
+  print(fatorial(21));
+  print(fatorial(25));
+}
+</pre>
+<pre class="term">$ dart run err_grande.dart
+2432902008176640000
+-4249290049419214848
+7034535277573963776
+</pre>
+<p>Nenhum erro, mas o fatorial de 21 saiu <strong>negativo</strong>, e o de 25 também está errado. No Dart (fora da web), o <code>int</code> guarda números até 9.223.372.036.854.775.807 (64 bits). O fatorial de 21 passa disso, e a conta "dá a volta" sem avisar (veja <a href="int-double.html">Números</a>). Não é culpa da recursão: o laço daria o mesmo. <strong>Como consertar:</strong> para números gigantes, use <code>BigInt</code> (<code>BigInt.from(n)</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>Exemplo</th><th>Para que serve</th></tr>
+<tr><td>Caso base</td><td><code>if (n &lt;= 1) return 1;</code></td><td>Responde direto e para as chamadas. Vem primeiro.</td></tr>
+<tr><td>Passo recursivo</td><td><code>return n * fatorial(n - 1);</code></td><td>Chama a mesma função com um problema <strong>menor</strong></td></tr>
+<tr><td>Lista: primeiro + resto</td><td><code>lista.first + somar(lista.sublist(1))</code></td><td>Diminui a lista a cada chamada; base: <code>lista.isEmpty</code></td></tr>
+<tr><td>Estrutura aninhada</td><td><code>if (conteudo is Map) mostrar(conteudo, nivel + 1);</code></td><td>Entra em cada "pasta dentro da pasta"</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Stack Overflow</code> com milhares de linhas iguais</td><td>Sem caso base, ou o caso base nunca é alcançado (use <code>&lt;=</code> em vez de <code>==</code>)</td></tr>
+<tr><td><code>A non-null value must be returned …</code></td><td>Faltou o <code>return</code> no passo recursivo</td></tr>
+<tr><td>Número negativo ou absurdo, sem erro</td><td>O resultado passou do limite do <code>int</code></td></tr>
+<tr><td>Muito lento (como <code>fib(40)</code>)</td><td>Cada chamada faz duas: as mesmas contas são refeitas muitas vezes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o fatorial</h3>
+<div class="ex-code">int fatorial(int n) {<br>&nbsp;&nbsp;if (n &lt;= 1) return <input data-answer="1" aria-label="valor do caso base">;<br>&nbsp;&nbsp;return n * <input data-answer="fatorial" aria-label="função chamada">(n - 1);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto dá?</h3>
+<p>Com o <code>fatorial</code> da seção 2, quanto é <code>fatorial(5)</code>?</p>
+<div class="ex-code"><input data-answer="120" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Para que serve o caso base?</p>
+<label><input type="radio" name="q3"> Para deixar a função mais rápida</label>
+<label><input type="radio" name="q3"> Para chamar a função de novo</label>
+<label><input type="radio" name="q3"> Para responder direto e fazer as chamadas pararem</label>
+<label><input type="radio" name="q3"> Não é obrigatório</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um stack trace com milhares de linhas iguais (<code>contar (…:3:3)</code>) e <code>Stack Overflow</code> indica:</p>
+<label><input type="radio" name="q4"> Um erro de digitação na linha 3</label>
+<label><input type="radio" name="q4"> Uma recursão que nunca chega ao caso base</label>
+<label><input type="radio" name="q4"> Que o computador está sem memória RAM</label>
+<label><input type="radio" name="q4"> Um laço <code>for</code> infinito</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Em qual destes problemas a recursão é mais natural que um laço?</p>
+<label><input type="radio" name="q5"> Mostrar os números de 1 a 10</label>
+<label><input type="radio" name="q5"> Somar os preços de uma lista</label>
+<label><input type="radio" name="q5"> Ler nomes até digitar "fim"</label>
+<label><input type="radio" name="q5"> Mostrar um menu que tem submenus, que têm submenus…</label>
+</div>
+
+<h3>Missão final: a potência</h3>
+
+<div class="trydart" data-goal="out:2^10 = 1024;;src:potencia\(\s*base\s*,\s*expoente\s*-\s*1\s*\)">
+<p class="try-task"><strong>Missão:</strong> complete a função recursiva <code>potencia</code>. Qualquer número elevado a 0 é 1 (caso base); senão, <code>base</code> elevado a <code>expoente</code> é <code>base * potencia(base, expoente - 1)</code>.</p>
+<pre class="script" data-file="main.dart">int potencia(int base, int expoente) {
+  // caso base aqui
+  // passo recursivo aqui
+  return 0;
+}
+
+void main() {
+  print('2^10 = ${potencia(2, 10)}');
+  print('3^4 = ${potencia(3, 4)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int potencia(int base, int expoente) {
+  if (expoente == 0) {
+    return 1;
+  }
+  return base * potencia(base, expoente - 1);
+}
+
+void main() {
+  print('2^10 = ${potencia(2, 10)}');
+  print('3^4 = ${potencia(3, 4)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma função recursiva chama a si mesma. Toda recursão precisa de um <strong>caso base</strong> (responde direto e para) e de um <strong>passo recursivo</strong> (chama a si mesma com um problema menor).</li>
+  <li>As chamadas descem até o caso base, esperando umas pelas outras na pilha de chamadas; depois as respostas sobem.</li>
+  <li>Padrões comuns: <code>n * f(n - 1)</code>, "primeiro + resto" (<code>lista.first</code> + <code>f(lista.sublist(1))</code>) e entrar em estruturas aninhadas (pastas dentro de pastas).</li>
+  <li>Sem caso base, ou com um caso base que nunca é alcançado, o Dart para com <code>Stack Overflow</code>.</li>
+  <li>Para repetições simples, prefira um laço; a recursão brilha em estruturas com "o mesmo tipo dentro".</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
