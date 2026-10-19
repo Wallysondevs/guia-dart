@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart @override — a subclasse com o seu próprio jeito | Guia Dart</title>
+<meta name="description" content="Sobrescrever métodos no Dart para quem nunca programou: @override, reaproveitar a versão da mãe com super.descricao(), uma lista de produtos em que cada um se descreve do seu jeito (polimorfismo), sobrescrever o toString, o que o dart analyze avisa, e os erros reais do Dart 3.13 (tipo de retorno diferente, parâmetro a mais, Stack Overflow).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">@override</span></h1>
+
+<p class="intro">Na aula <a href="heranca.html">Herança</a>, a <code>Bebida</code> herdou o método <code>descricao()</code> do <code>Produto</code>, e o suco se descrevia igualzinho ao pão: <code>Suco de laranja: R$ 6.50</code>. Mas a Ana queria que a bebida mostrasse <strong>também o volume</strong>. Para isso, a subclasse escreve a sua própria versão do método, que passa a valer no lugar da herdada. Isso se chama <strong>sobrescrever</strong> o método (em inglês, <em>override</em>, "passar por cima").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como sobrescrever um método herdado e para que serve a marca <code>@override</code>.</li>
+  <li>Como reaproveitar a versão da mãe com <code>super.descricao()</code>.</li>
+  <li>O que acontece numa lista com objetos de várias classes: cada um usa a <strong>sua</strong> versão (polimorfismo).</li>
+  <li>Como sobrescrever o <code>toString()</code>, herdado de <code>Object</code>, para o <code>print</code> mostrar algo útil.</li>
+  <li>As regras da versão nova (mesmo tipo de retorno, mesmos parâmetros) e os erros reais quando elas são quebradas, incluindo o <code>Stack Overflow</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Todos começam com a mesma classe <code>Produto</code>:</p>
+
+<pre class="file" data-file="produto.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+</pre>
+
+<p>Ela ocupa as linhas 1 a 8 de cada arquivo (mais uma linha em branco), por isso as mensagens de erro desta aula apontam linhas a partir da 10.</p>
+
+<hr>
+
+<h2>A ideia: a mesma ordem, cada um do seu jeito</h2>
+<p>Na padaria, a dona diz para todo funcionário: <em>"apresente o produto ao cliente"</em>. O atendente do balcão diz o nome e o preço. O atendente das bebidas diz o nome, o preço <strong>e</strong> o tamanho do copo. O atendente das promoções diz o preço antigo e o novo. A <strong>ordem</strong> é a mesma para todos; o <strong>jeito</strong> de cumpri-la muda conforme quem a recebe.</p>
+<p>No Dart, a ordem é o nome do método (<code>descricao()</code>), e cada classe pode ter o seu jeito de cumpri-la. Quem chama não precisa saber qual é a classe: só chama <code>item.descricao()</code>.</p>
+
+<hr>
+
+<h2>1. Sobrescrevendo um método</h2>
+
+<pre class="file" data-file="sobrescrever.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao() =&gt; '$nome ($volumeMl ml): R\$ ${preco.toStringAsFixed(2)}';
+}
+
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+  print(pao.descricao());
+  print(suco.descricao());
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>@override</dt><dd>Uma <strong>anotação</strong> (as que começam com <code>@</code>): um bilhete para o Dart e para quem lê dizendo "o método abaixo <strong>substitui</strong> um que veio da mãe". Ela não muda o que o programa faz; ela <strong>confere</strong> que você está mesmo sobrescrevendo algo (seção 5).</dd>
+  <dt>String descricao()</dt><dd>O mesmo nome, o mesmo tipo de retorno (<code>String</code>) e os mesmos parâmetros (nenhum) do método da mãe. Só o corpo muda.</dd>
+  <dt>=&gt; '$nome ($volumeMl ml): …'</dt><dd>O jeito da bebida: nome, volume e preço. Ela usa os campos herdados (<code>nome</code>, <code>preco</code>) e o próprio (<code>volumeMl</code>).</dd>
+</dl>
+
+<pre class="term">$ dart run sobrescrever.dart
+Pão francês: R$ 0.75
+Suco de laranja (300 ml): R$ 6.50
+</pre>
+
+<p>O pão continua com a versão da mãe. O suco usou a versão nova. A versão do <code>Produto</code> não sumiu nem mudou: ela só deixou de valer <strong>para as bebidas</strong>.</p>
+
+<hr>
+
+<h2>2. Aproveitando a versão da mãe: <code>super.descricao()</code></h2>
+<p>Repare que a bebida repetiu o pedaço <code>R\$ ${preco.toStringAsFixed(2)}</code>, que já estava no <code>Produto</code>. Se um dia a Ana mudar o jeito de mostrar o preço, vai ter de mudar nos dois lugares. Melhor: pedir à mãe a parte dela e só <strong>acrescentar</strong> o volume.</p>
+
+<pre class="file" data-file="com_super.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao() =&gt; '${super.descricao()} ($volumeMl ml)';
+}
+
+void main() {
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+  print(suco.descricao());
+}
+</pre>
+
+<pre class="term">$ dart run com_super.dart
+Suco de laranja: R$ 6.50 (300 ml)
+</pre>
+
+<p><code>super.descricao()</code> quer dizer "a <code>descricao()</code> <strong>da mãe</strong>". Ela devolveu <code>Suco de laranja: R$ 6.50</code>, e a bebida juntou <code> (300 ml)</code> no fim. É o padrão mais comum: <strong>a filha faz o que a mãe faz, e mais um pouco</strong>.</p>
+
+<div class="warning">
+<strong>Sem o <code>super.</code>, o método chama a si mesmo</strong>
+<p>Dentro da <code>Bebida</code>, escrever só <code>descricao()</code> chama a versão <strong>da própria bebida</strong>, que chama de novo, e de novo… até o programa estourar. Esse erro está em <a href="#errado">Quando dá errado</a>.</p>
+</div>
+
+<hr>
+
+<h2>3. Uma lista, três jeitos (polimorfismo)</h2>
+<p>Agora a vitrine da lojinha tem pão, bebida e um bolo em promoção. A promoção também sobrescreve a <code>descricao()</code>, com um corpo de várias linhas:</p>
+
+<pre class="file" data-file="lista.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao() =&gt; '${super.descricao()} ($volumeMl ml)';
+}
+
+class Promocao extends Produto {
+  double desconto;
+
+  Promocao(super.nome, super.preco, this.desconto);
+
+  @override
+  String descricao() {
+    final novo = preco * (1 - desconto);
+    return '$nome: de R\$ ${preco.toStringAsFixed(2)} por R\$ ${novo.toStringAsFixed(2)}';
+  }
+}
+
+void main() {
+  final List&lt;Produto&gt; vitrine = [
+    Produto('Pão francês', 0.75),
+    Bebida('Suco de laranja', 6.5, 300),
+    Promocao('Bolo de cenoura', 20.0, 0.25),
+  ];
+
+  for (final item in vitrine) {
+    print(item.descricao());
+  }
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+Pão francês: R$ 0.75
+Suco de laranja: R$ 6.50 (300 ml)
+Bolo de cenoura: de R$ 20.00 por R$ 15.00
+</pre>
+
+<p>O laço tem <strong>uma</strong> linha, <code>print(item.descricao())</code>, e a variável <code>item</code> é do tipo <code>Produto</code>. Mesmo assim, cada objeto respondeu do seu jeito. Quem decide qual versão roda é o <strong>objeto de verdade</strong> (o que foi criado com <code>Bebida(…)</code> ou <code>Promocao(…)</code>), e não o tipo da variável. Esse comportamento tem um nome comprido, <strong>polimorfismo</strong> ("muitas formas"), e é o grande motivo de existir o <code>@override</code>: o código que percorre a vitrine não precisa de um <code>if</code> para cada tipo de produto.</p>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> acrescente na vitrine uma <code>Bebida('Café', 4.0, 50)</code> e uma <code>Promocao('Sonho', 6.0, 0.5)</code>. Depois apague o <code>@override</code> da <code>Promocao</code> e rode de novo: muda alguma coisa na saída?</p>
+<pre class="script" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao() =&gt; '${super.descricao()} ($volumeMl ml)';
+}
+
+class Promocao extends Produto {
+  double desconto;
+
+  Promocao(super.nome, super.preco, this.desconto);
+
+  @override
+  String descricao() {
+    final novo = preco * (1 - desconto);
+    return '$nome: de R\$ ${preco.toStringAsFixed(2)} por R\$ ${novo.toStringAsFixed(2)}';
+  }
+}
+
+void main() {
+  final List&lt;Produto&gt; vitrine = [
+    Produto('Pão francês', 0.75),
+    Bebida('Suco de laranja', 6.5, 300),
+    Promocao('Bolo de cenoura', 20.0, 0.25),
+  ];
+
+  for (final item in vitrine) {
+    print(item.descricao());
+  }
+}
+</pre>
+</div>
+
+<p>(Resposta da segunda pergunta: não muda nada. O próximo tópico explica por que, mesmo assim, o <code>@override</code> vale a pena.)</p>
+
+<hr>
+
+<h2>4. Sobrescrevendo o <code>toString()</code></h2>
+<p>Toda classe herda de <code>Object</code> (veja <a href="heranca.html">Herança</a>), e <code>Object</code> tem um método <code>toString()</code>, que diz como o objeto vira texto. O <code>print</code> e a interpolação (<code>'$suco'</code>) usam esse método. A versão de <code>Object</code> é pouco útil; sobrescrevendo, fica clara:</p>
+
+<pre class="file" data-file="tostring.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String toString() =&gt; 'Bebida($nome, $volumeMl ml)';
+}
+
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+  print(pao);
+  print(suco);
+  print('No carrinho: $suco');
+}
+</pre>
+
+<pre class="term">$ dart run tostring.dart
+Instance of 'Produto'
+Bebida(Suco de laranja, 300 ml)
+No carrinho: Bebida(Suco de laranja, 300 ml)
+</pre>
+
+<p>O pão usou a versão de <code>Object</code>: <code>Instance of 'Produto'</code> ("uma instância de Produto"), que não diz qual produto é. O suco usou a versão nova. A aula <a href="tostring-igualdade.html">toString, == e hashCode</a> aprofunda esse método e os outros dois que vêm de <code>Object</code>.</p>
+
+<hr>
+
+<h2>5. Para que serve a marca <code>@override</code></h2>
+<p>Se você tirar o <code>@override</code>, o programa roda igual: o Dart sobrescreve pelo <strong>nome</strong> do método, com ou sem a marca. Este arquivo é o <code>com_super.dart</code> sem a anotação:</p>
+
+<pre class="term">$ dart run sem_override.dart
+Suco de laranja: R$ 6.50 (300 ml)
+</pre>
+
+<p>Então por que escrever? Porque ela pega <strong>erros de digitação</strong>. Veja a Ana escrevendo <code>descrisao</code> (com "s") em vez de <code>descricao</code>:</p>
+
+<pre class="file" data-file="erro_nome.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descrisao() =&gt; '${super.descricao()} ($volumeMl ml)';
+}
+
+void main() {
+  print(Bebida('Suco de laranja', 6.5, 300).descricao());
+}
+</pre>
+
+<pre class="term">$ dart run erro_nome.dart
+Suco de laranja: R$ 6.50
+$ dart analyze erro_nome.dart
+Analyzing erro_nome.dart...
+
+warning - erro_nome.dart:16:10 - The method doesn't override an inherited method. Try updating this class to match the superclass, or removing the override annotation. - override_on_non_overriding_member
+
+1 issue found.
+</pre>
+
+<ul>
+  <li>O <code>dart run</code> <strong>não reclamou</strong>: para ele, <code>descrisao</code> é só um método novo da bebida. E a saída saiu <strong>sem o volume</strong>, porque o <code>main</code> chamou <code>descricao()</code> e caiu na versão da mãe. Um erro silencioso.</li>
+  <li>O <code>dart analyze</code> (o "analisador", que lê o código procurando problemas; veja <a href="analise.html">Análise e Formatação</a>) avisou: <code>warning</code> ("aviso") na linha 16, coluna 10: "o método não sobrescreve um método herdado. Ajuste a classe para combinar com a superclasse, ou remova a anotação". O nome no fim, <code>override_on_non_overriding_member</code>, é o código do aviso.</li>
+</ul>
+<p>É o <code>@override</code> que torna esse aviso possível: sem a marca, o analisador não teria como saber que você <em>queria</em> sobrescrever. Os editores de código (VS Code, Android Studio) mostram esse aviso enquanto você digita. Por isso o guia de estilo do Dart pede: <strong>sempre escreva <code>@override</code></strong> ao sobrescrever (o lint <code>annotate_overrides</code>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A filha faz <strong>a mesma coisa que a mãe, e mais um pouco</strong></td><td><code>@override</code> chamando <code>super.metodo()</code> (seção 2)</td></tr>
+<tr><td>A filha faz algo <strong>completamente diferente</strong></td><td><code>@override</code> com um corpo novo, sem <code>super</code> (a <code>Promocao</code> da seção 3)</td></tr>
+<tr><td>A filha faz o mesmo que a mãe</td><td>Não sobrescreva nada: a herança já resolve</td></tr>
+<tr><td>O <code>print(objeto)</code> mostra <code>Instance of '…'</code></td><td>Sobrescreva o <code>toString()</code> (seção 4)</td></tr>
+<tr><td>Toda filha <strong>tem de</strong> ter a sua versão, e a mãe nem sabe o que fazer</td><td>Um método abstrato (aula <a href="abstract.html">Classes Abstratas</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O método novo devolve outro tipo</strong>
+<pre class="file" data-file="erro_tipo.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  void descricao() {
+    print('$nome ($volumeMl ml)');
+  }
+}
+
+void main() {
+  Bebida('Suco de laranja', 6.5, 300).descricao();
+}
+</pre>
+<pre class="term">$ dart run erro_tipo.dart
+erro_tipo.dart:16:8: Error: The return type of the method 'Bebida.descricao' is 'void', which does not match the return type, 'String', of the overridden method, 'Produto.descricao'.
+Change to a subtype of 'String'.
+  void descricao() {
+       ^
+erro_tipo.dart:7:10: Context: This is the overridden method ('descricao').
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+         ^
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro_tipo.dart:16:8: Error:</code> arquivo, linha 16, coluna 8: erro de <strong>compilação</strong> (o programa nem começou).</li>
+  <li>"O tipo de retorno do método <code>Bebida.descricao</code> é <code>void</code>, que não combina com o tipo de retorno, <code>String</code>, do método sobrescrito, <code>Produto.descricao</code>. Troque por um subtipo de <code>String</code>."</li>
+  <li>A linha do código e o <code>^</code> embaixo do nome do método.</li>
+  <li><code>Context:</code> não é um segundo erro: é o Dart mostrando <strong>o outro lado</strong> do problema, a versão da mãe (linha 7), para você comparar.</li>
+</ul>
+<p>A regra: quem tem um <code>Produto</code> na mão conta com uma <code>String</code> ao chamar <code>descricao()</code>. Se a bebida devolvesse <code>void</code> (nada), o laço da vitrine quebraria. <strong>Como consertar:</strong> mantenha <code>String descricao()</code> e devolva o texto, em vez de imprimir.</p>
+</div>
+
+<div class="cenario">
+<strong>O método novo pede um parâmetro a mais</strong>
+<pre class="file" data-file="erro_param.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao(bool comVolume) =&gt;
+      comVolume ? '${super.descricao()} ($volumeMl ml)' : super.descricao();
+}
+
+void main() {
+  print(Bebida('Suco de laranja', 6.5, 300).descricao(true));
+}
+</pre>
+<pre class="term">$ dart run erro_param.dart
+erro_param.dart:16:10: Error: The method 'Bebida.descricao' has more required arguments than those of overridden method 'Produto.descricao'.
+  String descricao(bool comVolume) =&gt;
+         ^
+erro_param.dart:7:10: Context: This is the overridden method ('descricao').
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+         ^
+</pre>
+<p>"O método <code>Bebida.descricao</code> tem mais argumentos obrigatórios do que o método sobrescrito." O laço da vitrine chama <code>item.descricao()</code> sem nada entre os parênteses; uma versão que <strong>exige</strong> um valor não teria o que receber. <strong>Como consertar:</strong> se a ideia é ter uma opção, deixe-a opcional: <code>String descricao([bool comVolume = true])</code> (veja <a href="parametros-opcionais.html">Parâmetros Opcionais</a>); a versão nova pode <strong>aceitar mais</strong>, nunca <strong>exigir mais</strong>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>super.</code>: o método chama a si mesmo (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_recursao.dart">class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  @override
+  String descricao() =&gt; '${descricao()} ($volumeMl ml)';
+}
+
+void main() {
+  print('Abrindo a vitrine...');
+  print(Bebida('Suco de laranja', 6.5, 300).descricao());
+}
+</pre>
+<pre class="term">$ dart run erro_recursao.dart
+Abrindo a vitrine...
+Unhandled exception:
+Stack Overflow
+#0      Bebida.descricao (file:///home/ana/erro_recursao.dart:15:3)
+#1      Bebida.descricao (file:///home/ana/erro_recursao.dart:16:28)
+#2      Bebida.descricao (file:///home/ana/erro_recursao.dart:16:28)
+#3      Bebida.descricao (file:///home/ana/erro_recursao.dart:16:28)
+…                                « linhas iguais até a #43
+...
+...
+…                                « o Dart pulou milhares de linhas iguais
+#11377  Bebida.descricao (file:///home/ana/erro_recursao.dart:16:28)
+#11378  Bebida.descricao (file:///home/ana/erro_recursao.dart:16:28)
+#11379  main (file:///home/ana/erro_recursao.dart:21:45)
+#11380  _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#11381  _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Este compilou: chamar um método dentro dele mesmo é permitido (é a <a href="recursao.html">recursão</a>). O problema aparece <strong>rodando</strong>:</p>
+<ul>
+  <li><code>Abrindo a vitrine...</code> saiu: o programa começou normalmente.</li>
+  <li><code>Unhandled exception:</code> uma exceção não tratada, durante a execução. <code>Stack Overflow</code> é "estouro da pilha": a <strong>pilha</strong> é onde o Dart anota cada chamada de função que ainda não terminou, e ela tem tamanho limitado. A <code>descricao()</code> chamou <code>descricao()</code>, que chamou <code>descricao()</code>… sem nunca terminar, até a pilha encher.</li>
+  <li>O stack trace mostra isso: milhares de linhas <code>Bebida.descricao</code>, todas apontando a linha 16, coluna 28, o <code>descricao()</code> dentro do texto. Os <code>...</code> são do próprio Dart, pulando o meio repetido. Lá embaixo, a <code>#11379</code> mostra quem começou tudo: o <code>main</code>, na linha 21.</li>
+</ul>
+<p>Código de saída: 255. <strong>Como consertar:</strong> <code>'${super.descricao()} ($volumeMl ml)'</code>. Quando um stack trace mostrar a mesma linha repetida sem fim, procure uma função que chama a si mesma sem querer.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>@override</code></td><td>Marca o método (ou getter) como substituto de um herdado; permite ao analisador avisar erros de digitação</td></tr>
+<tr><td><code>@override String descricao() =&gt; …;</code></td><td>Versão nova do método, com o mesmo nome, retorno e parâmetros</td></tr>
+<tr><td><code>super.descricao()</code></td><td>Chama a versão da mãe, de dentro da filha</td></tr>
+<tr><td><code>@override String toString() =&gt; …;</code></td><td>Define o texto do objeto no <code>print</code> e na interpolação</td></tr>
+<tr><td><code>dart analyze arquivo.dart</code></td><td>Mostra avisos, como o <code>override_on_non_overriding_member</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The return type of the method 'X.m' is '…', which does not match the return type, '…', of the overridden method</code></td><td>A versão nova devolve outro tipo</td></tr>
+<tr><td><code>The method 'X.m' has more required arguments than those of overridden method</code></td><td>A versão nova exige parâmetros que a da mãe não exigia</td></tr>
+<tr><td><code>Context: This is the overridden method</code></td><td>Não é outro erro: mostra a versão da mãe, para comparar</td></tr>
+<tr><td><code>The method doesn't override an inherited method.</code> (no <code>dart analyze</code>)</td><td>Erro de digitação no nome, ou a mãe não tem esse método</td></tr>
+<tr><td><code>Stack Overflow</code> com a mesma linha repetida</td><td>O método chama a si mesmo; faltou o <code>super.</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a sobrescrita</h3>
+<p>Complete para a bebida reaproveitar a descrição da mãe:</p>
+<div class="ex-code"><input data-answer="@override" aria-label="anotação"><br>String descricao() =&gt; '${<input data-answer="super" aria-label="palavra antes de .descricao">.descricao()} ($volumeMl ml)';</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Uma classe sem <code>toString()</code> próprio se chama <code>Cliente</code>. O que <code>print(Cliente())</code> mostra?</p>
+<div class="ex-code"><input data-answer="Instance of 'Cliente'" aria-label="saída do print" size="24"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A variável é <code>Produto item = Bebida('Suco', 6.5, 300);</code> e a <code>Bebida</code> sobrescreve <code>descricao()</code>. Qual versão roda em <code>item.descricao()</code>?</p>
+<label><input type="radio" name="q3"> A do <code>Produto</code>, porque a variável é do tipo <code>Produto</code></label>
+<label><input type="radio" name="q3"> A da <code>Bebida</code>, porque o objeto de verdade é uma bebida</label>
+<label><input type="radio" name="q3"> As duas, uma depois da outra</label>
+<label><input type="radio" name="q3"> Nenhuma: dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana escreveu <code>@override</code> em cima de <code>String descrisao()</code> (com erro de digitação). O que acontece?</p>
+<label><input type="radio" name="q4"> O <code>dart run</code> dá erro de compilação</label>
+<label><input type="radio" name="q4"> Exceção durante a execução</label>
+<label><input type="radio" name="q4"> O programa roda usando a versão da mãe, e o <code>dart analyze</code> avisa que o método não sobrescreve nada</label>
+<label><input type="radio" name="q4"> O Dart corrige o nome sozinho</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O stack trace mostra milhares de linhas <code>#… Bebida.descricao (…:16:28)</code> e a mensagem <code>Stack Overflow</code>. O que provavelmente faltou?</p>
+<label><input type="radio" name="q5"> O <code>super.</code> antes de <code>descricao()</code>, dentro da própria <code>descricao()</code></label>
+<label><input type="radio" name="q5"> O <code>@override</code></label>
+<label><input type="radio" name="q5"> O <code>extends</code></label>
+<label><input type="radio" name="q5"> Um ponto e vírgula</label>
+</div>
+
+<h3>Missão final: o bolo sob encomenda</h3>
+
+<div class="trydart" data-goal="out:Bolo de festa: R$ 80.00 (sob encomenda);;src:@override;;src:super\.descricao\(\)">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Encomenda</code> ainda se descreve como um produto comum. Sobrescreva a <code>descricao()</code> nela, com <code>@override</code>, reaproveitando a versão da mãe (<code>super.descricao()</code>) e acrescentando <code> (sob encomenda)</code> no fim. A saída deve ser <code>Bolo de festa: R$ 80.00 (sob encomenda)</code>.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Encomenda extends Produto {
+  Encomenda(super.nome, super.preco);
+
+  // sobrescreva a descricao() aqui
+}
+
+void main() {
+  final bolo = Encomenda('Bolo de festa', 80.0);
+  print(bolo.descricao());
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Encomenda extends Produto {
+  Encomenda(super.nome, super.preco);
+
+  @override
+  String descricao() =&gt; '${super.descricao()} (sob encomenda)';
+}
+
+void main() {
+  final bolo = Encomenda('Bolo de festa', 80.0);
+  print(bolo.descricao());
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial mostrou <code>Bolo de festa: R$ 80.00</code> e a solução, <code>Bolo de festa: R$ 80.00 (sob encomenda)</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Sobrescrever é escrever na subclasse um método com o <strong>mesmo nome</strong> de um herdado; a versão nova vale para os objetos da subclasse.</li>
+  <li>Marque sempre com <code>@override</code>: o programa roda igual, mas o analisador passa a pegar erros de digitação.</li>
+  <li><code>super.metodo()</code> chama a versão da mãe: a filha faz o mesmo e mais um pouco. Sem o <code>super.</code>, o método chama a si mesmo e acaba em <code>Stack Overflow</code>.</li>
+  <li>Quem decide a versão é o objeto de verdade, não o tipo da variável (polimorfismo): uma <code>List&lt;Produto&gt;</code> com bebidas e promoções se descreve sem nenhum <code>if</code>.</li>
+  <li>A versão nova mantém o tipo de retorno e não pode exigir parâmetros a mais; senão, erro de compilação com um <code>Context:</code> apontando a versão da mãe.</li>
+  <li>Sobrescreva o <code>toString()</code> para o <code>print</code> mostrar algo melhor que <code>Instance of '…'</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
