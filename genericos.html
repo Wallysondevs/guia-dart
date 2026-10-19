@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Genéricos — o que é List&lt;String&gt; e Map&lt;String, int&gt; | Guia Dart</title>
+<meta name="description" content="Genéricos no Dart para quem nunca programou: o que o &lt;T&gt; quer dizer em List&lt;String&gt;, Set&lt;int&gt; e Map&lt;String, double&gt;, a inferência de tipos, a lista vazia sem tipo (List&lt;dynamic&gt;) e o erro em tempo de execução, coleções dentro de coleções, List&lt;num&gt;, is List&lt;int&gt; e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Genéricos</span></h1>
+
+<p class="intro">Desde as aulas de <a href="list.html">listas</a> e <a href="map.html">mapas</a> você vem escrevendo coisas como <code>List&lt;String&gt;</code> e <code>Map&lt;String, int&gt;</code>. Esse pedaço entre os sinais de menor e maior, <code>&lt;String&gt;</code>, tem um nome: é um <strong>tipo genérico</strong> (ou só "genérico"; em inglês, <em>generics</em>). Ele diz <strong>o que vai dentro</strong> da coleção. Nesta aula você entende o que ele faz, por que vale a pena escrevê-lo, e o que acontece quando ele falta.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>&lt;T&gt;</code> quer dizer em <code>List&lt;String&gt;</code>, <code>Set&lt;int&gt;</code> e <code>Map&lt;String, double&gt;</code>.</li>
+  <li>Como o Dart <strong>descobre sozinho</strong> o tipo de dentro (inferência), e como ver o tipo com <code>runtimeType</code>.</li>
+  <li>Por que a lista vazia <code>[]</code> vira <code>List&lt;dynamic&gt;</code> e como isso explode só quando o programa já está rodando.</li>
+  <li>Como escrever o tipo numa coleção vazia: <code>&lt;int&gt;[]</code> e <code>&lt;String, double&gt;{}</code>.</li>
+  <li>Coleções dentro de coleções: <code>Map&lt;String, List&lt;int&gt;&gt;</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a caixa com etiqueta</h2>
+<p>No depósito da padaria há várias caixas iguais. Algumas têm etiqueta: "<strong>só ovos</strong>", "<strong>só farinha</strong>". Quem guarda as coisas não precisa pensar: farinha não entra na caixa de ovos, e quem tira um ovo da caixa de ovos sabe que vai sair um ovo. Uma caixa <strong>sem etiqueta</strong> aceita qualquer coisa, e quem enfia a mão nela nunca sabe o que vai sair.</p>
+<p>No Dart, <code>List</code> é a caixa. O genérico é a etiqueta:</p>
+<ul>
+  <li><code>List&lt;String&gt;</code> = "lista <strong>de</strong> textos". Lê-se "lista de String".</li>
+  <li><code>Set&lt;int&gt;</code> = "conjunto de inteiros".</li>
+  <li><code>Map&lt;String, double&gt;</code> = "mapa de texto para número com vírgula": as chaves são <code>String</code> e os valores são <code>double</code>.</li>
+</ul>
+<p>A mesma <code>List</code> serve para qualquer tipo de coisa; é por isso que se chama <strong>genérica</strong>. A etiqueta escolhe o tipo em cada uso, e o Dart confere a etiqueta <strong>antes</strong> de rodar o programa.</p>
+
+<hr>
+
+<h2>1. A etiqueta em ação</h2>
+
+<pre class="file" data-file="g1.dart">void main() {
+  List&lt;String&gt; compras = ['pão', 'leite'];
+  compras.add('café');
+  print(compras);
+  print(compras.runtimeType);
+
+  final notas = [7, 8.5, 10];
+  final estoque = {'pão': 30, 'bolo': 2};
+  final cores = {'azul', 'verde'};
+  print(notas.runtimeType);
+  print(estoque.runtimeType);
+  print(cores.runtimeType);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>List&lt;String&gt; compras</dt><dd>A variável <code>compras</code> é uma lista de textos. O que vai entre <code>&lt;</code> e <code>&gt;</code> é o <strong>argumento de tipo</strong>.</dd>
+  <dt>compras.add('café')</dt><dd>Como a lista é de <code>String</code>, o <code>add</code> só aceita <code>String</code>.</dd>
+  <dt>.runtimeType</dt><dd>O tipo de verdade do objeto, enquanto o programa roda (<em>runtime</em> = "hora de rodar").</dd>
+  <dt>final notas = [7, 8.5, 10];</dt><dd>Sem etiqueta escrita: o Dart olha os valores e <strong>descobre</strong> o tipo sozinho. Isso se chama <strong>inferência de tipo</strong>.</dd>
+</dl>
+
+<pre class="term">$ dart run g1.dart
+[pão, leite, café]
+List&lt;String&gt;
+List&lt;num&gt;
+_Map&lt;String, int&gt;
+_Set&lt;String&gt;
+</pre>
+
+<ul>
+  <li><code>notas</code> tem <code>int</code> (7, 10) e <code>double</code> (8.5). O tipo que serve para os dois é <code>num</code> (veja <a href="int-double.html">int e double</a>), e o Dart escolheu <code>List&lt;num&gt;</code>.</li>
+  <li><code>estoque</code> virou <code>Map&lt;String, int&gt;</code>: chaves de texto, valores inteiros. O <code>_</code> antes de <code>Map</code> e <code>Set</code> é o nome da versão interna do Dart: para você, é um <code>Map&lt;String, int&gt;</code> e um <code>Set&lt;String&gt;</code>.</li>
+</ul>
+
+<p>Com a etiqueta, o Dart <strong>barra</strong> o que não combina antes de o programa rodar:</p>
+
+<pre class="file" data-file="g2.dart">void main() {
+  List&lt;String&gt; compras = ['pão', 'leite'];
+  compras.add(3);
+  print(compras);
+}
+</pre>
+
+<pre class="term">$ dart run g2.dart
+g2.dart:3:15: Error: The argument type 'int' can't be assigned to the parameter type 'String'.
+  compras.add(3);
+              ^
+</pre>
+
+<p>"O argumento do tipo <code>int</code> não pode ser passado onde se espera <code>String</code>". O <code>add</code> de uma <code>List&lt;String&gt;</code> só aceita <code>String</code>. Repare que nem o <code>print</code> rodou: é erro de <strong>compilação</strong>. A mesma mensagem aparece com <code>final compras = ['pão', 'leite'];</code>, sem etiqueta escrita: a inferência já deu a ela o tipo <code>List&lt;String&gt;</code>.</p>
+
+<hr>
+
+<h2>2. A caixa sem etiqueta: <code>List&lt;dynamic&gt;</code></h2>
+<p>O problema aparece quando a lista começa <strong>vazia</strong>. Sem nenhum valor para olhar, o Dart não tem como adivinhar o tipo, e usa <code>dynamic</code> ("qualquer coisa"; veja <a href="dynamic-object.html">dynamic e Object</a>):</p>
+
+<pre class="file" data-file="g3.dart">void main() {
+  final notas = [];
+  notas.add(7);
+  notas.add(9);
+  notas.add('dez');
+  print(notas);
+  print(notas.runtimeType);
+  num soma = 0;
+  for (final n in notas) {
+    soma += n;
+  }
+  print('Soma: $soma');
+}
+</pre>
+
+<pre class="term">$ dart run g3.dart
+[7, 9, dez]
+List&lt;dynamic&gt;
+Unhandled exception:
+type 'String' is not a subtype of type 'num'
+#0      main (file:///home/ana/g3.dart:10:13)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>[7, 9, dez] e List&lt;dynamic&gt;</dt><dd>A caixa sem etiqueta aceitou o texto <code>'dez'</code> sem reclamar. O Dart não pôde conferir nada antes de rodar.</dd>
+  <dt>Unhandled exception: type 'String' is not a subtype of type 'num'</dt><dd>"O tipo <code>String</code> não é um subtipo de <code>num</code>": na terceira volta do <code>for</code>, o <code>n</code> era <code>'dez'</code>, e um texto não pode ser somado a um número. O problema só apareceu <strong>no meio</strong> da execução (veja <a href="excecoes.html">Exceções</a>).</dd>
+  <dt>main (file:///home/ana/g3.dart:10:13)</dt><dd>Linha 10, a do <code>soma += n</code>. Mas o engano de verdade foi lá na linha 5, quando o texto entrou na lista.</dd>
+</dl>
+
+<p>Agora com a etiqueta. Numa coleção vazia, ela vai <strong>antes</strong> dos colchetes:</p>
+
+<pre class="file" data-file="g9.dart">void main() {
+  final notas = &lt;int&gt;[];
+  notas.add(7);
+  notas.add(9);
+  notas.add('dez');
+  print(notas);
+}
+</pre>
+
+<pre class="term">$ dart run g9.dart
+g9.dart:5:13: Error: The argument type 'String' can't be assigned to the parameter type 'int'.
+  notas.add('dez');
+            ^
+</pre>
+
+<p>O mesmo engano, agora apontado <strong>na linha certa</strong> (a 5) e <strong>antes</strong> de o programa rodar. É essa a vantagem dos genéricos: o erro sai mais cedo e no lugar certo.</p>
+
+<div class="tip">
+<strong>Regra prática</strong>
+<p>Coleção com valores dentro: deixe o Dart inferir (<code>final compras = ['pão', 'leite'];</code>). Coleção que começa <strong>vazia</strong>: sempre escreva a etiqueta (<code>&lt;int&gt;[]</code>, <code>&lt;String&gt;{}</code>, <code>&lt;String, double&gt;{}</code>) ou o tipo da variável (<code>final List&lt;int&gt; notas = [];</code>). O guia de estilo do Dart (Effective Dart) recomenda o mesmo.</p>
+</div>
+
+<div class="trydart" data-goal="src:&lt;int&gt;\[\];;semerro;;out:Soma: 24">
+<p class="try-task"><strong>Missão:</strong> este programa morre no meio por causa do <code>'oito'</code>. Troque o <code>[]</code> por <code>&lt;int&gt;[]</code> e rode: agora o Dart aponta o problema antes de rodar. Conserte a linha apontada (a nota é <code>8</code>) até aparecer <code>Soma: 24</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [];
+  notas.add(7);
+  notas.add(9);
+  notas.add('oito');
+  num soma = 0;
+  for (final n in notas) {
+    soma += n;
+  }
+  print('Soma: $soma');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = &lt;int&gt;[];
+  notas.add(7);
+  notas.add(9);
+  notas.add(8);
+  num soma = 0;
+  for (final n in notas) {
+    soma += n;
+  }
+  print('Soma: $soma');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Coleções dentro de coleções</h2>
+<p>O argumento de tipo pode ser outro genérico. A professora guarda, para cada aluna, a lista das notas: um mapa de <code>String</code> para <code>List&lt;int&gt;</code>:</p>
+
+<pre class="file" data-file="g4.dart">void main() {
+  final notas = &lt;int&gt;[];
+  notas.add(7);
+  notas.add(9);
+  final precos = &lt;String, double&gt;{};
+  precos['pão'] = 0.75;
+  precos['café'] = 18.9;
+  print(notas.runtimeType);
+  print(precos.runtimeType);
+  print(precos);
+  final turma = &lt;String, List&lt;int&gt;&gt;{
+    'Ana': [8, 9],
+    'Bia': [7, 10, 6],
+  };
+  for (final MapEntry(:key, :value) in turma.entries) {
+    print('$key: $value');
+  }
+  turma['Ana']!.add(10);
+  print(turma['Ana']);
+}
+</pre>
+
+<pre class="term">$ dart run g4.dart
+List&lt;int&gt;
+_Map&lt;String, double&gt;
+{pão: 0.75, café: 18.9}
+Ana: [8, 9]
+Bia: [7, 10, 6]
+[8, 9, 10]
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;String, double&gt;{}</dt><dd>Um mapa vazio com etiqueta: chaves <code>String</code>, valores <code>double</code>. Num <code>Map</code> vão <strong>dois</strong> tipos, separados por vírgula.</dd>
+  <dt>&lt;String, List&lt;int&gt;&gt;{ … }</dt><dd>Chave <code>String</code>; valor <code>List&lt;int&gt;</code>. Leia de fora para dentro: "mapa de texto para lista de inteiros". Os <code>&gt;&gt;</code> no fim fecham os dois genéricos.</dd>
+  <dt>for (final MapEntry(:key, :value) in turma.entries)</dt><dd>Percorre o mapa desmontando cada par em <code>key</code> e <code>value</code> (veja <a href="map-metodos.html">Percorrendo Mapas</a>).</dd>
+  <dt>turma['Ana']!.add(10)</dt><dd><code>turma['Ana']</code> é <code>List&lt;int&gt;?</code> (pode não existir a chave); o <code>!</code> garante que existe (veja <a href="late.html">late e o Operador !</a>). Como o Dart sabe que é uma <code>List&lt;int&gt;</code>, o <code>add</code> só aceita <code>int</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Outros lugares onde o <code>&lt;T&gt;</code> aparece</h2>
+
+<pre class="file" data-file="g7.dart">void main() {
+  final List&lt;num&gt; valores = [3, 2.5];
+  valores.add(10);
+  print(valores);
+  final zeros = List&lt;int&gt;.filled(3, 0);
+  print(zeros);
+  final rotulos = [1, 2, 3].map&lt;String&gt;((n) =&gt; 'Item $n').toList();
+  print(rotulos);
+  print(rotulos.runtimeType);
+  Object qualquer = [1, 2];
+  print(qualquer is List&lt;int&gt;);
+  print(qualquer is List&lt;String&gt;);
+}
+</pre>
+
+<pre class="term">$ dart run g7.dart
+[3, 2.5, 10]
+[0, 0, 0]
+[Item 1, Item 2, Item 3]
+List&lt;String&gt;
+true
+false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que o genérico faz</th></tr>
+<tr><td><code>List&lt;num&gt;</code></td><td>Aceita <code>int</code> e <code>double</code> juntos (os dois são <code>num</code>)</td></tr>
+<tr><td><code>List&lt;int&gt;.filled(3, 0)</code></td><td>O genérico vai também no construtor: uma lista de 3 inteiros, todos 0</td></tr>
+<tr><td><code>.map&lt;String&gt;(…)</code></td><td>Uma <strong>função</strong> genérica: você diz o tipo do resultado (veja <a href="iterables.html">map, where, reduce</a>). Quase sempre o Dart infere sozinho</td></tr>
+<tr><td><code>qualquer is List&lt;int&gt;</code></td><td>O Dart guarda a etiqueta enquanto roda: dá para perguntar o tipo de dentro (veja <a href="operadores-tipo.html">is, is! e as</a>)</td></tr>
+</table>
+</div>
+
+<p>Na próxima aula, <a href="genericos-classes.html">Classes e Funções Genéricas</a>, você escreve as suas próprias "caixas com etiqueta".</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Uma lista de notas vazia, com o tipo certo, pode ser escrita de três jeitos. Os três dão <code>List&lt;int&gt;</code>:</p>
+
+<pre class="file" data-file="formas.dart">final notas1 = &lt;int&gt;[];        // etiqueta na lista
+final List&lt;int&gt; notas2 = [];   // tipo na variável
+List&lt;int&gt; notas3 = [];         // tipo na variável, sem final (pode trocar a lista inteira)
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Coleção com valores dentro</td><td>Deixe inferir: <code>final compras = ['pão', 'leite'];</code></td></tr>
+<tr><td>Coleção vazia numa variável local</td><td><code>final notas = &lt;int&gt;[];</code> ou <code>&lt;String, double&gt;{}</code></td></tr>
+<tr><td>Parâmetro de função, campo de classe, retorno</td><td>Sempre o tipo completo: <code>int somar(List&lt;int&gt; numeros)</code></td></tr>
+<tr><td>Valores de tipos diferentes de verdade</td><td>O tipo comum: <code>List&lt;num&gt;</code>, <code>List&lt;Object&gt;</code>; evite <code>dynamic</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Um valor do tipo errado na lista</strong>
+<pre class="file" data-file="g5.dart">void main() {
+  List&lt;int&gt; notas = [8, 'nove', 10];
+  print(notas);
+}
+</pre>
+<pre class="term">$ dart run g5.dart
+g5.dart:2:25: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  List&lt;int&gt; notas = [8, 'nove', 10];
+                        ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ir onde se espera <code>int</code>". O <code>^</code> aponta exatamente o intruso, <code>'nove'</code>. <strong>Como consertar:</strong> <code>[8, 9, 10]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Faltou um tipo no <code>Map</code></strong>
+<pre class="file" data-file="g6.dart">void main() {
+  Map&lt;String&gt; precos = {'pão': 0.75};
+  print(precos);
+}
+</pre>
+<pre class="term">$ dart run g6.dart
+g6.dart:2:3: Error: Expected 2 type arguments.
+  Map&lt;String&gt; precos = {'pão': 0.75};
+  ^^^
+</pre>
+<p>"Eram esperados 2 argumentos de tipo". O <code>Map</code> precisa do tipo da chave <strong>e</strong> do tipo do valor. <strong>Como consertar:</strong> <code>Map&lt;String, double&gt;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Parâmetro <code>List</code> sem etiqueta</strong>
+<pre class="file" data-file="m2.dart">int somar(List numeros) {
+  var total = 0;
+  for (final n in numeros) {
+    total += n;
+  }
+  return total;
+}
+
+void main() {
+  final vendas = [12, 30, 15];
+  print('Total do dia: ${somar(vendas)}');
+}
+</pre>
+<pre class="term">$ dart run m2.dart
+m2.dart:4:11: Error: A value of type 'num' can't be assigned to a variable of type 'int'.
+    total += n;
+          ^
+</pre>
+<p><code>List</code> sozinho é <code>List&lt;dynamic&gt;</code>: o <code>n</code> pode ser qualquer coisa, e o Dart não garante que <code>total + n</code> dê um <code>int</code> ("um valor do tipo <code>num</code> não pode ir numa variável <code>int</code>"). A lista <code>vendas</code> era de <code>int</code>, mas a função não sabia. <strong>Como consertar:</strong> é a missão final.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Lê-se</th></tr>
+<tr><td><code>List&lt;String&gt;</code></td><td>lista de textos</td></tr>
+<tr><td><code>Set&lt;int&gt;</code></td><td>conjunto de inteiros</td></tr>
+<tr><td><code>Map&lt;String, double&gt;</code></td><td>mapa de texto para <code>double</code></td></tr>
+<tr><td><code>Map&lt;String, List&lt;int&gt;&gt;</code></td><td>mapa de texto para lista de inteiros</td></tr>
+<tr><td><code>&lt;int&gt;[]</code>, <code>&lt;String&gt;{}</code>, <code>&lt;String, int&gt;{}</code></td><td>lista, conjunto e mapa vazios, com etiqueta</td></tr>
+<tr><td><code>[]</code>, <code>List</code> sem etiqueta</td><td><code>List&lt;dynamic&gt;</code>: aceita tudo, erros só ao rodar</td></tr>
+<tr><td><code>colecao.runtimeType</code></td><td>mostra o tipo, com a etiqueta</td></tr>
+<tr><td><code>x is List&lt;int&gt;</code></td><td>pergunta se é uma lista de inteiros</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A etiqueta</h3>
+<p>Complete para criar um mapa vazio de nome do produto para quantidade:</p>
+<div class="ex-code">final estoque = &lt;<input data-answer="String" aria-label="tipo da chave">, <input data-answer="int" aria-label="tipo do valor">&gt;{};</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que o Dart inferiu?</h3>
+<p>Qual é o <code>runtimeType</code> de <code>[7, 8.5, 10]</code>?</p>
+<div class="ex-code"><input data-answer="List&lt;num&gt;" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>final itens = [];</code> e depois <code>itens.add('pão'); itens.add(3);</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> Erro de compilação no <code>add(3)</code></label>
+<label><input type="radio" name="q3"> Erro de compilação na primeira linha</label>
+<label><input type="radio" name="q3"> Compila: a lista é <code>List&lt;dynamic&gt;</code> e aceita os dois</label>
+<label><input type="radio" name="q3"> A lista vira <code>List&lt;String&gt;</code> e o 3 vira <code>'3'</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que escrever <code>&lt;int&gt;[]</code> em vez de <code>[]</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>[]</code> não compila</label>
+<label><input type="radio" name="q4"> Para o Dart barrar valores errados antes de rodar, apontando a linha certa</label>
+<label><input type="radio" name="q4"> Para a lista ficar mais rápida</label>
+<label><input type="radio" name="q4"> Porque <code>[]</code> só aceita textos</label>
+</div>
+
+<h3>Missão final: o total do dia</h3>
+
+<div class="trydart" data-goal="out:Total do dia: 57;;src:List&lt;int&gt;\s+numeros;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o programa do último "Quando dá errado": não compila porque o parâmetro <code>numeros</code> é uma <code>List</code> sem etiqueta. Dê a ele o tipo <code>List&lt;int&gt;</code> até aparecer <code>Total do dia: 57</code>.</p>
+<pre class="script" data-file="main.dart">int somar(List numeros) {
+  var total = 0;
+  for (final n in numeros) {
+    total += n;
+  }
+  return total;
+}
+
+void main() {
+  final vendas = [12, 30, 15];
+  print('Total do dia: ${somar(vendas)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int somar(List&lt;int&gt; numeros) {
+  var total = 0;
+  for (final n in numeros) {
+    total += n;
+  }
+  return total;
+}
+
+void main() {
+  final vendas = [12, 30, 15];
+  print('Total do dia: ${somar(vendas)}');
+}
+</pre>
+</div>
+
+<p>No lab, depois da troca, saiu <code>Total do dia: 57</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>&lt;T&gt;</code> é a etiqueta da coleção: <code>List&lt;String&gt;</code> é "lista de textos"; <code>Map&lt;K, V&gt;</code> tem dois tipos, o da chave e o do valor.</li>
+  <li>Com valores dentro, o Dart infere a etiqueta (<code>[7, 8.5, 10]</code> vira <code>List&lt;num&gt;</code>). <code>runtimeType</code> mostra o tipo.</li>
+  <li>Coleção vazia sem etiqueta vira <code>List&lt;dynamic&gt;</code>: aceita tudo, e o erro só aparece ao rodar, longe do engano. Escreva <code>&lt;int&gt;[]</code>.</li>
+  <li>Com a etiqueta, o Dart barra o tipo errado antes de rodar, apontando a linha.</li>
+  <li>Genéricos se encaixam: <code>Map&lt;String, List&lt;int&gt;&gt;</code>. Também aparecem em construtores (<code>List&lt;int&gt;.filled</code>) e funções (<code>map&lt;String&gt;</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
