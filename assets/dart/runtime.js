@@ -1210,7 +1210,7 @@
     var naoTratado = null;
     function erroNaoTratado(e) { if (e instanceof Sinal) { if (ctx.aoSinal) ctx.aoSinal(e); return; } if (ctx.aoErro) ctx.aoErro(e, true); }
     R.erroNaoTratado = erroNaoTratado;
-    R.aguardar = function (v) { return v; };
+    R.aguardar = function (v, f, p) { if (f) { f.async = true; f.p = p; } return v; };
     R.retomou = function (f, v) { if (f) f.async = true; return v; };
     R.futuro = function (p, t) { p.$t = t; return p; };
 

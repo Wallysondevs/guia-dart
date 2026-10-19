@@ -1,0 +1,10 @@
+pão: 30
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque (file:///home/ana/async_cadeia.dart:4:5)
+<asynchronous suspension>
+#1      verificar (file:///home/ana/async_cadeia.dart:10:13)
+<asynchronous suspension>
+#2      main (file:///home/ana/async_cadeia.dart:16:3)
+<asynchronous suspension>
+[exit 255]

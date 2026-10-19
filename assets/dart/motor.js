@@ -2440,7 +2440,7 @@
       case "Cond": this.checarBool(e.cond, esc); return "($R.cond(" + this.expr(e.cond, esc) + ") ? " + this.expr(e.a, filho(esc, this.promCond(e.cond, true))) + " : " + this.expr(e.b, filho(esc, this.promCond(e.cond, false))) + ")";
       case "NotNull": return "$R.nc(" + this.expr(e.valor, esc) + ", " + e.pOp + ")";
       case "Throw": return "$R.lancar(" + this.expr(e.valor, esc) + ", " + e.p + ")";
-      case "Await": return "$R.retomou($f, await $R.aguardar(" + this.expr(e.valor, esc) + "))";
+      case "Await": return "$R.retomou($f, await $R.aguardar(" + this.expr(e.valor, esc) + ", $f, " + e.p + "))";
       case "Get": return this.get(e, esc);
       case "Index": {
         var a = this.expr(e.alvo, esc), i = this.expr(e.indice, esc);
