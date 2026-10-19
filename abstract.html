@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Classes Abstratas — o molde que não vira objeto | Guia Dart</title>
+<meta name="description" content="Classes abstratas no Dart para quem nunca programou: abstract class, métodos e getters abstratos (sem corpo), métodos prontos que usam os abstratos, as formas de pagamento da lojinha (Pix, cartão, boleto), e os erros reais do Dart 3.13 (classe abstrata não pode ser instanciada, faltou implementar, UnimplementedError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Classes Abstratas</span></h1>
+
+<p class="intro">No caixa da lojinha, a Ana aceita Pix, cartão e boleto. Toda forma de pagamento tem um <strong>valor</strong> e uma <strong>taxa</strong>, e o total é sempre "valor + taxa". Só que <strong>cada uma calcula a taxa de um jeito</strong>, e não existe um "pagamento genérico" que alguém faça no balcão: ou é Pix, ou é cartão, ou é boleto. Para descrever esse "modelo que não existe sozinho", o Dart tem a <strong>classe abstrata</strong>: <code>abstract class</code> (em inglês, <em>abstract</em> = "abstrato", uma ideia, não uma coisa concreta).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma classe abstrata e por que ela não vira objeto.</li>
+  <li>O que é um <strong>método abstrato</strong> (só a assinatura, sem corpo) e um <strong>getter abstrato</strong>.</li>
+  <li>Como uma classe abstrata pode ter campos, construtor e métodos prontos que usam os abstratos.</li>
+  <li>Como as subclasses completam o que falta, com <code>extends</code> e <code>@override</code>.</li>
+  <li>Os erros reais: tentar criar o objeto abstrato, esquecer um método, esquecer o <code>abstract</code> e o <code>UnimplementedError</code> durante a execução.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Antes, convém ter feito <a href="heranca.html">Herança</a> e <a href="override.html">Sobrescrevendo (@override)</a>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário com campos em branco</h2>
+<p>Pense num formulário impresso de "Forma de pagamento". Ele já traz pronto o cabeçalho, a linha "Valor: ____" e a conta "Total = valor + taxa". Mas a linha "Como calcular a taxa: ____" está <strong>em branco</strong>: quem preenche é o setor do Pix, o do cartão, o do boleto. Ninguém entrega ao cliente o formulário em branco; entrega uma das versões preenchidas.</p>
+<ul>
+  <li>O formulário com a linha em branco é a <strong>classe abstrata</strong>.</li>
+  <li>A linha em branco é o <strong>método abstrato</strong>: tem nome, mas não tem conteúdo.</li>
+  <li>Cada versão preenchida é uma <strong>subclasse concreta</strong> (concreta = que dá para criar objeto).</li>
+</ul>
+
+<hr>
+
+<h2>1. A primeira classe abstrata</h2>
+
+<pre class="file" data-file="pagamentos.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+}
+
+class Pix extends Pagamento {
+  Pix(super.valor);
+
+  @override
+  double taxa() =&gt; 0;
+}
+
+class Cartao extends Pagamento {
+  Cartao(super.valor);
+
+  @override
+  double taxa() =&gt; valor * 0.03;
+}
+
+void main() {
+  final compras = &lt;Pagamento&gt;[Pix(50), Cartao(50)];
+  for (final p in compras) {
+    print('Total: R\$ ${p.total().toStringAsFixed(2)}');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>abstract class Pagamento</dt><dd>A palavra <code>abstract</code> antes de <code>class</code> diz: "esta classe é um molde; ninguém cria um <code>Pagamento</code> puro".</dd>
+  <dt>double valor; e Pagamento(this.valor);</dt><dd>Uma classe abstrata pode ter campos e construtor, como qualquer classe. O construtor existe para as <strong>filhas</strong> chamarem (com <code>super.valor</code>).</dd>
+  <dt>double taxa();</dt><dd>Um <strong>método abstrato</strong>: tem tipo de retorno, nome e parênteses, e termina em <code>;</code>, <strong>sem corpo</strong> (sem <code>{ }</code> nem <code>=&gt;</code>). É a linha em branco do formulário. Repare que não se escreve <code>abstract</code> antes do método: o ponto e vírgula já diz tudo.</dd>
+  <dt>double total() =&gt; valor + taxa();</dt><dd>Um método <strong>pronto</strong>, que usa o abstrato. A mãe não sabe calcular a taxa, mas sabe que, seja qual for, o total é <code>valor + taxa()</code>.</dd>
+  <dt>class Pix extends Pagamento … @override double taxa() =&gt; 0;</dt><dd>A subclasse preenche a linha em branco. O <code>@override</code> é o mesmo da aula <a href="override.html">Sobrescrevendo</a>: aqui a filha "sobrescreve" um método que, na mãe, não tinha corpo.</dd>
+  <dt>&lt;Pagamento&gt;[Pix(50), Cartao(50)]</dt><dd>Uma lista do tipo <code>Pagamento</code> (o tipo abstrato pode ser usado em variáveis e listas), com objetos concretos dentro.</dd>
+</dl>
+
+<pre class="term">$ dart run pagamentos.dart
+Total: R$ 50.00
+Total: R$ 51.50
+</pre>
+
+<p>O método <code>total()</code> foi escrito <strong>uma vez só</strong>, na mãe. Quando ele chamou <code>taxa()</code>, o Dart usou a versão do objeto de verdade: 0 para o Pix, 3% de 50 (R$ 1,50) para o cartão.</p>
+
+<hr>
+
+<h2>2. Getters abstratos e um método que usa tudo</h2>
+<p>Além de métodos, a classe abstrata pode exigir <strong>getters</strong> (veja <a href="getters-setters.html">get e set</a>): cada forma de pagamento tem de dizer o seu nome. E a mãe pode trazer um método maior, que monta o recibo inteiro:</p>
+
+<pre class="file" data-file="recibo.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  String get nome;
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+
+  void recibo() {
+    print('$nome: R\$ ${valor.toStringAsFixed(2)} + taxa '
+        'R\$ ${taxa().toStringAsFixed(2)} = R\$ ${total().toStringAsFixed(2)}');
+  }
+}
+
+class Pix extends Pagamento {
+  Pix(super.valor);
+
+  @override
+  String get nome =&gt; 'Pix';
+
+  @override
+  double taxa() =&gt; 0;
+}
+
+class Cartao extends Pagamento {
+  Cartao(super.valor);
+
+  @override
+  String get nome =&gt; 'Cartão';
+
+  @override
+  double taxa() =&gt; valor * 0.03;
+}
+
+class Boleto extends Pagamento {
+  Boleto(super.valor);
+
+  @override
+  String get nome =&gt; 'Boleto';
+
+  @override
+  double taxa() =&gt; 2.5;
+}
+
+void main() {
+  final compras = &lt;Pagamento&gt;[Pix(50), Cartao(50), Boleto(50)];
+  for (final p in compras) {
+    p.recibo();
+  }
+}
+</pre>
+
+<pre class="term">$ dart run recibo.dart
+Pix: R$ 50.00 + taxa R$ 0.00 = R$ 50.00
+Cartão: R$ 50.00 + taxa R$ 1.50 = R$ 51.50
+Boleto: R$ 50.00 + taxa R$ 2.50 = R$ 52.50
+</pre>
+
+<dl class="anatomy">
+  <dt>String get nome;</dt><dd>Um getter abstrato: "toda forma de pagamento tem um <code>nome</code>, cada uma diz o seu". Também termina em <code>;</code>.</dd>
+  <dt>void recibo() { … }</dt><dd>O formato do recibo está num lugar só. As filhas só informam o que muda (nome e taxa), e todas imprimem no mesmo padrão.</dd>
+  <dt>print('…' '…')</dt><dd>Dois textos lado a lado, sem nada no meio, viram um texto só. É um jeito de quebrar uma linha comprida (veja <a href="strings.html">Strings</a>).</dd>
+</dl>
+
+<div class="tip">
+<strong>Quem chama não precisa saber qual é a forma de pagamento</strong>
+<p>O <code>main</code> só conhece <code>Pagamento</code>: chama <code>p.recibo()</code> e pronto. Para aceitar vale-refeição amanhã, a Ana cria uma classe nova com <code>nome</code> e <code>taxa()</code>, e o resto do programa continua igual. É o que você vai fazer na missão final.</p>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> mude a taxa do cartão para 5% (<code>valor * 0.05</code>) e o valor das compras para 120. Depois, tente criar um <code>Pagamento(50)</code> direto na lista e leia o erro.</p>
+<pre class="script" data-file="main.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  String get nome;
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+
+  void recibo() {
+    print('$nome: R\$ ${valor.toStringAsFixed(2)} + taxa '
+        'R\$ ${taxa().toStringAsFixed(2)} = R\$ ${total().toStringAsFixed(2)}');
+  }
+}
+
+class Pix extends Pagamento {
+  Pix(super.valor);
+
+  @override
+  String get nome =&gt; 'Pix';
+
+  @override
+  double taxa() =&gt; 0;
+}
+
+class Cartao extends Pagamento {
+  Cartao(super.valor);
+
+  @override
+  String get nome =&gt; 'Cartão';
+
+  @override
+  double taxa() =&gt; valor * 0.03;
+}
+
+void main() {
+  final compras = &lt;Pagamento&gt;[Pix(50), Cartao(50)];
+  for (final p in compras) {
+    p.recibo();
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O tipo abstrato na variável</h2>
+<p>Você não pode <strong>criar</strong> um <code>Pagamento</code>, mas pode <strong>guardar</strong> um objeto concreto numa variável do tipo <code>Pagamento</code>:</p>
+
+<pre class="file" data-file="lista_tipo.dart">// (Pagamento e Pix como na seção 1)
+void main() {
+  Pagamento p = Pix(30);
+  print(p.taxa());
+  print(p is Pagamento);
+  print(p.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run lista_tipo.dart
+0.0
+true
+Pix
+</pre>
+
+<p>A variável diz "aqui cabe qualquer pagamento"; o objeto dentro dela é um <code>Pix</code>, como mostra o <code>runtimeType</code> ("tipo durante a execução"). E a taxa saiu <code>0.0</code>, não <code>0</code>: o método promete devolver <code>double</code>, então o <code>0</code> do Pix virou número com casa decimal.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Uma alternativa seria uma classe comum com uma taxa "de mentira" (<code>double taxa() =&gt; 0;</code>) e subclasses sobrescrevendo. Funciona, mas o Dart não reclama se alguém esquecer de sobrescrever, e o programa calcula taxa errada sem avisar. Com o método abstrato, esquecer vira <strong>erro de compilação</strong> (veja abaixo). Outra alternativa é uma <strong>interface</strong>, que exige os métodos mas não traz nada pronto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um modelo com partes prontas (campos, <code>total()</code>, <code>recibo()</code>) e partes que cada filha <strong>tem de</strong> preencher</td><td><code>abstract class</code> com métodos abstratos (esta aula)</td></tr>
+<tr><td>A mãe tem um comportamento padrão razoável e só algumas filhas mudam</td><td>Classe comum + <code>@override</code> (aula <a href="override.html">Sobrescrevendo</a>)</td></tr>
+<tr><td>Só uma lista de métodos que a classe promete ter, sem nada pronto</td><td><code>implements</code> (aula <a href="interfaces.html">Interfaces</a>)</td></tr>
+<tr><td>Um conjunto <strong>fechado</strong> de filhas, para o <code>switch</code> conferir se cobriu todas</td><td><code>sealed class</code> (aula <a href="modificadores-classe.html">sealed, final, base e interface</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou criar um objeto da classe abstrata</strong>
+<pre class="file" data-file="erro_instanciar.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  double taxa();
+}
+
+void main() {
+  final p = Pagamento(50);
+  print(p.taxa());
+}
+</pre>
+<pre class="term">$ dart run erro_instanciar.dart
+erro_instanciar.dart:10:13: Error: The class 'Pagamento' is abstract and can't be instantiated.
+  final p = Pagamento(50);
+            ^^^^^^^^^
+</pre>
+<p>Linha por linha: <code>erro_instanciar.dart:10:13</code> é o arquivo, a linha 10 e a coluna 13; <code>Error:</code> é erro de compilação (código de saída 254, nada rodou). "A classe <code>Pagamento</code> é abstrata e não pode ser <strong>instanciada</strong>" (instanciar = criar um objeto, uma "instância", da classe). Os <code>^^^^^^^^^</code> sublinham o nome. Se fosse possível, quanto daria <code>p.taxa()</code>? Não há resposta: é a linha em branco. <strong>Como consertar:</strong> crie uma forma concreta: <code>Pix(50)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A subclasse esqueceu um método abstrato</strong>
+<pre class="file" data-file="erro_faltou.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  String get nome;
+  double taxa();
+}
+
+class Boleto extends Pagamento {
+  Boleto(super.valor);
+
+  @override
+  String get nome =&gt; 'Boleto';
+}
+
+void main() {
+  print(Boleto(50).nome);
+}
+</pre>
+<pre class="term">$ dart run erro_faltou.dart
+erro_faltou.dart:10:7: Error: The non-abstract class 'Boleto' is missing implementations for these members:
+ - Pagamento.taxa
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Boleto extends Pagamento {
+      ^^^^^^
+erro_faltou.dart:7:10: Context: 'Pagamento.taxa' is defined here.
+  double taxa();
+         ^^^^
+</pre>
+<p>Esta mensagem é comprida, mas é uma lista de compras:</p>
+<ul>
+  <li>"A classe não abstrata <code>Boleto</code> está sem implementação para estes membros:" e logo abaixo, com tracinho, <code>Pagamento.taxa</code>: o que faltou. Se faltassem dois, apareceriam dois tracinhos.</li>
+  <li>"Tente uma destas:" fornecer uma implementação (escrever o método), herdá-la de uma superclasse ou mixin, marcar a classe como abstrata, ou fornecer um <code>noSuchMethod</code> (um recurso avançado; ignore).</li>
+  <li><code>Context:</code> aponta onde a linha em branco foi declarada: linha 7, na mãe.</li>
+</ul>
+<p>É exatamente a proteção que a classe abstrata dá: nenhum boleto sai sem taxa. <strong>Como consertar:</strong> acrescente <code>@override double taxa() =&gt; 2.5;</code> no <code>Boleto</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>abstract</code> da classe</strong>
+<pre class="file" data-file="erro_semabstract.dart">class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  double taxa();
+}
+
+void main() {
+  print('oi');
+}
+</pre>
+<pre class="term">$ dart run erro_semabstract.dart
+erro_semabstract.dart:1:7: Error: The non-abstract class 'Pagamento' is missing implementations for these members:
+ - Pagamento.taxa
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Pagamento {
+      ^^^^^^^^^
+erro_semabstract.dart:6:10: Context: 'Pagamento.taxa' is defined here.
+  double taxa();
+         ^^^^
+</pre>
+<p>A mesma mensagem, agora sobre a própria <code>Pagamento</code>: uma classe comum não pode ter método sem corpo. Nem o <code>print('oi')</code> rodou. <strong>Como consertar:</strong> a terceira sugestão da lista, "mark the class as abstract": <code>abstract class Pagamento</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O método "provisório" que lança <code>UnimplementedError</code> (exceção durante a execução)</strong>
+<p>Os editores de código (VS Code, Android Studio) têm um atalho que escreve sozinho os métodos que faltam. Eles saem assim, com um corpo provisório:</p>
+<pre class="file" data-file="erro_unimplemented.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+}
+
+class Pix extends Pagamento {
+  Pix(super.valor);
+
+  @override
+  double taxa() =&gt; 0;
+}
+
+class Cheque extends Pagamento {
+  Cheque(super.valor);
+
+  @override
+  double taxa() {
+    // TODO: implement taxa
+    throw UnimplementedError();
+  }
+}
+
+void main() {
+  final compras = &lt;Pagamento&gt;[Pix(50), Cheque(80)];
+  for (final p in compras) {
+    print('Total: R\$ ${p.total().toStringAsFixed(2)}');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_unimplemented.dart
+Total: R$ 50.00
+Unhandled exception:
+UnimplementedError
+#0      Cheque.taxa (file:///home/ana/erro_unimplemented.dart:24:5)
+#1      Pagamento.total (file:///home/ana/erro_unimplemented.dart:8:29)
+#2      main (file:///home/ana/erro_unimplemented.dart:31:27)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O compilador ficou satisfeito (o método existe), e o Pix até foi cobrado. No cheque, o <code>throw UnimplementedError()</code> ("erro: não implementado") disparou:</p>
+<ul>
+  <li><code>Unhandled exception:</code> e o nome da exceção, <code>UnimplementedError</code>. Código de saída 255.</li>
+  <li>O stack trace agora tem <strong>três</strong> linhas do seu código, de dentro para fora: <code>#0</code> onde a exceção nasceu (<code>Cheque.taxa</code>, linha 24); <code>#1</code> quem chamou a <code>taxa()</code> (<code>Pagamento.total</code>, linha 8); <code>#2</code> quem chamou o <code>total()</code> (<code>main</code>, linha 31). Leia de cima para baixo: "deu erro aqui, que foi chamado por ali, que foi chamado por lá".</li>
+</ul>
+<p><strong>Como consertar:</strong> troque o corpo provisório pela conta de verdade. O comentário <code>// TODO</code> ("a fazer") é o lembrete; procure por ele antes de entregar o programa. (<code>throw</code> tem aula própria: <a href="throw.html">Lançando Exceções</a>.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>abstract class Pagamento { … }</code></td><td>Classe molde: não pode ser instanciada; pode ter campos, construtor e métodos prontos</td></tr>
+<tr><td><code>double taxa();</code></td><td>Método abstrato: sem corpo; toda subclasse concreta tem de implementar</td></tr>
+<tr><td><code>String get nome;</code></td><td>Getter abstrato</td></tr>
+<tr><td><code>class Pix extends Pagamento { @override double taxa() =&gt; 0; }</code></td><td>Subclasse concreta que preenche o que faltava</td></tr>
+<tr><td><code>Pagamento p = Pix(30);</code></td><td>O tipo abstrato serve em variáveis, parâmetros e listas</td></tr>
+<tr><td><code>throw UnimplementedError();</code></td><td>Corpo provisório; vira exceção se for chamado</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The class 'X' is abstract and can't be instantiated.</code></td><td>Tentou criar um objeto da classe abstrata</td></tr>
+<tr><td><code>The non-abstract class 'X' is missing implementations for these members:</code></td><td>A subclasse esqueceu um método abstrato, ou a classe com método sem corpo não é <code>abstract</code></td></tr>
+<tr><td><code>Unhandled exception: UnimplementedError</code></td><td>Rodou um método que ainda tem o corpo provisório</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o molde</h3>
+<p>Complete para <code>Forma</code> ser uma classe abstrata com um método abstrato <code>area</code>:</p>
+<div class="ex-code"><input data-answer="abstract" aria-label="palavra-chave antes de class"> class Forma {<br>&nbsp;&nbsp;double area()<input data-answer=";" aria-label="o que termina o método abstrato" size="2"><br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos faltam?</h3>
+<p>A classe abstrata tem <code>String get nome;</code>, <code>double taxa();</code> e <code>double total() =&gt; valor + taxa();</code>. Quantos membros uma subclasse concreta é <strong>obrigada</strong> a implementar? Responda com um número.</p>
+<div class="ex-code"><input data-answer="2|dois" aria-label="número de membros"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>abstract class Pagamento</code>, qual destas linhas compila?</p>
+<label><input type="radio" name="q3"> <code>final p = Pagamento(50);</code></label>
+<label><input type="radio" name="q3"> <code>final p = new Pagamento(50);</code></label>
+<label><input type="radio" name="q3"> <code>Pagamento p = Pix(50);</code></label>
+<label><input type="radio" name="q3"> <code>final p = Pagamento.taxa();</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual a vantagem de <code>double taxa();</code> (abstrato) sobre <code>double taxa() =&gt; 0;</code> na mãe?</p>
+<label><input type="radio" name="q4"> O programa fica mais rápido</label>
+<label><input type="radio" name="q4"> Esquecer de implementar a taxa numa subclasse vira erro de compilação, em vez de cobrar taxa zero sem avisar</label>
+<label><input type="radio" name="q4"> Dá para criar objetos da mãe</label>
+<label><input type="radio" name="q4"> Nenhuma; são iguais</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. No stack trace, <code>#0 Cheque.taxa</code>, <code>#1 Pagamento.total</code>, <code>#2 main</code>. Onde a exceção <strong>nasceu</strong>?</p>
+<label><input type="radio" name="q5"> No <code>main</code></label>
+<label><input type="radio" name="q5"> No <code>Pagamento.total</code></label>
+<label><input type="radio" name="q5"> Em <code>_delayEntrypointInvocation</code></label>
+<label><input type="radio" name="q5"> No <code>Cheque.taxa</code>, a linha <code>#0</code></label>
+</div>
+
+<h3>Missão final: o vale-refeição</h3>
+
+<div class="trydart" data-goal="out:Vale: R$ 20.00 + taxa R$ 1.00 = R$ 21.00;;semerro">
+<p class="try-task"><strong>Missão:</strong> a lojinha passou a aceitar vale-refeição, com taxa fixa de R$ 1,00. A classe <code>Vale</code> já existe, mas não compila: falta o que o <code>Pagamento</code> exige. Leia o erro, complete a classe (nome <code>'Vale'</code> e taxa <code>1</code>) e faça aparecer <code>Vale: R$ 20.00 + taxa R$ 1.00 = R$ 21.00</code>.</p>
+<pre class="script" data-file="main.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  String get nome;
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+
+  void recibo() {
+    print('$nome: R\$ ${valor.toStringAsFixed(2)} + taxa '
+        'R\$ ${taxa().toStringAsFixed(2)} = R\$ ${total().toStringAsFixed(2)}');
+  }
+}
+
+class Vale extends Pagamento {
+  Vale(super.valor);
+}
+
+void main() {
+  Vale(20).recibo();
+}
+</pre>
+<pre class="solucao" data-file="main.dart">abstract class Pagamento {
+  double valor;
+
+  Pagamento(this.valor);
+
+  String get nome;
+  double taxa();
+
+  double total() =&gt; valor + taxa();
+
+  void recibo() {
+    print('$nome: R\$ ${valor.toStringAsFixed(2)} + taxa '
+        'R\$ ${taxa().toStringAsFixed(2)} = R\$ ${total().toStringAsFixed(2)}');
+  }
+}
+
+class Vale extends Pagamento {
+  Vale(super.valor);
+
+  @override
+  String get nome =&gt; 'Vale';
+
+  @override
+  double taxa() =&gt; 1;
+}
+
+void main() {
+  Vale(20).recibo();
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial parou com <code>The non-abstract class 'Vale' is missing implementations for these members:</code>, listando <code>Pagamento.nome</code> e <code>Pagamento.taxa</code>; a solução mostrou <code>Vale: R$ 20.00 + taxa R$ 1.00 = R$ 21.00</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>abstract class</code> é um molde: não vira objeto, mas pode ter campos, construtor e métodos prontos.</li>
+  <li>Método abstrato (<code>double taxa();</code>) e getter abstrato (<code>String get nome;</code>) não têm corpo: cada subclasse concreta é <strong>obrigada</strong> a implementá-los, com <code>@override</code>.</li>
+  <li>Os métodos prontos da mãe podem chamar os abstratos: o Dart usa a versão do objeto de verdade.</li>
+  <li>O tipo abstrato serve para variáveis e listas: <code>&lt;Pagamento&gt;[Pix(50), Cartao(50)]</code>.</li>
+  <li>Erros de compilação (254): instanciar a classe abstrata; esquecer um membro; método sem corpo numa classe que não é <code>abstract</code>.</li>
+  <li><code>throw UnimplementedError()</code> engana o compilador e estoura durante a execução (255): troque todo corpo provisório antes de entregar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
