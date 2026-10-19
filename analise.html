@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart analyze e format — o revisor e o arrumador do seu código | Guia Dart</title>
+<meta name="description" content="dart analyze e dart format para quem nunca programou: o que é o analisador, error, warning e info, o código de saída, o analysis_options.yaml com regras de lint, o dart fix que conserta sozinho e o dart format que arruma espaços e quebras de linha. Saídas reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">analyze e format</span></h1>
+
+<p class="intro">Antes de entregar uma redação, é bom ter alguém que leia e aponte os erros, e alguém que passe a limpo com letra bonita. O Dart traz os dois de fábrica: o <code>dart analyze</code> ("analisar") lê o seu código <strong>sem rodar</strong> e avisa o que está errado ou suspeito; o <code>dart format</code> ("formatar") arruma os espaços, as quebras de linha e a indentação, sempre do mesmo jeito. Nesta aula você vai usar os dois no terminal da Ana.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>dart analyze</code> faz e como ler cada linha que ele mostra: <code>error</code>, <code>warning</code> e <code>info</code>.</li>
+  <li>O que é o <strong>código de saída</strong> do analisador (0, 1, 2 ou 3) e para que ele serve.</li>
+  <li>Como ligar regras extras (os <strong>lints</strong>) no arquivo <code>analysis_options.yaml</code>.</li>
+  <li>Como o <code>dart fix</code> conserta sozinho parte dos avisos.</li>
+  <li>Como o <code>dart format</code> arruma o código, e como só <strong>conferir</strong> sem mudar nada.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), no terminal. O editor do guia roda programas (<code>dart run</code>), mas não tem os comandos <code>dart analyze</code> e <code>dart format</code>: as missões abaixo pedem que você faça à mão o que eles sugerem.</p>
+
+<hr>
+
+<h2>A ideia: o revisor e o arrumador</h2>
+<p>Pense na Ana escrevendo o cardápio da padaria do bairro:</p>
+<ul>
+  <li>A <strong>revisora</strong> lê o cardápio e marca a lápis: "aqui tem um erro de português" (grave: precisa consertar), "você escreveu o preço do sonho e não usou em lugar nenhum" (suspeito) e "prefira escrever <em>R$</em> sempre do mesmo jeito" (sugestão de estilo). Ela não muda nada: só aponta. Esse é o <code>dart analyze</code>.</li>
+  <li>O <strong>diagramador</strong> não lê o conteúdo: ele alinha as colunas, põe um item por linha e deixa tudo com a mesma margem. Esse é o <code>dart format</code>.</li>
+</ul>
+<p>Os dois trabalham <strong>sem rodar</strong> o programa. Por isso pegam problemas que só apareceriam muito depois, numa parte do código que quase nunca roda.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>dart analyze</code></h2>
+<p>A Ana criou uma pasta <code>analise</code> com este programa. Ele roda e mostra <code>Olá, Ana</code>, mas tem coisas sobrando:</p>
+
+<pre class="file" data-file="main.dart">import 'dart:math';
+
+void main() {
+  var nome = 'Ana';
+  int idade = 30;
+  final String cidade = "Recife";
+  print('Olá, $nome');
+}
+</pre>
+
+<p>Dentro da pasta, ela digita <code>dart analyze</code> (sem nome de arquivo, ele analisa a pasta inteira):</p>
+
+<pre class="term">$ dart analyze
+Analyzing analise...
+
+warning - main.dart:1:8 - Unused import: 'dart:math'. Try removing the import directive. - unused_import
+warning - main.dart:5:7 - The value of the local variable 'idade' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - main.dart:6:16 - The value of the local variable 'cidade' isn't used. Try removing the variable or using it. - unused_local_variable
+
+3 issues found.
+</pre>
+
+<p>Cada linha é um <strong>diagnóstico</strong> (um "achado"). Veja a primeira, parte por parte:</p>
+
+<dl class="anatomy">
+  <dt>warning</dt><dd>A <strong>gravidade</strong>. <code>warning</code> = "aviso": o programa roda, mas tem algo suspeito. As outras são <code>error</code> (erro: o programa nem compila) e <code>info</code> (sugestão de estilo).</dd>
+  <dt>main.dart:1:8</dt><dd><strong>Arquivo, linha e coluna</strong>: o arquivo <code>main.dart</code>, linha 1, 8º caractere (onde começa o <code>'dart:math'</code>).</dd>
+  <dt>Unused import: 'dart:math'.</dt><dd>A mensagem, em inglês: "importação não usada: <code>dart:math</code>". O programa pediu a biblioteca de matemática e não usou nada dela.</dd>
+  <dt>Try removing the import directive.</dt><dd>A sugestão: "tente remover a diretiva de importação".</dd>
+  <dt>unused_import</dt><dd>O <strong>código</strong> do diagnóstico, um nome curto e fixo. Serve para procurar na internet (<a href="https://dart.dev/tools/diagnostics">dart.dev/tools/diagnostics</a>) e para ligar e desligar regras.</dd>
+</dl>
+
+<p>As outras duas linhas dizem: "o valor da variável local <code>idade</code> não é usado" e o mesmo para <code>cidade</code>. Variável que ninguém usa costuma ser esquecimento: você calculou algo e esqueceu de mostrar. A última linha conta: <code>3 issues found</code> ("3 problemas encontrados"). Quando está tudo certo, ele diz <code>No issues found!</code> ("nenhum problema encontrado!").</p>
+
+<div class="tip">
+<strong>Analisar um arquivo só</strong>
+<p><code>dart analyze main.dart</code> analisa só aquele arquivo; <code>dart analyze</code> sozinho analisa a pasta atual e as subpastas. Num projeto criado com <code>dart create</code>, rode na pasta do projeto.</p>
+</div>
+
+<div class="trydart" data-goal="out:Ana tem 30 anos e mora em Recife;;src:^void main;;src:'Recife'">
+<p class="try-task"><strong>Missão:</strong> deixe o programa sem nenhum dos 3 avisos: apague o <code>import</code> que não é usado e <strong>use</strong> as variáveis, mostrando <code>Ana tem 30 anos e mora em Recife</code>. Aproveite e troque as aspas duplas de <code>"Recife"</code> por simples.</p>
+<pre class="script" data-file="main.dart">import 'dart:math';
+
+void main() {
+  var nome = 'Ana';
+  int idade = 30;
+  final String cidade = "Recife";
+  print('Olá, $nome');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var nome = 'Ana';
+  int idade = 30;
+  final String cidade = 'Recife';
+  print('$nome tem $idade anos e mora em $cidade');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>error</code>: o que impede o programa de rodar</h2>
+<p>Agora um programa com dois erros de verdade: um texto guardado numa variável de número e um ponto e vírgula esquecido.</p>
+
+<pre class="file" data-file="erro.dart">void main() {
+  int idade = 'trinta';
+  print(idade)
+}
+</pre>
+
+<pre class="term">$ dart analyze erro.dart
+Analyzing erro.dart...
+
+  error - erro.dart:2:15 - A value of type 'String' can't be assigned to a variable of type 'int'. Try changing the type of the variable, or casting the right-hand type to 'int'. - invalid_assignment
+  error - erro.dart:3:14 - Expected to find ';'. - expected_token
+
+2 issues found.
+</pre>
+
+<ul>
+  <li><code>erro.dart:2:15</code>: "um valor do tipo <code>String</code> (texto) não pode ser atribuído a uma variável do tipo <code>int</code> (inteiro)". A coluna 15 é onde começa o <code>'trinta'</code>.</li>
+  <li><code>erro.dart:3:14</code>: "era esperado encontrar <code>;</code>". A coluna 14 é logo depois do <code>)</code>, onde o ponto e vírgula deveria estar.</li>
+</ul>
+
+<p>Compare com o que acontece se a Ana tentar <strong>rodar</strong> o mesmo arquivo:</p>
+
+<pre class="term">$ dart run erro.dart
+erro.dart:3:14: Error: Expected ';' after this.
+  print(idade)
+             ^
+erro.dart:2:15: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int idade = 'trinta';
+              ^
+</pre>
+
+<p>São os <strong>mesmos dois erros</strong>, nas mesmas linhas e colunas, escritos de outro jeito: o <code>dart run</code> mostra a linha do código e o <code>^</code> embaixo do ponto exato. A diferença é que o <code>dart analyze</code> também mostra os <code>warning</code> e <code>info</code>, que o <code>dart run</code> deixa passar em silêncio, e nunca roda nada.</p>
+
+<div class="note">
+<strong>O analisador está dentro do seu editor de código</strong>
+<p>No VS Code com a extensão Dart, as mesmas mensagens aparecem enquanto você digita: um sublinhado vermelho (error), amarelo (warning) ou azul/cinza (info), e a lista completa na aba "Problemas". É o mesmo analisador do <code>dart analyze</code>. O terminal é útil para conferir o projeto inteiro de uma vez.</p>
+</div>
+
+<hr>
+
+<h2>3. O código de saída: 0, 1, 2 ou 3</h2>
+<p>Todo comando, ao terminar, devolve um número para o terminal: o <strong>código de saída</strong>. O <code>echo "codigo: $?"</code> mostra o código do último comando. O <code>dart analyze</code> usa esses números:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Quando (no lab)</th></tr>
+<tr><td><code>0</code></td><td>Nenhum problema, ou só <code>info</code>.</td></tr>
+<tr><td><code>1</code></td><td>Tinha <code>info</code> e você pediu <code>--fatal-infos</code> ("infos fatais").</td></tr>
+<tr><td><code>2</code></td><td>Tinha pelo menos um <code>warning</code>.</td></tr>
+<tr><td><code>3</code></td><td>Tinha pelo menos um <code>error</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ dart analyze erro.dart
+…
+2 issues found.
+$ echo "codigo: $?"
+codigo: 3
+</pre>
+
+<p>Para que serve? Para <strong>automatizar</strong>. Um script (ou um servidor que testa o código de uma equipe antes de aceitar mudanças) roda <code>dart analyze</code> e, se o código não for 0, recusa a mudança. Duas opções mexem nessa regra:</p>
+<ul>
+  <li><code>--fatal-infos</code>: até um <code>info</code> faz o código ser diferente de 0 (no lab, deu 1).</li>
+  <li><code>--no-fatal-warnings</code>: os <code>warning</code> continuam aparecendo, mas o código fica 0.</li>
+</ul>
+
+<hr>
+
+<h2>4. Ligando regras extras: o <code>analysis_options.yaml</code></h2>
+<p>Além dos erros e avisos que vêm sempre, o Dart tem centenas de <strong>regras de lint</strong> (em inglês, <em>lint</em> é o "fiapo" que fica na roupa: pequenas sujeirinhas de estilo). Elas ficam desligadas até você pedir. Pede-se num arquivo chamado <code>analysis_options.yaml</code> ("opções de análise"), na pasta do projeto:</p>
+
+<pre class="file" data-file="analysis_options.yaml">linter:
+  rules:
+    - prefer_single_quotes
+    - prefer_final_locals
+</pre>
+
+<dl class="anatomy">
+  <dt>linter:</dt><dd>A seção do <strong>linter</strong>, a parte do analisador que cuida dos lints.</dd>
+  <dt>rules:</dt><dd>"Regras": a lista das regras ligadas. No formato YAML, a indentação (2 espaços) mostra o que está dentro de quê.</dd>
+  <dt>- prefer_single_quotes</dt><dd>"Prefira aspas simples": avisa quando um texto usa <code>"…"</code> sem necessidade.</dd>
+  <dt>- prefer_final_locals</dt><dd>"Prefira variáveis locais <code>final</code>": avisa quando uma variável nunca muda e mesmo assim não é <code>final</code>.</dd>
+</dl>
+
+<p>Com o arquivo na pasta, o mesmo <code>main.dart</code> do começo ganha três <code>info</code>:</p>
+
+<pre class="term">$ dart analyze main.dart
+Analyzing main.dart...
+
+warning - main.dart:1:8 - Unused import: 'dart:math'. Try removing the import directive. - unused_import
+warning - main.dart:5:7 - The value of the local variable 'idade' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - main.dart:6:16 - The value of the local variable 'cidade' isn't used. Try removing the variable or using it. - unused_local_variable
+   info - main.dart:4:3 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - main.dart:5:3 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - main.dart:6:25 - Unnecessary use of double quotes. Try using single quotes unless the string contains single quotes. - prefer_single_quotes
+
+6 issues found.
+</pre>
+
+<p>"Variáveis locais deveriam ser <code>final</code>" (linhas 4 e 5) e "uso desnecessário de aspas duplas" (linha 6). Repare: o <code>info</code> nunca impede o programa de rodar. É conselho.</p>
+
+<h3>O pacote de regras recomendado</h3>
+<p>Ninguém liga regra por regra à mão. Quando você cria um projeto com <code>dart create</code>, ele já vem com um <code>analysis_options.yaml</code> que inclui um <strong>conjunto recomendado</strong> pela equipe do Dart (o pacote <code>lints</code>):</p>
+
+<pre class="term">$ dart create -t console padaria
+Creating padaria using template console...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/padaria.dart
+  lib/padaria.dart
+  test/padaria_test.dart
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 50 dependencies!
+
+Created project padaria in padaria! In order to get started, run the following commands:
+
+  cd padaria
+  dart run
+
+$ cd padaria
+$ cat analysis_options.yaml | grep -v '^#' | grep -v '^ *#' | sed '/^$/d'
+include: package:lints/recommended.yaml
+$ dart analyze
+Analyzing padaria...
+No issues found!
+</pre>
+
+<p>Tirando os comentários (as linhas com <code>#</code>), o arquivo tem uma linha só: <code>include: package:lints/recommended.yaml</code>, "inclua as regras recomendadas do pacote <code>lints</code>". Você pode acrescentar a sua seção <code>linter: rules:</code> embaixo para ligar mais regras. O Flutter usa um conjunto parecido, o <code>flutter_lints</code>.</p>
+
+<hr>
+
+<h2>5. <code>dart fix</code>: o revisor que conserta</h2>
+<p>Muitos diagnósticos têm conserto automático. O <code>dart fix --dry-run</code> ("ensaio") só <strong>mostra</strong> o que seria consertado:</p>
+
+<pre class="term">$ dart fix --dry-run
+Computing fixes in analise (dry run)...
+
+1 proposed fix in 1 file.
+
+main.dart
+  unused_import - 1 fix
+
+To fix an individual diagnostic, run one of:
+  dart fix --apply --code=unused_import
+
+To fix all diagnostics, run:
+  dart fix --apply
+</pre>
+
+<p>"1 conserto proposto em 1 arquivo: no <code>main.dart</code>, 1 <code>unused_import</code>". Ele sugere <code>dart fix --apply</code> ("aplicar") para consertar tudo, ou <code>--code=…</code> para consertar um tipo só. Com as regras do <code>analysis_options.yaml</code> ligadas, a Ana aplicou:</p>
+
+<pre class="term">$ dart fix --apply
+Computing fixes in analise...
+Applying fixes...
+
+erro.dart
+  prefer_final_locals - 1 fix
+
+feio.dart
+  prefer_final_locals - 1 fix
+
+main.dart
+  prefer_final_locals - 2 fixes
+  prefer_single_quotes - 1 fix
+  unused_import - 1 fix
+
+6 fixes made in 3 files.
+$ cat main.dart
+
+void main() {
+  final nome = 'Ana';
+  final int idade = 30;
+  final String cidade = 'Recife';
+  print('Olá, $nome');
+}
+</pre>
+
+<p>Ele apagou o <code>import</code>, pôs <code>final</code> nas variáveis e trocou as aspas. Mas atenção a duas coisas:</p>
+<ul>
+  <li>Ele mexeu em <strong>todos</strong> os arquivos da pasta (o <code>erro.dart</code> e o <code>feio.dart</code> também). Rode o <code>--dry-run</code> antes para ver o que vai mudar.</li>
+  <li>Ele <strong>não</strong> resolveu as variáveis não usadas: o <code>dart fix</code> não adivinha o que você queria fazer com elas. Esse conserto é seu (como na primeira missão).</li>
+</ul>
+
+<hr>
+
+<h2>6. <code>dart format</code>: o código passado a limpo</h2>
+<p>O Dart não liga para espaços e quebras de linha: este programa, todo espremido, roda normalmente. Mas ninguém consegue ler:</p>
+
+<pre class="file" data-file="feio.dart">void main(){var precos=[3.5,2.0,10.25];var total=0.0;for(final p in precos){total+=p;}
+print('Total: $total');}
+</pre>
+
+<pre class="term">$ dart format feio.dart
+Formatted feio.dart
+Formatted 1 file (1 changed) in 0.00 seconds.
+$ cat feio.dart
+void main() {
+  var precos = [3.5, 2.0, 10.25];
+  var total = 0.0;
+  for (final p in precos) {
+    total += p;
+  }
+  print('Total: $total');
+}
+</pre>
+
+<p>"Formatado <code>feio.dart</code>; 1 arquivo formatado (1 mudou)". O <code>dart format</code> <strong>reescreveu o arquivo</strong>: uma instrução por linha, 2 espaços de indentação, espaço em volta do <code>=</code> e do <code>+=</code>, espaço depois da vírgula, a chave <code>{</code> no fim da linha. É o estilo oficial do Dart, igual para todo mundo: assim ninguém perde tempo discutindo onde vai a chave.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart format arquivo.dart</code></td><td>Formata e <strong>regrava</strong> o arquivo.</td></tr>
+<tr><td><code>dart format .</code></td><td>Formata todos os <code>.dart</code> da pasta atual e das subpastas.</td></tr>
+<tr><td><code>dart format --output=show arquivo.dart</code></td><td>Mostra o código formatado na tela e <strong>não</strong> mexe no arquivo.</td></tr>
+<tr><td><code>dart format --output=none --set-exit-if-changed .</code></td><td>Só confere: não mostra nem grava, mas devolve código <code>1</code> se algum arquivo precisaria mudar.</td></tr>
+</table>
+</div>
+
+<p>A conferência sem mexer em nada, num arquivo bagunçado:</p>
+
+<pre class="term">$ dart format --output=none --set-exit-if-changed bagunca.dart; echo "codigo: $?"
+Changed bagunca.dart
+Formatted 1 file (1 changed) in 0.00 seconds.
+codigo: 1
+$ dart format --output=show bagunca.dart
+void main() {
+  print('oi');
+}
+Formatted 1 file (1 changed) in 0.00 seconds.
+$ cat bagunca.dart
+void main( ) { print( 'oi' ) ; }
+</pre>
+
+<p>O arquivo continua bagunçado: as duas opções só olharam. Num arquivo que já está bonito, a conferência diz <code>Formatted 1 file (0 changed)</code> e devolve <code>0</code>.</p>
+
+<div class="tip">
+<strong>A vírgula no fim muda o formato</strong>
+<p>Numa lista ou chamada longa, deixe uma vírgula depois do último item (<code>'pão', 'leite',</code>). O <code>dart format</code> entende que você quer um item por linha. É por isso que o guia recomenda "vírgula no fim de listas longas" (veja <a href="estilo.html">Estilo de Código</a>).</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"Rodou, então está certo" — e o aviso esquecido</strong>
+<pre class="file" data-file="main.dart">void main() {
+  final preco = 7.5;
+  final quantidade = 4;
+  final total = preco * quantidade;
+  print('Preço: $preco');
+}
+</pre>
+<pre class="term">$ dart run main.dart
+Preço: 7.5
+$ dart analyze
+Analyzing total...
+
+warning - main.dart:4:9 - The value of the local variable 'total' isn't used. Try removing the variable or using it. - unused_local_variable
+
+1 issue found.
+</pre>
+<p>A Ana queria mostrar o <strong>total</strong> e esqueceu. O <code>dart run</code> não reclamou de nada; o <code>dart analyze</code> achou: "o valor da variável local <code>total</code> não é usado", linha 4. <strong>Lição:</strong> rode o <code>dart analyze</code> antes de dar o programa por pronto; os <code>warning</code> costumam ser bugs disfarçados. <strong>Como consertar:</strong> <code>print('Total: $total');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>dart format</code> não conserta erro</strong>
+<p>O formatador só mexe em espaços e quebras de linha. Ele não põe o <code>;</code> que faltou, não troca tipos e não apaga variável. E, se o código tiver um erro de sintaxe, ele nem consegue entender o arquivo. Aqui faltou a <code>}</code> do fim:</p>
+<pre class="file" data-file="quebrado.dart">void main() {
+  print('oi');
+</pre>
+<pre class="term">$ dart format quebrado.dart; echo "codigo: $?"
+Could not format because the source could not be parsed:
+
+line 3, column 1 of quebrado.dart: Expected to find '}'.
+  ╷
+3 │  
+  │ ^
+  ╵
+Formatted no files in 0.00 seconds.
+codigo: 65
+</pre>
+<p>"Não foi possível formatar porque o código não pôde ser lido (<em>parsed</em>): linha 3, coluna 1: era esperado encontrar <code>}</code>". O desenho com <code>│</code> e <code>^</code> aponta o lugar; no fim, <code>Formatted no files</code> ("nenhum arquivo formatado") e o código de saída 65. O arquivo ficou como estava. <strong>Como consertar:</strong> feche a chave e formate de novo. Regra geral: conserte os erros primeiro (com a ajuda do <code>dart analyze</code>), depois formate.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>analysis_options.yaml</code> com a indentação errada</strong>
+<p>O YAML usa a indentação para saber o que está dentro de quê. Se a lista <code>- prefer_single_quotes</code> ficar na mesma coluna que <code>rules:</code>, ou se você usar tabulação em vez de espaços, as regras deixam de valer (ou o analisador acusa um problema <strong>no próprio</strong> <code>analysis_options.yaml</code>). Use sempre 2 espaços a cada nível, como no exemplo da seção 4.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando / arquivo</th><th>Para que serve</th></tr>
+<tr><td><code>dart analyze</code></td><td>Analisa a pasta atual sem rodar nada; lista <code>error</code>, <code>warning</code> e <code>info</code>.</td></tr>
+<tr><td><code>dart analyze arquivo.dart</code></td><td>Analisa um arquivo só.</td></tr>
+<tr><td><code>--fatal-infos</code> / <code>--no-fatal-warnings</code></td><td>Mudam quando o código de saída deixa de ser 0.</td></tr>
+<tr><td><code>dart fix --dry-run</code></td><td>Mostra os consertos automáticos possíveis.</td></tr>
+<tr><td><code>dart fix --apply</code></td><td>Aplica os consertos em todos os arquivos da pasta.</td></tr>
+<tr><td><code>dart format arquivo.dart</code> / <code>dart format .</code></td><td>Formata e regrava.</td></tr>
+<tr><td><code>dart format --output=show</code></td><td>Mostra formatado, sem gravar.</td></tr>
+<tr><td><code>dart format --output=none --set-exit-if-changed</code></td><td>Só confere (código 1 se algo mudaria).</td></tr>
+<tr><td><code>analysis_options.yaml</code></td><td>Liga regras: <code>include: package:lints/recommended.yaml</code> e <code>linter: rules: - nome_da_regra</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Complete para mostrar o código formatado na tela, sem mexer no arquivo:</p>
+<div class="ex-code">dart <input data-answer="format" aria-label="comando"> --output=<input data-answer="show" aria-label="valor da opção"> main.dart</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o código?</h3>
+<p>O <code>dart analyze</code> encontrou 1 <code>error</code> e 2 <code>warning</code>. Qual código de saída ele devolve? Responda com um número.</p>
+<div class="ex-code">Código <input data-answer="3" aria-label="código de saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Na linha <code>warning - main.dart:5:7 - The value of the local variable 'idade' isn't used. … - unused_local_variable</code>, o que é <code>5:7</code>?</p>
+<label><input type="radio" name="q3"> O número de avisos e de erros</label>
+<label><input type="radio" name="q3"> A linha 5, coluna 7 do arquivo</label>
+<label><input type="radio" name="q3"> A versão do Dart</label>
+<label><input type="radio" name="q3"> O tempo da análise</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas frases sobre o <code>dart format</code> é verdadeira?</p>
+<label><input type="radio" name="q4"> Ele acrescenta o <code>;</code> que faltou</label>
+<label><input type="radio" name="q4"> Ele apaga as variáveis não usadas</label>
+<label><input type="radio" name="q4"> Ele só muda espaços, quebras de linha e indentação</label>
+<label><input type="radio" name="q4"> Ele roda o programa para ver se funciona</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Onde se liga a regra <code>prefer_single_quotes</code>?</p>
+<label><input type="radio" name="q5"> No <code>analysis_options.yaml</code>, em <code>linter:</code> → <code>rules:</code></label>
+<label><input type="radio" name="q5"> No começo do <code>main.dart</code>, com <code>import</code></label>
+<label><input type="radio" name="q5"> Com <code>dart format --rules</code></label>
+<label><input type="radio" name="q5"> Ela não pode ser ligada</label>
+</div>
+
+<h3>Missão final: passe o código a limpo</h3>
+
+<div class="trydart" data-goal="out:Total: 15.75;;src:^  for \(final p in precos\) \{$;;src:^    total \+= p;$;;src:^  print\('Total: \$total'\);$">
+<p class="try-task"><strong>Missão:</strong> faça à mão o que o <code>dart format</code> faria: uma instrução por linha, 2 espaços por nível, espaço em volta do <code>=</code> e do <code>+=</code> e depois das vírgulas. O resultado tem de continuar mostrando <code>Total: 15.75</code>.</p>
+<pre class="script" data-file="main.dart">void main(){var precos=[3.5,2.0,10.25];var total=0.0;for(final p in precos){total+=p;}
+print('Total: $total');}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var precos = [3.5, 2.0, 10.25];
+  var total = 0.0;
+  for (final p in precos) {
+    total += p;
+  }
+  print('Total: $total');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>dart analyze</code> lê o código sem rodar e lista os diagnósticos: <code>error</code> (não compila), <code>warning</code> (suspeito) e <code>info</code> (estilo), cada um com arquivo:linha:coluna, mensagem e código.</li>
+  <li>O código de saída é 0 (limpo ou só info), 1 (info com <code>--fatal-infos</code>), 2 (warning) ou 3 (error): é o que scripts usam para aprovar ou recusar código.</li>
+  <li>O <code>analysis_options.yaml</code> liga regras de lint; projetos do <code>dart create</code> já incluem <code>package:lints/recommended.yaml</code>.</li>
+  <li><code>dart fix --dry-run</code> mostra e <code>dart fix --apply</code> aplica consertos automáticos (na pasta inteira).</li>
+  <li><code>dart format</code> arruma espaços e quebras no estilo oficial; <code>--output=show</code> só mostra e <code>--output=none --set-exit-if-changed</code> só confere.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
