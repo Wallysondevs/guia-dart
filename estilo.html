@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Estilo — as boas maneiras do Effective Dart | Guia Dart</title>
+<meta name="description" content="O estilo de código do Dart para quem nunca programou: o guia Effective Dart, nomes em UpperCamelCase, lowerCamelCase e snake_case, constantes sem MAIÚSCULAS, aspas simples, final por padrão, interpolação, isEmpty, literais de coleção, sem new, comentários de documentação com /// e os lints que avisam tudo isso. Saídas reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Estilo de Código</span></h1>
+
+<p class="intro">Dois programas podem fazer exatamente a mesma coisa e um ser muito mais fácil de ler que o outro. A equipe do Dart escreveu um guia de boas maneiras chamado <strong>Effective Dart</strong> ("Dart eficaz", em <a href="https://dart.dev/effective-dart">dart.dev/effective-dart</a>), e quase todo código Dart do mundo segue as mesmas regras. Seguindo também, o seu código fica com "cara de Dart", e qualquer pessoa entende de primeira. Nesta aula você vai ver as regras principais, o porquê de cada uma, e como o analisador avisa quando você esquece.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como dar nomes: <code>UpperCamelCase</code>, <code>lowerCamelCase</code> e <code>snake_case</code>, e onde usar cada um.</li>
+  <li>Por que as constantes do Dart <strong>não</strong> são escritas em MAIÚSCULAS.</li>
+  <li>As escolhas do dia a dia: aspas simples, <code>final</code>, interpolação, <code>isEmpty</code>, <code>[]</code> e <code>{}</code>, e nada de <code>new</code>.</li>
+  <li>Como escrever comentários de documentação com <code>///</code>.</li>
+  <li>Como o <code>dart analyze</code> aponta cada deslize, com a regra pelo nome.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro do projeto <code>padaria</code> criado com <code>dart create</code>, que já liga as regras recomendadas (veja <a href="analise.html">Análise e Formatação</a>).</p>
+
+<hr>
+
+<h2>A ideia: a letra de forma da escola</h2>
+<p>Na escola, todo mundo aprende a escrever a data no mesmo canto da folha e o nome no cabeçalho. Não é porque o outro jeito esteja "errado": é porque a professora corrige 40 provas e acha tudo no mesmo lugar. Estilo de código é isso. O computador não liga para nomes nem aspas, mas <strong>pessoas</strong> leem o código muito mais vezes do que ele é escrito, inclusive você daqui a três meses.</p>
+<p>O Effective Dart separa as regras em quatro palavras: <strong>FAÇA</strong> (<em>DO</em>), <strong>NÃO FAÇA</strong> (<em>DON'T</em>), <strong>PREFIRA</strong> (<em>PREFER</em>) e <strong>EVITE</strong> (<em>AVOID</em>). As duas primeiras quase não têm exceção; as duas últimas são conselhos fortes.</p>
+
+<hr>
+
+<h2>1. Um programa que funciona, mas "não tem cara de Dart"</h2>
+<p>A Ana escreveu a lista de compras assim, num arquivo <code>bin/Lista_Compras.dart</code>:</p>
+
+<pre class="file" data-file="Lista_Compras.dart">class lista_compras {
+  var Itens = new List&lt;String&gt;.empty(growable: true);
+}
+
+const PRECO_PAO = 0.75;
+
+void main() {
+  var l = lista_compras();
+  l.Itens.add("pão");
+  l.Itens.add('leite');
+  if (l.Itens.length == 0) {
+    print('vazia');
+  }
+  var total = PRECO_PAO * 10;
+  print('Total: ' + total.toString());
+  var m = Map&lt;String, int&gt;();
+  m['pão'] = 10;
+  print(m);
+}
+</pre>
+
+<pre class="term">$ dart run bin/Lista_Compras.dart
+Total: 7.5
+{pão: 10}
+</pre>
+
+<p>Roda e está certo. Mas veja o que o analisador acha, com as regras recomendadas do projeto:</p>
+
+<pre class="term">$ dart analyze
+Analyzing padaria...
+
+   info - bin/Lista_Compras.dart:1:1 - The file name 'Lista_Compras.dart' isn't a lower_case_with_underscores identifier. Try changing the name to follow the lower_case_with_underscores style. - file_names
+   info - bin/Lista_Compras.dart:1:7 - The type name 'lista_compras' isn't an UpperCamelCase identifier. Try changing the name to follow the UpperCamelCase style. - camel_case_types
+   info - bin/Lista_Compras.dart:2:7 - The variable name 'Itens' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - bin/Lista_Compras.dart:2:15 - Unnecessary 'new' keyword. Try removing the 'new' keyword. - unnecessary_new
+   info - bin/Lista_Compras.dart:5:7 - The constant name 'PRECO_PAO' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - constant_identifier_names
+   info - bin/Lista_Compras.dart:11:7 - Use 'isEmpty' instead of 'length' to test whether the collection is empty. Try rewriting the expression to use 'isEmpty'. - prefer_is_empty
+   info - bin/Lista_Compras.dart:15:9 - Use interpolation to compose strings and values. Try using string interpolation to build the composite string. - prefer_interpolation_to_compose_strings
+   info - bin/Lista_Compras.dart:16:11 - Unnecessary constructor invocation. Try using a collection literal. - prefer_collection_literals
+
+8 issues found.
+</pre>
+
+<p>Oito <code>info</code>, nenhum erro: são todas questões de estilo. As próximas seções explicam cada uma. (As aspas duplas do <code>"pão"</code> e os <code>var</code> não apareceram porque essas regras não estão no conjunto recomendado; na seção 4 a Ana liga as duas.)</p>
+
+<hr>
+
+<h2>2. Nomes: três jeitos de juntar palavras</h2>
+<p>Nomes não podem ter espaço. Para juntar "lista" e "compras", existem três estilos, e o Dart usa cada um num lugar:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Estilo</th><th>Como é</th><th>Onde usar</th><th>Exemplo</th></tr>
+<tr><td><strong>UpperCamelCase</strong></td><td>Cada palavra começa com maiúscula ("corcova de camelo")</td><td>Classes, <code>enum</code>, <code>typedef</code>, extensões</td><td><code>ListaCompras</code>, <code>ContaBancaria</code></td></tr>
+<tr><td><strong>lowerCamelCase</strong></td><td>Igual, mas a primeira letra minúscula</td><td>Variáveis, funções, parâmetros, <strong>constantes</strong></td><td><code>precoTotal</code>, <code>calcularTroco</code>, <code>precoPao</code></td></tr>
+<tr><td><strong>snake_case</strong> (<code>lower_case_with_underscores</code>)</td><td>Tudo minúsculo, com <code>_</code> entre as palavras ("cobra")</td><td>Nomes de <strong>arquivos</strong>, pastas e pacotes</td><td><code>lista_compras.dart</code></td></tr>
+</table>
+</div>
+
+<p>Por isso o analisador reclamou de quatro nomes:</p>
+<ul>
+  <li><code>file_names</code>: o arquivo <code>Lista_Compras.dart</code> deveria ser <code>lista_compras.dart</code> (alguns sistemas não diferenciam maiúsculas em nomes de arquivo, e o <code>import</code> quebraria).</li>
+  <li><code>camel_case_types</code>: a classe <code>lista_compras</code> deveria ser <code>ListaCompras</code>.</li>
+  <li><code>non_constant_identifier_names</code>: o campo <code>Itens</code> deveria ser <code>itens</code>. Com maiúscula, parece uma classe.</li>
+  <li><code>constant_identifier_names</code>: a constante <code>PRECO_PAO</code> deveria ser <code>precoPao</code>.</li>
+</ul>
+
+<div class="note">
+<strong>Por que não <code>PRECO_PAO</code>?</strong>
+<p>Em C, Java e Python, constantes costumam ir em MAIÚSCULAS. No Dart, não: o Effective Dart diz para usar <code>lowerCamelCase</code> também nas constantes. O motivo: no Dart, trocar uma variável <code>final</code> por <code>const</code> (ou o contrário) é comum, e não faz sentido ter de renomear em todo o programa por causa disso. Você vai ver <code>pi</code>, <code>e</code> e <code>maxFinite</code> nas bibliotecas do próprio Dart, nunca <code>PI</code>.</p>
+</div>
+
+<h3>Nomes que dizem o que guardam</h3>
+<p>Além do formato, o nome tem de <strong>contar</strong> o que é. <code>l</code> e <code>m</code> não dizem nada; <code>lista</code> e <code>estoque</code> dizem. Use nomes inteiros (<code>quantidade</code>, não <code>qtd</code>), e sem acento: o Dart não aceita <code>ç</code> nem <code>á</code> em nomes (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="trydart" data-goal="out:Total: 7.5;;src:class ListaCompras;;src:const precoPao;;src:ListaCompras\(\)">
+<p class="try-task"><strong>Missão:</strong> renomeie a classe para <code>ListaCompras</code> e a constante para <code>precoPao</code> (nos dois lugares em que cada uma aparece). O programa deve continuar mostrando <code>Total: 7.5</code>.</p>
+<pre class="script" data-file="main.dart">class lista_compras {
+  final itens = &lt;String&gt;[];
+}
+
+const PRECO_PAO = 0.75;
+
+void main() {
+  final lista = lista_compras();
+  lista.itens.add('pão');
+  print('Total: ${PRECO_PAO * 10}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class ListaCompras {
+  final itens = &lt;String&gt;[];
+}
+
+const precoPao = 0.75;
+
+void main() {
+  final lista = ListaCompras();
+  lista.itens.add('pão');
+  print('Total: ${precoPao * 10}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. As escolhas do dia a dia</h2>
+
+<h3>Sem <code>new</code></h3>
+<p>No Dart antigo, criava-se um objeto com <code>new List()</code>. Desde o Dart 2, a palavra <code>new</code> é opcional, e o estilo é <strong>não</strong> escrever (<code>unnecessary_new</code>): <code>ListaCompras()</code>, não <code>new ListaCompras()</code>. Menos ruído para ler.</p>
+
+<h3>Literais de coleção: <code>[]</code> e <code>{}</code></h3>
+<p>Em vez de <code>Map&lt;String, int&gt;()</code> ou <code>List&lt;String&gt;.empty(growable: true)</code>, escreva a coleção vazia direto (<code>prefer_collection_literals</code>):</p>
+<pre class="file" data-file="literais.dart">final itens = &lt;String&gt;[];          // lista vazia de textos
+final estoque = &lt;String, int&gt;{};   // mapa vazio
+final cores = &lt;String&gt;{};          // conjunto (Set) vazio
+</pre>
+
+<h3><code>isEmpty</code> em vez de <code>length == 0</code></h3>
+<p><code>if (lista.itens.isEmpty)</code> ("está vazia?") se lê como português; <code>length == 0</code> obriga a fazer a conta de cabeça (<code>prefer_is_empty</code>). O contrário é <code>isNotEmpty</code>.</p>
+
+<h3>Interpolação em vez de <code>+</code></h3>
+<p><code>'Total: ' + total.toString()</code> funciona, mas <code>'Total: $total'</code> é mais curto e converte sozinho (<code>prefer_interpolation_to_compose_strings</code>). Para uma conta ou um campo, use chaves: <code>'Total: ${preco * 10}'</code>, <code>'Itens: ${lista.itens.length}'</code>.</p>
+
+<h3>Aspas simples</h3>
+<p>Os dois tipos de aspas funcionam igual. O estilo da comunidade (e de todo este guia) é usar <strong>simples</strong>, <code>'pão'</code>, e deixar as duplas para quando o texto tem apóstrofo: <code>"Pão d'água"</code>. A regra se chama <code>prefer_single_quotes</code>.</p>
+
+<h3><code>final</code> por padrão</h3>
+<p>Se uma variável não vai mudar, declare com <code>final</code>. Quem lê sabe na hora que aquele valor é fixo, e o Dart impede que você o mude por engano. Use <code>var</code> só para o que muda (um contador, um total que vai somando). A regra <code>prefer_final_locals</code> avisa.</p>
+
+<hr>
+
+<h2>4. O programa passado a limpo</h2>
+<p>A Ana renomeou o arquivo para <code>bin/lista_compras.dart</code>, ligou as regras <code>prefer_single_quotes</code> e <code>prefer_final_locals</code> no <code>analysis_options.yaml</code>, e reescreveu:</p>
+
+<pre class="file" data-file="lista_compras.dart">/// A lista de compras da Ana.
+class ListaCompras {
+  final itens = &lt;String&gt;[];
+}
+
+/// Preço de um pão francês, em reais.
+const precoPao = 0.75;
+
+void main() {
+  final lista = ListaCompras();
+  lista.itens.add('pão');
+  lista.itens.add('leite');
+  if (lista.itens.isEmpty) {
+    print('vazia');
+  }
+  final total = precoPao * 10;
+  print('Total: $total');
+  final estoque = &lt;String, int&gt;{};
+  estoque['pão'] = 10;
+  print(estoque);
+}
+</pre>
+
+<pre class="term">$ dart run bin/lista_compras.dart
+Total: 7.5
+{pão: 10}
+$ dart analyze
+Analyzing padaria...
+No issues found!
+</pre>
+
+<p>A mesma saída, e nenhum aviso. Antes de consertar, com as duas regras extras ligadas, a versão antiga tinha <strong>12</strong> <code>info</code> (as 8 de antes mais 3 <code>prefer_final_locals</code> e 1 <code>prefer_single_quotes</code>, no <code>"pão"</code> da linha 9).</p>
+
+<hr>
+
+<h2>5. Comentários de documentação: <code>///</code></h2>
+<p>Viu o <code>///</code> em cima da classe e da constante? Comentário com <strong>três</strong> barras é um <strong>comentário de documentação</strong>: o editor de código mostra esse texto quando você passa o mouse sobre o nome, e a ferramenta <code>dart doc</code> o transforma em páginas de ajuda. O Effective Dart pede:</p>
+<ul>
+  <li>Use <code>///</code> (e não <code>//</code>) para documentar classes, funções e campos.</li>
+  <li>Comece com uma frase curta que diz <strong>o que é</strong> ou <strong>o que faz</strong>: <code>/// Calcula o troco da compra.</code></li>
+  <li>Cite nomes do código entre colchetes: <code>/// Soma [preco] vezes [quantidade].</code></li>
+  <li>Para explicar um trecho por dentro de uma função, use o comentário comum, <code>//</code>.</li>
+</ul>
+
+<pre class="file" data-file="troco.dart">/// Calcula o troco de uma compra.
+///
+/// Devolve quanto sobra de [pago] depois de pagar [total].
+double calcularTroco(double total, double pago) {
+  // arredonda para evitar 0.30000000000000004
+  return ((pago - total) * 100).round() / 100;
+}
+</pre>
+
+<hr>
+
+<h2>Qual usar? (resumo das regras)</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Em vez de…</th><th>Escreva</th><th>Regra (lint)</th></tr>
+<tr><td><code>class lista_compras</code></td><td><code>class ListaCompras</code></td><td><code>camel_case_types</code></td></tr>
+<tr><td><code>var PrecoTotal</code></td><td><code>var precoTotal</code></td><td><code>non_constant_identifier_names</code></td></tr>
+<tr><td><code>const PRECO_PAO</code></td><td><code>const precoPao</code></td><td><code>constant_identifier_names</code></td></tr>
+<tr><td><code>ListaCompras.dart</code></td><td><code>lista_compras.dart</code></td><td><code>file_names</code></td></tr>
+<tr><td><code>new ListaCompras()</code></td><td><code>ListaCompras()</code></td><td><code>unnecessary_new</code></td></tr>
+<tr><td><code>Map&lt;String, int&gt;()</code></td><td><code>&lt;String, int&gt;{}</code></td><td><code>prefer_collection_literals</code></td></tr>
+<tr><td><code>lista.length == 0</code></td><td><code>lista.isEmpty</code></td><td><code>prefer_is_empty</code></td></tr>
+<tr><td><code>'Total: ' + total.toString()</code></td><td><code>'Total: $total'</code></td><td><code>prefer_interpolation_to_compose_strings</code></td></tr>
+<tr><td><code>"pão"</code></td><td><code>'pão'</code></td><td><code>prefer_single_quotes</code> (ligar à mão)</td></tr>
+<tr><td><code>var</code> que nunca muda</td><td><code>final</code></td><td><code>prefer_final_locals</code> (ligar à mão)</td></tr>
+<tr><td><code>// explica a função</code></td><td><code>/// explica a função</code></td><td>Effective Dart (documentação)</td></tr>
+</table>
+</div>
+<p>E o que é de espaço, indentação e quebra de linha você nem decide: o <code>dart format</code> faz (veja <a href="analise.html">Análise e Formatação</a>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Quebrar uma regra de estilo nunca dá erro: dá um <code>info</code>. Mas dois deslizes de "escrita" dão erro de compilação de verdade.</p>
+
+<div class="cenario">
+<strong>Acento no nome da variável</strong>
+<pre class="file" data-file="acento.dart">void main() {
+  final preço = 2.5;
+  print(preço);
+}
+</pre>
+<pre class="term">$ dart run acento.dart
+acento.dart:2:12: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  final preço = 2.5;
+           ^
+acento.dart:3:12: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  print(preço);
+           ^
+</pre>
+<p>"O caractere não ASCII <code>ç</code> (U+00E7, o código dele na tabela Unicode) não pode ser usado em identificadores, só em textos e comentários. Tente usar uma letra do inglês (US-ASCII), um dígito, <code>_</code> ou <code>$</code>." <strong>Identificador</strong> é qualquer nome que você inventa: variável, função, classe. O <code>^</code> aponta a coluna 12, exatamente o <code>ç</code>. Dentro das aspas (<code>'pão'</code>) o acento é livre. <strong>Como consertar:</strong> <code>preco</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Apóstrofo dentro de aspas simples</strong>
+<pre class="file" data-file="aspas.dart">void main() {
+  print('Pão d'água: R$ 1,20');
+}
+</pre>
+<pre class="term">$ dart run aspas.dart
+aspas.dart:2:16: Error: The non-ASCII character 'á' (U+00E1) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  print('Pão d'água: R$ 1,20');
+               ^
+aspas.dart:2:29: Error: String starting with ' must end with '.
+  print('Pão d'água: R$ 1,20');
+                            ^^^
+« … e mais 7 erros, todos causados pelo mesmo apóstrofo »
+</pre>
+<p>O apóstrofo de <code>d'água</code> <strong>fechou</strong> o texto: para o Dart, o texto é só <code>'Pão d'</code>, e o <code>água</code> virou um "nome" solto (daí o erro do <code>á</code> em identificador). Depois sobrou um <code>');</code> que abre um texto novo e nunca fecha: "texto começando com <code>'</code> tem de terminar com <code>'</code>". Um caractere fora do lugar gerou 9 erros em cascata; leia sempre o <strong>primeiro</strong>. <strong>Como consertar:</strong> é a exceção da regra das aspas simples. Use aspas duplas, <code>"Pão d'água: R\$ 1,20"</code>, ou escape o apóstrofo com barra, <code>'Pão d\'água: R\$ 1,20'</code>. (O <code>R$</code> também precisa da barra, como você viu em <a href="compilar.html">Compilando</a>.)</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Dê o nome certo</h3>
+<p>Escreva cada nome no estilo do Dart:</p>
+<div class="ex-code">Classe "conta bancária": <input data-answer="ContaBancaria" aria-label="nome da classe"><br>Variável "preço total": <input data-answer="precoTotal" aria-label="nome da variável"><br>Arquivo "conta bancária": <input data-answer="conta_bancaria.dart" aria-label="nome do arquivo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. A constante</h3>
+<p>Como o Effective Dart manda escrever a constante "taxa de entrega"?</p>
+<div class="ex-code">const <input data-answer="taxaEntrega" aria-label="nome da constante"> = 5.0;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual destas linhas segue o estilo do Dart?</p>
+<label><input type="radio" name="q3"> <code>var m = new Map&lt;String, int&gt;();</code></label>
+<label><input type="radio" name="q3"> <code>final estoque = &lt;String, int&gt;{};</code></label>
+<label><input type="radio" name="q3"> <code>final Estoque = Map&lt;String, int&gt;();</code></label>
+<label><input type="radio" name="q3"> <code>var ESTOQUE = {};</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O <code>dart analyze</code> mostrou <code>info - … - prefer_is_empty</code>. O que fazer?</p>
+<label><input type="radio" name="q4"> Nada: o programa não roda até consertar</label>
+<label><input type="radio" name="q4"> Trocar aspas duplas por simples</label>
+<label><input type="radio" name="q4"> Apagar a lista</label>
+<label><input type="radio" name="q4"> Trocar <code>lista.length == 0</code> por <code>lista.isEmpty</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Quando as aspas duplas são a melhor escolha?</p>
+<label><input type="radio" name="q5"> Quando o texto tem apóstrofo, como <code>"Pão d'água"</code></label>
+<label><input type="radio" name="q5"> Sempre: são o padrão do Dart</label>
+<label><input type="radio" name="q5"> Quando o texto tem acento</label>
+<label><input type="radio" name="q5"> Quando o texto tem <code>$</code></label>
+</div>
+
+<h3>Missão final: passe a lista a limpo</h3>
+
+<div class="trydart" data-goal="out:Total: 7.5;;src:\.isEmpty;;src:'Total: \$total';;src:&lt;String, int&gt;\{\};;src:class ListaCompras">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo é o da seção 1. Conserte o que o analisador apontou: nomes (<code>ListaCompras</code>, <code>itens</code>, <code>precoPao</code>), sem <code>new</code>, <code>isEmpty</code>, interpolação (<code>'Total: $total'</code>) e o mapa vazio com <code>&lt;String, int&gt;{}</code>. A saída tem de continuar igual.</p>
+<pre class="script" data-file="main.dart">class lista_compras {
+  var Itens = new List&lt;String&gt;.empty(growable: true);
+}
+
+const PRECO_PAO = 0.75;
+
+void main() {
+  var l = lista_compras();
+  l.Itens.add("pão");
+  l.Itens.add('leite');
+  if (l.Itens.length == 0) {
+    print('vazia');
+  }
+  var total = PRECO_PAO * 10;
+  print('Total: ' + total.toString());
+  var m = Map&lt;String, int&gt;();
+  m['pão'] = 10;
+  print(m);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">/// A lista de compras da Ana.
+class ListaCompras {
+  final itens = &lt;String&gt;[];
+}
+
+/// Preço de um pão francês, em reais.
+const precoPao = 0.75;
+
+void main() {
+  final lista = ListaCompras();
+  lista.itens.add('pão');
+  lista.itens.add('leite');
+  if (lista.itens.isEmpty) {
+    print('vazia');
+  }
+  final total = precoPao * 10;
+  print('Total: $total');
+  final estoque = &lt;String, int&gt;{};
+  estoque['pão'] = 10;
+  print(estoque);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>Effective Dart</strong> é o guia oficial de estilo; o código fica com "cara de Dart" e qualquer um lê.</li>
+  <li>Classes em <code>UpperCamelCase</code>; variáveis, funções e <strong>constantes</strong> em <code>lowerCamelCase</code>; arquivos em <code>snake_case.dart</code>; nomes sem acento e que digam o que guardam.</li>
+  <li>Aspas simples (duplas só com apóstrofo), <code>final</code> por padrão, interpolação, <code>isEmpty</code>, <code>[]</code>/<code>{}</code> e nada de <code>new</code>.</li>
+  <li>Documente com <code>///</code>, começando por uma frase curta; cite nomes entre <code>[colchetes]</code>.</li>
+  <li>O <code>dart analyze</code> (com <code>package:lints</code>) aponta cada deslize como <code>info</code>, com o nome da regra; o <code>dart format</code> cuida dos espaços.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
