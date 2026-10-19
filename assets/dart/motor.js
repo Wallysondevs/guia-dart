@@ -947,10 +947,10 @@
     var l = this.parseExprBin(nivel + 1);
     while (true) {
       var t = this.peek();
-      if (t.t === "id" && (t.v === "and" || t.v === "or") && !t.nl && (nivel === 1 && t.v === "or" || nivel === 2 && t.v === "and")) {
+      if (t.t === "id" && (t.v === "and" || t.v === "or") && !t.nl && (nivel === 5 && t.v === "or" || nivel === 7 && t.v === "and")) {
         var simb = t.v === "and" ? "&" : "|";
         ERROS_PARSE.push(new ErroDart("Binary operator '" + t.v + "' is written as '" + simb + "' instead of the written out word.", t.p, t.v.length, "Try replacing '" + t.v + "' with '" + simb + "'."));
-        t = { t: "op", v: t.v === "and" ? "&&" : "||", p: t.p, e: t.e };
+        t = { t: "op", v: t.v === "and" ? "&" : "|", p: t.p, e: t.e };
         this.t[this.i] = t;
       }
       if (!((t.t === "op" || t.t === "id") && BIN[nivel].indexOf(t.v) >= 0)) break;
@@ -2608,7 +2608,9 @@
     // erros de tipo comuns: "texto" + 1, int + String
     var ta = this.tipoDe(e.a, esc), tb = this.tipoDe(e.b, esc);
     if (ta && tb && ta.k === "T" && tb.k === "T" && !ta.nul && !tb.nul) {
-      if (ta.nome === "String" && e.op === "*" && tb.nome !== "int" && SUBTIPOS[tb.nome])
+      if ((e.op === "&" || e.op === "|" || e.op === "^") && ta.nome === "int" && tb.nome !== "int" && SUBTIPOS[tb.nome])
+        this.erro("A value of type '" + this.tipoTexto(tb) + "' can't be assigned to a variable of type 'int'.", offsetDe(e.b), 1);
+      else if (ta.nome === "String" && e.op === "*" && tb.nome !== "int" && SUBTIPOS[tb.nome])
         this.erro("A value of type '" + this.tipoTexto(tb) + "' can't be assigned to a variable of type 'int'.", offsetDe(e.b), 1);
       else if (ta.nome === "String" && e.op === "+" && tb.nome !== "String" && SUBTIPOS[tb.nome])
         this.erro("A value of type '" + this.tipoTexto(tb) + "' can't be assigned to a variable of type 'String'.", e.b.p, 1);
