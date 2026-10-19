@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart async e await — esperando um Future sem complicação | Guia Dart</title>
+<meta name="description" content="async e await no Dart para quem nunca programou: Future&lt;void&gt; main() async, await para pegar o valor de um Future, funções async que devolvem Future, a ordem real de execução, await em laço, um depois do outro × Future.wait (5 s × 3 s no lab) e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">async e await</span></h1>
+
+<p class="intro">Na aula <a href="future.html">Future</a>, para usar o valor de um Future você escrevia o resto do código dentro de um <code>then</code>, e cada passo a mais virava um <code>then</code> dentro do outro. Funciona, mas fica difícil de ler. O Dart tem duas palavras que resolvem isso: <code>await</code> ("aguarde") espera o Future ficar pronto e entrega o valor, e <code>async</code> ("assíncrono") marca a função onde se pode usar o <code>await</code>. Com elas, o código assíncrono se lê de cima para baixo, como qualquer outro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como usar <code>await</code> para pegar o valor de um Future, e por que a função precisa de <code>async</code>.</li>
+  <li>Como escrever o <code>main</code> assíncrono: <code>Future&lt;void&gt; main() async</code>.</li>
+  <li>Como escrever as suas funções <code>async</code>, que sempre devolvem um Future.</li>
+  <li>A ordem real: o que roda antes e o que roda depois de um <code>await</code>.</li>
+  <li>A diferença de tempo entre esperar um depois do outro e esperar tudo junto (<code>Future.wait</code>).</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. As esperas são simuladas com <code>Future.delayed</code>.</p>
+
+<hr>
+
+<h2>A ideia: esperar a senha sentado</h2>
+<p>Lembra da senha da lanchonete? Com o <code>then</code>, a Ana deixava um bilhete: "quando chamarem a senha, pegue o sanduíche e depois pague e depois…". Com o <code>await</code>, ela simplesmente <strong>espera a senha ser chamada</strong> e depois segue a vida, um passo de cada vez:</p>
+<ol class="passo">
+  <li>Pede o sanduíche (recebe a senha).</li>
+  <li><strong>Aguarda</strong> a senha ser chamada (<code>await</code>) e pega o sanduíche.</li>
+  <li>Paga e vai embora.</li>
+</ol>
+<p>Uma diferença importante: enquanto a Ana espera, <strong>a lanchonete não para</strong>. Outros clientes continuam sendo atendidos. O <code>await</code> pausa só a função onde ele está; o resto do programa (outros Futures, outras tarefas) continua andando.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>await</code></h2>
+
+<pre class="file" data-file="a1.dart">Future&lt;String&gt; assarPao() {
+  return Future.delayed(Duration(seconds: 2), () =&gt; 'pão quentinho');
+}
+
+Future&lt;void&gt; main() async {
+  print('1. Ana pede um pão');
+  final pao = await assarPao();
+  print('2. Ficou pronto: $pao');
+  print('3. Ela paga e vai embora');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Future&lt;void&gt; main() async</dt><dd>O <code>main</code> marcado com <code>async</code>. Toda função <code>async</code> devolve um Future; como o <code>main</code> não devolve valor nenhum, é <code>Future&lt;void&gt;</code> ("futuro de nada": só avisa quando terminou).</dd>
+  <dt>async</dt><dd>Vem depois dos parênteses e antes da <code>{</code>. Avisa: "dentro desta função vai ter <code>await</code>".</dd>
+  <dt>await assarPao()</dt><dd>"Aguarde o Future de <code>assarPao()</code> ficar pronto". O resultado do <code>await</code> é o <strong>valor</strong> de dentro do Future: a <code>String</code>, não a senha.</dd>
+  <dt>final pao = …</dt><dd>Por isso <code>pao</code> é uma <code>String</code> de verdade (<code>'pão quentinho'</code>).</dd>
+</dl>
+
+<pre class="term">$ dart run a1.dart
+1. Ana pede um pão
+2. Ficou pronto: pão quentinho
+3. Ela paga e vai embora
+</pre>
+
+<p>Compare com a aula anterior: lá, o "3" aparecia <strong>antes</strong> do pão ficar pronto, porque o <code>main</code> não esperava. Aqui o <code>await</code> pausou o <code>main</code> por 2 segundos na linha do pedido, e as linhas seguem na ordem em que estão escritas.</p>
+
+<div class="trydart" data-goal="out:Pronto: pão quentinho;;src:\bawait\b">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>Pronto: Instance of 'Future&lt;String&gt;'</code> (a senha, não o pão). O <code>main</code> já é <code>async</code>: só falta uma palavra antes do <code>assarPao()</code>.</p>
+<pre class="script" data-file="main.dart">Future&lt;String&gt; assarPao() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'pão quentinho');
+
+Future&lt;void&gt; main() async {
+  final pao = assarPao();
+  print('Pronto: $pao');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;String&gt; assarPao() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'pão quentinho');
+
+Future&lt;void&gt; main() async {
+  final pao = await assarPao();
+  print('Pronto: $pao');
+}
+</pre>
+</div>
+
+<p>No lab: sem o <code>await</code>, saiu <code>Pronto: Instance of 'Future&lt;String&gt;'</code>; com ele, <code>Pronto: pão quentinho</code>.</p>
+
+<hr>
+
+<h2>2. As suas funções <code>async</code></h2>
+<p>Qualquer função pode ser <code>async</code>. Dentro dela, você usa <code>await</code> e devolve um valor normal com <code>return</code>; o Dart <strong>embrulha</strong> esse valor num Future automaticamente:</p>
+
+<pre class="file" data-file="a2.dart">Future&lt;int&gt; contarPaes() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 24);
+
+Future&lt;String&gt; planejarAmanha() async {
+  final hoje = await contarPaes();
+  final amanha = hoje * 2;
+  return 'Amanhã: $amanha pães';
+}
+
+Future&lt;void&gt; main() async {
+  final plano = await planejarAmanha();
+  print(plano);
+  print(planejarAmanha());
+}
+</pre>
+
+<pre class="term">$ dart run a2.dart
+Amanhã: 48 pães
+Instance of 'Future&lt;String&gt;'
+</pre>
+
+<dl class="anatomy">
+  <dt>Future&lt;String&gt; planejarAmanha() async</dt><dd>O tipo de retorno é <code>Future&lt;String&gt;</code>, mesmo o <code>return</code> sendo de uma <code>String</code>. Quem chama recebe uma senha.</dd>
+  <dt>final hoje = await contarPaes();</dt><dd>Pausa esta função até a contagem chegar; <code>hoje</code> é um <code>int</code>.</dd>
+  <dt>return 'Amanhã: $amanha pães';</dt><dd>Devolve uma <code>String</code>; o Dart a entrega dentro do Future.</dd>
+  <dt>print(planejarAmanha())</dt><dd>Sem <code>await</code>, de propósito: mostra a senha (<code>Instance of 'Future&lt;String&gt;'</code>). Uma função <code>async</code> <strong>sempre</strong> devolve um Future: quem quer o valor precisa de <code>await</code> (ou <code>then</code>).</dd>
+</dl>
+
+<p>Também dá para usar <code>await</code> dentro de um laço. Cada volta espera a anterior:</p>
+
+<pre class="file" data-file="a5.dart">Future&lt;int&gt; lerEstoque(String produto) async {
+  await Future.delayed(Duration(seconds: 1));
+  return produto.length * 10;
+}
+
+Future&lt;void&gt; main() async {
+  var total = 0;
+  for (final p in ['pão', 'bolo', 'broa']) {
+    final n = await lerEstoque(p);
+    print('$p: $n');
+    total += n;
+  }
+  print('Total: $total');
+}
+</pre>
+
+<pre class="term">$ dart run a5.dart
+pão: 30
+bolo: 40
+broa: 40
+Total: 110
+</pre>
+
+<p>(O <code>await Future.delayed(Duration(seconds: 1));</code>, sem função dentro, só espera 1 segundo. O "estoque" é inventado: 10 vezes o número de letras do nome.)</p>
+
+<hr>
+
+<h2>3. A ordem real: o que roda antes do <code>await</code></h2>
+<p>Uma função <code>async</code> chamada <strong>sem</strong> <code>await</code> não é pulada inteira: ela roda normalmente <strong>até o primeiro <code>await</code></strong>. Ali ela pausa e devolve a senha, e quem chamou continua. O resto dela roda mais tarde:</p>
+
+<pre class="file" data-file="a3.dart">Future&lt;void&gt; preparar(String item) async {
+  print('  começa a preparar $item');
+  await Future.delayed(Duration(seconds: 1));
+  print('  $item pronto');
+}
+
+void main() {
+  print('1. main começa');
+  preparar('café');
+  print('2. main continua');
+}
+</pre>
+
+<pre class="term">$ dart run a3.dart
+1. main começa
+  começa a preparar café
+2. main continua
+  café pronto
+</pre>
+
+<ol class="passo">
+  <li><code>1. main começa</code>: linha normal.</li>
+  <li><code>preparar('café')</code> começa a rodar <strong>na hora</strong> e mostra <code>começa a preparar café</code>.</li>
+  <li>No <code>await</code>, a <code>preparar</code> pausa e devolve um Future. O <code>main</code> (que não é <code>async</code> e não esperou) segue: <code>2. main continua</code>.</li>
+  <li>Um segundo depois, a <code>preparar</code> continua de onde parou: <code>café pronto</code>.</li>
+</ol>
+
+<hr>
+
+<h2>4. Um depois do outro, ou todos juntos?</h2>
+<p>Dois <code>await</code> seguidos esperam <strong>um depois do outro</strong>. Se as tarefas não dependem uma da outra, dá para começar todas e esperar juntas com <code>Future.wait</code>. A Ana mediu as duas formas com um <code>Stopwatch</code> (cronômetro):</p>
+
+<pre class="file" data-file="a4.dart">Future&lt;String&gt; assar(String item, int segundos) async {
+  await Future.delayed(Duration(seconds: segundos));
+  return item;
+}
+
+Future&lt;void&gt; main() async {
+  final relogio = Stopwatch()..start();
+  final a = await assar('pão', 2);
+  final b = await assar('bolo', 3);
+  print('Um depois do outro: $a, $b em ${relogio.elapsed.inSeconds} s');
+
+  relogio.reset();
+  final [c, d] = await Future.wait([assar('pão', 2), assar('bolo', 3)]);
+  print('Ao mesmo tempo: $c, $d em ${relogio.elapsed.inSeconds} s');
+}
+</pre>
+
+<pre class="term">$ dart run a4.dart
+Um depois do outro: pão, bolo em 5 s
+Ao mesmo tempo: pão, bolo em 3 s
+</pre>
+
+<p>Um depois do outro: 2 + 3 = <strong>5 segundos</strong>, porque o bolo só começou depois que o pão ficou pronto. Juntos: <strong>3 segundos</strong>, o tempo do mais demorado. O <code>final [c, d] = …</code> desmonta a lista de resultados em duas variáveis (veja <a href="patterns.html">Patterns</a>). Os segundos podem variar um pouco de um computador para outro.</p>
+
+<div class="tip">
+<strong>Quando usar cada um</strong>
+<p>Se o segundo passo <strong>precisa</strong> do resultado do primeiro (contar os pães para depois planejar), use <code>await</code> um depois do outro. Se são independentes (assar pão e bolo), comece todos e use <code>await Future.wait([…])</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O mesmo programa com <code>then</code> (aula anterior) e com <code>async</code>/<code>await</code>. Os dois mostraram <code>Total: 8</code> no lab:</p>
+
+<pre class="file" data-file="com_then.dart">void main() {
+  precoDe('café').then((cafe) {
+    precoDe('pão').then((pao) {
+      print('Total: ${cafe + pao}');
+    });
+  });
+}
+</pre>
+
+<pre class="file" data-file="com_await.dart">Future&lt;void&gt; main() async {
+  final cafe = await precoDe('café');
+  final pao = await precoDe('pão');
+  print('Total: ${cafe + pao}');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Quase sempre: passos em sequência, com valores intermediários</td><td><code>async</code>/<code>await</code>: lê-se de cima para baixo</td></tr>
+<tr><td>Erros no meio do caminho</td><td><code>await</code> dentro de <code>try</code>/<code>catch</code> (aula <a href="erros-async.html">Erros em Código Assíncrono</a>)</td></tr>
+<tr><td>Uma ação rápida quando o Future chegar, sem pausar a função</td><td><code>.then(…)</code></td></tr>
+<tr><td>Várias tarefas independentes</td><td><code>await Future.wait([…])</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>await</code> numa função sem <code>async</code></strong>
+<pre class="file" data-file="e1.dart">Future&lt;String&gt; assarPao() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'pão quentinho');
+
+void main() {
+  final pao = await assarPao();
+  print(pao);
+}
+</pre>
+<pre class="term">$ dart run e1.dart
+e1.dart:5:15: Error: 'await' can only be used in 'async' or 'async*' methods.
+  final pao = await assarPao();
+              ^^^^^
+</pre>
+<p>"O <code>await</code> só pode ser usado em funções <code>async</code> ou <code>async*</code>". O <code>async*</code> é dos <a href="async-star.html">geradores</a>. <strong>Como consertar:</strong> <code>Future&lt;void&gt; main() async {</code>. (Só <code>void main() async</code> também compila, mas o costume é deixar claro, com <code>Future&lt;void&gt;</code>, que a função devolve um Future.)</p>
+</div>
+
+<div class="cenario">
+<strong>Função <code>async</code> com tipo de retorno que não é Future</strong>
+<pre class="file" data-file="e2.dart">String saudar() async {
+  return 'Olá';
+}
+
+void main() {
+  print(saudar());
+}
+</pre>
+<pre class="term">$ dart run e2.dart
+e2.dart:1:1: Error: Functions marked 'async' must have a return type assignable to 'Future'.
+String saudar() async {
+^^^^^^
+</pre>
+<p>"Funções marcadas com <code>async</code> precisam ter um tipo de retorno compatível com <code>Future</code>". Uma função <code>async</code> sempre devolve uma senha. <strong>Como consertar:</strong> <code>Future&lt;String&gt; saudar() async</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>return</code> não combina com o Future</strong>
+<pre class="file" data-file="e4.dart">Future&lt;int&gt; contar() async {
+  return 'doze';
+}
+
+void main() {}
+</pre>
+<pre class="term">$ dart run e4.dart
+e4.dart:2:10: Error: A value of type 'String' can't be returned from an async function with return type 'Future&lt;int&gt;'.
+ - 'Future' is from 'dart:async'.
+  return 'doze';
+         ^
+</pre>
+<p>"Um valor <code>String</code> não pode ser devolvido por uma função <code>async</code> do tipo <code>Future&lt;int&gt;</code>". Dentro da função, o <code>return</code> é do tipo de <strong>dentro</strong> do Future (<code>int</code>). <strong>Como consertar:</strong> <code>return 12;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code></strong>
+<p>Não dá erro nenhum, e por isso é o mais traiçoeiro: a variável fica com o Future, e o <code>print</code> mostra <code>Instance of 'Future&lt;String&gt;'</code> (é a primeira missão desta aula). Se a função chamada sem <code>await</code> tiver efeitos (mostrar algo, gravar um arquivo), eles acontecem <strong>depois</strong> do que você esperava, como na seção 3. <strong>Como consertar:</strong> ponha o <code>await</code> antes da chamada. A ferramenta <code>dart analyze</code> com as regras certas ajuda a achar esses casos (veja <a href="analise.html">Análise e Formatação</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Future&lt;void&gt; main() async { … }</code></td><td><code>main</code> que pode usar <code>await</code></td></tr>
+<tr><td><code>Future&lt;T&gt; f() async { … return valorT; }</code></td><td>Função assíncrona; o <code>return</code> é embrulhado num Future</td></tr>
+<tr><td><code>final v = await f();</code></td><td>Pausa a função até <code>f()</code> ficar pronto; <code>v</code> é o valor</td></tr>
+<tr><td><code>await Future.delayed(Duration(seconds: 1));</code></td><td>Espera 1 segundo</td></tr>
+<tr><td><code>await Future.wait([f1, f2])</code></td><td>Espera vários ao mesmo tempo; dá a lista de valores</td></tr>
+<tr><td><code>f();</code> sem <code>await</code></td><td>Roda <code>f</code> até o primeiro <code>await</code> dela e segue sem esperar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o <code>main</code></h3>
+<div class="ex-code">Future&lt;void&gt; main() <input data-answer="async" aria-label="palavra-chave da função"> {<br>&nbsp;&nbsp;final n = <input data-answer="await" aria-label="palavra-chave da espera"> contarPaes();<br>&nbsp;&nbsp;print(n);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O tipo de retorno</h3>
+<p>Uma função <code>async</code> termina com <code>return 3.5;</code>. Qual é o tipo de retorno dela?</p>
+<div class="ex-code"><input data-answer="Future&lt;double&gt;" aria-label="tipo de retorno"> calcular() async { … }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Duas tarefas independentes de 2 e 3 segundos, com <code>await</code> uma depois da outra, levam mais ou menos:</p>
+<label><input type="radio" name="q3"> 3 segundos</label>
+<label><input type="radio" name="q3"> 5 segundos</label>
+<label><input type="radio" name="q3"> 2 segundos</label>
+<label><input type="radio" name="q3"> 6 segundos</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que acontece numa função <code>async</code> chamada sem <code>await</code>?</p>
+<label><input type="radio" name="q4"> Ela não roda</label>
+<label><input type="radio" name="q4"> Ela roda inteira antes da linha seguinte</label>
+<label><input type="radio" name="q4"> Ela roda até o primeiro <code>await</code> dela; o resto fica para depois</label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+</div>
+
+<h3>Missão final: do <code>then</code> para o <code>await</code></h3>
+
+<div class="trydart" data-goal="out:Total: 8;;src:main\(\)\s+async;;src:await\s+precoDe\('café'\)">
+<p class="try-task"><strong>Missão:</strong> o programa funciona, mas está com um <code>then</code> dentro do outro. Reescreva o <code>main</code> com <code>async</code> e <code>await</code>: <code>Future&lt;void&gt; main() async</code>, <code>final cafe = await precoDe('café');</code>, o mesmo para o pão, e o <code>print</code> do total.</p>
+<pre class="script" data-file="main.dart">Future&lt;int&gt; precoDe(String item) async {
+  await Future.delayed(Duration(seconds: 1));
+  return item == 'café' ? 5 : 3;
+}
+
+void main() {
+  precoDe('café').then((cafe) {
+    precoDe('pão').then((pao) {
+      print('Total: ${cafe + pao}');
+    });
+  });
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;int&gt; precoDe(String item) async {
+  await Future.delayed(Duration(seconds: 1));
+  return item == 'café' ? 5 : 3;
+}
+
+Future&lt;void&gt; main() async {
+  final cafe = await precoDe('café');
+  final pao = await precoDe('pão');
+  print('Total: ${cafe + pao}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>await</code> espera um Future e entrega o valor de dentro dele. Só pode ser usado numa função <code>async</code>.</li>
+  <li>Uma função <code>async</code> sempre devolve um Future: <code>Future&lt;T&gt;</code>, ou <code>Future&lt;void&gt;</code> se não devolve nada. O <code>return</code> é do tipo <code>T</code>.</li>
+  <li>O <code>await</code> pausa só a função onde está; o resto do programa continua. Sem <code>await</code>, a função chamada roda até o primeiro <code>await</code> dela e o resto fica para depois.</li>
+  <li><code>await</code> seguidos somam os tempos; <code>await Future.wait([…])</code> espera tudo junto.</li>
+  <li>Esquecer o <code>await</code> não dá erro: aparece <code>Instance of 'Future&lt;…&gt;'</code> ou as coisas acontecem fora de ordem.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
