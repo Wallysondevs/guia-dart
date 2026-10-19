@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Atribuição e Incremento — =, +=, -=, ++ e -- | Guia Dart</title>
+<meta name="description" content="Atribuição e incremento no Dart para quem nunca programou: o = que guarda um valor, os atalhos +=, -=, *=, /=, ~/= e %=, o ++ e o -- antes e depois da variável, acumular um total, e os erros reais do Dart 3 (final que não muda, double em variável int, variável sem valor, + = com espaço e =+ invertido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Atribuição e Incremento</span></h1>
+
+<p class="intro">Você já sabe criar uma variável e fazer contas (<a href="variaveis.html">Variáveis</a> e <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>). Agora falta o mais comum de tudo: <strong>mudar</strong> o valor de uma variável que já existe. Somar 5 no saldo, contar mais uma visita, descontar o troco. Para isso existem o <code>=</code> (atribuição), os atalhos como <code>+=</code> e os operadores <code>++</code> e <code>--</code>, que somam ou tiram 1.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>=</code> faz de verdade: "guarde este valor nesta caixa", e não "é igual a".</li>
+  <li>Os atalhos <code>+=</code>, <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>~/=</code> e <code>%=</code>.</li>
+  <li>O <code>++</code> e o <code>--</code>, e a diferença entre <code>a++</code> e <code>++a</code>.</li>
+  <li>Como <strong>acumular</strong> um total, passo a passo.</li>
+  <li>Os erros reais: mudar uma <code>final</code>, pôr <code>double</code> numa variável <code>int</code>, usar uma variável sem valor, <code>+ =</code> com espaço e <code>=+</code> trocado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o cofrinho</h2>
+<p>Pense numa variável como um cofrinho com uma etiqueta (o nome). Atribuir é <strong>trocar o que está dentro</strong>. Quando a Ana guarda mais 5 reais, ela faz três coisas: olha quanto tem (10), soma 5 de cabeça (15) e deixa o cofrinho com 15. O valor antigo não fica guardado em lugar nenhum: o cofrinho agora tem 15, e pronto.</p>
+
+<hr>
+
+<h2>1. O <code>=</code>: guardar um valor</h2>
+
+<pre class="file" data-file="cofrinho.dart">void main() {
+  var saldo = 10;
+  print('Começo: $saldo');
+  saldo = saldo + 5;
+  print('Depois de guardar 5: $saldo');
+  saldo = 3;
+  print('Trocou tudo por 3: $saldo');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>var saldo = 10;</dt><dd>Cria a variável e dá o primeiro valor. O <code>var</code> só aparece aqui, na criação (veja <a href="variaveis.html">Variáveis</a>).</dd>
+  <dt>saldo = saldo + 5;</dt><dd>Lê-se da <strong>direita para a esquerda</strong>: primeiro o Dart calcula <code>saldo + 5</code> com o valor atual (10 + 5 = 15); depois guarda o 15 em <code>saldo</code>. Em matemática, "saldo = saldo + 5" seria um absurdo; em programação, é uma ordem: "o saldo passa a valer o que valia, mais 5".</dd>
+  <dt>saldo = 3;</dt><dd>Joga fora o 15 e guarda 3. Sem <code>var</code>: a variável já existe.</dd>
+</dl>
+
+<pre class="term">$ dart run cofrinho.dart
+Começo: 10
+Depois de guardar 5: 15
+Trocou tudo por 3: 3
+</pre>
+
+<div class="note">
+<strong><code>=</code> não é "igual a"</strong>
+<p>Um <code>=</code> sozinho <strong>guarda</strong>. Para <strong>perguntar</strong> se duas coisas são iguais, o Dart usa <code>==</code> (dois sinais), assunto da aula <a href="operadores-comparacao.html">Comparação</a>.</p>
+</div>
+
+<hr>
+
+<h2>2. Os atalhos: <code>+=</code>, <code>-=</code>, <code>*=</code> e companhia</h2>
+<p>Escrever <code>saldo = saldo + 20</code> repete o nome da variável. O atalho <code>saldo += 20</code> faz exatamente a mesma coisa, mais curto. Existe um atalho para cada operador de conta:</p>
+
+<pre class="file" data-file="atalhos.dart">void main() {
+  var saldo = 100;
+  saldo += 20;
+  print('saldo += 20  → $saldo');
+  saldo -= 30;
+  print('saldo -= 30  → $saldo');
+  saldo *= 2;
+  print('saldo *= 2   → $saldo');
+  saldo ~/= 7;
+  print('saldo ~/= 7  → $saldo');
+  saldo %= 10;
+  print('saldo %= 10  → $saldo');
+  var preco = 9.0;
+  preco /= 2;
+  print('preco /= 2   → $preco');
+  var nome = 'Ana';
+  nome += ' Souza';
+  print('nome += …    → $nome');
+}
+</pre>
+
+<pre class="term">$ dart run atalhos.dart
+saldo += 20  → 120
+saldo -= 30  → 90
+saldo *= 2   → 180
+saldo ~/= 7  → 25
+saldo %= 10  → 5
+preco /= 2   → 4.5
+nome += …    → Ana Souza
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Atalho</th><th>É o mesmo que</th><th>No exemplo</th></tr>
+<tr><td><code>x += 20</code></td><td><code>x = x + 20</code></td><td>100 → 120</td></tr>
+<tr><td><code>x -= 30</code></td><td><code>x = x - 30</code></td><td>120 → 90</td></tr>
+<tr><td><code>x *= 2</code></td><td><code>x = x * 2</code></td><td>90 → 180</td></tr>
+<tr><td><code>x ~/= 7</code></td><td><code>x = x ~/ 7</code></td><td>180 → 25 (180 ÷ 7 = 25, sobra 5)</td></tr>
+<tr><td><code>x %= 10</code></td><td><code>x = x % 10</code></td><td>25 → 5</td></tr>
+<tr><td><code>x /= 2</code></td><td><code>x = x / 2</code> (só serve para <code>double</code>)</td><td>9.0 → 4.5</td></tr>
+<tr><td><code>texto += ' Souza'</code></td><td><code>texto = texto + ' Souza'</code></td><td>'Ana' → 'Ana Souza'</td></tr>
+</table>
+</div>
+
+<p>O símbolo da conta vem <strong>antes</strong> do <code>=</code>, grudado nele: <code>+=</code>, e não <code>=+</code> nem <code>+ =</code> (os dois dão erro; veja <a href="#errado">Quando dá errado</a>). Repare também que o <code>/=</code> foi usado num <code>double</code>: num <code>int</code> ele não compila, porque o <code>/</code> sempre dá <code>double</code>.</p>
+
+<div class="tip">
+<strong>E o <code>??=</code>?</strong>
+<p>Existe mais um atalho, o <code>??=</code>: "guarde este valor só se a variável estiver vazia (<code>null</code>)". Ele é assunto de null safety, na aula <a href="operadores-null.html">?. , ?? e ??=</a>.</p>
+</div>
+
+<hr>
+
+<h2>3. Acumular: somar aos poucos</h2>
+<p>No caixa da padaria, a Ana passa um item de cada vez. A variável <code>total</code> começa em zero e vai <strong>acumulando</strong>:</p>
+
+<pre class="file" data-file="total.dart">void main() {
+  var total = 0.0;
+  total += 4.50;
+  total += 12.90;
+  total += 3.25;
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run total.dart
+Total: R$ 20.65
+</pre>
+
+<p>O total começou em <code>0.0</code>, e não em <code>0</code>, por um motivo importante: com <code>var total = 0;</code> o Dart decide que a variável é <code>int</code>, e aí <code>total += 4.50</code> não compila (veja o erro em <a href="#errado">Quando dá errado</a>). Uma variável acumuladora como essa é a base dos laços que você vai ver em <a href="for.html">for</a> e <a href="while.html">while</a>.</p>
+
+<div class="trydart" data-goal="out:Total: R$ 25.65;;src:\+=">
+<p class="try-task"><strong>Missão:</strong> o cliente lembrou de um pão de queijo de <strong>R$ 5,00</strong>. Acrescente mais uma linha com <code>+=</code> para o total virar <code>R$ 25.65</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var total = 0.0;
+  total += 4.50;
+  total += 12.90;
+  total += 3.25;
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var total = 0.0;
+  total += 4.50;
+  total += 12.90;
+  total += 3.25;
+  total += 5.00;
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>++</code> e <code>--</code>: mais um, menos um</h2>
+<p>Somar 1 é tão comum (contar visitas, voltas, pessoas na fila) que ganhou um operador só para isso: <code>++</code> ("mais mais"). O <code>--</code> tira 1.</p>
+
+<pre class="file" data-file="incremento.dart">void main() {
+  var visitas = 0;
+  visitas++;
+  visitas++;
+  visitas++;
+  print('Visitas: $visitas');
+  visitas--;
+  print('Depois de um --: $visitas');
+}
+</pre>
+
+<pre class="term">$ dart run incremento.dart
+Visitas: 3
+Depois de um --: 2
+</pre>
+
+<p><code>visitas++</code> é o mesmo que <code>visitas += 1</code>, que é o mesmo que <code>visitas = visitas + 1</code>. Somar 1 se chama <strong>incrementar</strong>; tirar 1, <strong>decrementar</strong>.</p>
+
+<h3>Antes ou depois: <code>a++</code> e <code>++a</code></h3>
+<p>O <code>++</code> pode vir depois da variável (<code>a++</code>, <strong>pós-incremento</strong>) ou antes (<code>++a</code>, <strong>pré-incremento</strong>). Sozinhos numa linha, os dois fazem a mesma coisa. A diferença aparece quando você <strong>usa o valor</strong> na mesma hora, por exemplo dentro de um <code>print</code>:</p>
+
+<pre class="file" data-file="prefixo.dart">void main() {
+  var a = 5;
+  print(a++);
+  print(a);
+  var b = 5;
+  print(++b);
+  print(b);
+}
+</pre>
+
+<pre class="term">$ dart run prefixo.dart
+5
+6
+6
+6
+</pre>
+
+<dl class="anatomy">
+  <dt>print(a++) → 5</dt><dd>"Use o valor e <strong>depois</strong> some 1". O <code>print</code> recebeu o 5 antigo; logo em seguida, <code>a</code> virou 6.</dd>
+  <dt>print(a) → 6</dt><dd>Prova de que o incremento aconteceu.</dd>
+  <dt>print(++b) → 6</dt><dd>"Some 1 <strong>primeiro</strong> e depois use". O <code>b</code> virou 6, e o <code>print</code> recebeu o 6.</dd>
+</dl>
+
+<p>Na fila do açougue, o painel mostra a próxima senha:</p>
+
+<pre class="file" data-file="fila.dart">void main() {
+  var senha = 41;
+  print('Chamando a senha ${++senha}');
+  print('Chamando a senha ${++senha}');
+  var ticket = 41;
+  print('Chamando a senha ${ticket++}');
+  print('Agora ticket vale $ticket');
+}
+</pre>
+
+<pre class="term">$ dart run fila.dart
+Chamando a senha 42
+Chamando a senha 43
+Chamando a senha 41
+Agora ticket vale 42
+</pre>
+
+<p>Com <code>++senha</code>, o painel chamou 42 e 43, as próximas. Com <code>ticket++</code>, chamou a 41 de novo (o valor antigo) e só depois avançou. Para não se confundir, a recomendação é simples: <strong>use o <code>++</code> sozinho na linha</strong> (<code>senha++;</code>) e o valor na linha seguinte. Fica claro para qualquer um.</p>
+
+<div class="trydart" data-goal="out:Chamando a senha 8;;out:Chamando a senha 9;;src:\+\+">
+<p class="try-task"><strong>Missão:</strong> o painel está chamando a senha <strong>7</strong> duas vezes, porque o <code>++</code> está depois da variável. Faça ele chamar <code>8</code> e depois <code>9</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var senha = 7;
+  print('Chamando a senha ${senha++}');
+  senha = 7;
+  print('Chamando a senha ${senha++}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var senha = 7;
+  senha++;
+  print('Chamando a senha $senha');
+  senha++;
+  print('Chamando a senha $senha');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>As três linhas abaixo somam 1 em <code>contador</code>. Todas funcionam:</p>
+<pre class="file" data-file="tres_formas.dart">contador = contador + 1;
+contador += 1;
+contador++;
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Somar ou tirar exatamente 1 (contar)</td><td><code>contador++</code> / <code>contador--</code>, sozinho na linha</td></tr>
+<tr><td>Somar, tirar, multiplicar por outro valor</td><td><code>total += preco</code>, <code>estoque -= vendidos</code>, <code>valor *= 2</code></td></tr>
+<tr><td>Trocar o valor por outro que não depende do antigo</td><td><code>saldo = 3</code></td></tr>
+<tr><td>A conta é complicada (vários valores)</td><td>por extenso: <code>media = (n1 + n2) / 2</code></td></tr>
+<tr><td>O valor nunca vai mudar</td><td>nenhuma: declare com <code>final</code> (veja <a href="final-const.html">final e const</a>)</td></tr>
+</table>
+</div>
+
+<p>Uma curiosidade: a atribuição também <strong>devolve</strong> o valor guardado, por isso dá para escrever <code>a = b = 0;</code> (o <code>b = 0</code> guarda 0 em <code>b</code> e devolve 0, que vai para <code>a</code>). No lab, <code>print(x = 10);</code> mostrou <code>10</code>. Funciona, mas deixa o código difícil de ler: prefira uma atribuição por linha.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou mudar uma variável <code>final</code></strong>
+<pre class="file" data-file="err_final.dart">void main() {
+  final saldo = 10;
+  saldo += 5;
+  print(saldo);
+}
+</pre>
+<pre class="term">$ dart run err_final.dart
+err_final.dart:3:3: Error: Can't assign to the final variable 'saldo'.
+  saldo += 5;
+  ^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>err_final.dart:3:3:</dt><dd>Arquivo, linha 3, coluna 3: o começo de <code>saldo</code>.</dd>
+  <dt>Error: Can't assign to the final variable 'saldo'.</dt><dd>"Não é possível atribuir à variável final <code>saldo</code>." Uma <code>final</code> recebe valor <strong>uma vez só</strong>, na criação.</dd>
+  <dt>^^^^^</dt><dd>Os acentos circunflexos sublinham a variável culpada, letra por letra.</dd>
+</dl>
+<p>O <code>++</code>, o <code>--</code> e todos os atalhos (<code>+=</code>, <code>-=</code>…) também são atribuições, e dão o mesmo erro. <strong>Como consertar:</strong> se o valor precisa mudar, declare com <code>var</code> (<code>var saldo = 10;</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Somou um <code>double</code> numa variável <code>int</code></strong>
+<pre class="file" data-file="err_var_int.dart">void main() {
+  var total = 0;
+  total += 4.50;
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_var_int.dart
+err_var_int.dart:3:9: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+  total += 4.50;
+        ^
+</pre>
+<p>"Um valor do tipo <code>double</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O <code>var total = 0</code> fez o Dart decidir, de uma vez por todas, que <code>total</code> é <code>int</code> (o tipo vem do primeiro valor). <code>total + 4.50</code> dá um <code>double</code>, que não cabe. <strong>Como consertar:</strong> comece com <code>0.0</code> (<code>var total = 0.0;</code>) ou declare <code>double total = 0;</code>. O mesmo acontece com <code>fatias /= 2</code> num <code>int</code> (<code>err_divint.dart:3:10: Error: A value of type 'double' can't be assigned to a variable of type 'int'.</code>): use <code>fatias ~/= 2</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou a variável antes de dar um valor</strong>
+<pre class="file" data-file="err_null.dart">void main() {
+  int pontos;
+  pontos += 5;
+  print(pontos);
+}
+</pre>
+<pre class="term">$ dart run err_null.dart
+err_null.dart:3:3: Error: Non-nullable variable 'pontos' must be assigned before it can be used.
+  pontos += 5;
+  ^^^^^^
+</pre>
+<p>"A variável não anulável <code>pontos</code> precisa receber um valor antes de ser usada." O <code>pontos += 5</code> precisa <strong>ler</strong> o valor atual para somar 5, e não há valor nenhum. ("Não anulável" quer dizer que ela não pode ficar vazia, <code>null</code>; veja <a href="null-safety.html">Null Safety</a>.) <strong>Como consertar:</strong> dê o valor inicial: <code>int pontos = 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu de criar a variável</strong>
+<pre class="file" data-file="err_semvar.dart">void main() {
+  contador = 1;
+  print(contador);
+}
+</pre>
+<pre class="term">$ dart run err_semvar.dart
+err_semvar.dart:2:3: Error: Setter not found: 'contador'.
+  contador = 1;
+  ^^^^^^^^
+err_semvar.dart:3:9: Error: Undefined name 'contador'.
+  print(contador);
+        ^^^^^^^^
+</pre>
+<p>Dois erros de uma vez. O primeiro, <code>Setter not found: 'contador'</code>, quer dizer "não achei onde guardar <code>contador</code>" (um <em>setter</em> é "quem guarda"). O segundo, <code>Undefined name 'contador'</code>, "nome não definido". Em Dart, a variável tem de ser <strong>criada</strong> (com <code>var</code>, <code>final</code> ou um tipo) antes de receber valor. <strong>Como consertar:</strong> <code>var contador = 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>+ =</code> com espaço, ou <code>=+</code> ao contrário</strong>
+<pre class="file" data-file="err_espaco.dart">void main() {
+  var pontos = 10;
+  pontos + = 5;
+  print(pontos);
+}
+</pre>
+<pre class="term">$ dart run err_espaco.dart
+err_espaco.dart:3:12: Error: Expected an identifier, but got '='.
+Try inserting an identifier before '='.
+  pontos + = 5;
+           ^
+err_espaco.dart:3:12: Error: Can't assign to this.
+  pontos + = 5;
+           ^
+</pre>
+<p>Com o espaço, o <code>+</code> e o <code>=</code> viram dois operadores separados, e o Dart se perde: "esperava um nome, mas veio <code>=</code>" e "não dá para atribuir a isto". Já o <code>=+</code> invertido dá outro erro:</p>
+<pre class="term">$ dart run err_ordem.dart
+err_ordem.dart:3:11: Error: '+' is not a prefix operator.
+Try removing '+'.
+  pontos =+ 5;
+          ^
+</pre>
+<p>"<code>+</code> não é um operador de prefixo": o Dart leu <code>pontos = +5</code>, e um <code>+</code> na frente de um número não existe no Dart (o <code>-</code> existe; o <code>+</code>, não). <strong>Como consertar:</strong> <code>pontos += 5;</code>, com o sinal da conta antes do <code>=</code> e os dois grudados.</p>
+</div>
+
+<div class="cenario">
+<strong><code>++</code> num número</strong>
+<pre class="term">$ dart run err_lit.dart
+err_lit.dart:2:9: Error: Can't assign to this.
+  print(5++);
+        ^
+</pre>
+<p>"Não dá para atribuir a isto." O <code>++</code> guarda o novo valor de volta, então só funciona numa <strong>variável</strong>. Um número escrito direto, como o 5, não é uma caixa: não tem onde guardar o 6. <strong>Como consertar:</strong> <code>print(5 + 1);</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Estoque: 17;;semerro">
+<p class="try-task"><strong>Missão:</strong> o estoque da lojinha começa com 20 cadernos; foram vendidos 3. O programa não compila. Conserte o erro que o Dart mostra… e depois o segundo problema, que o Dart <strong>não</strong> acusa: o programa roda, mas mostra <code>Estoque: -3</code> (o <code>=-</code> virou "guarde menos 3"). Conserte até aparecer <code>Estoque: 17</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final estoque = 20;
+  final vendidos = 3;
+  estoque =- vendidos;
+  print('Estoque: $estoque');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var estoque = 20;
+  final vendidos = 3;
+  estoque -= vendidos;
+  print('Estoque: $estoque');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>x = valor</code></td><td>Guarda o valor em <code>x</code> (o antigo se perde)</td></tr>
+<tr><td><code>x += v</code> · <code>x -= v</code> · <code>x *= v</code></td><td><code>x = x + v</code> · <code>x = x - v</code> · <code>x = x * v</code></td></tr>
+<tr><td><code>x /= v</code></td><td><code>x = x / v</code> (só com <code>double</code>)</td></tr>
+<tr><td><code>x ~/= v</code> · <code>x %= v</code></td><td><code>x = x ~/ v</code> · <code>x = x % v</code></td></tr>
+<tr><td><code>texto += 'mais'</code></td><td>Junta texto no fim</td></tr>
+<tr><td><code>x++</code> · <code>x--</code></td><td>Soma 1 · tira 1; como valor, devolve o <strong>antigo</strong></td></tr>
+<tr><td><code>++x</code> · <code>--x</code></td><td>Soma 1 · tira 1; como valor, devolve o <strong>novo</strong></td></tr>
+<tr><td><code>x ??= v</code></td><td>Guarda <code>v</code> só se <code>x</code> for <code>null</code> (<a href="operadores-null.html">?. , ?? e ??=</a>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Can't assign to the final variable 'x'.</code></td><td>A variável é <code>final</code>: use <code>var</code></td></tr>
+<tr><td><code>A value of type 'double' can't be assigned to a variable of type 'int'.</code></td><td><code>var x = 0</code> e depois <code>x += 0.5</code> ou <code>x /= 2</code></td></tr>
+<tr><td><code>Non-nullable variable 'x' must be assigned before it can be used.</code></td><td>A variável foi criada sem valor e usada num <code>+=</code> ou <code>++</code></td></tr>
+<tr><td><code>Setter not found: 'x'.</code></td><td>Faltou criar a variável (<code>var x = …</code>)</td></tr>
+<tr><td><code>Expected an identifier, but got '='.</code></td><td><code>+ =</code> com espaço</td></tr>
+<tr><td><code>'+' is not a prefix operator.</code></td><td><code>=+</code> invertido</td></tr>
+<tr><td><code>Can't assign to this.</code></td><td><code>++</code> num número ou numa conta, e não numa variável</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto vale no fim?</h3>
+<pre class="file" data-file="ex1.dart">var x = 10;
+x += 5;
+x *= 2;
+x -= 4;
+x ~/= 2;
+</pre>
+<div class="ex-code">No fim, <code>x</code> vale <input data-answer="13" aria-label="valor final de x"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete com o atalho</h3>
+<div class="ex-code">// estoque = estoque - 3<br>estoque <input data-answer="-=" aria-label="atalho de subtração"> 3;<br>// visitas = visitas + 1 (o mais curto)<br>visitas<input data-answer="++" aria-label="incremento">;</div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que mostra <code>var n = 3; print(n++); </code>?</p>
+<label><input type="radio" name="q3"> 3</label>
+<label><input type="radio" name="q3"> 4</label>
+<label><input type="radio" name="q3"> Não compila</label>
+<label><input type="radio" name="q3"> 3 e depois 4</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas linhas dá erro de compilação, sendo <code>var total = 0;</code>?</p>
+<label><input type="radio" name="q4"> <code>total += 2;</code></label>
+<label><input type="radio" name="q4"> <code>total ~/= 2;</code></label>
+<label><input type="radio" name="q4"> <code>total /= 2;</code></label>
+<label><input type="radio" name="q4"> <code>total++;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>final pontos = 0; pontos++;</code> O que acontece?</p>
+<label><input type="radio" name="q5"> <code>pontos</code> vira 1</label>
+<label><input type="radio" name="q5"> Erro: <code>Can't assign to the final variable 'pontos'.</code></label>
+<label><input type="radio" name="q5"> <code>pontos</code> continua 0, sem erro</label>
+<label><input type="radio" name="q5"> Exceção quando o programa roda</label>
+</div>
+
+<h3>Missão final: o cofrinho da semana</h3>
+
+<div class="trydart" data-goal="out:Saldo final: 23;;src:\+=;;src:-=;;src:\*=">
+<p class="try-task"><strong>Missão:</strong> a Ana começa a semana com <strong>10</strong> reais no cofrinho. Usando <strong>só atalhos</strong> (<code>+=</code>, <code>-=</code>, <code>*=</code>) na variável <code>saldo</code>: na segunda ela guarda 8; na quarta tira 5 para o lanche; no domingo a avó <strong>dobra</strong> o que tem no cofrinho. Depois disso, ela gasta 3 no sorvete. O programa deve mostrar <code>Saldo final: 23</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var saldo = 10;
+  // segunda, quarta, domingo e o sorvete aqui
+
+  print('Saldo final: $saldo');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var saldo = 10;
+  saldo += 8;
+  saldo -= 5;
+  saldo *= 2;
+  saldo -= 3;
+  print('Saldo final: $saldo');
+}
+</pre>
+</div>
+
+<p>Conta de conferência: 10 + 8 = 18; 18 − 5 = 13; 13 × 2 = 26; 26 − 3 = 23. No lab, a solução mostrou <code>Saldo final: 23</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>=</code> guarda um valor numa variável que já existe; a conta da direita é feita primeiro, com o valor antigo. Não é "igual a" (esse é o <code>==</code>).</li>
+  <li><code>x += v</code> é <code>x = x + v</code>; idem <code>-=</code>, <code>*=</code>, <code>/=</code>, <code>~/=</code> e <code>%=</code>. O sinal vem antes do <code>=</code>, grudado.</li>
+  <li><code>x++</code> soma 1 e <code>x--</code> tira 1. Dentro de outra expressão, <code>x++</code> entrega o valor antigo e <code>++x</code> o novo; o mais claro é usar sozinho na linha.</li>
+  <li>Um acumulador começa em zero (<code>0.0</code>, se vai receber <code>double</code>) e cresce com <code>+=</code>.</li>
+  <li>Uma <code>final</code> não muda; uma <code>int</code> não aceita <code>double</code>; e a variável precisa existir e ter valor antes do <code>+=</code> ou do <code>++</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
