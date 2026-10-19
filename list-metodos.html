@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Métodos de Lista — acrescentar, remover, procurar e ordenar | Guia Dart</title>
+<meta name="description" content="Os métodos de List do Dart para quem nunca programou: add, addAll e insert; remove, removeAt, removeLast, removeWhere e clear; contains, indexOf e indexWhere; sort com e sem compareTo; sublist, reversed e join; e os erros reais do Dart 3 (Concurrent modification during iteration, RangeError com -1, This expression has type 'void', o [] de um Iterable).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Métodos de Lista</span></h1>
+
+<p class="intro">Na aula <a href="list.html">Listas</a>, você criou listas, leu itens pela posição e acrescentou com <code>add</code>. Mas a vida real pede mais: o cliente que fura a fila, o item riscado da lista de compras, "tem café na lista?", "põe as notas em ordem". Para tudo isso, a <code>List</code> traz <strong>métodos</strong> prontos. Esta aula mostra os mais usados, agrupados pelo que fazem.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><strong>Acrescentar:</strong> <code>add</code>, <code>addAll</code> e <code>insert</code> (no meio da fila).</li>
+  <li><strong>Remover:</strong> <code>remove</code>, <code>removeAt</code>, <code>removeLast</code>, <code>removeWhere</code> e <code>clear</code>, e o que cada um devolve.</li>
+  <li><strong>Procurar:</strong> <code>contains</code>, <code>indexOf</code> (e o famoso <code>-1</code>) e <code>indexWhere</code>.</li>
+  <li><strong>Ordenar:</strong> <code>sort</code>, do menor para o maior, ao contrário e por qualquer critério.</li>
+  <li><strong>Pedaços e textos:</strong> <code>sublist</code>, <code>reversed</code> e <code>join</code>.</li>
+  <li>Os erros reais: remover durante o <code>for</code>, o <code>-1</code> usado como posição, o <code>sort</code> que não devolve nada e o <code>reversed</code> que não aceita <code>[0]</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a fila do caixa</h2>
+<p>Pense na fila do caixa da padaria. Chega gente no fim (<strong>acrescentar</strong>); a Dona Rosa, que tem prioridade, vai para a frente (<strong>inserir</strong> numa posição); alguém desiste e sai (<strong>remover</strong>); a moça do caixa pergunta "a Bia está na fila?" (<strong>procurar</strong>); e, no fim do dia, o dono quer a lista dos clientes em ordem alfabética (<strong>ordenar</strong>). Cada uma dessas ações é um método da lista, chamado com um ponto: <code>fila.add(…)</code>, <code>fila.insert(…)</code>…</p>
+
+<p>Uma regra vale para quase todos: eles <strong>mudam a própria lista</strong> (não criam outra). Os que criam uma lista ou um valor novo estão avisados na tabela do fim.</p>
+
+<hr>
+
+<h2>1. Acrescentar: <code>add</code>, <code>addAll</code> e <code>insert</code></h2>
+
+<pre class="file" data-file="adicionar.dart">void main() {
+  final fila = ['Ana', 'Bia'];
+  fila.add('Caio');
+  print(fila);
+  fila.addAll(['Davi', 'Edu']);
+  print(fila);
+  fila.insert(0, 'Dona Rosa');
+  print(fila);
+  fila.insert(2, 'Fabi');
+  print(fila);
+}
+</pre>
+
+<pre class="term">$ dart run adicionar.dart
+[Ana, Bia, Caio]
+[Ana, Bia, Caio, Davi, Edu]
+[Dona Rosa, Ana, Bia, Caio, Davi, Edu]
+[Dona Rosa, Ana, Fabi, Bia, Caio, Davi, Edu]
+</pre>
+
+<dl class="anatomy">
+  <dt>fila.add('Caio')</dt><dd>Um item, no fim.</dd>
+  <dt>fila.addAll(['Davi', 'Edu'])</dt><dd>"Acrescentar todos": vários itens de uma vez, no fim, na ordem em que vieram.</dd>
+  <dt>fila.insert(0, 'Dona Rosa')</dt><dd>"Inserir" na posição 0, a primeira. Quem estava lá e todos depois <strong>andam uma casa para trás</strong>: a Ana, que era a 0, vira a 1.</dd>
+  <dt>fila.insert(2, 'Fabi')</dt><dd>Fabi entra na posição 2, entre a Ana e a Bia. O primeiro argumento é sempre a posição; o segundo, o item.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:[Ana, Bia, Caio, Duda];;out:[Zeca, Ana, Bia, Caio, Duda]">
+<p class="try-task"><strong>Missão:</strong> acrescente a <code>Duda</code> no fim da fila e mostre a fila. Depois, ponha o <code>Zeca</code> na frente de todos e mostre de novo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final fila = ['Ana', 'Bia', 'Caio'];
+  // acrescente a Duda e mostre
+  // ponha o Zeca na frente e mostre
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final fila = ['Ana', 'Bia', 'Caio'];
+  fila.add('Duda');
+  print(fila);
+  fila.insert(0, 'Zeca');
+  print(fila);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Remover</h2>
+
+<pre class="file" data-file="remover.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café', 'leite', 'pão'];
+  final tirou = compras.remove('café');
+  print('$tirou $compras');
+  final naoTinha = compras.remove('bolo');
+  print('$naoTinha $compras');
+  final segundo = compras.removeAt(1);
+  print('$segundo $compras');
+  final ultimo = compras.removeLast();
+  print('$ultimo $compras');
+  compras.clear();
+  print(compras);
+}
+</pre>
+
+<pre class="term">$ dart run remover.dart
+true [arroz, feijão, leite, pão]
+false [arroz, feijão, leite, pão]
+feijão [arroz, leite, pão]
+pão [arroz, leite]
+[]
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.remove('café') → true</dt><dd>Remove o item <strong>pelo valor</strong> (a primeira vez que ele aparece) e devolve <code>true</code>: "achei e tirei".</dd>
+  <dt>compras.remove('bolo') → false</dt><dd>Não havia bolo: devolve <code>false</code> e a lista fica igual. <strong>Não dá erro</strong>; se quiser saber, olhe o que ele devolveu.</dd>
+  <dt>compras.removeAt(1) → feijão</dt><dd>Remove <strong>pela posição</strong> e devolve o item que tirou. Quem vinha depois anda uma casa para a frente.</dd>
+  <dt>compras.removeLast() → pão</dt><dd>Remove o último e devolve-o.</dd>
+  <dt>compras.clear()</dt><dd>"Limpar": tira tudo. A lista continua existindo, vazia: <code>[]</code>.</dd>
+</dl>
+
+<h3>Remover todos que obedecem a uma regra: <code>removeWhere</code></h3>
+<p>A Ana quer tirar da lista tudo o que custa mais de R$ 30. O <code>removeWhere</code> ("remover onde") recebe uma função que responde, para cada item, "tira este?" (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>):</p>
+
+<pre class="file" data-file="removewhere.dart">void main() {
+  final precos = [4.5, 32.0, 12.9, 55.0, 3.25];
+  precos.removeWhere((p) =&gt; p &gt; 30);
+  print(precos);
+}
+</pre>
+
+<pre class="term">$ dart run removewhere.dart
+[4.5, 12.9, 3.25]
+</pre>
+
+<p>O contrário também existe: <code>retainWhere</code> ("manter onde") fica só com os que obedecem à regra.</p>
+
+<hr>
+
+<h2>3. Procurar</h2>
+
+<pre class="file" data-file="procurar.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café', 'feijão'];
+  print(compras.contains('café'));
+  print(compras.contains('Café'));
+  print(compras.indexOf('feijão'));
+  print(compras.lastIndexOf('feijão'));
+  print(compras.indexOf('bolo'));
+  print(compras.indexWhere((item) =&gt; item.startsWith('c')));
+}
+</pre>
+
+<pre class="term">$ dart run procurar.dart
+true
+false
+1
+3
+-1
+2
+</pre>
+
+<dl class="anatomy">
+  <dt>contains('café') → true</dt><dd>"Contém?" Responde só sim ou não.</dd>
+  <dt>contains('Café') → false</dt><dd>A comparação diferencia maiúsculas de minúsculas: <code>'Café'</code> e <code>'café'</code> são textos diferentes.</dd>
+  <dt>indexOf('feijão') → 1</dt><dd>"Posição de": onde está a <strong>primeira</strong> ocorrência.</dd>
+  <dt>lastIndexOf('feijão') → 3</dt><dd>Onde está a <strong>última</strong>.</dd>
+  <dt>indexOf('bolo') → -1</dt><dd>Quando não acha, devolve <strong><code>-1</code></strong>, uma posição que não existe, como um aviso de "não está aqui". Confira antes de usar (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>indexWhere((item) =&gt; item.startsWith('c')) → 2</dt><dd>A posição do primeiro item que obedece à regra: aqui, o primeiro que começa com "c" (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>4. Ordenar: <code>sort</code></h2>
+
+<pre class="file" data-file="ordenar.dart">void main() {
+  final nomes = ['Bia', 'ana', 'Caio', 'Álvaro'];
+  nomes.sort();
+  print(nomes);
+  final notas = [7.5, 10.0, 6.0, 8.5];
+  notas.sort();
+  print(notas);
+  notas.sort((a, b) =&gt; b.compareTo(a));
+  print(notas);
+  final palavras = ['pão', 'banana', 'kiwi', 'abacaxi'];
+  palavras.sort((a, b) =&gt; a.length.compareTo(b.length));
+  print(palavras);
+}
+</pre>
+
+<pre class="term">$ dart run ordenar.dart
+[Bia, Caio, ana, Álvaro]
+[6.0, 7.5, 8.5, 10.0]
+[10.0, 8.5, 7.5, 6.0]
+[pão, kiwi, banana, abacaxi]
+</pre>
+
+<dl class="anatomy">
+  <dt>nomes.sort() → [Bia, Caio, ana, Álvaro]</dt><dd>Sem argumento, o <code>sort</code> ("ordenar") usa a ordem natural. Para textos, isso é a ordem dos <strong>códigos dos caracteres</strong>, e não a do dicionário: todas as maiúsculas vêm antes das minúsculas, e as letras com acento vêm depois de tudo. Por isso <code>ana</code> e <code>Álvaro</code> ficaram no fim.</dd>
+  <dt>notas.sort() → do menor para o maior</dt><dd>Para números, a ordem natural é a esperada.</dd>
+  <dt>sort((a, b) =&gt; b.compareTo(a))</dt><dd>Com uma função, você decide a ordem. <code>a.compareTo(b)</code> dá um número negativo se <code>a</code> vem antes, zero se empatam, positivo se vem depois. Trocando para <code>b.compareTo(a)</code>, a ordem se inverte: do maior para o menor.</dd>
+  <dt>sort((a, b) =&gt; a.length.compareTo(b.length))</dt><dd>Qualquer critério: aqui, o tamanho da palavra.</dd>
+</dl>
+
+<div class="tip">
+<strong>Ordem alfabética sem bagunça de maiúsculas</strong>
+<p>Compare as versões em minúsculas: <code>nomes.sort((a, b) =&gt; a.toLowerCase().compareTo(b.toLowerCase()));</code>. Assim <code>ana</code> vai para perto de <code>Bia</code>. As letras acentuadas continuam indo para o fim; para a ordem perfeita do português é preciso um pacote de idioma (como o <code>intl</code>; veja <a href="pacotes.html">Pacotes</a>).</p>
+</div>
+
+<div class="trydart" data-goal="out:[10.0, 8.5, 7.5, 6.0];;src:sort\(">
+<p class="try-task"><strong>Missão:</strong> ponha as notas do <strong>maior para o menor</strong> antes de mostrar.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [7.5, 10.0, 6.0, 8.5];
+  print(notas);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [7.5, 10.0, 6.0, 8.5];
+  notas.sort((a, b) =&gt; b.compareTo(a));
+  print(notas);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Pedaços e textos: <code>sublist</code>, <code>reversed</code> e <code>join</code></h2>
+<p>Estes três <strong>não mudam</strong> a lista original: eles criam algo novo.</p>
+
+<pre class="file" data-file="pedacos.dart">void main() {
+  final ranking = ['Ana', 'Bia', 'Caio', 'Davi', 'Edu'];
+  print(ranking.sublist(0, 3));
+  print(ranking.sublist(3));
+  print(ranking.reversed);
+  print(ranking.reversed.toList());
+  print(ranking.join(', '));
+  print(ranking.join(' &gt; '));
+  print(ranking);
+}
+</pre>
+
+<pre class="term">$ dart run pedacos.dart
+[Ana, Bia, Caio]
+[Davi, Edu]
+(Edu, Davi, Caio, Bia, Ana)
+[Edu, Davi, Caio, Bia, Ana]
+Ana, Bia, Caio, Davi, Edu
+Ana &gt; Bia &gt; Caio &gt; Davi &gt; Edu
+[Ana, Bia, Caio, Davi, Edu]
+</pre>
+
+<dl class="anatomy">
+  <dt>sublist(0, 3)</dt><dd>Uma lista nova com as posições de 0 <strong>até antes de</strong> 3 (0, 1 e 2): o pódio. O segundo número não entra.</dd>
+  <dt>sublist(3)</dt><dd>Sem o segundo número: da posição 3 até o fim.</dd>
+  <dt>reversed → (Edu, …, Ana)</dt><dd>"Invertida". Repare nos <strong>parênteses</strong> no lugar dos colchetes: o <code>reversed</code> não devolve uma <code>List</code>, e sim um <code>Iterable</code> (uma sequência que dá para percorrer, mas não tem <code>[0]</code>). O assunto é explicado em <a href="iterables.html">map, where, reduce e Outros</a>.</dd>
+  <dt>reversed.toList()</dt><dd>Transforma a sequência numa lista de verdade, com colchetes.</dd>
+  <dt>join(', ')</dt><dd>"Juntar": cria <strong>um texto só</strong>, com os itens separados pelo que você passar.</dd>
+  <dt>print(ranking)</dt><dd>A lista original continua igual: nenhum dos três mexeu nela.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para…</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td>Tirar um item</td><td><code>remove(valor)</code> · <code>removeAt(posição)</code></td><td>Sabe o valor? <code>remove</code>. Sabe a posição? <code>removeAt</code>.</td></tr>
+<tr><td>Tirar vários</td><td><code>removeWhere(regra)</code> · um <code>for</code> com <code>remove</code></td><td>Sempre <code>removeWhere</code> (o <code>for</code> dá erro, veja abaixo)</td></tr>
+<tr><td>Saber se tem</td><td><code>contains(x)</code> · <code>indexOf(x) != -1</code></td><td><code>contains</code>: diz o que você quer</td></tr>
+<tr><td>Ordenar ao contrário</td><td><code>sort((a, b) =&gt; b.compareTo(a))</code> · <code>sort()</code> e depois <code>reversed.toList()</code></td><td>A primeira: um passo só</td></tr>
+<tr><td>Mostrar como texto</td><td><code>join(', ')</code> · um <code>for</code> montando o texto</td><td><code>join</code> (para textos grandes, veja <a href="string-buffer.html">StringBuffer</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Removendo durante o <code>for-in</code></strong>
+<pre class="file" data-file="err_durante.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  for (final item in compras) {
+    if (item == 'feijão') {
+      compras.remove(item);
+    }
+  }
+  print(compras);
+}
+</pre>
+<pre class="term">$ dart run err_durante.dart
+Unhandled exception:
+Concurrent modification during iteration: Instance(length:2) of '_GrowableList'.
+#0      ListIterator.moveNext (dart:_internal/iterable.dart:366:7)
+#1      main (file:///home/ana/err_durante.dart:3:22)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>Concurrent modification during iteration</dt><dd>"Modificação simultânea durante a iteração": a lista mudou de tamanho enquanto o <code>for</code> a percorria. É como tirar uma pessoa da fila enquanto alguém conta a fila: a contagem se perde, e o Dart prefere parar.</dd>
+  <dt>Instance(length:2) of '_GrowableList'</dt><dd>A lista em questão (que agora tem 2 itens). <code>_GrowableList</code> é o nome interno da lista comum do Dart (a que pode crescer).</dd>
+  <dt>#1 main (…:3:22)</dt><dd>A linha 3, a do <code>for</code>: o erro aparece quando o laço tenta ir para o próximo item, não no <code>remove</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>compras.removeWhere((item) =&gt; item == 'feijão');</code>, sem laço nenhum.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o <code>-1</code> do <code>indexOf</code> como posição</strong>
+<pre class="file" data-file="err_indexof.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  final posicao = compras.indexOf('bolo');
+  compras[posicao] = 'pão';
+}
+</pre>
+<pre class="term">$ dart run err_indexof.dart
+Unhandled exception:
+RangeError (index): Invalid value: Not in inclusive range 0..1: -1
+#0      List._setIndexed (dart:core-patch/growable_array.dart:281:49)
+#1      List.[]= (dart:core-patch/growable_array.dart:276:5)
+#2      main (file:///home/ana/err_indexof.dart:4:10)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Valor inválido: não está entre 0 e 1: <code>-1</code>." Não havia bolo, o <code>indexOf</code> devolveu <code>-1</code>, e a linha 4 tentou gravar na posição −1 (<code>List.[]=</code> é o "gravar na posição"). <strong>Como consertar:</strong> confira antes: <code>if (posicao != -1) compras[posicao] = 'pão';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Posição que não existe no <code>removeAt</code></strong>
+<pre class="file" data-file="err_removeat.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.removeAt(2);
+}
+</pre>
+<pre class="term">$ dart run err_removeat.dart
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..1: 2
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      List.removeAt (dart:core-patch/growable_array.dart:23:22)
+#2      main (file:///home/ana/err_removeat.dart:3:11)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O mesmo <code>RangeError</code> da aula de listas: com 2 itens, as posições são 0 e 1. Diferente do <code>remove</code> (que só devolve <code>false</code>), o <code>removeAt</code> numa posição inexistente <strong>para o programa</strong>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou o resultado do <code>sort</code></strong>
+<pre class="file" data-file="err_sortvoid.dart">void main() {
+  final notas = [7.5, 10.0, 6.0];
+  final ordenadas = notas.sort();
+  print(ordenadas);
+}
+</pre>
+<pre class="term">$ dart run err_sortvoid.dart
+err_sortvoid.dart:4:9: Error: This expression has type 'void' and can't be used.
+  print(ordenadas);
+        ^
+</pre>
+<p>"Esta expressão tem o tipo <code>void</code> e não pode ser usada." O <code>sort</code> ordena a <strong>própria lista</strong> e não devolve nada (<code>void</code>, "vazio"). <strong>Como consertar:</strong> chame <code>notas.sort();</code> numa linha e use <code>notas</code> depois. Se precisa manter a original, copie antes: <code>final ordenadas = [...notas]..sort();</code> (o <code>..</code> chama o método e devolve a própria lista; veja <a href="spread.html">Espalhando Coleções</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>[0]</code> no resultado do <code>reversed</code></strong>
+<pre class="file" data-file="err_reversed.dart">void main() {
+  final ranking = ['Ana', 'Bia', 'Caio'];
+  final invertido = ranking.reversed;
+  print(invertido[0]);
+}
+</pre>
+<pre class="term">$ dart run err_reversed.dart
+err_reversed.dart:4:18: Error: The operator '[]' isn't defined for the type 'Iterable&lt;String&gt;'.
+ - 'Iterable' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '[]' operator.
+  print(invertido[0]);
+                 ^
+</pre>
+<p>"O operador <code>[]</code> não está definido para o tipo <code>Iterable&lt;String&gt;</code>." As linhas seguintes dizem de onde vem o tipo (<code>dart:core</code>) e sugerem usar outro operador. É o que os parênteses do <code>print</code> avisavam: o <code>reversed</code> é uma sequência, não uma lista. <strong>Como consertar:</strong> <code>ranking.reversed.toList()[0]</code>, ou <code>ranking.reversed.first</code>, ou simplesmente <code>ranking.last</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Devolve</th></tr>
+<tr><td><code>add(x)</code></td><td>Acrescenta no fim</td><td>nada</td></tr>
+<tr><td><code>addAll([…])</code></td><td>Acrescenta vários no fim</td><td>nada</td></tr>
+<tr><td><code>insert(i, x)</code></td><td>Põe <code>x</code> na posição <code>i</code></td><td>nada</td></tr>
+<tr><td><code>remove(x)</code></td><td>Tira a primeira ocorrência de <code>x</code></td><td><code>true</code>/<code>false</code></td></tr>
+<tr><td><code>removeAt(i)</code></td><td>Tira o item da posição <code>i</code></td><td>o item tirado</td></tr>
+<tr><td><code>removeLast()</code></td><td>Tira o último</td><td>o item tirado</td></tr>
+<tr><td><code>removeWhere(regra)</code> / <code>retainWhere(regra)</code></td><td>Tira / mantém os que obedecem à regra</td><td>nada</td></tr>
+<tr><td><code>clear()</code></td><td>Esvazia</td><td>nada</td></tr>
+<tr><td><code>contains(x)</code></td><td>Tem <code>x</code>?</td><td><code>bool</code></td></tr>
+<tr><td><code>indexOf(x)</code> / <code>lastIndexOf(x)</code></td><td>Posição da primeira / última ocorrência</td><td><code>int</code> (<code>-1</code> se não achar)</td></tr>
+<tr><td><code>indexWhere(regra)</code></td><td>Posição do primeiro que obedece</td><td><code>int</code> (<code>-1</code> se não achar)</td></tr>
+<tr><td><code>sort()</code> / <code>sort((a, b) =&gt; …)</code></td><td>Ordena a própria lista</td><td>nada (<code>void</code>)</td></tr>
+<tr><td><code>sublist(i, fim)</code></td><td>Pedaço de <code>i</code> até antes de <code>fim</code></td><td>lista nova</td></tr>
+<tr><td><code>reversed</code></td><td>Sequência invertida</td><td><code>Iterable</code> (use <code>.toList()</code>)</td></tr>
+<tr><td><code>join(sep)</code></td><td>Junta tudo num texto</td><td><code>String</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Concurrent modification during iteration</code></td><td>Mudou a lista dentro do <code>for-in</code> que a percorre (use <code>removeWhere</code>)</td></tr>
+<tr><td><code>RangeError … : -1</code></td><td>Usou o <code>-1</code> do <code>indexOf</code> como posição</td></tr>
+<tr><td><code>This expression has type 'void' and can't be used.</code></td><td>Guardou ou mostrou o resultado do <code>sort</code> (ou de outro método que não devolve nada)</td></tr>
+<tr><td><code>The operator '[]' isn't defined for the type 'Iterable…'</code></td><td>Usou <code>[i]</code> no resultado de <code>reversed</code> (ou <code>map</code>, <code>where</code>): faltou <code>.toList()</code></td></tr>
+<tr><td>Nomes fora da ordem alfabética</td><td>O <code>sort()</code> de textos põe maiúsculas antes e acentuadas no fim</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Na frente da fila</h3>
+<p>Complete para pôr <code>'Rosa'</code> na primeira posição de <code>fila</code>:</p>
+<div class="ex-code">fila.<input data-answer="insert" aria-label="método">(<input data-answer="0" aria-label="posição">, 'Rosa');</div>
+</div>
+
+<div class="exercise">
+<h3>2. Juntar com traço</h3>
+<p>Complete para <code>['a', 'b', 'c']</code> virar o texto <code>a-b-c</code>:</p>
+<div class="ex-code">letras.<input data-answer="join" aria-label="método">('-')</div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. O que <code>['pão', 'leite'].indexOf('café')</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>0</code></label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+<label><input type="radio" name="q3"> Um <code>RangeError</code></label>
+<label><input type="radio" name="q3"> <code>-1</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>final lista = [3, 1, 2]; lista.sublist(1);</code> Como fica <code>lista</code> depois?</p>
+<label><input type="radio" name="q4"> <code>[3, 1, 2]</code>: o <code>sublist</code> cria uma lista nova</label>
+<label><input type="radio" name="q4"> <code>[1, 2]</code></label>
+<label><input type="radio" name="q4"> <code>[3]</code></label>
+<label><input type="radio" name="q4"> <code>[1, 2, 3]</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual é o jeito certo de tirar todos os preços acima de 100 de <code>precos</code>?</p>
+<label><input type="radio" name="q5"> <code>for (final p in precos) { if (p &gt; 100) precos.remove(p); }</code></label>
+<label><input type="radio" name="q5"> <code>precos.removeWhere((p) =&gt; p &gt; 100);</code></label>
+<label><input type="radio" name="q5"> <code>precos.remove(p &gt; 100);</code></label>
+<label><input type="radio" name="q5"> <code>precos.removeAt(100);</code></label>
+</div>
+
+<h3>Missão final: a lista de compras arrumada</h3>
+
+<div class="trydart" data-goal="out:arroz, café, leite, pão;;src:\.sort\(;;src:\.join\(">
+<p class="try-task"><strong>Missão:</strong> a lista tem o <code>'feijão'</code> repetido, que já foi comprado. Remova <strong>todos</strong> os <code>'feijão'</code>, ordene a lista e mostre-a como texto separado por vírgula e espaço: <code>arroz, café, leite, pão</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['pão', 'feijão', 'arroz', 'leite', 'feijão', 'café'];
+  print(compras);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['pão', 'feijão', 'arroz', 'leite', 'feijão', 'café'];
+  compras.removeWhere((item) =&gt; item == 'feijão');
+  compras.sort();
+  print(compras.join(', '));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Acrescentar: <code>add</code> (fim), <code>addAll</code> (vários), <code>insert(posição, item)</code> (no meio).</li>
+  <li>Remover: <code>remove(valor)</code> devolve <code>true</code>/<code>false</code>; <code>removeAt(posição)</code> e <code>removeLast()</code> devolvem o item; <code>removeWhere(regra)</code> tira vários; <code>clear()</code> esvazia.</li>
+  <li>Procurar: <code>contains</code> (sim/não), <code>indexOf</code> (posição ou <code>-1</code>), <code>indexWhere</code> (por regra).</li>
+  <li><code>sort()</code> ordena a própria lista e não devolve nada; com <code>(a, b) =&gt; b.compareTo(a)</code>, ao contrário.</li>
+  <li><code>sublist</code>, <code>reversed</code> e <code>join</code> não mexem na lista; o <code>reversed</code> é um <code>Iterable</code> (parênteses no <code>print</code>, sem <code>[i]</code>).</li>
+  <li>Nunca mude a lista dentro do <code>for-in</code> que a percorre.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
