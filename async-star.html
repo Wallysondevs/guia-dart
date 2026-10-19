@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart sync* e async* — geradores com yield | Guia Dart</title>
+<meta name="description" content="Geradores no Dart para quem nunca programou: funções sync* que devolvem um Iterable, funções async* que devolvem uma Stream, yield e yield*, a preguiça dos geradores (take), geradores infinitos, await for, e os erros reais do Dart 3 (yield sem sync*, tipo de retorno errado, return com valor, Stream num for comum).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">sync* e async*</span></h1>
+
+<p class="intro">Até agora, uma função devolvia <strong>um</strong> resultado com <code>return</code> e acabava. Às vezes você quer uma função que entregue <strong>vários</strong> valores, <strong>um de cada vez</strong>: as senhas de uma fila, os números de uma contagem, os pães que vão saindo do forno. Para isso o Dart tem os <strong>geradores</strong>: funções marcadas com <code>sync*</code> ou <code>async*</code> que entregam cada valor com a palavra <code>yield</code> ("entregar", "render").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um gerador e a palavra <code>yield</code>.</li>
+  <li>Como escrever um gerador <strong>síncrono</strong> (<code>sync*</code>), que devolve um <code>Iterable</code>.</li>
+  <li>Por que o gerador é "preguiçoso": ele só trabalha quando alguém pede o próximo valor (e por isso pode até ser infinito).</li>
+  <li>Como escrever um gerador <strong>assíncrono</strong> (<code>async*</code>), que devolve uma <code>Stream</code>, e lê-lo com <code>await for</code>.</li>
+  <li>Como repassar os valores de outro gerador com <code>yield*</code>.</li>
+  <li>Os erros reais mais comuns: <code>yield</code> sem o <code>sync*</code>, o tipo de retorno errado, <code>return</code> com valor e a <code>Stream</code> num <code>for</code> comum.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>dart run arquivo.dart</code>. Antes desta aula, vale ter visto <a href="for-in.html">for-in</a>, <a href="iterables.html">map, where, reduce e Outros</a> e <a href="stream.html">Stream</a>.</p>
+
+<hr>
+
+<h2>A ideia: a máquina de senhas da padaria</h2>
+<p>Na padaria do bairro tem uma máquina de senhas. Ela <strong>não</strong> imprime as 1000 senhas do dia de uma vez, de manhã cedo. Cada vez que um cliente aperta o botão, ela imprime <strong>a próxima</strong> e fica parada, esperando o próximo aperto. Ela também lembra onde parou: depois da senha 7 vem a 8.</p>
+<p>Um gerador é essa máquina:</p>
+<ul>
+  <li>cada <code>yield</code> é <strong>uma senha entregue</strong>: o gerador entrega o valor e <strong>pausa</strong> ali mesmo;</li>
+  <li>quando alguém pede o próximo valor, ele <strong>continua de onde parou</strong>, com as variáveis do jeito que estavam;</li>
+  <li>se ninguém pede, ele não faz nada.</li>
+</ul>
+<p>Existem dois tipos de máquina:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Marca</th><th>Devolve</th><th>Quem lê</th><th>Quando usar</th></tr>
+<tr><td><code>sync*</code></td><td><code>Iterable&lt;T&gt;</code></td><td><code>for (… in …)</code>, <code>.toList()</code>, <code>.take()</code></td><td>os valores saem na hora, sem esperar nada</td></tr>
+<tr><td><code>async*</code></td><td><code>Stream&lt;T&gt;</code></td><td><code>await for (… in …)</code>, <code>.listen()</code></td><td>entre um valor e outro é preciso <strong>esperar</strong> (forno, rede, arquivo)</td></tr>
+</table>
+</div>
+<p>O asterisco (<code>*</code>) lembra "vários": <code>sync</code> é "síncrono" (tudo na hora) e <code>async</code> é "assíncrono" (com esperas, como em <a href="async-await.html">async e await</a>).</p>
+
+<hr>
+
+<h2>1. O primeiro gerador: <code>sync*</code></h2>
+
+<pre class="file" data-file="contagem.dart">Iterable&lt;int&gt; contagem(int inicio) sync* {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+}
+
+void main() {
+  for (final n in contagem(3)) {
+    print(n);
+  }
+  print('Já!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Iterable&lt;int&gt;</dt><dd>O tipo de retorno. <code>Iterable</code> quer dizer "algo que dá para percorrer" (a <code>List</code> e o <code>Set</code> são Iterables). Um gerador <code>sync*</code> <strong>sempre</strong> devolve um <code>Iterable</code>; o <code>&lt;int&gt;</code> diz que cada valor entregue é um <code>int</code>.</dd>
+  <dt>sync*</dt><dd>Fica entre os parênteses e a chave <code>{</code>. Avisa o Dart: "esta função é um gerador síncrono". Sem ele, o <code>yield</code> não funciona.</dd>
+  <dt>yield n;</dt><dd>Entrega o valor de <code>n</code> para quem está percorrendo e <strong>pausa</strong> a função. No próximo pedido, ela continua na linha de baixo (aqui, volta ao <code>for</code>, que faz <code>n--</code>).</dd>
+  <dt>for (final n in contagem(3))</dt><dd>Quem usa o gerador nem precisa saber que é um gerador: percorre como uma lista. Cada volta do <code>for</code> pede um valor.</dd>
+  <dt>(fim da função)</dt><dd>Quando a função chega ao <code>}</code> final, o <code>Iterable</code> acaba, e o <code>for</code> de fora termina.</dd>
+</dl>
+
+<pre class="term">$ dart run contagem.dart
+3
+2
+1
+Já!
+</pre>
+
+<p>Repare: a função <strong>não</strong> tem <code>return</code>. Quem "devolve" os valores é o <code>yield</code>, um de cada vez.</p>
+
+<div class="trydart" data-goal="outre:^5\n4\n3\n2\n1\nJá!\n?$;;src:\byield\b">
+<p class="try-task"><strong>Missão:</strong> faça a contagem começar do <strong>5</strong>. Depois experimente trocar <code>yield n;</code> por <code>yield n * 10;</code> e veja o que muda.</p>
+<pre class="script" data-file="main.dart">Iterable&lt;int&gt; contagem(int inicio) sync* {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+}
+
+void main() {
+  for (final n in contagem(3)) {
+    print(n);
+  }
+  print('Já!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Iterable&lt;int&gt; contagem(int inicio) sync* {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+}
+
+void main() {
+  for (final n in contagem(5)) {
+    print(n);
+  }
+  print('Já!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Gerador ou lista? A diferença no <code>print</code></h2>
+<p>A mesma tarefa, "os números pares de 0 a 10", escrita das duas formas:</p>
+
+<pre class="file" data-file="lista_vs_gerador.dart">List&lt;int&gt; paresLista(int limite) {
+  final pares = &lt;int&gt;[];
+  for (var n = 0; n &lt;= limite; n += 2) {
+    pares.add(n);
+  }
+  return pares;
+}
+
+Iterable&lt;int&gt; paresGerador(int limite) sync* {
+  for (var n = 0; n &lt;= limite; n += 2) {
+    yield n;
+  }
+}
+
+void main() {
+  print(paresLista(10));
+  print(paresGerador(10));
+  print(paresGerador(10).toList());
+}
+</pre>
+
+<pre class="term">$ dart run lista_vs_gerador.dart
+[0, 2, 4, 6, 8, 10]
+(0, 2, 4, 6, 8, 10)
+[0, 2, 4, 6, 8, 10]
+</pre>
+
+<ul>
+  <li>A <strong>lista</strong> sai entre colchetes <code>[ ]</code>: ela já existe inteira na memória.</li>
+  <li>O <strong>gerador</strong> sai entre parênteses <code>( )</code>: é assim que o Dart mostra um <code>Iterable</code> que não é lista. O <code>print</code> percorreu o gerador para montar o texto.</li>
+  <li>Com <code>.toList()</code>, você transforma o gerador numa lista de verdade (colchetes de novo).</li>
+</ul>
+<p>A versão gerador é mais curta: não precisa criar a lista vazia, nem <code>add</code>, nem <code>return</code>.</p>
+
+<hr>
+
+<h2>3. O gerador é preguiçoso (e isso é bom)</h2>
+<p>Este gerador de senhas tem um <code>while (true)</code>: ele <strong>nunca termina</strong> sozinho. Mesmo assim, o programa acaba. Os <code>print</code> dentro do gerador mostram quando ele trabalha:</p>
+
+<pre class="file" data-file="preguicoso.dart">Iterable&lt;String&gt; senhas() sync* {
+  var numero = 1;
+  while (true) {
+    print('  (gerando a senha $numero)');
+    yield 'Senha $numero';
+    numero++;
+  }
+}
+
+void main() {
+  final fila = senhas();
+  print('Pedi o gerador, mas nada rodou ainda.');
+  for (final senha in fila.take(3)) {
+    print('Chamando: $senha');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run preguicoso.dart
+Pedi o gerador, mas nada rodou ainda.
+  (gerando a senha 1)
+Chamando: Senha 1
+  (gerando a senha 2)
+Chamando: Senha 2
+  (gerando a senha 3)
+Chamando: Senha 3
+</pre>
+
+<p>Leia a saída com calma:</p>
+<ol class="passo">
+  <li><code>final fila = senhas();</code> <strong>não rodou</strong> nenhuma linha do gerador: a primeira linha da saída é o <code>print</code> do <code>main</code>. Chamar um gerador só "liga a máquina".</li>
+  <li>O <code>for</code> pede o primeiro valor: o gerador roda até o primeiro <code>yield</code> (mostra "gerando a senha 1") e pausa. O <code>for</code> mostra "Chamando: Senha 1".</li>
+  <li>Os dois vão se <strong>alternando</strong>: gera uma, chama uma.</li>
+  <li><code>.take(3)</code> ("pegar 3") para de pedir depois da terceira. O gerador fica pausado para sempre e o programa termina. O <code>while (true)</code> nunca virou um laço infinito, porque ninguém pediu a quarta senha.</li>
+</ol>
+
+<div class="warning">
+<strong>Gerador infinito precisa de um limite de quem lê</strong>
+<p>Com um gerador infinito, <code>senhas().toList()</code> ou um <code>for</code> sem <code>take</code> nunca terminam: pedem valores para sempre (no terminal, pare com <kbd>Ctrl</kbd>+<kbd>C</kbd>). Sempre limite com <code>.take(n)</code>, <code>.takeWhile(…)</code> ou um <code>break</code>.</p>
+</div>
+
+<p>Um exemplo clássico de gerador infinito é a sequência de Fibonacci (cada número é a soma dos dois anteriores). Os métodos de Iterable da aula <a href="iterables.html">map, where, reduce</a> funcionam nele:</p>
+
+<pre class="file" data-file="fibonacci.dart">Iterable&lt;int&gt; fibonacci() sync* {
+  var a = 0;
+  var b = 1;
+  while (true) {
+    yield a;
+    final proximo = a + b;
+    a = b;
+    b = proximo;
+  }
+}
+
+void main() {
+  print(fibonacci().take(10).toList());
+  print(fibonacci().where((n) =&gt; n.isEven).take(5).toList());
+}
+</pre>
+
+<pre class="term">$ dart run fibonacci.dart
+[0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+[0, 2, 8, 34, 144]
+</pre>
+
+<p>A segunda linha pede "os 5 primeiros pares": o <code>where</code> filtra e o <code>take</code> para assim que tiver 5. O gerador só calculou até o 144.</p>
+
+<div class="trydart" data-goal="out:Chamando: Senha 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria vai atender <strong>5</strong> clientes hoje. Troque o <code>take</code> para chamar 5 senhas. Depois, por curiosidade, apague o <code>print</code> do gerador e veja como a saída fica limpa.</p>
+<pre class="script" data-file="main.dart">Iterable&lt;String&gt; senhas() sync* {
+  var numero = 1;
+  while (true) {
+    print('  (gerando a senha $numero)');
+    yield 'Senha $numero';
+    numero++;
+  }
+}
+
+void main() {
+  for (final senha in senhas().take(3)) {
+    print('Chamando: $senha');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Iterable&lt;String&gt; senhas() sync* {
+  var numero = 1;
+  while (true) {
+    print('  (gerando a senha $numero)');
+    yield 'Senha $numero';
+    numero++;
+  }
+}
+
+void main() {
+  for (final senha in senhas().take(5)) {
+    print('Chamando: $senha');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O gerador assíncrono: <code>async*</code></h2>
+<p>O forno da padaria demora: cada pão leva um tempo para ficar pronto. Aqui o gerador precisa <strong>esperar</strong> entre um valor e outro. Para isso, ele é <code>async*</code>, devolve uma <code>Stream</code> (um "fluxo" de valores que chegam com o tempo, veja <a href="stream.html">Stream</a>) e pode usar <code>await</code> lá dentro:</p>
+
+<pre class="file" data-file="fornada.dart">Stream&lt;String&gt; fornada(int quantidade) async* {
+  for (var i = 1; i &lt;= quantidade; i++) {
+    await Future.delayed(Duration(milliseconds: 500));
+    yield 'Pão $i saiu do forno';
+  }
+}
+
+Future&lt;void&gt; main() async {
+  print('Forno ligado.');
+  await for (final pao in fornada(3)) {
+    print(pao);
+  }
+  print('Fornada pronta!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Stream&lt;String&gt;</dt><dd>Um gerador <code>async*</code> sempre devolve uma <code>Stream</code>. Cada valor entregue é uma <code>String</code>.</dd>
+  <dt>async*</dt><dd>"Gerador assíncrono": pode usar <code>await</code> e <code>yield</code> na mesma função.</dd>
+  <dt>await Future.delayed(…)</dt><dd>Espera meio segundo (500 milissegundos), o "tempo de forno". Enquanto espera, o programa fica livre para fazer outras coisas.</dd>
+  <dt>yield 'Pão $i saiu do forno';</dt><dd>Entrega um valor na <code>Stream</code>. Quem está ouvindo recebe na hora.</dd>
+  <dt>await for (final pao in fornada(3))</dt><dd>O <code>for</code> das <code>Stream</code>s: espera cada valor chegar, roda o bloco e espera o próximo. Só pode aparecer dentro de uma função <code>async</code>; por isso o <code>main</code> virou <code>Future&lt;void&gt; main() async</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run fornada.dart
+Forno ligado.
+Pão 1 saiu do forno
+Pão 2 saiu do forno
+Pão 3 saiu do forno
+Fornada pronta!
+</pre>
+
+<p>No terminal, cada linha "Pão…" aparece com meio segundo de diferença da anterior (o texto final é o mesmo; o tempo exato pode variar um pouco de computador para computador). "Fornada pronta!" só aparece depois do último pão, porque o <code>await for</code> espera a <code>Stream</code> <strong>terminar</strong>.</p>
+
+<div class="trydart" data-goal="out:Pão 4 saiu do forno;;out:Fornada pronta!;;src:\bawait\s+for\b">
+<p class="try-task"><strong>Missão:</strong> o forno agora assa <strong>4</strong> pães. Mude o número que o <code>main</code> passa para a <code>fornada</code>.</p>
+<pre class="script" data-file="main.dart">Stream&lt;String&gt; fornada(int quantidade) async* {
+  for (var i = 1; i &lt;= quantidade; i++) {
+    await Future.delayed(Duration(milliseconds: 500));
+    yield 'Pão $i saiu do forno';
+  }
+}
+
+Future&lt;void&gt; main() async {
+  print('Forno ligado.');
+  await for (final pao in fornada(3)) {
+    print(pao);
+  }
+  print('Fornada pronta!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Stream&lt;String&gt; fornada(int quantidade) async* {
+  for (var i = 1; i &lt;= quantidade; i++) {
+    await Future.delayed(Duration(milliseconds: 500));
+    yield 'Pão $i saiu do forno';
+  }
+}
+
+Future&lt;void&gt; main() async {
+  print('Forno ligado.');
+  await for (final pao in fornada(4)) {
+    print(pao);
+  }
+  print('Fornada pronta!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. <code>yield*</code>: repassar os valores de outro gerador</h2>
+<p>Às vezes um gerador quer entregar <strong>todos</strong> os valores de outro gerador, no meio dos seus. Em vez de um <code>for</code> com <code>yield</code> dentro, use <code>yield*</code> ("entregar tudo de"):</p>
+
+<pre class="file" data-file="yield_estrela.dart">Iterable&lt;String&gt; frutas() sync* {
+  yield 'maçã';
+  yield 'banana';
+}
+
+Iterable&lt;String&gt; feira() sync* {
+  yield 'alface';
+  yield* frutas();
+  yield 'tomate';
+}
+
+void main() {
+  print(feira().toList());
+}
+</pre>
+
+<pre class="term">$ dart run yield_estrela.dart
+[alface, maçã, banana, tomate]
+</pre>
+
+<p><code>yield* frutas();</code> é o mesmo que <code>for (final f in frutas()) { yield f; }</code>, só que mais curto. Ele aceita qualquer <code>Iterable</code> num <code>sync*</code> (até uma lista: <code>yield* ['pera', 'uva'];</code>) e qualquer <code>Stream</code> num <code>async*</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Uma <code>Stream</code> com os números 1, 2 e 3 pode nascer de três jeitos:</p>
+
+<pre class="file" data-file="stream_jeitos.dart">Stream&lt;int&gt; comAsyncStar() async* {
+  for (var i = 1; i &lt;= 3; i++) {
+    yield i;
+  }
+}
+
+Future&lt;void&gt; main() async {
+  print(await comAsyncStar().toList());
+  print(await Stream.fromIterable([1, 2, 3]).toList());
+  print(await Stream.periodic(Duration(milliseconds: 100), (i) =&gt; i + 1).take(3).toList());
+}
+</pre>
+
+<pre class="term">$ dart run stream_jeitos.dart
+[1, 2, 3]
+[1, 2, 3]
+[1, 2, 3]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Quando usar</th></tr>
+<tr><td>Uma <code>List</code> montada com <code>add</code></td><td>poucos valores, que você vai usar várias vezes</td></tr>
+<tr><td>Gerador <code>sync*</code></td><td>valores calculados um a um; sequências longas ou infinitas; código mais curto que montar a lista</td></tr>
+<tr><td><code>iterable.map(…)</code> / <code>where(…)</code></td><td>transformar ou filtrar uma coleção que já existe (veja <a href="iterables.html">map, where…</a>)</td></tr>
+<tr><td>Gerador <code>async*</code></td><td>valores que dependem de esperas (<code>await</code>) no meio do caminho</td></tr>
+<tr><td><code>Stream.fromIterable(lista)</code></td><td>você já tem os valores numa lista e precisa de uma <code>Stream</code></td></tr>
+<tr><td><code>Stream.periodic(intervalo, …)</code></td><td>um valor a cada intervalo fixo (um relógio, um cronômetro)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>yield</code> sem marcar a função com <code>sync*</code></strong>
+<pre class="file" data-file="erro_semstar.dart">Iterable&lt;int&gt; contagem(int inicio) {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+}
+
+void main() {
+  print(contagem(3).toList());
+}
+</pre>
+<pre class="term">$ dart run erro_semstar.dart
+erro_semstar.dart:3:5: Error: 'yield' isn't a type.
+    yield n;
+    ^^^^^
+erro_semstar.dart:1:15: Error: A non-null value must be returned since the return type 'Iterable&lt;int&gt;' doesn't allow null.
+ - 'Iterable' is from 'dart:core'.
+Iterable&lt;int&gt; contagem(int inicio) {
+              ^
+$ echo $?
+254
+</pre>
+<p>Dois erros, e nenhum fala em "sync*". Linha por linha:</p>
+<ul>
+  <li><code>erro_semstar.dart:3:5: Error: 'yield' isn't a type.</code> — "linha 3, coluna 5: <code>yield</code> não é um tipo". Fora de um gerador, <code>yield</code> não é palavra especial. O Dart leu <code>yield n;</code> como "crie uma variável <code>n</code> do tipo <code>yield</code>", e esse tipo não existe. O <code>^^^^^</code> marca a palavra.</li>
+  <li><code>1:15: Error: A non-null value must be returned…</code> — "um valor não nulo precisa ser devolvido, já que o tipo de retorno <code>Iterable&lt;int&gt;</code> não permite nulo". Sem o <code>sync*</code>, é uma função comum, e ela termina sem <code>return</code>.</li>
+  <li>O <code>echo $?</code> mostra <code>254</code>: o código de saída do <code>dart run</code> quando o programa nem compila.</li>
+</ul>
+<p><strong>Como consertar:</strong> ponha <code>sync*</code> antes da chave: <code>Iterable&lt;int&gt; contagem(int inicio) sync* {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tipo de retorno errado: <code>List</code> num <code>sync*</code></strong>
+<pre class="file" data-file="erro_tipo.dart">List&lt;int&gt; contagem(int inicio) sync* {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+}
+
+void main() {
+  print(contagem(3));
+}
+</pre>
+<pre class="term">$ dart run erro_tipo.dart
+erro_tipo.dart:1:1: Error: Functions marked 'sync*' must have a return type assignable to 'Iterable'.
+List&lt;int&gt; contagem(int inicio) sync* {
+^^^^
+</pre>
+<p>"Funções marcadas com <code>sync*</code> precisam ter um tipo de retorno compatível com <code>Iterable</code>". O gerador não monta uma lista; ele entrega valores um a um. <strong>Como consertar:</strong> declare <code>Iterable&lt;int&gt;</code> e, se precisar de lista, chame <code>.toList()</code> em quem usa. Com <code>async*</code> é igual: o tipo tem de ser <code>Stream</code>, nunca <code>Future</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>return</code> com valor dentro do gerador</strong>
+<pre class="file" data-file="erro_return.dart">Iterable&lt;int&gt; contagem(int inicio) sync* {
+  for (var n = inicio; n &gt;= 1; n--) {
+    yield n;
+  }
+  return 0;
+}
+
+void main() {
+  print(contagem(3).toList());
+}
+</pre>
+<pre class="term">$ dart run erro_return.dart
+erro_return.dart:5:3: Error: 'sync*' and 'async*' can't return a value.
+  return 0;
+  ^
+</pre>
+<p>"<code>sync*</code> e <code>async*</code> não podem devolver um valor". No gerador, quem entrega é o <code>yield</code>. <strong>Como consertar:</strong> troque por <code>yield 0;</code> (se o 0 deve sair) ou use <code>return;</code> sozinho, sem valor, que é permitido e quer dizer "pare o gerador aqui".</p>
+</div>
+
+<div class="cenario">
+<strong>Uma <code>Stream</code> num <code>for</code> comum</strong>
+<pre class="file" data-file="erro_semawait.dart">Stream&lt;int&gt; numeros() async* {
+  yield 1;
+  yield 2;
+}
+
+void main() {
+  for (final n in numeros()) {
+    print(n);
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_semawait.dart
+erro_semawait.dart:7:19: Error: The type 'Stream&lt;int&gt;' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.
+ - 'Stream' is from 'dart:async'.
+ - 'Iterable' is from 'dart:core'.
+  for (final n in numeros()) {
+                  ^
+</pre>
+<p>"O tipo <code>Stream&lt;int&gt;</code> usado no laço <code>for</code> precisa implementar <code>Iterable</code>". O <code>for</code> comum só percorre o que está pronto; a <code>Stream</code> entrega com o tempo. As duas linhas com <code>-</code> só dizem de qual biblioteca vem cada tipo. <strong>Como consertar:</strong> <code>await for (final n in numeros())</code>, com o <code>main</code> marcado <code>Future&lt;void&gt; main() async</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Exceção no meio da <code>Stream</code></strong>
+<pre class="file" data-file="erro_excecao.dart">Stream&lt;int&gt; estoque() async* {
+  yield 10;
+  yield 5;
+  throw StateError('acabou o fermento');
+}
+
+Future&lt;void&gt; main() async {
+  await for (final n in estoque()) {
+    print('Estoque: $n');
+  }
+  print('fim');
+}
+</pre>
+<pre class="term">$ dart run erro_excecao.dart
+Estoque: 10
+Estoque: 5
+Unhandled exception:
+Bad state: acabou o fermento
+#0      estoque (file:///home/ana/erro_excecao.dart:4:3)
+&lt;asynchronous suspension&gt;
+#1      main (file:///home/ana/erro_excecao.dart:8:3)
+&lt;asynchronous suspension&gt;
+$ echo $?
+255
+</pre>
+<ul>
+  <li>Os dois valores entregues antes do erro saíram normalmente.</li>
+  <li><code>Unhandled exception:</code> — "exceção não tratada"; <code>Bad state: acabou o fermento</code> é como o <code>StateError</code> se apresenta.</li>
+  <li><code>#0 estoque (…:4:3)</code> — o erro nasceu na linha 4 do gerador. <code>#1 main (…:8:3)</code> — e chegou ao <code>await for</code> da linha 8.</li>
+  <li><code>&lt;asynchronous suspension&gt;</code> — "suspensão assíncrona": entre esses passos houve uma espera (o código é assíncrono).</li>
+  <li>O <code>fim</code> não apareceu, e o código de saída foi <code>255</code> (exceção não tratada).</li>
+</ul>
+<p><strong>Como consertar:</strong> o erro do gerador "sai" pelo <code>await for</code>, então é ali que se põe o <code>try</code> (veja <a href="erros-async.html">Erros em Código Assíncrono</a>):</p>
+<pre class="file" data-file="excecao_tratada.dart">Future&lt;void&gt; main() async {
+  try {
+    await for (final n in estoque()) {
+      print('Estoque: $n');
+    }
+  } on StateError catch (e) {
+    print('Deu problema: ${e.message}');
+  }
+  print('fim');
+}
+</pre>
+<pre class="term">$ dart run excecao_tratada.dart
+Estoque: 10
+Estoque: 5
+Deu problema: acabou o fermento
+fim
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>Iterable&lt;T&gt; f() sync* { … }</code></td><td>gerador síncrono: devolve um <code>Iterable</code></td></tr>
+<tr><td><code>Stream&lt;T&gt; f() async* { … }</code></td><td>gerador assíncrono: devolve uma <code>Stream</code>; aceita <code>await</code> dentro</td></tr>
+<tr><td><code>yield valor;</code></td><td>entrega um valor e pausa até o próximo pedido</td></tr>
+<tr><td><code>yield* outro;</code></td><td>entrega todos os valores de outro <code>Iterable</code> (no <code>sync*</code>) ou <code>Stream</code> (no <code>async*</code>)</td></tr>
+<tr><td><code>return;</code></td><td>termina o gerador (sem valor)</td></tr>
+<tr><td><code>for (final x in gerador())</code></td><td>percorre um <code>sync*</code></td></tr>
+<tr><td><code>await for (final x in stream())</code></td><td>percorre um <code>async*</code> (dentro de função <code>async</code>)</td></tr>
+<tr><td><code>.take(n)</code> / <code>.toList()</code></td><td>limita / junta tudo numa lista (na <code>Stream</code>, o <code>toList()</code> devolve um <code>Future</code>: use <code>await</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o gerador</h3>
+<p>Complete para a função entregar os números de 1 a 3:</p>
+<div class="ex-code"><input data-answer="Iterable&lt;int&gt;|Iterable" aria-label="tipo de retorno"> umAteTres() <input data-answer="sync*" aria-label="marca do gerador"> {<br>&nbsp;&nbsp;for (var i = 1; i &lt;= 3; i++) {<br>&nbsp;&nbsp;&nbsp;&nbsp;<input data-answer="yield" aria-label="palavra que entrega"> i;<br>&nbsp;&nbsp;}<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Qual é a saída deste programa?</p>
+<pre class="file" data-file="letras.dart">Iterable&lt;String&gt; letras() sync* {
+  yield 'a';
+  yield* ['b', 'c'];
+  yield 'd';
+}
+
+void main() {
+  print(letras().take(3).toList());
+}
+</pre>
+<div class="ex-code">Saída: <input data-answer="[a, b, c]" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Que tipo de retorno uma função <code>async*</code> precisa ter?</p>
+<label><input type="radio" name="q3"> <code>Future&lt;T&gt;</code></label>
+<label><input type="radio" name="q3"> <code>List&lt;T&gt;</code></label>
+<label><input type="radio" name="q3"> <code>Stream&lt;T&gt;</code></label>
+<label><input type="radio" name="q3"> <code>Iterable&lt;T&gt;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um gerador <code>sync*</code> tem um <code>while (true)</code> com <code>yield</code> dentro. O que acontece com <code>gerador().take(3).toList()</code>?</p>
+<label><input type="radio" name="q4"> O programa trava para sempre</label>
+<label><input type="radio" name="q4"> Devolve uma lista com 3 valores: o gerador só roda até o terceiro <code>yield</code></label>
+<label><input type="radio" name="q4"> Erro de compilação: gerador não pode ter <code>while (true)</code></label>
+<label><input type="radio" name="q4"> Devolve uma lista vazia</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Você escreveu <code>yield n;</code> numa função sem <code>sync*</code>. Qual mensagem o Dart mostra?</p>
+<label><input type="radio" name="q5"> <code>'yield' isn't a type.</code></label>
+<label><input type="radio" name="q5"> <code>'sync*' and 'async*' can't return a value.</code></label>
+<label><input type="radio" name="q5"> <code>Unhandled exception: yield</code></label>
+<label><input type="radio" name="q5"> Nenhuma: funciona como <code>return</code></label>
+</div>
+
+<h3>Missão final: a tabuada preguiçosa</h3>
+
+<div class="trydart" data-goal="out:7 x 10 = 70;;out:7 x 1 = 7;;src:\bsync\*;;src:\byield\b">
+<p class="try-task"><strong>Missão:</strong> a Ana quer a tabuada do 7. Escreva o corpo do gerador <code>tabuada</code>: um <code>for</code> de 1 a 10 que entrega (<code>yield</code>) o texto <code>'$numero x $i = ${numero * i}'</code>. Não esqueça o <code>sync*</code> antes da chave.</p>
+<pre class="script" data-file="main.dart">Iterable&lt;String&gt; tabuada(int numero) {
+  // escreva o for com yield aqui
+}
+
+void main() {
+  for (final linha in tabuada(7)) {
+    print(linha);
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Iterable&lt;String&gt; tabuada(int numero) sync* {
+  for (var i = 1; i &lt;= 10; i++) {
+    yield '$numero x $i = ${numero * i}';
+  }
+}
+
+void main() {
+  for (final linha in tabuada(7)) {
+    print(linha);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>gerador</strong> entrega vários valores, um de cada vez, com <code>yield</code>, e pausa entre um e outro.</li>
+  <li><code>sync*</code> devolve um <code>Iterable</code> (lido com <code>for</code>); <code>async*</code> devolve uma <code>Stream</code> (lida com <code>await for</code>) e pode usar <code>await</code> dentro.</li>
+  <li>O gerador é <strong>preguiçoso</strong>: chamar a função não roda nada; cada pedido roda até o próximo <code>yield</code>. Por isso ele pode ser infinito, desde que quem lê use <code>take</code> ou <code>break</code>.</li>
+  <li><code>yield*</code> repassa todos os valores de outro gerador, lista ou <code>Stream</code>.</li>
+  <li>Gerador não tem <code>return valor</code> (só <code>return;</code>); o tipo de retorno tem de ser <code>Iterable</code> ou <code>Stream</code>.</li>
+  <li>Uma exceção dentro de um <code>async*</code> sai no <code>await for</code> de quem lê: é lá que vai o <code>try</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
