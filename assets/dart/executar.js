@@ -49,7 +49,7 @@
           arquivo: principal.nome,
           arquivos: fs,
           linhaCol: function (p) { return comp.linhaCol(p); },
-          setTimeout: io.setTimeout || setTimeout, clearTimeout: io.clearTimeout || clearTimeout,
+          setTimeout: function (f, ms) { return setTimeout(f, ms); }, clearTimeout: function (h) { return clearTimeout(h); },
           semente: function () { return semente; },
           agora: function () { return Date.now(); },
           stdinRedirecionado: stdinTexto !== null,
