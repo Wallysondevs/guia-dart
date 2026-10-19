@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto Dart: Lista de Tarefas — passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto Dart para iniciantes: uma lista de tarefas de terminal em 4 versões. Uma List de textos, um menu com while e switch, a classe Tarefa com feita/não feita e toString, removeWhere, e salvar e carregar num arquivo tarefas.txt com dart:io. Sessões e erros reais do Dart 3.13 (RangeError, modificação durante o for, PathNotFoundException).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Lista de Tarefas</span></h1>
+
+<p class="intro">A Ana vive esquecendo coisas da padaria: comprar farinha, ligar para o fornecedor, pagar a luz. Neste projeto ela vai escrever a própria <strong>lista de tarefas</strong> no terminal: adicionar, marcar como feita, limpar as feitas, e (o mais importante) <strong>não perder nada</strong> quando fechar o programa. São <strong>quatro versões</strong>, e cada uma usa uma parte do Dart que você já estudou: listas, laços, <code>switch</code>, classes e arquivos.</p>
+
+<div class="note">
+<strong>Você vai usar</strong>
+<ul>
+  <li><code>List</code>, <code>add</code>, <code>removeAt</code>, <code>removeWhere</code> (aulas <a href="list.html">Listas</a> e <a href="list-metodos.html">Métodos de Lista</a>).</li>
+  <li>Um menu com <code>while (true)</code> e <code>switch</code> (aulas <a href="while.html">while</a> e <a href="switch.html">switch</a>).</li>
+  <li>Uma classe com campo que muda e <code>toString</code> (aulas <a href="classes.html">Classes</a> e <a href="tostring-igualdade.html">toString</a>).</li>
+  <li><code>File</code> do <code>dart:io</code>: ler e gravar um arquivo de texto (aula <a href="arquivos.html">Arquivos</a>).</li>
+</ul>
+</div>
+
+<p>As sessões rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>tarefas</code>; o que ela digitou aparece depois de cada pergunta. No editor do guia, as respostas "digitadas" vêm prontas na caixa.</p>
+
+<hr>
+
+<h2>O plano</h2>
+<ol class="passo">
+  <li><strong>Versão 1:</strong> uma lista de textos: adicionar, mostrar numerada, remover.</li>
+  <li><strong>Versão 2:</strong> um menu que repete até a pessoa sair.</li>
+  <li><strong>Versão 3:</strong> uma classe <code>Tarefa</code> que sabe se está feita: <code>[x]</code> ou <code>[ ]</code>.</li>
+  <li><strong>Versão 4:</strong> salvar num arquivo e carregar de volta ao abrir.</li>
+</ol>
+
+<hr>
+
+<h2>Versão 1: uma lista de textos</h2>
+
+<pre class="file" data-file="tarefas1.dart">void main() {
+  final tarefas = &lt;String&gt;[];
+  tarefas.add('Comprar farinha');
+  tarefas.add('Ligar para o fornecedor');
+  tarefas.add('Pagar a conta de luz');
+
+  print('Tarefas da Ana:');
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+
+  final feita = tarefas.removeAt(1);
+  print('Feita: $feita');
+  print('Faltam ${tarefas.length}:');
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run tarefas1.dart
+Tarefas da Ana:
+1. Comprar farinha
+2. Ligar para o fornecedor
+3. Pagar a conta de luz
+Feita: Ligar para o fornecedor
+Faltam 2:
+1. Comprar farinha
+2. Pagar a conta de luz
+</pre>
+
+<dl class="anatomy">
+  <dt>final tarefas = &lt;String&gt;[];</dt><dd>Uma lista vazia de textos. <code>final</code> porque a <strong>variável</strong> sempre aponta para a mesma lista; o <strong>conteúdo</strong> da lista pode mudar à vontade.</dd>
+  <dt>tarefas.add('…')</dt><dd>Põe um item no fim da lista.</dd>
+  <dt>for (var i = 0; i &lt; tarefas.length; i++)</dt><dd>Percorre as posições 0, 1, 2. Precisamos do número <code>i</code> para mostrar a numeração.</dd>
+  <dt>'${i + 1}. ${tarefas[i]}'</dt><dd>As posições da lista começam em 0, mas pessoas contam a partir de 1: por isso o <code>i + 1</code>.</dd>
+  <dt>tarefas.removeAt(1)</dt><dd>Remove o item da <strong>posição</strong> 1 (o segundo!) e o <strong>devolve</strong>, por isso dá para guardar em <code>feita</code>. Os itens seguintes "sobem" uma posição.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:4. Fazer o pão de queijo">
+<p class="try-task"><strong>Missão:</strong> acrescente uma quarta tarefa, <code>Fazer o pão de queijo</code>, antes de a lista ser mostrada. Ela tem de aparecer como <code>4. Fazer o pão de queijo</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final tarefas = &lt;String&gt;[];
+  tarefas.add('Comprar farinha');
+  tarefas.add('Ligar para o fornecedor');
+  tarefas.add('Pagar a conta de luz');
+
+  print('Tarefas da Ana:');
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final tarefas = &lt;String&gt;[];
+  tarefas.add('Comprar farinha');
+  tarefas.add('Ligar para o fornecedor');
+  tarefas.add('Pagar a conta de luz');
+  tarefas.add('Fazer o pão de queijo');
+
+  print('Tarefas da Ana:');
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 2: o menu</h2>
+<p>Tarefas escritas no código não servem para a Ana: ela quer digitá-las. A versão 2 mostra um <strong>menu</strong>, lê a escolha e repete até a pessoa digitar <code>0</code>. A parte de mostrar a lista virou uma <strong>função</strong>, porque é usada em dois lugares.</p>
+
+<pre class="file" data-file="tarefas2.dart">import 'dart:io';
+
+void mostrar(List&lt;String&gt; tarefas) {
+  if (tarefas.isEmpty) {
+    print('Nenhuma tarefa.');
+    return;
+  }
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = &lt;String&gt;[];
+  while (true) {
+    print('');
+    print('[1] listar  [2] adicionar  [3] remover  [0] sair');
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isEmpty) {
+          print('Tarefa vazia, nada adicionado.');
+        } else {
+          tarefas.add(titulo);
+          print('Adicionada: $titulo');
+        }
+      case '3':
+        mostrar(tarefas);
+        stdout.write('Número da tarefa: ');
+        final n = int.tryParse(stdin.readLineSync() ?? '');
+        if (n == null || n &lt; 1 || n &gt; tarefas.length) {
+          print('Número inválido.');
+        } else {
+          final removida = tarefas.removeAt(n - 1);
+          print('Removida: $removida');
+        }
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+      default:
+        print('Opção inválida: $opcao');
+    }
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>while (true)</dt><dd>O menu volta "para sempre"; quem encerra é o <code>return</code> do caso <code>'0'</code>, que sai do <code>main</code>.</dd>
+  <dt>switch (opcao)</dt><dd>Compara a escolha com cada <code>case</code>. A opção fica como texto (<code>'1'</code>), sem converter: assim, se a pessoa digitar <code>abc</code>, cai no <code>default</code> em vez de quebrar.</dd>
+  <dt>stdin.readLineSync()?.trim() ?? ''</dt><dd>Lê a linha; se vier <code>null</code> (entrada acabou), o <code>?.</code> não chama o <code>trim</code> e o <code>??</code> troca por <code>''</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</dd>
+  <dt>n &lt; 1 || n &gt; tarefas.length</dt><dd>O número tem de estar entre 1 e o tamanho da lista. É essa conferência que evita o <code>RangeError</code> (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>removeAt(n - 1)</dt><dd>A pessoa digita 1 para a primeira tarefa, que está na posição 0.</dd>
+  <dt>case '0': case null:</dt><dd>Um <code>case</code> vazio "cai" no seguinte: tanto <code>0</code> quanto o fim da entrada (<code>null</code>) encerram o programa.</dd>
+</dl>
+
+<pre class="term">$ dart run tarefas2.dart
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 1
+Nenhuma tarefa.
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 2
+Nova tarefa: Comprar farinha
+Adicionada: Comprar farinha
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 2
+Nova tarefa: Pagar a conta de luz
+Adicionada: Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 2
+Nova tarefa:
+Tarefa vazia, nada adicionado.
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 1
+1. Comprar farinha
+2. Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 3
+1. Comprar farinha
+2. Pagar a conta de luz
+Número da tarefa: 7
+Número inválido.
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 3
+1. Comprar farinha
+2. Pagar a conta de luz
+Número da tarefa: 1
+Removida: Comprar farinha
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 1
+1. Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 9
+Opção inválida: 9
+
+[1] listar  [2] adicionar  [3] remover  [0] sair
+Escolha: 0
+Até logo!
+</pre>
+
+<p>A Ana testou também o que pode dar errado: uma tarefa vazia (só <kbd>Enter</kbd>), o número 7 numa lista de 2 e a opção 9 que não existe. Nada quebrou.</p>
+
+<div class="trydart" data-stdin="2\nComprar ovos\n1\n0" data-goal="out:Total: 1 tarefa(s);;src:tarefas\.length">
+<p class="try-task"><strong>Missão:</strong> na opção <code>1</code>, depois de mostrar a lista, mostre também o total: <code>Total: 1 tarefa(s)</code> (use <code>tarefas.length</code>). As escolhas digitadas são: 2, "Comprar ovos", 1 e 0.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void mostrar(List&lt;String&gt; tarefas) {
+  if (tarefas.isEmpty) {
+    print('Nenhuma tarefa.');
+    return;
+  }
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = &lt;String&gt;[];
+  while (true) {
+    print('');
+    print('[1] listar  [2] adicionar  [0] sair');
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(titulo);
+        }
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+      default:
+        print('Opção inválida: $opcao');
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void mostrar(List&lt;String&gt; tarefas) {
+  if (tarefas.isEmpty) {
+    print('Nenhuma tarefa.');
+    return;
+  }
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = &lt;String&gt;[];
+  while (true) {
+    print('');
+    print('[1] listar  [2] adicionar  [0] sair');
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+        print('Total: ${tarefas.length} tarefa(s)');
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(titulo);
+        }
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+      default:
+        print('Opção inválida: $opcao');
+    }
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 3: a classe <code>Tarefa</code></h2>
+<p>Na versão 2, "fazer" uma tarefa era apagá-la. Mas a Ana gosta de ver o que já fez no dia, riscado. Para isso, cada tarefa precisa guardar <strong>duas</strong> informações: o título e se está feita. É o trabalho de uma classe:</p>
+
+<pre class="file" data-file="tarefas3.dart">import 'dart:io';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+
+  @override
+  String toString() =&gt; '[${feita ? 'x' : ' '}] $titulo';
+}
+
+void mostrar(List&lt;Tarefa&gt; tarefas) {
+  if (tarefas.isEmpty) {
+    print('Nenhuma tarefa.');
+    return;
+  }
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+int? lerNumero(List&lt;Tarefa&gt; tarefas) {
+  stdout.write('Número da tarefa: ');
+  final n = int.tryParse(stdin.readLineSync() ?? '');
+  if (n == null || n &lt; 1 || n &gt; tarefas.length) {
+    print('Número inválido.');
+    return null;
+  }
+  return n - 1;
+}
+
+void main() {
+  final tarefas = &lt;Tarefa&gt;[];
+  while (true) {
+    print('');
+    print('[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair');
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(Tarefa(titulo));
+        }
+      case '3':
+        mostrar(tarefas);
+        final i = lerNumero(tarefas);
+        if (i != null) {
+          tarefas[i].feita = !tarefas[i].feita;
+          print(tarefas[i]);
+        }
+      case '4':
+        final antes = tarefas.length;
+        tarefas.removeWhere((t) =&gt; t.feita);
+        print('Removidas: ${antes - tarefas.length}');
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+      default:
+        print('Opção inválida: $opcao');
+    }
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final String titulo; bool feita;</dt><dd>O título nunca muda (<code>final</code>); o <code>feita</code> muda quando a Ana marca (por isso <strong>não</strong> é <code>final</code>).</dd>
+  <dt>Tarefa(this.titulo, {this.feita = false})</dt><dd>O construtor: o título é obrigatório; o <code>feita</code> é um parâmetro nomeado opcional que começa <code>false</code> (veja <a href="parametros-opcionais.html">Parâmetros Opcionais</a>). A versão 4 vai precisar dele.</dd>
+  <dt>toString() =&gt; '[${feita ? 'x' : ' '}] $titulo'</dt><dd>Diz como a tarefa aparece num <code>print</code> ou numa interpolação: <code>[x] Ligar…</code> se feita, <code>[ ] Ligar…</code> se não.</dd>
+  <dt>int? lerNumero(…)</dt><dd>Uma função que devolve a <strong>posição</strong> escolhida, ou <code>null</code> se o número for inválido. O <code>?</code> no tipo avisa quem chama: "confira o <code>null</code>".</dd>
+  <dt>tarefas[i].feita = !tarefas[i].feita;</dt><dd>Inverte: o que era <code>false</code> vira <code>true</code> e vice-versa. Marcar duas vezes desmarca.</dd>
+  <dt>tarefas.removeWhere((t) =&gt; t.feita)</dt><dd>"Remova onde": apaga todas as tarefas para as quais a função devolve <code>true</code>, de uma vez e com segurança (veja por que em <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run tarefas3.dart
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 2
+Nova tarefa: Comprar farinha
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 2
+Nova tarefa: Ligar para o fornecedor
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 2
+Nova tarefa: Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 3
+1. [ ] Comprar farinha
+2. [ ] Ligar para o fornecedor
+3. [ ] Pagar a conta de luz
+Número da tarefa: 2
+[x] Ligar para o fornecedor
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 1
+1. [ ] Comprar farinha
+2. [x] Ligar para o fornecedor
+3. [ ] Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 4
+Removidas: 1
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 1
+1. [ ] Comprar farinha
+2. [ ] Pagar a conta de luz
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 0
+Até logo!
+</pre>
+
+<div class="trydart" data-stdin="2\nComprar farinha\n2\nLigar para o fornecedor\n3\n1\n4\n1\n0" data-goal="out:Removidas: 1;;out:1. [ ] Ligar para o fornecedor;;src:removeWhere">
+<p class="try-task"><strong>Missão:</strong> a opção <code>4</code> ainda não faz nada. Faça-a apagar as tarefas feitas com <code>removeWhere</code> e mostrar quantas saíram (<code>Removidas: 1</code>). As escolhas digitadas adicionam duas tarefas, marcam a primeira, limpam e listam.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+
+  @override
+  String toString() =&gt; '[${feita ? 'x' : ' '}] $titulo';
+}
+
+void mostrar(List&lt;Tarefa&gt; tarefas) {
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = &lt;Tarefa&gt;[];
+  while (true) {
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        tarefas.add(Tarefa(stdin.readLineSync() ?? ''));
+      case '3':
+        stdout.write('Número da tarefa: ');
+        final i = int.parse(stdin.readLineSync()!) - 1;
+        tarefas[i].feita = !tarefas[i].feita;
+      case '4':
+        print('Ainda não fiz esta opção.');
+      case '0':
+      case null:
+        return;
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+
+  @override
+  String toString() =&gt; '[${feita ? 'x' : ' '}] $titulo';
+}
+
+void mostrar(List&lt;Tarefa&gt; tarefas) {
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = &lt;Tarefa&gt;[];
+  while (true) {
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        tarefas.add(Tarefa(stdin.readLineSync() ?? ''));
+      case '3':
+        stdout.write('Número da tarefa: ');
+        final i = int.parse(stdin.readLineSync()!) - 1;
+        tarefas[i].feita = !tarefas[i].feita;
+      case '4':
+        final antes = tarefas.length;
+        tarefas.removeWhere((t) =&gt; t.feita);
+        print('Removidas: ${antes - tarefas.length}');
+      case '0':
+      case null:
+        return;
+    }
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 4: salvar num arquivo</h2>
+<p>Até aqui, fechar o programa apagava tudo: a lista morava só na memória. A versão 4 grava as tarefas num arquivo de texto, <code>tarefas.txt</code>, a cada mudança, e lê esse arquivo quando o programa abre. Cada linha do arquivo é uma tarefa: <code>x</code> na frente se está feita, <code>-</code> se não.</p>
+
+<pre class="file" data-file="tarefas4.dart">import 'dart:io';
+
+const nomeArquivo = 'tarefas.txt';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+
+  @override
+  String toString() =&gt; '[${feita ? 'x' : ' '}] $titulo';
+}
+
+List&lt;Tarefa&gt; carregar() {
+  final arquivo = File(nomeArquivo);
+  if (!arquivo.existsSync()) {
+    return [];
+  }
+  return [
+    for (final linha in arquivo.readAsLinesSync())
+      if (linha.length &gt; 2)
+        Tarefa(linha.substring(2), feita: linha.startsWith('x')),
+  ];
+}
+
+void salvar(List&lt;Tarefa&gt; tarefas) {
+  final texto = StringBuffer();
+  for (final t in tarefas) {
+    texto.writeln('${t.feita ? 'x' : '-'} ${t.titulo}');
+  }
+  File(nomeArquivo).writeAsStringSync(texto.toString());
+}
+
+void mostrar(List&lt;Tarefa&gt; tarefas) {
+  if (tarefas.isEmpty) {
+    print('Nenhuma tarefa.');
+    return;
+  }
+  for (var i = 0; i &lt; tarefas.length; i++) {
+    print('${i + 1}. ${tarefas[i]}');
+  }
+}
+
+void main() {
+  final tarefas = carregar();
+  print('${tarefas.length} tarefa(s) carregada(s) de $nomeArquivo.');
+  while (true) {
+    print('');
+    print('[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair');
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '1':
+        mostrar(tarefas);
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(Tarefa(titulo));
+          salvar(tarefas);
+        }
+      case '3':
+        mostrar(tarefas);
+        stdout.write('Número da tarefa: ');
+        final n = int.tryParse(stdin.readLineSync() ?? '');
+        if (n == null || n &lt; 1 || n &gt; tarefas.length) {
+          print('Número inválido.');
+        } else {
+          tarefas[n - 1].feita = !tarefas[n - 1].feita;
+          salvar(tarefas);
+          print(tarefas[n - 1]);
+        }
+      case '4':
+        tarefas.removeWhere((t) =&gt; t.feita);
+        salvar(tarefas);
+        mostrar(tarefas);
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+      default:
+        print('Opção inválida: $opcao');
+    }
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>File(nomeArquivo)</dt><dd>Um objeto que representa o arquivo <code>tarefas.txt</code> na pasta de onde o programa roda. Criar o <code>File</code> não cria o arquivo no disco.</dd>
+  <dt>arquivo.existsSync()</dt><dd>"O arquivo existe?". Na primeira vez, não existe, e a lista começa vazia.</dd>
+  <dt>readAsLinesSync()</dt><dd>Lê o arquivo inteiro e devolve uma lista com uma linha em cada posição.</dd>
+  <dt>[ for (…) if (…) Tarefa(…), ]</dt><dd>Monta a lista com <code>for</code> e <code>if</code> <strong>dentro</strong> dela (veja <a href="collection-if-for.html">if e for Dentro de Coleções</a>): uma <code>Tarefa</code> para cada linha com mais de 2 caracteres (pula linhas vazias).</dd>
+  <dt>linha.substring(2)</dt><dd>O título é a linha a partir da posição 2, pulando o <code>x </code> ou o <code>- </code>.</dd>
+  <dt>StringBuffer + writeln</dt><dd>Junta todas as linhas num texto só (veja <a href="string-buffer.html">Montando Textos</a>).</dd>
+  <dt>writeAsStringSync(…)</dt><dd>Grava o texto no arquivo, criando-o se não existir e <strong>substituindo</strong> o conteúdo antigo. É chamado depois de cada mudança.</dd>
+</dl>
+
+<p>Primeira vez: o arquivo não existe, a Ana adiciona duas tarefas e marca uma:</p>
+
+<pre class="term">$ dart run tarefas4.dart
+0 tarefa(s) carregada(s) de tarefas.txt.
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 2
+Nova tarefa: Comprar farinha
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 2
+Nova tarefa: Encomendar ovos
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 3
+1. [ ] Comprar farinha
+2. [ ] Encomendar ovos
+Número da tarefa: 1
+[x] Comprar farinha
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 0
+Até logo!
+$ cat tarefas.txt
+x Comprar farinha
+- Encomendar ovos
+</pre>
+
+<p>O <code>cat</code> mostra o arquivo que o programa gravou: texto simples, que dá para abrir em qualquer editor. Agora o teste de verdade, abrindo o programa de novo:</p>
+
+<pre class="term">$ dart run tarefas4.dart
+2 tarefa(s) carregada(s) de tarefas.txt.
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 1
+1. [x] Comprar farinha
+2. [ ] Encomendar ovos
+
+[1] listar  [2] adicionar  [3] marcar/desmarcar  [4] limpar feitas  [0] sair
+Escolha: 0
+Até logo!
+</pre>
+
+<p>As tarefas voltaram, inclusive a marcação. A lista da Ana sobrevive ao fim do programa.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Remover uma posição que não existe</strong>
+<pre class="file" data-file="fora.dart">void main() {
+  final tarefas = ['Comprar farinha', 'Ligar para o fornecedor', 'Pagar a conta de luz'];
+  tarefas.removeAt(3);
+}
+</pre>
+<pre class="term">$ dart run fora.dart; echo "codigo: $?"
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      List.removeAt (dart:core-patch/growable_array.dart:23:22)
+#2      main (file:///home/ana/tarefas/fora.dart:3:11)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>"Erro de faixa: valor inválido, fora da faixa de 0 a 2: 3". A lista tem 3 tarefas, nas posições 0, 1 e 2; a "tarefa 3" da pessoa é a posição 2. A linha <code>#2</code> aponta o <code>removeAt</code> do nosso arquivo (linha 3). <strong>Como consertar:</strong> converta o número da pessoa com <code>- 1</code> e confira a faixa antes, como no <code>n &lt; 1 || n &gt; tarefas.length</code> da versão 2.</p>
+</div>
+
+<div class="cenario">
+<strong>Apagar itens dentro do <code>for</code> que percorre a lista</strong>
+<p>Antes de conhecer o <code>removeWhere</code>, a Ana tentou limpar as feitas assim:</p>
+<pre class="file" data-file="durante.dart">void main() {
+  final tarefas = ['x Comprar farinha', '- Encomendar ovos', 'x Pagar a luz'];
+  for (final t in tarefas) {
+    if (t.startsWith('x')) {
+      tarefas.remove(t);
+    }
+  }
+  print(tarefas);
+}
+</pre>
+<pre class="term">$ dart run durante.dart; echo "codigo: $?"
+Unhandled exception:
+Concurrent modification during iteration: Instance(length:2) of '_GrowableList'.
+#0      ListIterator.moveNext (dart:_internal/iterable.dart:366:7)
+#1      main (file:///home/ana/tarefas/durante.dart:3:19)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>"Modificação concorrente durante a iteração": a lista mudou (agora com <code>length:2</code>) enquanto o <code>for</code> andava por ela. É como riscar folhas de um caderno arrancando-as enquanto você ainda está folheando: você perde a conta de onde estava. O Dart percebe e para o programa, em vez de pular itens em silêncio. <strong>Como consertar:</strong> <code>tarefas.removeWhere((t) =&gt; t.startsWith('x'));</code>, que faz a remoção de uma vez, com segurança.</p>
+</div>
+
+<div class="cenario">
+<strong>Ler um arquivo que não existe</strong>
+<pre class="file" data-file="semarquivo.dart">import 'dart:io';
+
+void main() {
+  final linhas = File('tarefas_velhas.txt').readAsLinesSync();
+  print(linhas);
+}
+</pre>
+<pre class="term">$ dart run semarquivo.dart; echo "codigo: $?"
+Unhandled exception:
+PathNotFoundException: Cannot open file, path = 'tarefas_velhas.txt' (OS Error: No such file or directory, errno = 2)
+#0      _File.throwIfError (dart:io/file_impl.dart:779:7)
+#1      _File.openSync (dart:io/file_impl.dart:572:5)
+#2      _File.readAsBytesSync (dart:io/file_impl.dart:660:18)
+#3      _File.readAsStringSync (dart:io/file_impl.dart:715:18)
+#4      _File.readAsLinesSync (dart:io/file_impl.dart:721:36)
+#5      main (file:///home/ana/tarefas/semarquivo.dart:4:45)
+#6      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#7      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>"Caminho não encontrado: não foi possível abrir o arquivo <code>tarefas_velhas.txt</code> (erro do sistema: arquivo ou diretório inexistente, código 2)". As linhas <code>#0</code> a <code>#4</code> são o caminho por dentro do <code>dart:io</code>; a <code>#5</code> é a nossa, linha 4. Na primeira vez que a versão 4 roda, o <code>tarefas.txt</code> também não existe: é por isso que o <code>carregar</code> pergunta <code>existsSync()</code> antes de ler.</p>
+</div>
+
+<hr>
+
+<h2>Ideias para continuar</h2>
+<ul>
+  <li>Editar o título de uma tarefa (como o <code>titulo</code> é <code>final</code>, troque a tarefa inteira na lista).</li>
+  <li>Prioridade (alta, média, baixa) com um <a href="enums.html">enum</a>, e listar as de prioridade alta primeiro.</li>
+  <li>Salvar em JSON em vez do formato <code>x</code>/<code>-</code> (aula <a href="json.html">JSON</a>).</li>
+  <li>Receber comandos pela linha de comando: <code>tarefas add "Comprar farinha"</code> (aula <a href="argumentos.html">Argumentos</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A posição</h3>
+<p>A pessoa digitou <code>3</code> para escolher a terceira tarefa. Qual posição da lista é essa?</p>
+<div class="ex-code">tarefas.removeAt(<input data-answer="2" aria-label="posição">)</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o método</h3>
+<p>Complete para apagar todas as tarefas feitas de uma vez:</p>
+<div class="ex-code">tarefas.<input data-answer="removeWhere" aria-label="método">((t) =&gt; t.<input data-answer="feita" aria-label="campo">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que o campo <code>feita</code> da classe <code>Tarefa</code> não é <code>final</code>?</p>
+<label><input type="radio" name="q3"> Porque campos <code>bool</code> não podem ser <code>final</code></label>
+<label><input type="radio" name="q3"> Por esquecimento</label>
+<label><input type="radio" name="q3"> Porque ele muda quando a tarefa é marcada ou desmarcada</label>
+<label><input type="radio" name="q3"> Porque o arquivo exige</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que <code>File('tarefas.txt').writeAsStringSync(texto)</code> faz se o arquivo já existir?</p>
+<label><input type="radio" name="q4"> Substitui o conteúdo antigo pelo novo</label>
+<label><input type="radio" name="q4"> Acrescenta no fim</label>
+<label><input type="radio" name="q4"> Dá erro</label>
+<label><input type="radio" name="q4"> Não faz nada</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Apagar itens de uma lista dentro de um <code>for (final t in tarefas)</code> que a percorre dá…</p>
+<label><input type="radio" name="q5"> Certo, sempre</label>
+<label><input type="radio" name="q5"> <code>RangeError</code></label>
+<label><input type="radio" name="q5"> <code>PathNotFoundException</code></label>
+<label><input type="radio" name="q5"> <code>Concurrent modification during iteration</code></label>
+</div>
+
+<h3>Missão final: gravar no arquivo</h3>
+
+<div class="trydart" data-stdin="2\nComprar ovos\n2\nPagar a luz\n0" data-goal="arquivo:tarefas.txt~- Comprar ovos;;arquivo:tarefas.txt~- Pagar a luz;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função <code>salvar</code> está vazia, e nada é gravado. Escreva-a: uma linha por tarefa, com <code>x</code> ou <code>-</code>, um espaço e o título, e grave em <code>tarefas.txt</code> com <code>writeAsStringSync</code>. As escolhas digitadas adicionam "Comprar ovos" e "Pagar a luz" e saem.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+const nomeArquivo = 'tarefas.txt';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+}
+
+void salvar(List&lt;Tarefa&gt; tarefas) {
+  // escreva aqui
+}
+
+void main() {
+  final tarefas = &lt;Tarefa&gt;[];
+  while (true) {
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(Tarefa(titulo));
+          salvar(tarefas);
+        }
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+const nomeArquivo = 'tarefas.txt';
+
+class Tarefa {
+  final String titulo;
+  bool feita;
+
+  Tarefa(this.titulo, {this.feita = false});
+}
+
+void salvar(List&lt;Tarefa&gt; tarefas) {
+  final texto = StringBuffer();
+  for (final t in tarefas) {
+    texto.writeln('${t.feita ? 'x' : '-'} ${t.titulo}');
+  }
+  File(nomeArquivo).writeAsStringSync(texto.toString());
+}
+
+void main() {
+  final tarefas = &lt;Tarefa&gt;[];
+  while (true) {
+    stdout.write('Escolha: ');
+    final opcao = stdin.readLineSync();
+    switch (opcao) {
+      case '2':
+        stdout.write('Nova tarefa: ');
+        final titulo = stdin.readLineSync()?.trim() ?? '';
+        if (titulo.isNotEmpty) {
+          tarefas.add(Tarefa(titulo));
+          salvar(tarefas);
+        }
+      case '0':
+      case null:
+        print('Até logo!');
+        return;
+    }
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma lista guarda as tarefas; <code>add</code> põe, <code>removeAt(n - 1)</code> tira pela posição (que começa em 0), sempre conferindo a faixa antes.</li>
+  <li>Um menu é um <code>while (true)</code> com <code>switch</code> na opção lida como texto; o <code>return</code> (ou <code>break</code>) encerra.</li>
+  <li>Quando cada item tem mais de uma informação, crie uma classe (<code>Tarefa</code> com <code>titulo</code> e <code>feita</code>) e um <code>toString</code> para mostrá-la.</li>
+  <li><code>removeWhere</code> apaga vários itens com segurança; apagar dentro do <code>for</code> que percorre a lista dá <code>Concurrent modification during iteration</code>.</li>
+  <li>Para não perder nada: <code>existsSync</code> + <code>readAsLinesSync</code> ao abrir, <code>writeAsStringSync</code> a cada mudança.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
