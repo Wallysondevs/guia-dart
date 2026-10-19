@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Map — chaves e valores, como um cardápio | Guia Dart</title>
+<meta name="description" content="Mapas (Map) no Dart para quem nunca programou: criar com chave: valor, Map&lt;String, double&gt;, ler com precos['pão'], o null quando a chave não existe, ?? e !, acrescentar, trocar e remover, containsKey, keys e values, mapa vazio, listas dentro de mapas e os erros reais do Dart 3 (Operator '*' cannot be called on 'double?', Null check operator used on a null value, a chave repetida, Cannot modify unmodifiable map).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Mapas (Map)</span></h1>
+
+<p class="intro">Numa <a href="list.html">lista</a>, você encontra um valor pela <strong>posição</strong>: <code>compras[0]</code>. Mas, na padaria, ninguém pergunta "quanto custa o item número 0?"; pergunta "quanto custa o <strong>pão</strong>?". Para achar um valor por um <strong>nome</strong> (ou qualquer outra etiqueta), o Dart tem o <strong>mapa</strong>, o tipo <code>Map</code>: uma coleção de pares <strong>chave → valor</strong>. Em outras linguagens ele se chama dicionário.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar um mapa com <code>{chave: valor}</code> e o tipo dele: <code>Map&lt;String, double&gt;</code>.</li>
+  <li>Como ler um valor pela chave, e por que o resultado pode ser <code>null</code>.</li>
+  <li>Como lidar com esse <code>null</code>: <code>??</code>, <code>containsKey</code>, <code>if (x != null)</code> e o <code>!</code>.</li>
+  <li>Como acrescentar, trocar e remover pares.</li>
+  <li><code>keys</code>, <code>values</code>, <code>length</code>, mapa vazio, chaves que são números e listas dentro de mapas.</li>
+  <li>Os erros reais: a conta com <code>double?</code>, o <code>!</code> numa chave que não existe, o valor de tipo errado, a chave repetida e o mapa <code>const</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o cardápio na parede</h2>
+<p>Na parede da padaria tem uma tabela:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Produto (chave)</th><th>Preço (valor)</th></tr>
+<tr><td>pão</td><td>R$ 0,75</td></tr>
+<tr><td>leite</td><td>R$ 5,49</td></tr>
+<tr><td>café</td><td>R$ 18,90</td></tr>
+</table>
+</div>
+<p>Você procura pelo <strong>nome</strong> do produto (a <strong>chave</strong>) e encontra o <strong>preço</strong> (o <strong>valor</strong>). Cada produto aparece uma vez só na tabela; preços podem se repetir. E se você pergunta por um produto que não está lá ("tem bolo?"), a resposta é "não tem". É exatamente assim que um <code>Map</code> funciona.</p>
+
+<hr>
+
+<h2>1. Criando um mapa e lendo valores</h2>
+
+<pre class="file" data-file="precos.dart">void main() {
+  final precos = {
+    'pão': 0.75,
+    'leite': 5.49,
+    'café': 18.90,
+  };
+  print(precos);
+  print(precos['leite']);
+  print(precos['bolo']);
+  print(precos.length);
+  print(precos.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run precos.dart
+{pão: 0.75, leite: 5.49, café: 18.9}
+5.49
+null
+3
+_Map&lt;String, double&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>{ 'pão': 0.75, … }</dt><dd>Um <strong>mapa literal</strong>: pares <code>chave: valor</code> entre chaves, separados por vírgula. Antes dos dois-pontos, a chave; depois, o valor. Um par por linha e a vírgula no fim deixam fácil de ler (é como o <code>dart format</code> deixa).</dd>
+  <dt>precos['leite'] → 5.49</dt><dd>Lê o valor <strong>pela chave</strong>, com colchetes, como numa lista, mas com a chave no lugar da posição.</dd>
+  <dt>precos['bolo'] → null</dt><dd>A chave não existe: o mapa devolve <code>null</code> ("nada"; veja <a href="null-safety.html">Null Safety</a>). <strong>Não</strong> dá erro, diferente da lista com uma posição que não existe.</dd>
+  <dt>precos.length → 3</dt><dd>Quantos <strong>pares</strong> o mapa tem.</dd>
+  <dt>_Map&lt;String, double&gt;</dt><dd>O tipo: <code>Map&lt;String, double&gt;</code>, "mapa de chaves <code>String</code> para valores <code>double</code>". (O <code>_</code> é o nome da classe interna do Dart; para você, é um <code>Map</code>.) O primeiro tipo entre <code>&lt; &gt;</code> é o das chaves; o segundo, o dos valores.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:18.9;;src:precos\['café'\]">
+<p class="try-task"><strong>Missão:</strong> mostre o preço do café, lendo o mapa pela chave.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = {
+    'pão': 0.75,
+    'leite': 5.49,
+    'café': 18.90,
+  };
+  print(precos['pão']);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = {
+    'pão': 0.75,
+    'leite': 5.49,
+    'café': 18.90,
+  };
+  print(precos['café']);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Acrescentar, trocar e remover</h2>
+
+<pre class="file" data-file="mudar.dart">void main() {
+  final estoque = {'pão': 30, 'leite': 12};
+  estoque['leite'] = 10;
+  estoque['bolo'] = 4;
+  print(estoque);
+  estoque.remove('pão');
+  print(estoque);
+  print(estoque.containsKey('pão'));
+  print(estoque.containsKey('bolo'));
+  print(estoque.containsValue(10));
+}
+</pre>
+
+<pre class="term">$ dart run mudar.dart
+{pão: 30, leite: 10, bolo: 4}
+{leite: 10, bolo: 4}
+false
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>estoque['leite'] = 10;</dt><dd>A chave <code>'leite'</code> já existia: o valor é <strong>trocado</strong> (de 12 para 10).</dd>
+  <dt>estoque['bolo'] = 4;</dt><dd>A chave <code>'bolo'</code> não existia: o par é <strong>acrescentado</strong>. É a mesma escrita para as duas coisas: "a partir de agora, a chave X vale Y".</dd>
+  <dt>estoque.remove('pão')</dt><dd>Tira o par inteiro (chave e valor), pela chave.</dd>
+  <dt>containsKey('pão') → false</dt><dd>"Contém a chave?" Depois do <code>remove</code>, não.</dd>
+  <dt>containsValue(10) → true</dt><dd>"Contém o valor?" Existe, mas é bem menos usado (e mais lento: precisa olhar todos os valores).</dd>
+</dl>
+
+<p>Repare que um mapa nunca tem duas chaves iguais: gravar numa chave que existe <strong>troca</strong> o valor. Os valores, sim, podem se repetir.</p>
+
+<hr>
+
+<h2>3. O <code>null</code> de quando a chave não existe</h2>
+<p>Como <code>precos['bolo']</code> pode dar <code>null</code>, o Dart considera que <strong>toda</strong> leitura com colchetes é do tipo <code>double?</code> ("um <code>double</code> ou <code>null</code>"; veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>), mesmo que você saiba que a chave existe. Para fazer contas, você precisa dizer o que fazer se vier <code>null</code>. Há três jeitos:</p>
+
+<pre class="file" data-file="nulo.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49};
+  final produto = 'bolo';
+  final preco = precos[produto] ?? 0.0;
+  print('$produto: R\$ $preco');
+  if (precos.containsKey('pão')) {
+    final total = precos['pão']! * 10;
+    print('10 pães: R\$ ${total.toStringAsFixed(2)}');
+  }
+  final leite = precos['leite'];
+  if (leite != null) {
+    print('2 leites: R\$ ${(leite * 2).toStringAsFixed(2)}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run nulo.dart
+bolo: R$ 0.0
+10 pães: R$ 7.50
+2 leites: R$ 10.98
+</pre>
+
+<dl class="anatomy">
+  <dt>precos[produto] ?? 0.0</dt><dd>"O preço, <strong>ou</strong>, se vier <code>null</code>, 0.0". O <code>??</code> dá um valor padrão (veja <a href="operadores-null.html">?. , ?? e ??=</a>). O resultado é um <code>double</code> comum.</dd>
+  <dt>precos['pão']! * 10</dt><dd>O <code>!</code> diz ao Dart: "<strong>eu garanto</strong> que não é <code>null</code>". Aqui é seguro, porque o <code>containsKey</code> conferiu antes. Se a garantia for falsa, o programa para (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>final leite = precos['leite']; if (leite != null)</dt><dd>Guarda numa variável e testa. Dentro do <code>if</code>, o Dart <strong>sabe</strong> que <code>leite</code> não é <code>null</code> e deixa fazer a conta. É o jeito mais seguro.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:bolo: R$ 0.0;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila (leia o erro). Use <code>?? 0.0</code> para que um produto que não está no mapa valha 0.0.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49};
+  final produto = 'bolo';
+  final double preco = precos[produto];
+  print('$produto: R\$ $preco');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49};
+  final produto = 'bolo';
+  final double preco = precos[produto] ?? 0.0;
+  print('$produto: R\$ $preco');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Chaves, valores, mapa vazio e outros tipos de chave</h2>
+
+<pre class="file" data-file="chavesvalores.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 7.0, 'Caio': 8.0};
+  print(notas.keys);
+  print(notas.values);
+  print(notas.isEmpty);
+  final vazio = &lt;String, int&gt;{};
+  print(vazio);
+  print(vazio.isEmpty);
+  final dias = {1: 'domingo', 2: 'segunda', 7: 'sábado'};
+  print(dias[7]);
+}
+</pre>
+
+<pre class="term">$ dart run chavesvalores.dart
+(Ana, Bia, Caio)
+(9.5, 7.0, 8.0)
+false
+{}
+true
+sábado
+</pre>
+
+<ul>
+  <li><code>keys</code> (as chaves) e <code>values</code> (os valores) aparecem com <strong>parênteses</strong>: são <code>Iterable</code>s, sequências que dá para percorrer (veja <a href="iterables.html">map, where, reduce e Outros</a>). A ordem é a de inserção.</li>
+  <li>O mapa vazio se cria com os dois tipos antes das chaves: <code>&lt;String, int&gt;{}</code>. (Sozinho, <code>{}</code> também é um mapa, mas de <code>dynamic</code>: sem conferência de tipos. Veja <a href="set.html">Conjuntos</a>.)</li>
+  <li>A chave não precisa ser texto: <code>{1: 'domingo'}</code> é um <code>Map&lt;int, String&gt;</code>, e <code>dias[7]</code> procura a <strong>chave</strong> 7 (não a posição 7).</li>
+</ul>
+
+<p>Percorrer um mapa par por par tem uma aula própria: <a href="map-metodos.html">Percorrendo Mapas</a>.</p>
+
+<hr>
+
+<h2>5. Listas dentro de mapas</h2>
+<p>O valor pode ser qualquer coisa, inclusive uma lista. A escola guarda os alunos de cada turma:</p>
+
+<pre class="file" data-file="lista_em_mapa.dart">void main() {
+  final turmas = {
+    '1º A': ['Ana', 'Bia'],
+    '1º B': ['Caio'],
+  };
+  turmas['1º B']!.add('Davi');
+  print(turmas);
+  print(turmas['1º A']![1]);
+  final aluno = {
+    'nome': 'Ana',
+    'idade': 15,
+  };
+  print(aluno.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run lista_em_mapa.dart
+{1º A: [Ana, Bia], 1º B: [Caio, Davi]}
+Bia
+_Map&lt;String, Object&gt;
+</pre>
+
+<p><code>turmas['1º B']</code> é a lista da turma B (ou <code>null</code>, se a turma não existisse); o <code>!</code> garante que existe, e o <code>.add</code> mexe na lista. <code>turmas['1º A']![1]</code> é a posição 1 da lista da turma A.</p>
+<p>O último mapa mistura texto e número nos valores, e o Dart escolheu <code>Object</code> para eles. Funciona, mas toda leitura vira um <code>Object?</code> que precisa de conversão. Para "uma ficha com campos fixos" (nome, idade), o Dart tem coisas melhores: <a href="records.html">Records</a> e <a href="classes.html">Classes</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: lista, conjunto ou mapa?</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Valores em ordem, achados pela posição</td><td><code>List</code>: <code>['pão', 'leite']</code></td></tr>
+<tr><td>Valores sem repetição, a pergunta é "tem?"</td><td><code>Set</code>: <code>{'pão', 'leite'}</code></td></tr>
+<tr><td>Achar um valor por uma etiqueta (produto → preço, aluno → nota, número → dia)</td><td><code>Map</code>: <code>{'pão': 0.75}</code></td></tr>
+<tr><td>Contar quantas vezes cada coisa aparece</td><td><code>Map&lt;String, int&gt;</code> (exemplo em <a href="map-metodos.html">Percorrendo Mapas</a>)</td></tr>
+<tr><td>Uma ficha com campos fixos e tipos diferentes</td><td><a href="records.html">Record</a> ou <a href="classes.html">classe</a>, não <code>Map&lt;String, Object&gt;</code></td></tr>
+</table>
+</div>
+
+<p>E para ler um valor que pode faltar:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>mapa[chave] ?? padrao</code></td><td>Existe um valor padrão que faz sentido (0, texto vazio…)</td></tr>
+<tr><td><code>final v = mapa[chave]; if (v != null) { … }</code></td><td>Fazer algo só se a chave existir</td></tr>
+<tr><td><code>mapa[chave]!</code></td><td>Só quando você <strong>tem certeza</strong> (acabou de conferir com <code>containsKey</code>, ou acabou de gravar)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Conta direto com o valor do mapa</strong>
+<pre class="file" data-file="err_nulo.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49};
+  final total = precos['pão'] * 10;
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_nulo.dart
+err_nulo.dart:3:31: Error: Operator '*' cannot be called on 'double?' because it is potentially null.
+  final total = precos['pão'] * 10;
+                              ^
+</pre>
+<dl class="anatomy">
+  <dt>Operator '*' cannot be called on 'double?'</dt><dd>"O operador <code>*</code> não pode ser usado num <code>double?</code>…"</dd>
+  <dt>because it is potentially null.</dt><dd>"…porque ele pode ser <code>null</code>." Você sabe que tem pão no mapa, mas o Dart não confere o conteúdo: para ele, qualquer leitura com colchetes pode faltar.</dd>
+</dl>
+<p>O erro é de compilação (nada roda, código 254): o null safety evitando uma conta com "nada". <strong>Como consertar:</strong> <code>(precos['pão'] ?? 0) * 10</code>, ou um dos jeitos da seção 3.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>!</code> numa chave que não existe</strong>
+<pre class="file" data-file="err_exclamacao.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49};
+  final total = precos['Pão']! * 10;
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_exclamacao.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/err_exclamacao.dart:3:30)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"O operador de checagem de nulo (o <code>!</code>) foi usado num valor nulo." Compilou, porque o <code>!</code> prometeu que não seria <code>null</code>; mas a chave é <code>'Pão'</code>, com P maiúsculo, e o mapa só tem <code>'pão'</code>. As chaves diferenciam maiúsculas de minúsculas. A coluna 30 da linha 3 é o <code>!</code>. <strong>Como consertar:</strong> escreva a chave certa e, se ela vem de fora (digitada pela pessoa), não use <code>!</code>: use <code>??</code> ou <code>if (v != null)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Valor do tipo errado</strong>
+<pre class="file" data-file="err_tipo.dart">void main() {
+  final estoque = {'pão': 30, 'leite': 12};
+  estoque['bolo'] = 'quatro';
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:3:21: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  estoque['bolo'] = 'quatro';
+                    ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O mapa é <code>Map&lt;String, int&gt;</code>: todos os valores são inteiros. <strong>Como consertar:</strong> <code>estoque['bolo'] = 4;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A mesma chave duas vezes (sem erro nenhum)</strong>
+<pre class="file" data-file="err_repetida.dart">void main() {
+  final precos = {
+    'pão': 0.75,
+    'leite': 5.49,
+    'pão': 0.80,
+  };
+  print(precos);
+}
+</pre>
+<pre class="term">$ dart run err_repetida.dart
+{pão: 0.8, leite: 5.49}
+</pre>
+<p>O <code>dart run</code> não reclama: o segundo <code>'pão'</code> simplesmente <strong>substitui</strong> o primeiro, e o mapa fica com 2 pares, não 3. Num mapa grande, isso esconde um engano de digitação. Quem pega é o <code>dart analyze</code>, o "revisor" do Dart (veja <a href="analise.html">Análise e Formatação</a>):</p>
+<pre class="term">$ dart analyze err_repetida.dart
+Analyzing err_repetida.dart...
+
+warning - err_repetida.dart:5:5 - Two keys in a map literal shouldn't be equal. Change or remove the duplicate key. - equal_keys_in_map
+
+1 issue found.
+</pre>
+<p>"Aviso, linha 5, coluna 5: duas chaves num mapa literal não deveriam ser iguais. Mude ou remova a chave repetida." O <code>equal_keys_in_map</code> do fim é o nome da regra. <strong>Como consertar:</strong> deixe uma só.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudar um mapa <code>const</code></strong>
+<pre class="file" data-file="err_const.dart">void main() {
+  const dias = {1: 'domingo', 2: 'segunda'};
+  dias[3] = 'terça';
+}
+</pre>
+<pre class="term">$ dart run err_const.dart
+Unhandled exception:
+Unsupported operation: Cannot modify unmodifiable map
+#0      _UnmodifiableMapMixin.[]= (dart:_compact_hash:26:5)
+#1      main (file:///home/ana/err_const.dart:3:7)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Não dá para modificar um mapa que não pode ser modificado", no <code>[]=</code> (o "gravar na chave") da linha 3. <strong>Como consertar:</strong> use <code>final</code> se o mapa precisa mudar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>{'pão': 0.75, 'leite': 5.49}</code></td><td>Cria um <code>Map&lt;String, double&gt;</code></td></tr>
+<tr><td><code>&lt;String, int&gt;{}</code></td><td>Mapa vazio</td></tr>
+<tr><td><code>mapa[chave]</code></td><td>Lê o valor (ou <code>null</code> se a chave não existe)</td></tr>
+<tr><td><code>mapa[chave] = valor</code></td><td>Acrescenta (chave nova) ou troca (chave existente)</td></tr>
+<tr><td><code>mapa.remove(chave)</code></td><td>Tira o par</td></tr>
+<tr><td><code>mapa.containsKey(chave)</code> / <code>containsValue(v)</code></td><td>Tem a chave? / Tem o valor?</td></tr>
+<tr><td><code>mapa.length</code>, <code>isEmpty</code>, <code>isNotEmpty</code></td><td>Quantos pares / está vazio?</td></tr>
+<tr><td><code>mapa.keys</code> / <code>mapa.values</code></td><td>As chaves / os valores (como <code>Iterable</code>)</td></tr>
+<tr><td><code>mapa[chave] ?? padrao</code></td><td>O valor, ou um padrão se faltar</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Operator '…' cannot be called on 'double?' because it is potentially null</code></td><td>Conta direto com <code>mapa[chave]</code>: use <code>??</code> ou teste o <code>null</code></td></tr>
+<tr><td><code>Null check operator used on a null value</code></td><td><code>!</code> numa chave que não existe (atenção a maiúsculas e acentos)</td></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'int'</code></td><td>Valor de tipo diferente do tipo dos valores do mapa</td></tr>
+<tr><td>Um par "sumiu" do mapa literal</td><td>Chave repetida: a última substitui a primeira</td></tr>
+<tr><td><code>Cannot modify unmodifiable map</code></td><td>Mapa <code>const</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Leia pela chave</h3>
+<p>Complete para mostrar a nota da Bia, guardada em <code>notas</code>:</p>
+<div class="ex-code">print(notas[<input data-answer="'Bia'" aria-label="chave">]);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Acrescente um produto</h3>
+<p>Complete para o estoque passar a ter 6 bolos:</p>
+<div class="ex-code">estoque[<input data-answer="'bolo'" aria-label="chave">] = <input data-answer="6" aria-label="valor">;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>final m = {'a': 1}; print(m['b']);</code> mostra:</p>
+<label><input type="radio" name="q3"> <code>0</code></label>
+<label><input type="radio" name="q3"> Uma exceção</label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+<label><input type="radio" name="q3"> Um erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>final m = {'pão': 30}; m['pão'] = 25; print(m.length);</code> mostra:</p>
+<label><input type="radio" name="q4"> <code>2</code></label>
+<label><input type="radio" name="q4"> <code>1</code></label>
+<label><input type="radio" name="q4"> <code>25</code></label>
+<label><input type="radio" name="q4"> <code>55</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é o tipo de <code>{1: 'domingo', 2: 'segunda'}</code>?</p>
+<label><input type="radio" name="q5"> <code>Map&lt;int, String&gt;</code></label>
+<label><input type="radio" name="q5"> <code>Map&lt;String, int&gt;</code></label>
+<label><input type="radio" name="q5"> <code>List&lt;String&gt;</code></label>
+<label><input type="radio" name="q5"> <code>Set&lt;String&gt;</code></label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="trydart" data-goal="out:Total: R$ 11.74;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> some o preço de cada item do pedido, procurando no mapa <code>precos</code>. O <code>bolo</code> não está no cardápio e deve valer 0 (use <code>??</code>). Deve aparecer <code>Total: R$ 11.74</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49, 'manteiga': 3.25};
+  final pedido = ['pão', 'pão', 'leite', 'manteiga', 'bolo', 'pão', 'pão'];
+  var total = 0.0;
+  // some aqui
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49, 'manteiga': 3.25};
+  final pedido = ['pão', 'pão', 'leite', 'manteiga', 'bolo', 'pão', 'pão'];
+  var total = 0.0;
+  for (final item in pedido) {
+    total = total + (precos[item] ?? 0);
+  }
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Map</code> guarda pares <strong>chave → valor</strong>: <code>{'pão': 0.75}</code>, do tipo <code>Map&lt;String, double&gt;</code>.</li>
+  <li><code>mapa[chave]</code> lê; <code>mapa[chave] = valor</code> acrescenta ou troca; <code>remove(chave)</code> tira.</li>
+  <li>Chave que não existe dá <code>null</code>, não erro. Por isso a leitura é do tipo <code>double?</code>: use <code>??</code>, <code>if (v != null)</code> ou, com certeza absoluta, <code>!</code>.</li>
+  <li>Cada chave aparece uma vez só; gravar numa chave existente troca o valor.</li>
+  <li><code>keys</code> e <code>values</code> são <code>Iterable</code>s (parênteses no <code>print</code>). Mapa vazio: <code>&lt;String, int&gt;{}</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
