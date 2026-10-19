@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Strings — guardando e mostrando textos | Guia Dart</title>
+<meta name="description" content="O tipo String do Dart para quem nunca programou: aspas simples e duplas, o apóstrofo de d'água, \n e \t, textos de várias linhas com ''', strings cruas r'', juntar com +, repetir com *, length, pegar uma letra com [0], e os erros reais do Dart 3 (aspas que não fecham, 'texto' + número, $ solto, índice fora do texto).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Strings</span></h1>
+
+<p class="intro">Nome da cliente, endereço, a mensagem "Volte sempre!": boa parte do que um programa guarda é <strong>texto</strong>. No Dart, texto é do tipo <code>String</code> (em inglês, "corda", "fileira": uma fileira de letras, como contas num colar). Nesta aula você vai ver como escrever textos no código, como pôr aspas, acentos e quebras de linha dentro deles, como juntá-los e como pegar uma letra só.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar uma <code>String</code> com aspas simples ou duplas, e qual usar.</li>
+  <li>Como pôr um apóstrofo (<code>d'água</code>) ou aspas dentro do texto.</li>
+  <li>Os <strong>caracteres de escape</strong>: <code>\n</code> (nova linha), <code>\t</code> (tabulação), <code>\\</code> e <code>\$</code>.</li>
+  <li>Textos de várias linhas com <code>'''</code> e textos "crus" com <code>r'…'</code>.</li>
+  <li>Como juntar (<code>+</code>), repetir (<code>*</code>), medir (<code>length</code>) e pegar uma letra (<code>[0]</code>).</li>
+  <li>Os erros reais: a aspa que não fecha, <code>'texto' + número</code>, o <code>$</code> solto e a letra que não existe.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a placa da padaria</h2>
+<p>Pense na placa de letras da padaria, aquela em que o dono encaixa letra por letra: <em>HOJE TEM SONHO</em>. O computador vê um texto do mesmo jeito: uma <strong>fileira de letras</strong> (e espaços, números, sinais), uma depois da outra, cada uma numa posição. As <strong>aspas</strong> são a moldura da placa: mostram ao Dart onde o texto começa e onde termina. Tudo o que está entre as aspas é texto, e o Dart não tenta entender aquilo como código.</p>
+
+<hr>
+
+<h2>1. Criando uma <code>String</code></h2>
+
+<pre class="file" data-file="textos.dart">void main() {
+  String nome = 'Ana';
+  String padaria = "Padaria do Bairro";
+  var vazio = '';
+  print(nome);
+  print(padaria);
+  print(vazio);
+  print('Fim');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String nome = 'Ana';</dt><dd>Uma variável do tipo <code>String</code> com o texto <code>Ana</code>. As aspas <strong>não</strong> fazem parte do texto: são a moldura.</dd>
+  <dt>"Padaria do Bairro"</dt><dd>Aspas duplas também servem. Para o Dart, <code>'Ana'</code> e <code>"Ana"</code> são <strong>o mesmo texto</strong>.</dd>
+  <dt>var vazio = '';</dt><dd>Duas aspas coladas: o <strong>texto vazio</strong>, com zero letras. Ele existe, só não tem nada dentro. O <code>var</code> descobre sozinho que o tipo é <code>String</code>.</dd>
+  <dt>print(vazio)</dt><dd>Mostra o texto vazio: na saída, aparece uma <strong>linha em branco</strong>.</dd>
+</dl>
+
+<pre class="term">$ dart run textos.dart
+Ana
+Padaria do Bairro
+
+Fim
+</pre>
+
+<div class="tip">
+<strong>Qual aspa usar?</strong>
+<p>O guia de estilo oficial do Dart (Effective Dart) e os avisos do <code>dart analyze</code> preferem <strong>aspas simples</strong>: <code>'Ana'</code>. Use as duplas só quando o texto tem um apóstrofo dentro, como você vai ver agora.</p>
+</div>
+
+<hr>
+
+<h2>2. Aspas dentro do texto</h2>
+<p>O pão d'água tem um apóstrofo no nome. Se o texto começa com <code>'</code>, o Dart acha que o apóstrofo de <code>d'água</code> fecha o texto (veja o erro em <a href="#errado">Quando dá errado</a>). Há dois jeitos de resolver:</p>
+
+<pre class="file" data-file="aspas.dart">void main() {
+  print("Pão d'água");
+  print('Pão d\'água');
+  print('Ela disse: "bom dia"');
+  print("Ela disse: \"bom dia\"");
+}
+</pre>
+
+<pre class="term">$ dart run aspas.dart
+Pão d'água
+Pão d'água
+Ela disse: "bom dia"
+Ela disse: "bom dia"
+</pre>
+
+<dl class="anatomy">
+  <dt>"Pão d'água"</dt><dd>Com aspas <strong>duplas</strong> por fora, o apóstrofo de dentro é só mais uma letra.</dd>
+  <dt>'Pão d\'água'</dt><dd>A <strong>barra invertida</strong> <code>\</code> antes do apóstrofo avisa: "este aqui não fecha o texto, é uma letra". Isso se chama <strong>escapar</strong> o caractere.</dd>
+  <dt>'Ela disse: "bom dia"'</dt><dd>O contrário: aspas simples por fora, duplas por dentro.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Caracteres especiais: <code>\n</code>, <code>\t</code> e companhia</h2>
+<p>A barra invertida também cria letras que não dá para digitar direto no meio do texto:</p>
+
+<pre class="file" data-file="escapes.dart">void main() {
+  print('Pão\nLeite\nCafé');
+  print('Item\tPreço');
+  print('Pão\t4.50');
+  print('Barra invertida: \\');
+  print('Preço em R\$');
+  print('Coração: \u2764');
+}
+</pre>
+
+<pre class="term">$ dart run escapes.dart
+Pão
+Leite
+Café
+Item	Preço
+Pão	4.50
+Barra invertida: \
+Preço em R$
+Coração: ❤
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Vira</th></tr>
+<tr><td><code>\n</code></td><td>Nova linha (<em>new line</em>): o texto continua na linha de baixo</td></tr>
+<tr><td><code>\t</code></td><td>Tabulação (<em>tab</em>): pula até a próxima "coluna", bom para alinhar tabelas</td></tr>
+<tr><td><code>\'</code> e <code>\"</code></td><td>O apóstrofo e as aspas, sem fechar o texto</td></tr>
+<tr><td><code>\\</code></td><td>Uma barra invertida de verdade</td></tr>
+<tr><td><code>\$</code></td><td>O cifrão de verdade (sem a barra, o <code>$</code> tem outro trabalho: a <a href="interpolacao.html">Interpolação</a>)</td></tr>
+<tr><td><code>\u2764</code></td><td>Um caractere pelo seu código Unicode (aqui, ❤)</td></tr>
+</table>
+</div>
+
+<p>Acentos (<code>ã</code>, <code>é</code>, <code>ç</code>) você digita direto, sem barra nenhuma: o Dart entende o texto em UTF-8, o padrão do mundo todo.</p>
+
+<hr>
+
+<h2>4. Textos de várias linhas e textos "crus"</h2>
+
+<pre class="file" data-file="varias_linhas.dart">void main() {
+  var lista = '''
+Lista de compras:
+- pão
+- leite
+- café''';
+  print(lista);
+  var caminho = r'C:\novos\textos';
+  print(caminho);
+  print('C:\novos\textos');
+}
+</pre>
+
+<pre class="term">$ dart run varias_linhas.dart
+Lista de compras:
+- pão
+- leite
+- café
+C:\novos\textos
+C:
+ovos	extos
+</pre>
+
+<dl class="anatomy">
+  <dt>''' … '''</dt><dd>Três aspas (simples ou duplas) abrem um texto que pode ter <strong>várias linhas</strong>. As quebras de linha do código entram no texto. (A primeira quebra, logo depois do <code>'''</code>, o Dart ignora.)</dd>
+  <dt>r'C:\novos\textos'</dt><dd>O <code>r</code> na frente faz uma <strong>string crua</strong> (<em>raw</em>): a barra invertida vira letra comum. Útil para caminhos de pasta do Windows.</dd>
+  <dt>'C:\novos\textos' (sem o r)</dt><dd>Olhe o estrago na última saída: o <code>\n</code> de <code>\novos</code> virou nova linha e o <code>\t</code> de <code>\textos</code> virou tabulação. Sem erro nenhum, só um texto errado.</dd>
+</dl>
+
+<hr>
+
+<h2>5. Juntar e repetir</h2>
+
+<pre class="file" data-file="juntar.dart">void main() {
+  var nome = 'Ana';
+  var sobrenome = 'Souza';
+  var completo = nome + ' ' + sobrenome;
+  print(completo);
+  var aviso = 'Hoje tem '
+      'pão de queijo '
+      'quentinho!';
+  print(aviso);
+  print('-' * 20);
+  print('ha' * 3);
+}
+</pre>
+
+<pre class="term">$ dart run juntar.dart
+Ana Souza
+Hoje tem pão de queijo quentinho!
+--------------------
+hahaha
+</pre>
+
+<dl class="anatomy">
+  <dt>nome + ' ' + sobrenome</dt><dd>O <code>+</code> entre textos <strong>junta</strong> (programadores dizem <strong>concatenar</strong>). O <code>' '</code> do meio é um texto com um espaço: sem ele, sairia <code>AnaSouza</code>.</dd>
+  <dt>'Hoje tem ' 'pão de queijo ' …</dt><dd>Textos escritos <strong>lado a lado</strong>, sem nada entre eles, o Dart junta sozinho. É o jeito de quebrar um texto comprido em várias linhas do código.</dd>
+  <dt>'-' * 20</dt><dd>O <code>*</code> com um texto e um número <strong>repete</strong> o texto: 20 tracinhos, bom para fazer linhas.</dd>
+</dl>
+
+<p>Para pôr <strong>números e variáveis</strong> no meio do texto, o Dart tem um jeito bem melhor que o <code>+</code>: <code>'Olá, $nome'</code>. É o assunto da próxima aula, <a href="interpolacao.html">Interpolação</a>.</p>
+
+<div class="trydart" data-goal="out:==============;;out:PADARIA DA ANA;;src:\*\s*titulo\.length">
+<p class="try-task"><strong>Missão:</strong> o programa mostra uma linha de 10 tracinhos em cima do título. Faça a linha ter <strong>o mesmo tamanho do título</strong>, trocando o <code>10</code> por <code>titulo.length</code> (o número de letras, veja a seção 6) e o <code>'-'</code> por <code>'='</code>. Troque também o título para <code>'PADARIA DA ANA'</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var titulo = 'PADARIA';
+  print('-' * 10);
+  print(titulo);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var titulo = 'PADARIA DA ANA';
+  print('=' * titulo.length);
+  print(titulo);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. Medir o texto e pegar uma letra</h2>
+
+<pre class="file" data-file="medir.dart">void main() {
+  var produto = 'Café';
+  print(produto.length);
+  print(produto[0]);
+  print(produto[3]);
+  print(produto[produto.length - 1]);
+  print(''.length);
+  print(''.isEmpty);
+  print(produto.isNotEmpty);
+  print(produto == 'Café');
+  print(produto == 'café');
+  print(produto.toUpperCase());
+  print(produto);
+}
+</pre>
+
+<pre class="term">$ dart run medir.dart
+4
+C
+é
+é
+0
+true
+true
+true
+false
+CAFÉ
+Café
+</pre>
+
+<dl class="anatomy">
+  <dt>produto.length</dt><dd>"Comprimento": quantas letras o texto tem. <code>Café</code> tem 4.</dd>
+  <dt>produto[0]</dt><dd>A letra na <strong>posição 0</strong>. Atenção: a contagem começa do <strong>zero</strong>. Em <code>Café</code>, o <code>C</code> é a posição 0, o <code>a</code> é a 1, o <code>f</code> é a 2 e o <code>é</code> é a 3. O número entre colchetes se chama <strong>índice</strong>.</dd>
+  <dt>produto[produto.length - 1]</dt><dd>A <strong>última</strong> letra: como começa do zero, a última posição é sempre o tamanho menos 1.</dd>
+  <dt>isEmpty / isNotEmpty</dt><dd>"Está vazio?" / "Não está vazio?". Respondem <code>true</code> ou <code>false</code> (veja <a href="bool.html">Booleanos</a>).</dd>
+  <dt>produto == 'café'</dt><dd>O <code>==</code> compara dois textos letra por letra. Maiúscula e minúscula são letras <strong>diferentes</strong>: deu <code>false</code>.</dd>
+  <dt>produto.toUpperCase()</dt><dd>Devolve um texto <strong>novo</strong>, em maiúsculas. O <code>print(produto)</code> seguinte mostra que o original continua <code>Café</code>: uma <code>String</code> nunca muda depois de criada (dizemos que ela é <strong>imutável</strong>). Os outros métodos estão em <a href="strings-metodos.html">Métodos de String</a>.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Índice</th><td>0</td><td>1</td><td>2</td><td>3</td></tr>
+<tr><th>Letra</th><td>C</td><td>a</td><td>f</td><td>é</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>O mesmo texto com apóstrofo, de três jeitos, e a mesma frase longa, de dois:</p>
+<pre class="file" data-file="formas.dart">var a = "Pão d'água";        // aspas duplas por fora
+var b = 'Pão d\'água';       // escapar o apóstrofo
+var c = '''Pão d'água''';    // três aspas também aceitam
+
+var longa1 = 'Hoje tem ' + 'pão de queijo';   // com +
+var longa2 = 'Hoje tem ' 'pão de queijo';     // lado a lado (preferido)
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Texto comum</td><td><code>'aspas simples'</code></td></tr>
+<tr><td>Texto com apóstrofo</td><td><code>"aspas duplas"</code> (mais legível que <code>\'</code>)</td></tr>
+<tr><td>Várias linhas</td><td><code>'''…'''</code>, ou <code>\n</code> se forem poucas</td></tr>
+<tr><td>Muitas barras invertidas (caminhos do Windows)</td><td><code>r'…'</code></td></tr>
+<tr><td>Quebrar um texto longo no código</td><td>Textos lado a lado</td></tr>
+<tr><td>Pôr variáveis no texto</td><td><code>'$nome'</code> (aula <a href="interpolacao.html">Interpolação</a>), em vez de <code>+</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O texto não fecha</strong>
+<pre class="file" data-file="err_fecha.dart">void main() {
+  print('Bom dia);
+}
+</pre>
+<pre class="term">$ dart run err_fecha.dart
+err_fecha.dart:2:9: Error: String starting with ' must end with '.
+  print('Bom dia);
+        ^^^^^^^^^^
+err_fecha.dart:2:8: Error: Can't find ')' to match '('.
+  print('Bom dia);
+       ^
+err_fecha.dart:2:9: Error: Expected ';' after this.
+  print('Bom dia);
+        ^^^^^^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>err_fecha.dart:2:9: Error: String starting with ' must end with '.</dt><dd>"Linha 2, coluna 9: um texto que começa com <code>'</code> tem de terminar com <code>'</code>." Os <code>^^^^^^^^^^</code> sublinham tudo o que o Dart engoliu como texto: até o <code>);</code> do fim virou parte dele.</dd>
+  <dt>Can't find ')' to match '('.</dt><dd>"Não acho o <code>)</code> que fecha o <code>(</code>." Consequência do primeiro erro: o <code>)</code> ficou dentro do texto.</dd>
+  <dt>Expected ';' after this.</dt><dd>"Era esperado um <code>;</code> depois disto." Outra consequência: o <code>;</code> também foi engolido.</dd>
+</dl>
+<p>Um só esquecimento, três mensagens. <strong>Leia sempre a primeira</strong>: as outras costumam ser efeito dela. <strong>Como consertar:</strong> <code>print('Bom dia');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O apóstrofo fechou o texto antes da hora</strong>
+<pre class="file" data-file="err_aspas.dart">void main() {
+  print('Pão d'água');
+}
+</pre>
+<pre class="term">$ dart run err_aspas.dart
+err_aspas.dart:2:16: Error: The non-ASCII character 'á' (U+00E1) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  print('Pão d'água');
+               ^
+err_aspas.dart:2:20: Error: String starting with ' must end with '.
+  print('Pão d'água');
+                   ^^^
+err_aspas.dart:2:8: Error: Can't find ')' to match '('.
+  print('Pão d'água');
+       ^
+err_aspas.dart:2:16: Error: Expected ',' before this.
+  print('Pão d'água');
+               ^^^^
+err_aspas.dart:2:16: Error: Undefined name 'água'.
+  print('Pão d'água');
+               ^^^^
+err_aspas.dart:2:20: Error: Expected ',' before this.
+  print('Pão d'água');
+                   ^^^
+err_aspas.dart:2:8: Error: Too many positional arguments: 1 allowed, but 3 found.
+Try removing the extra positional arguments.
+  print('Pão d'água');
+       ^
+org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context: Found this candidate, but the arguments don't match.
+void print(Object? object) {
+     ^^^^^
+err_aspas.dart:2:20: Error: Expected ';' after this.
+  print('Pão d'água');
+                   ^^^
+</pre>
+<p>Assusta, mas é um erro só. Para o Dart, o texto foi <code>'Pão d'</code>; depois veio <code>água</code>, que ele tentou ler como <strong>código</strong> (um nome de variável, e nomes de variável não podem ter acento: daí a primeira mensagem, "o caractere não ASCII <code>á</code> não pode ser usado em identificadores, só em textos e comentários"); e depois um novo texto <code>');</code> que nunca fecha. Todas as outras mensagens são efeito disso. <strong>Como consertar:</strong> <code>print("Pão d'água");</code> ou <code>print('Pão d\'água');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Somou texto com número</strong>
+<pre class="file" data-file="err_mais.dart">void main() {
+  int idade = 30;
+  print('Idade: ' + idade);
+}
+</pre>
+<pre class="term">$ dart run err_mais.dart
+err_mais.dart:3:21: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  print('Idade: ' + idade);
+                    ^
+</pre>
+<p>"Um valor do tipo <code>int</code> não pode ser atribuído a uma variável do tipo <code>String</code>." O <code>+</code> de um texto só aceita <strong>outro texto</strong>. Outras linguagens convertem o número sozinhas; o Dart não, de propósito, para você não juntar coisas sem querer. <strong>Como consertar:</strong> <code>print('Idade: $idade');</code> (a <a href="interpolacao.html">Interpolação</a>, o jeito preferido) ou <code>print('Idade: ' + idade.toString());</code> (veja <a href="conversao.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>$</code> solto no texto</strong>
+<pre class="file" data-file="err_cifrao.dart">void main() {
+  print('Preço: R$ 5');
+}
+</pre>
+<pre class="term">$ dart run err_cifrao.dart
+err_cifrao.dart:2:19: Error: A '$' has special meaning inside a string, and must be followed by an identifier or an expression in curly braces ({}).
+Try adding a backslash (\) to escape the '$'.
+  print('Preço: R$ 5');
+                  ^
+</pre>
+<p>"Um <code>$</code> tem significado especial dentro de um texto e precisa vir seguido de um nome ou de uma expressão entre chaves. Tente pôr uma barra invertida (<code>\</code>) antes dele." Para o Dart, <code>$</code> dentro do texto quer dizer "encaixe aqui o valor de…". <strong>Como consertar:</strong> <code>'Preço: R\$ 5'</code>. Cuidado com <code>'R$total'</code>: aí o Dart não reclama (ele encaixa a variável <code>total</code>) e o cifrão some da saída. Detalhes em <a href="interpolacao.html">Interpolação</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou trocar uma letra do texto</strong>
+<pre class="file" data-file="err_muda.dart">void main() {
+  var nome = 'ana';
+  nome[0] = 'A';
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err_muda.dart
+err_muda.dart:3:7: Error: The operator '[]=' isn't defined for the type 'String'.
+Try correcting the operator to an existing operator, or defining a '[]=' operator.
+  nome[0] = 'A';
+      ^
+</pre>
+<p>"O operador <code>[]=</code> (trocar o que está numa posição) não existe para o tipo <code>String</code>." Você pode <strong>ler</strong> <code>nome[0]</code>, mas não pode trocar: a <code>String</code> é imutável. <strong>Como consertar:</strong> crie um texto novo e guarde na variável: <code>nome = 'Ana';</code> (ou <code>nome = nome[0].toUpperCase() + nome.substring(1);</code>, com os métodos de <a href="strings-metodos.html">Métodos de String</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu uma letra que não existe</strong>
+<pre class="file" data-file="err_indice.dart">void main() {
+  var produto = 'Café';
+  print(produto[4]);
+}
+</pre>
+<pre class="term">$ dart run err_indice.dart
+Unhandled exception:
+RangeError (index): Invalid value: Not in inclusive range 0..3: 4
+#0      _StringBase.[] (dart:core-patch/string_patch.dart:288:41)
+#1      main (file:///home/ana/err_indice.dart:3:16)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Este compila; o erro aparece <strong>durante a execução</strong> (uma exceção):</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa parou no meio.</dd>
+  <dt>RangeError (index): Invalid value: Not in inclusive range 0..3: 4</dt><dd>"Erro de intervalo (índice): valor inválido, fora do intervalo de 0 a 3: 4." <code>Café</code> tem 4 letras, nas posições 0, 1, 2 e 3. A posição 4 não existe.</dd>
+  <dt>#1 main (file:///home/ana/err_indice.dart:3:16)</dt><dd>Onde aconteceu no seu código: linha 3, coluna 16, o <code>[4]</code>. A linha <code>#0</code> é o lugar dentro do Dart, e as <code>#2</code> e <code>#3</code>, a máquina que chamou o <code>main</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> lembre que a última posição é <code>length - 1</code>: <code>produto[produto.length - 1]</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Pão d'água;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. Leia a <strong>primeira</strong> mensagem de erro e conserte o texto para aparecer <code>Pão d'água</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Pão d'água');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print("Pão d'água");
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>'texto'</code> ou <code>"texto"</code></td><td>Uma <code>String</code> (prefira as simples)</td></tr>
+<tr><td><code>''</code></td><td>Texto vazio</td></tr>
+<tr><td><code>\n</code>, <code>\t</code>, <code>\'</code>, <code>\"</code>, <code>\\</code>, <code>\$</code></td><td>Nova linha, tabulação, apóstrofo, aspas, barra, cifrão</td></tr>
+<tr><td><code>'''…'''</code></td><td>Texto de várias linhas</td></tr>
+<tr><td><code>r'…'</code></td><td>Texto cru: <code>\</code> é letra comum</td></tr>
+<tr><td><code>a + b</code>, <code>'a' 'b'</code></td><td>Juntar textos</td></tr>
+<tr><td><code>'-' * 20</code></td><td>Repetir</td></tr>
+<tr><td><code>t.length</code></td><td>Número de letras</td></tr>
+<tr><td><code>t[0]</code>, <code>t[t.length - 1]</code></td><td>Primeira e última letra</td></tr>
+<tr><td><code>t.isEmpty</code>, <code>t.isNotEmpty</code></td><td>Está vazio? Não está?</td></tr>
+<tr><td><code>a == b</code></td><td>Textos iguais? (diferencia maiúsculas)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>String starting with ' must end with '.</code></td><td>Faltou fechar a aspa (ou um apóstrofo fechou antes)</td></tr>
+<tr><td><code>The non-ASCII character … can't be used in identifiers</code></td><td>Um pedaço do texto ficou fora das aspas</td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'String'.</code></td><td><code>'texto' + numero</code></td></tr>
+<tr><td><code>A '$' has special meaning inside a string</code></td><td><code>$</code> sem nome depois: escreva <code>\$</code></td></tr>
+<tr><td><code>The operator '[]=' isn't defined for the type 'String'.</code></td><td>Tentou trocar uma letra: <code>String</code> é imutável</td></tr>
+<tr><td><code>RangeError (index)</code></td><td>Índice maior que <code>length - 1</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar o texto em duas linhas, <code>Pão</code> e <code>Leite</code>:</p>
+<div class="ex-code">print('Pão<input data-answer="\n" aria-label="escape de nova linha">Leite');</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o índice?</h3>
+<p>Em <code>var t = 'Dart';</code>, qual número vai nos colchetes para pegar a letra <code>r</code>?</p>
+<div class="ex-code">print(t[<input data-answer="2" aria-label="índice da letra r">]);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Quanto vale <code>'Pão de queijo'.length</code>?</p>
+<label><input type="radio" name="q3"> 11</label>
+<label><input type="radio" name="q3"> 13</label>
+<label><input type="radio" name="q3"> 12</label>
+<label><input type="radio" name="q3"> 3</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual linha <strong>compila</strong> e mostra <code>Idade: 30</code>, com <code>int idade = 30;</code>?</p>
+<label><input type="radio" name="q4"> <code>print('Idade: ' + idade);</code></label>
+<label><input type="radio" name="q4"> <code>print('Idade: ' idade);</code></label>
+<label><input type="radio" name="q4"> <code>print('Idade: ' + idade.toString());</code></label>
+<label><input type="radio" name="q4"> <code>print('Idade: ' * idade);</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que mostra <code>print(r'a\nb');</code>?</p>
+<label><input type="radio" name="q5"> <code>a\nb</code>, numa linha só</label>
+<label><input type="radio" name="q5"> <code>a</code> e <code>b</code> em duas linhas</label>
+<label><input type="radio" name="q5"> <code>rab</code></label>
+<label><input type="radio" name="q5"> Dá erro de compilação</label>
+</div>
+
+<h3>Missão final: a etiqueta da padaria</h3>
+
+<div class="trydart" data-goal="outre:^={14}\nPADARIA DA ANA\n={14}\nPão\t0\.80\nLeite\t5\.50\n*$">
+<p class="try-task"><strong>Missão:</strong> monte a etiqueta: uma linha de <code>=</code> do tamanho do título (<code>'=' * titulo.length</code>), o título <code>PADARIA DA ANA</code>, outra linha de <code>=</code>, e depois, num <strong>único</strong> <code>print</code>, os dois produtos em linhas separadas, com uma tabulação entre o nome e o preço: <code>Pão</code>, <code>\t</code>, <code>0.80</code>, <code>\n</code>, <code>Leite</code>, <code>\t</code>, <code>5.50</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var titulo = 'PADARIA DA ANA';
+  // a linha de =, o título e a outra linha de =
+  // os dois produtos num print só
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var titulo = 'PADARIA DA ANA';
+  print('=' * titulo.length);
+  print(titulo);
+  print('=' * titulo.length);
+  print('Pão\t0.80\nLeite\t5.50');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run missao.dart
+==============
+PADARIA DA ANA
+==============
+Pão	0.80
+Leite	5.50
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Texto é <code>String</code>, escrito entre aspas simples (preferidas) ou duplas. As aspas são a moldura, não fazem parte do texto.</li>
+  <li>A barra invertida escapa caracteres: <code>\n</code>, <code>\t</code>, <code>\'</code>, <code>\\</code>, <code>\$</code>. Com <code>r'…'</code>, ela vira letra comum.</li>
+  <li><code>'''…'''</code> faz textos de várias linhas.</li>
+  <li><code>+</code> junta textos (só texto com texto); <code>*</code> repete; textos lado a lado se juntam sozinhos.</li>
+  <li><code>length</code> dá o tamanho; <code>[i]</code> dá a letra na posição <code>i</code>, contando do zero até <code>length - 1</code>.</li>
+  <li>A <code>String</code> é imutável: os métodos devolvem um texto novo.</li>
+  <li>Aspa que não fecha gera várias mensagens: leia a primeira.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
