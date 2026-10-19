@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Funções de Uma Linha (=&gt;) — a seta que substitui o return | Guia Dart</title>
+<meta name="description" content="A sintaxe de seta (=&gt;) do Dart para quem nunca programou: =&gt; expressão no lugar de { return expressão; }, funções void de uma linha, o que é uma expressão (e o que não é), o ternário no lugar do if, a armadilha das chaves depois da seta (Set) e os erros reais do Dart 3.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Funções de Uma Linha (=&gt;)</span></h1>
+
+<p class="intro">Muitas funções são só um cálculo: <code>{ return numero * 2; }</code>. Para esses casos, o Dart tem um atalho: a <strong>seta</strong> <code>=&gt;</code> (em inglês, <em>arrow</em>; também chamada de "fat arrow", a seta gorda). <code>int dobro(int numero) =&gt; numero * 2;</code> quer dizer exatamente o mesmo que a versão com chaves e <code>return</code>, numa linha só. Você vai ver essa seta por todo lado, principalmente nas funções sem nome das próximas aulas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que <code>=&gt; expressão;</code> é um atalho para <code>{ return expressão; }</code>.</li>
+  <li>Funções <code>void</code> de uma linha: <code>void saudar(String nome) =&gt; print(…);</code>.</li>
+  <li>A diferença entre <strong>expressão</strong> (tem valor) e <strong>instrução</strong> (faz algo), e por que só a primeira cabe depois da seta.</li>
+  <li>O ternário (<code>? :</code>) no lugar do <code>if</code>, numa função de seta.</li>
+  <li>A armadilha: chaves depois da seta não são um bloco, são um <code>Set</code>.</li>
+  <li>Os erros reais: <code>return</code> depois da seta, <code>if</code> depois da seta, ponto e vírgula esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: "é só isso"</h2>
+<p>Algumas receitas do caderno da padaria têm várias etapas ("misture, sove, deixe crescer, asse"). Outras cabem numa frase: "<strong>dobro da receita = tudo vezes dois</strong>". Para a receita de uma frase, não precisa de folha inteira. A seta é isso: a função cujo corpo inteiro é "devolva <strong>isto</strong>".</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma com corpo</th><th>Forma com seta</th></tr>
+<tr><td><code>int dobro(int numero) {<br>&nbsp;&nbsp;return numero * 2;<br>}</code></td><td><code>int dobro(int numero) =&gt; numero * 2;</code></td></tr>
+</table>
+</div>
+<p>Leia <code>=&gt;</code> como "<strong>devolve</strong>": "<code>dobro</code> de <code>numero</code> devolve <code>numero * 2</code>".</p>
+
+<hr>
+
+<h2>1. A primeira função de seta</h2>
+
+<pre class="file" data-file="dobro.dart">int dobroLongo(int numero) {
+  return numero * 2;
+}
+
+int dobro(int numero) =&gt; numero * 2;
+
+void main() {
+  print(dobroLongo(21));
+  print(dobro(21));
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>int dobro(int numero)</dt><dd>O começo é igual ao de qualquer função (veja <a href="funcoes.html">Funções</a>): tipo de retorno, nome, parâmetros.</dd>
+  <dt>=&gt;</dt><dd>A seta: um sinal de igual e um sinal de maior, juntos, sem espaço entre eles. Substitui o <code>{ return</code>.</dd>
+  <dt>numero * 2</dt><dd>A <strong>expressão</strong> cujo valor a função devolve. Uma só.</dd>
+  <dt>;</dt><dd>O ponto e vírgula fecha a função (no lugar do <code>; }</code>).</dd>
+</dl>
+
+<pre class="term">$ dart run dobro.dart
+42
+42
+</pre>
+
+<p>As duas funções são <strong>idênticas</strong> para o Dart: mesmo resultado, mesma velocidade. A seta é só uma forma mais curta de escrever.</p>
+
+<div class="trydart" data-goal="out:O triplo de 7 é 21;;src:\bint\s+triplo\s*\([^)]*\)\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> reescreva <code>triplo</code> com a seta, numa linha só, sem chaves e sem <code>return</code>.</p>
+<pre class="script" data-file="main.dart">int triplo(int numero) {
+  return numero * 3;
+}
+
+void main() {
+  print('O triplo de 7 é ${triplo(7)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int triplo(int numero) =&gt; numero * 3;
+
+void main() {
+  print('O triplo de 7 é ${triplo(7)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Uma lojinha de funções de uma linha</h2>
+<p>Funções de seta combinam com cálculos curtos, perguntas de sim ou não e formatação. Um pouco de tudo, na padaria:</p>
+
+<pre class="file" data-file="padaria.dart">double totalDaCompra(double preco, int quantidade) =&gt; preco * quantidade;
+
+String formatarPreco(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+bool estaAberta(int hora) =&gt; hora &gt;= 6 &amp;&amp; hora &lt; 20;
+
+String situacao(double media) =&gt; media &gt;= 7 ? 'aprovada' : 'reprovada';
+
+void saudar(String nome) =&gt; print('Bom dia, $nome!');
+
+void main() {
+  saudar('Ana');
+  print(formatarPreco(totalDaCompra(0.75, 10)));
+  print(estaAberta(7));
+  print(estaAberta(22));
+  print(situacao(8.5));
+}
+</pre>
+
+<pre class="term">$ dart run padaria.dart
+Bom dia, Ana!
+R$ 7.50
+true
+false
+aprovada
+</pre>
+
+<dl class="anatomy">
+  <dt>bool estaAberta(int hora) =&gt; hora &gt;= 6 &amp;&amp; hora &lt; 20;</dt><dd>Uma pergunta: devolve <code>true</code> ou <code>false</code>. A padaria abre das 6h às 20h (veja <a href="operadores-logicos.html">Operadores Lógicos</a>).</dd>
+  <dt>String situacao(…) =&gt; media &gt;= 7 ? 'aprovada' : 'reprovada';</dt><dd>Não cabe um <code>if</code> depois da seta (seção 3), mas cabe o <strong>ternário</strong>, que é o "if de expressão" (veja <a href="ternario.html">O Operador Ternário</a>).</dd>
+  <dt>void saudar(String nome) =&gt; print(…);</dt><dd>Funciona com <code>void</code> também: a função só executa o <code>print</code> e não devolve nada. É comum em funções de uma ação só.</dd>
+  <dt>formatarPreco(totalDaCompra(0.75, 10))</dt><dd>Funções de seta se chamam e se combinam como quaisquer outras.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:true;;out:false;;src:\bbool\s+podeVotar\s*\([^)]*\)\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> escreva uma função de seta <code>bool podeVotar(int idade)</code> que devolve <code>true</code> se a idade for 16 ou mais. O programa deve mostrar <code>true</code> para 30 e <code>false</code> para 12.</p>
+<pre class="script" data-file="main.dart">// escreva aqui a função podeVotar, com =&gt;
+
+void main() {
+  // descomente quando a função existir:
+  // print(podeVotar(30));
+  // print(podeVotar(12));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">bool podeVotar(int idade) =&gt; idade &gt;= 16;
+
+void main() {
+  print(podeVotar(30));
+  print(podeVotar(12));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Só cabe uma expressão</h2>
+<p>Depois da seta vem <strong>uma expressão</strong>: algo que <strong>tem um valor</strong>. Não cabem <strong>instruções</strong>, que são ordens que fazem algo mas não "valem" nada.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão (cabe depois da <code>=&gt;</code>)</th><th>Instrução (não cabe)</th></tr>
+<tr><td><code>numero * 2</code> · <code>'R\$ $valor'</code> · <code>hora &gt;= 6</code></td><td><code>final taxa = valor * 0.1;</code> (criar variável)</td></tr>
+<tr><td><code>media &gt;= 7 ? 'aprovada' : 'reprovada'</code> (ternário)</td><td><code>if (…) … else …</code></td></tr>
+<tr><td><code>print('oi')</code> · <code>dobro(5)</code> (chamadas)</td><td><code>for</code>, <code>while</code></td></tr>
+<tr><td><code>nome ?? 'visitante'</code></td><td><code>return …</code> (a seta já é o return)</td></tr>
+</table>
+</div>
+<p>Se a função precisa de uma variável de apoio, de um <code>if</code> com várias linhas ou de um laço, use o corpo com chaves. <strong>A seta não é "melhor"</strong>: ela é para quando a função inteira é "devolva isto".</p>
+
+<hr>
+
+<h2>4. A armadilha: chaves depois da seta</h2>
+<p>Quem está aprendendo às vezes junta as duas formas: <code>=&gt; { … }</code>. Parece um bloco, mas não é. Depois da seta, <code>{numero * 2}</code> é uma <strong>expressão</strong>: um <code>Set</code>, um conjunto com um elemento (veja <a href="set.html">Conjuntos</a>). Com tipo de retorno, o Dart pega:</p>
+
+<pre class="file" data-file="err_chaves.dart">int dobro(int numero) =&gt; {numero * 2};
+
+void main() {
+  print(dobro(21));
+}
+</pre>
+
+<pre class="term">$ dart run err_chaves.dart
+err_chaves.dart:1:26: Error: A value of type 'Set&lt;int&gt;' can't be returned from a function with return type 'int'.
+ - 'Set' is from 'dart:core'.
+int dobro(int numero) =&gt; {numero * 2};
+                         ^
+</pre>
+
+<p>"Um valor do tipo <code>Set&lt;int&gt;</code> não pode ser devolvido por uma função com tipo de retorno <code>int</code>." O Dart viu as chaves como um conjunto de inteiros. Com <code>void</code>, é pior: <strong>não dá erro</strong>.</p>
+
+<pre class="file" data-file="err_chaves_void.dart">void saudar(String nome) =&gt; {
+  print('Bom dia, $nome!')
+};
+
+void main() {
+  saudar('Ana');
+}
+</pre>
+
+<pre class="term">$ dart run err_chaves_void.dart
+Bom dia, Ana!
+$ dart analyze err_chaves_void.dart
+Analyzing err_chaves_void.dart...
+
+warning - err_chaves_void.dart:1:29 - Braces unnecessarily wrap this expression in a set literal. Try removing the set literal around the expression. - unnecessary_set_literal
+
+1 issue found.
+</pre>
+
+<p>Rodou "por acaso": o Dart montou um conjunto com o resultado do <code>print</code> e jogou fora (a função é <code>void</code>). Só o <code>dart analyze</code> avisou: "as chaves embrulham a expressão num <em>set literal</em> sem necessidade" (veja <a href="analise.html">Análise e Formatação</a>). Repare também que não cabe um <code>;</code> depois do <code>print</code> ali dentro, sinal de que aquilo não é um bloco de instruções. <strong>A regra:</strong> ou <code>=&gt; expressão;</code>, ou <code>{ … }</code>. Nunca os dois.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A função <code>situacao</code> de três jeitos:</p>
+
+<pre class="file" data-file="formas.dart">// 1) corpo com if e dois return
+String situacao1(double media) {
+  if (media &gt;= 7) {
+    return 'aprovada';
+  }
+  return 'reprovada';
+}
+
+// 2) corpo com o ternário
+String situacao2(double media) {
+  return media &gt;= 7 ? 'aprovada' : 'reprovada';
+}
+
+// 3) seta com o ternário
+String situacao3(double media) =&gt; media &gt;= 7 ? 'aprovada' : 'reprovada';
+
+void main() {
+  print(situacao1(6.5));
+  print(situacao2(6.5));
+  print(situacao3(6.5));
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+reprovada
+reprovada
+reprovada
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>O corpo é "devolva esta expressão", e ela é curta</td><td>Seta: <code>=&gt; expressão;</code></td></tr>
+<tr><td>A função só faz uma ação (<code>print</code>, chamar outra função)</td><td>Seta com <code>void</code></td></tr>
+<tr><td>Precisa de variáveis de apoio, <code>if</code> com várias linhas, laços</td><td>Corpo com chaves e <code>return</code></td></tr>
+<tr><td>A expressão ficou comprida e difícil de ler numa linha</td><td>Corpo com chaves: clareza vale mais que economia de linhas</td></tr>
+<tr><td>Uma função sem nome, passada para outra (<code>lista.map((x) =&gt; x * 2)</code>)</td><td>Seta; veja <a href="funcoes-anonimas.html">Funções Anônimas</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>return</code> depois da seta</strong>
+<pre class="file" data-file="err_return.dart">int dobro(int numero) =&gt; return numero * 2;
+
+void main() {
+  print(dobro(21));
+}
+</pre>
+<pre class="term">$ dart run err_return.dart
+err_return.dart:1:26: Error: Unexpected token 'return'.
+int dobro(int numero) =&gt; return numero * 2;
+                         ^^^^^^
+</pre>
+<p>"Símbolo inesperado: <code>return</code>." A seta já quer dizer "devolva". <strong>Como consertar:</strong> apague o <code>return</code>: <code>=&gt; numero * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs um <code>if</code> depois da seta</strong>
+<pre class="file" data-file="err_if.dart">String situacao(double media) =&gt; if (media &gt;= 7) 'aprovada' else 'reprovada';
+
+void main() {
+  print(situacao(8.5));
+}
+</pre>
+<p>O Dart respondeu com <strong>11 erros</strong> para essa única linha. Os três primeiros:</p>
+<pre class="term">$ dart run err_if.dart
+err_if.dart:1:34: Error: Expected an identifier, but got 'if'.
+Try inserting an identifier before 'if'.
+String situacao(double media) =&gt; if (media &gt;= 7) 'aprovada' else 'reprovada';
+                                 ^^
+err_if.dart:1:34: Error: 'if' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+String situacao(double media) =&gt; if (media &gt;= 7) 'aprovada' else 'reprovada';
+                                 ^^
+err_if.dart:1:44: Error: Expected ')' before this.
+String situacao(double media) =&gt; if (media &gt;= 7) 'aprovada' else 'reprovada';
+                                           ^^
+</pre>
+<p>"Esperava um identificador (um nome), mas veio <code>if</code>" e "<code>if</code> não pode ser usado como nome, porque é uma palavra-chave". Depois da seta, o Dart esperava uma expressão, e <code>if</code> é instrução. Daí em diante ele se perde e reclama de tudo (<code>else</code>, as aspas, o <code>;</code>…): <strong>quando aparecem muitos erros de uma vez, leia só o primeiro</strong>. <strong>Como consertar:</strong> use o ternário, <code>=&gt; media &gt;= 7 ? 'aprovada' : 'reprovada';</code>, ou volte para o corpo com chaves.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou criar uma variável depois da seta</strong>
+<p><code>double totalComTaxa(double valor) =&gt; final taxa = valor * 0.1; valor + taxa;</code> também dá uma cascata de erros, começando por <code>Error: Expected an identifier, but got 'final'.</code> Criar variável é instrução. <strong>Como consertar:</strong> faça a conta inteira numa expressão (<code>=&gt; valor + valor * 0.1;</code>) ou use chaves:</p>
+<pre class="file" data-file="taxa.dart">double totalComTaxa(double valor) {
+  final taxa = valor * 0.1;
+  return valor + taxa;
+}
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>;</code> no fim</strong>
+<pre class="file" data-file="err_ponto.dart">int dobro(int numero) =&gt; numero * 2
+
+void main() {
+  print(dobro(21));
+}
+</pre>
+<pre class="term">$ dart run err_ponto.dart
+err_ponto.dart:1:35: Error: Expected ';' after this.
+int dobro(int numero) =&gt; numero * 2
+                                  ^
+err_ponto.dart:3:1: Error: Unexpected token 'void'.
+void main() {
+^^^^
+</pre>
+<p>"Era esperado <code>;</code> depois disto." Na forma com chaves, o <code>}</code> fecha a função; na forma de seta, quem fecha é o <code>;</code>. Sem ele, o Dart emenda a função com o <code>void main</code> da linha 3 e se confunde ("símbolo inesperado: <code>void</code>"). <strong>Como consertar:</strong> <code>=&gt; numero * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A expressão tem o tipo errado</strong>
+<pre class="file" data-file="err_tipo.dart">int metade(int numero) =&gt; numero / 2;
+
+void main() {
+  print(metade(10));
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:1:34: Error: A value of type 'double' can't be returned from a function with return type 'int'.
+int metade(int numero) =&gt; numero / 2;
+                                 ^
+</pre>
+<p>A seta não muda as regras de tipo: o <code>/</code> sempre dá <code>double</code>, e a função prometeu <code>int</code>. <strong>Como consertar:</strong> use a divisão inteira, <code>=&gt; numero ~/ 2;</code>, ou mude o tipo de retorno para <code>double</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:R$ 7.50;;semerro">
+<p class="try-task"><strong>Missão:</strong> as duas funções de seta abaixo têm erros. Leia as mensagens e conserte, até aparecer <code>R$ 7.50</code>.</p>
+<pre class="script" data-file="main.dart">double totalDaCompra(double preco, int quantidade) =&gt; return preco * quantidade;
+
+String formatarPreco(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}'
+
+void main() {
+  print(formatarPreco(totalDaCompra(0.75, 10)));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double totalDaCompra(double preco, int quantidade) =&gt; preco * quantidade;
+
+String formatarPreco(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+void main() {
+  print(formatarPreco(totalDaCompra(0.75, 10)));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Equivale a</th></tr>
+<tr><td><code>int f(int x) =&gt; x * 2;</code></td><td><code>int f(int x) { return x * 2; }</code></td></tr>
+<tr><td><code>void f(String s) =&gt; print(s);</code></td><td><code>void f(String s) { print(s); }</code></td></tr>
+<tr><td><code>bool f(int h) =&gt; h &gt;= 6 &amp;&amp; h &lt; 20;</code></td><td>Uma pergunta de sim ou não</td></tr>
+<tr><td><code>String f(double m) =&gt; m &gt;= 7 ? 'a' : 'b';</code></td><td>O <code>if</code>/<code>else</code> com dois <code>return</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Unexpected token 'return'.</code></td><td><code>return</code> depois da seta</td></tr>
+<tr><td><code>Expected an identifier, but got 'if'.</code> (e muitos outros)</td><td><code>if</code> depois da seta: use o ternário</td></tr>
+<tr><td><code>Expected an identifier, but got 'final'.</code></td><td>Variável depois da seta: use chaves</td></tr>
+<tr><td><code>A value of type 'Set&lt;…&gt;' can't be returned…</code></td><td><code>=&gt; { … }</code>: as chaves viraram um <code>Set</code></td></tr>
+<tr><td><code>unnecessary_set_literal</code> no <code>dart analyze</code></td><td>O mesmo, numa função <code>void</code> (roda, mas está errado)</td></tr>
+<tr><td><code>Expected ';' after this.</code> + <code>Unexpected token 'void'.</code></td><td>Faltou o <code>;</code> no fim da função de seta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete a versão de seta de <code>int quadrado(int n) { return n * n; }</code>:</p>
+<div class="ex-code">int quadrado(int n) <input data-answer="=&gt;" aria-label="a seta"> n * n<input data-answer=";" aria-label="o que fecha a função"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com <code>int soma(int a, int b) =&gt; a + b;</code>, o que <code>print(soma(soma(1, 2), 3));</code> mostra?</p>
+<div class="ex-code"><input data-answer="6" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destas funções de seta compila?</p>
+<label><input type="radio" name="q3"> <code>int f(int x) =&gt; return x + 1;</code></label>
+<label><input type="radio" name="q3"> <code>int f(int x) =&gt; if (x &gt; 0) x else 0;</code></label>
+<label><input type="radio" name="q3"> <code>int f(int x) =&gt; x &gt; 0 ? x : 0;</code></label>
+<label><input type="radio" name="q3"> <code>int f(int x) =&gt; {x + 1};</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que <code>=&gt;</code> quer dizer numa função?</p>
+<label><input type="radio" name="q4"> "Devolva esta expressão": é um atalho para <code>{ return …; }</code></label>
+<label><input type="radio" name="q4"> "Maior ou igual a"</label>
+<label><input type="radio" name="q4"> Que a função é mais rápida</label>
+<label><input type="radio" name="q4"> Que a função não tem nome</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Uma função precisa criar duas variáveis de apoio e usar um laço. Qual forma usar?</p>
+<label><input type="radio" name="q5"> Seta, pondo tudo na mesma linha</label>
+<label><input type="radio" name="q5"> Corpo com chaves e <code>return</code>: a seta só aceita uma expressão</label>
+<label><input type="radio" name="q5"> Seta com chaves: <code>=&gt; { … }</code></label>
+<label><input type="radio" name="q5"> Tanto faz</label>
+</div>
+
+<h3>Missão final: a calculadora da padaria</h3>
+
+<div class="trydart" data-goal="out:Troco: R$ 2.50;;src:\btroco\s*\([^)]*\)\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> escreva, com seta, a função <code>double troco(double pago, double total)</code>, que devolve <code>pago - total</code>. A compra deu R$ 7,50, o cliente pagou com R$ 10: o programa deve mostrar <code>Troco: R$ 2.50</code>.</p>
+<pre class="script" data-file="main.dart">String formatarPreco(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+// escreva aqui a função troco, com =&gt;
+
+void main() {
+  final total = 7.50;
+  final pago = 10.0;
+  print('Troco: ${formatarPreco(0)}'); // troque o 0 por troco(pago, total)
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String formatarPreco(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+double troco(double pago, double total) =&gt; pago - total;
+
+void main() {
+  final total = 7.50;
+  final pago = 10.0;
+  print('Troco: ${formatarPreco(troco(pago, total))}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>=&gt; expressão;</code> é um atalho para <code>{ return expressão; }</code>. Leia a seta como "devolve".</li>
+  <li>Funciona com qualquer tipo de retorno, inclusive <code>void</code> (<code>void saudar(String n) =&gt; print(n);</code>).</li>
+  <li>Depois da seta cabe <strong>uma expressão</strong>: contas, comparações, chamadas, o ternário. Não cabem <code>if</code>, laços, variáveis nem <code>return</code>.</li>
+  <li><code>=&gt; { … }</code> não é um bloco: é um <code>Set</code>. Ou seta, ou chaves.</li>
+  <li>A função de seta termina com <code>;</code>.</li>
+  <li>Use a seta quando a função couber, clara, numa linha. A seguir: funções sem nome, onde a seta aparece o tempo todo (<a href="funcoes-anonimas.html">Funções Anônimas</a>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
