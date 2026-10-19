@@ -624,8 +624,8 @@ void main() {
 <h3>Missão final: a tabuada preguiçosa</h3>
 
 <div class="trydart" data-goal="out:7 x 10 = 70;;out:7 x 1 = 7;;src:\bsync\*;;src:\byield\b">
-<p class="try-task"><strong>Missão:</strong> a Ana quer a tabuada do 7. Escreva o corpo do gerador <code>tabuada</code>: um <code>for</code> de 1 a 10 que entrega (<code>yield</code>) o texto <code>'$numero x $i = ${numero * i}'</code>. Não esqueça o <code>sync*</code> antes da chave.</p>
-<pre class="script" data-file="main.dart">Iterable&lt;String&gt; tabuada(int numero) {
+<p class="try-task"><strong>Missão:</strong> a Ana quer a tabuada do 7. Escreva o corpo do gerador <code>tabuada</code>: um <code>for</code> de 1 a 10 que entrega (<code>yield</code>) o texto <code>'$numero x $i = ${numero * i}'</code>. O <code>sync*</code> já está lá: sem nenhum <code>yield</code>, o gerador termina sem entregar nada, e o programa não mostra nenhuma linha.</p>
+<pre class="script" data-file="main.dart">Iterable&lt;String&gt; tabuada(int numero) sync* {
   // escreva o for com yield aqui
 }
 

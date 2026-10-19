@@ -97,11 +97,9 @@ sys	0m0,106s
 
 <p><code>real</code> é o tempo de relógio: 0,371 segundo no computador da Ana (no seu, vai dar outro número). Cem milhões de voltas é pouco para um computador. Na próxima seção, a conta fica bem maior.</p>
 
-<div class="trydart" data-goal="out:Resultado: 500500;;src:Isolate\.run">
-<p class="try-task"><strong>Missão:</strong> peça para o isolate somar de 1 até <strong>1000</strong> (o resultado tem de ser 500500).</p>
-<pre class="script" data-file="main.dart">import 'dart:isolate';
-
-int somarAte(int limite) {
+<div class="trydart" data-goal="out:Resultado: 500500;;src:somarAte\(1000\)">
+<p class="try-task"><strong>Missão:</strong> no editor do guia não existe <code>Isolate</code> (veja o aviso abaixo), então aqui a conta roda direto no <code>main</code>, e a linha com <code>Isolate.run</code> ficou num comentário. Faça a conta somar de 1 até <strong>1000</strong> (o resultado tem de ser 500500).</p>
+<pre class="script" data-file="main.dart">int somarAte(int limite) {
   var soma = 0;
   for (var i = 1; i &lt;= limite; i++) {
     soma += i;
@@ -110,14 +108,12 @@ int somarAte(int limite) {
 }
 
 Future&lt;void&gt; main() async {
-  print('Pedindo a conta para outro isolate...');
-  final resultado = await Isolate.run(() =&gt; somarAte(10));
+  // No seu computador: final resultado = await Isolate.run(() =&gt; somarAte(10));
+  final resultado = somarAte(10);
   print('Resultado: $resultado');
 }
 </pre>
-<pre class="solucao" data-file="main.dart">import 'dart:isolate';
-
-int somarAte(int limite) {
+<pre class="solucao" data-file="main.dart">int somarAte(int limite) {
   var soma = 0;
   for (var i = 1; i &lt;= limite; i++) {
     soma += i;
@@ -126,11 +122,16 @@ int somarAte(int limite) {
 }
 
 Future&lt;void&gt; main() async {
-  print('Pedindo a conta para outro isolate...');
-  final resultado = await Isolate.run(() =&gt; somarAte(1000));
+  // No seu computador: final resultado = await Isolate.run(() =&gt; somarAte(1000));
+  final resultado = somarAte(1000);
   print('Resultado: $resultado');
 }
 </pre>
+</div>
+
+<div class="warning">
+<strong>O editor do guia não tem isolates</strong>
+<p>O editor desta página roda o programa dentro do navegador, num trabalhador só, e não tem a biblioteca <code>dart:isolate</code>: um programa com <code>Isolate.run</code> termina nele com <code>NoSuchMethodError</code>. Os exemplos com isolates desta aula são para o terminal do seu computador (todas as saídas mostradas vieram de lá). As caixas "Experimente" praticam a parte que vale dentro e fora do editor: escrever a conta como uma função que recebe tudo por parâmetro e <strong>devolve</strong> o resultado, que é o formato que o <code>Isolate.run</code> exige.</p>
 </div>
 
 <hr>
@@ -527,11 +528,25 @@ Invalid argument(s): Illegal argument in isolate message: object is unsendable -
 <label><input type="radio" name="q5"> O <code>sync*</code></label>
 </div>
 
-<h3>Missão final: contar vogais na cozinha dos fundos</h3>
+<h3>Missão final: preparar a conta para a cozinha dos fundos</h3>
 
-<div class="trydart" data-goal="out:A receita tem 10 vogais.;;src:Isolate\.run">
-<p class="try-task"><strong>Missão:</strong> o programa já conta as vogais da receita, mas no isolate principal. Mande a conta para outro isolate: troque <code>contarVogais(receita)</code> por <code>await Isolate.run(() =&gt; contarVogais(receita))</code>. A saída tem de continuar a mesma.</p>
-<pre class="script" data-file="main.dart">import 'dart:isolate';
+<div class="trydart" data-goal="out:A receita tem 10 vogais.;;src:int\s+contarVogais\(\s*String">
+<p class="try-task"><strong>Missão:</strong> a Ana quer mandar a contagem de vogais para um isolate, mas a função <code>contarVogais</code> está no formato errado para isso: ela lê a variável de fora <code>receita</code> e escreve na variável de fora <code>total</code> (e o isolate trabalharia numa <strong>cópia</strong> delas, lembra?). Reescreva a função como <code>int contarVogais(String texto)</code>: ela recebe o texto, conta numa variável local e <strong>devolve</strong> o número. No <code>main</code>, use <code>final vogais = contarVogais(receita);</code>. Pronto: no seu computador, bastaria trocar por <code>await Isolate.run(() =&gt; contarVogais(receita))</code>.</p>
+<pre class="script" data-file="main.dart">const receita = 'Bolo de milho com erva-doce';
+var total = 0;
+
+void contarVogais() {
+  for (final letra in receita.toLowerCase().split('')) {
+    if ('aeiou'.contains(letra)) total++;
+  }
+}
+
+Future&lt;void&gt; main() async {
+  contarVogais();
+  print('A receita tem $total vogais.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">const receita = 'Bolo de milho com erva-doce';
 
 int contarVogais(String texto) {
   var total = 0;
@@ -542,28 +557,13 @@ int contarVogais(String texto) {
 }
 
 Future&lt;void&gt; main() async {
-  const receita = 'Bolo de milho com erva-doce';
   final vogais = contarVogais(receita);
   print('A receita tem $vogais vogais.');
 }
 </pre>
-<pre class="solucao" data-file="main.dart">import 'dart:isolate';
-
-int contarVogais(String texto) {
-  var total = 0;
-  for (final letra in texto.toLowerCase().split('')) {
-    if ('aeiou'.contains(letra)) total++;
-  }
-  return total;
-}
-
-Future&lt;void&gt; main() async {
-  const receita = 'Bolo de milho com erva-doce';
-  final vogais = await Isolate.run(() =&gt; contarVogais(receita));
-  print('A receita tem $vogais vogais.');
-}
-</pre>
 </div>
+
+<p>No lab, a versão com isolate (<code>final vogais = await Isolate.run(() =&gt; contarVogais(receita));</code> e o <code>import 'dart:isolate';</code>) mostrou a mesma linha: <code>A receita tem 10 vogais.</code></p>
 
 <hr>
 
