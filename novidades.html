@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Novidades — o que chegou na linguagem do 3.0 ao 3.13 | Guia Dart</title>
+<meta name="description" content="As novidades da linguagem Dart do 3.0 ao 3.13, com exemplos que rodaram no Dart 3.13.5: records, patterns e switch (3.0), extension types (3.3), separador de dígitos (3.6), variáveis curinga (3.7), elementos com ? em coleções (3.8), atalhos com ponto (3.10), parâmetros nomeados privados (3.12) e construtores primários (3.13), com os erros reais em versões antigas.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Novidades</span></h1>
+
+<p class="intro">Esta página reúne, numa vitrine, o que entrou na <strong>linguagem</strong> Dart desde o Dart 3.0 (2023) até o 3.13 (agosto de 2026), a versão do laboratório. Cada novidade tem um exemplo pequeno, rodado de verdade, e o selo da versão em que chegou. Se você encontrar código com uma dessas coisas e o seu Dart reclamar, a <a href="versoes.html">aula de Versões</a> explica por quê. As aulas de cada assunto têm os detalhes; aqui é o "o que mudou".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o Dart 3.0 trouxe: records, patterns, expressões <code>switch</code>, <code>if-case</code> e modificadores de classe.</li>
+  <li>As novidades seguintes, uma por versão: extension types, separador de dígitos, variáveis curinga, <code>?</code> dentro de coleções e atalhos com ponto.</li>
+  <li>As duas mais novas: parâmetros nomeados privados (3.12) e <strong>construtores primários</strong> (3.13).</li>
+  <li>O que aparece quando o código usa uma novidade numa versão antiga.</li>
+</ul>
+</div>
+
+<p>Todos os exemplos rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), em arquivos soltos numa pasta <code>novidades</code> (arquivos soltos usam a versão de linguagem do próprio SDK). A lista de novidades vem da página <a href="https://dart.dev/resources/language/evolution">Language evolution</a> e do <a href="https://github.com/dart-lang/sdk/blob/main/CHANGELOG.md">CHANGELOG do SDK</a>.</p>
+
+<hr>
+
+<h2>A ideia: o celular que atualiza</h2>
+<p>De tempos em tempos o celular da Ana recebe uma atualização. Quase sempre é invisível (correções); às vezes vem um botão novo que deixa algo mais rápido. O Dart é parecido: a maioria das versões não muda a linguagem, e as que mudam quase sempre trazem um <strong>atalho</strong> para algo que já dava para fazer de um jeito mais comprido. Você nunca é obrigado a usar a novidade; mas vai encontrá-la no código dos outros.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Novidade na linguagem</th><th>Em uma linha</th></tr>
+<tr><td><span class="versao">Dart 3.0</span></td><td>Records, patterns, <code>switch</code> de expressão, <code>if-case</code>, modificadores de classe</td><td>A grande reforma</td></tr>
+<tr><td><span class="versao">Dart 3.3</span></td><td>Extension types</td><td>Um tipo novo "por cima" de outro, sem custo</td></tr>
+<tr><td><span class="versao">Dart 3.6</span></td><td>Separador de dígitos</td><td><code>1_000_000</code></td></tr>
+<tr><td><span class="versao">Dart 3.7</span></td><td>Variáveis curinga</td><td><code>_</code> quer dizer "não me importo"</td></tr>
+<tr><td><span class="versao">Dart 3.8</span></td><td>Elementos que aceitam nulo</td><td><code>[?bebida]</code> só entra se não for nulo</td></tr>
+<tr><td><span class="versao">Dart 3.10</span></td><td>Atalhos com ponto</td><td><code>Tamanho cafe = .grande;</code></td></tr>
+<tr><td><span class="versao">Dart 3.12</span></td><td>Parâmetros nomeados privados</td><td><code>Conta({required this._titular})</code></td></tr>
+<tr><td><span class="versao">Dart 3.13</span></td><td>Construtores primários</td><td><code>class Produto(final String nome, final double preco);</code></td></tr>
+</table>
+</div>
+<p>As versões 3.1, 3.2, 3.4, 3.5, 3.9 e 3.11 não trouxeram recursos novos na linguagem (só melhorias na análise de tipos, nas bibliotecas e nas ferramentas).</p>
+
+<hr>
+
+<h2>1. <span class="versao">Dart 3.0</span> A grande reforma</h2>
+<p>O Dart 3.0 tornou o <a href="null-safety.html">null safety</a> obrigatório e trouxe, de uma vez, cinco recursos que mudaram o jeito de escrever Dart. Este programa usa quase todos, mais o atalho do 3.10 e o separador do 3.6:</p>
+
+<pre class="file" data-file="dart3.dart">enum Tamanho { pequeno, medio, grande }
+
+(String, double) maisCaro(Map&lt;String, double&gt; precos) {
+  var nome = '';
+  var maior = 0.0;
+  for (final MapEntry(:key, :value) in precos.entries) {
+    if (value &gt; maior) {
+      (nome, maior) = (key, value);
+    }
+  }
+  return (nome, maior);
+}
+
+void main() {
+  final (nome, preco) = maisCaro({'Pão': 0.75, 'Bolo': 12.0, 'Sonho': 2.5});
+  print('Mais caro: $nome, R\$ $preco');
+
+  Tamanho cafe = .grande;
+  final ml = switch (cafe) {
+    .pequeno =&gt; 50,
+    .medio =&gt; 100,
+    .grande =&gt; 200,
+  };
+  print('Café $cafe: $ml ml');
+  final populacao = 1_000_000;
+  print(populacao);
+}
+</pre>
+
+<pre class="term">$ dart run dart3.dart; echo "codigo: $?"
+Mais caro: Bolo, R$ 12.0
+Café Tamanho.grande: 200 ml
+1000000
+codigo: 0
+</pre>
+
+<dl class="anatomy">
+  <dt>(String, double)</dt><dd>Um <strong>record</strong>: a função devolve <strong>dois</strong> valores juntos, sem precisar criar uma classe. Veja <a href="records.html">Records</a>.</dd>
+  <dt>final (nome, preco) = …</dt><dd>Um <strong>pattern</strong> de desestruturação: abre o record e guarda cada parte numa variável. Também em <code>(nome, maior) = (key, value)</code> e no <code>MapEntry(:key, :value)</code> do <code>for</code>. Veja <a href="patterns.html">Patterns</a>.</dd>
+  <dt>switch (cafe) { … =&gt; … }</dt><dd>A <strong>expressão <code>switch</code></strong>: escolhe um <strong>valor</strong> (e não só executa comandos). O Dart confere se todos os casos do <code>enum</code> foram cobertos. Veja <a href="switch.html">switch</a>.</dd>
+</dl>
+
+<p>Os outros dois recursos do 3.0: o <strong><code>if-case</code></strong> (<code>if (valor case int n when n &gt; 0)</code>, um <code>if</code> que testa um pattern) e os <strong>modificadores de classe</strong> (<code>sealed</code>, <code>final</code>, <code>base</code>, <code>interface</code>, veja <a href="modificadores-classe.html">sealed, final, base e interface</a>).</p>
+
+<hr>
+
+<h2>2. <span class="versao">Dart 3.3</span> Extension types</h2>
+<p>Um <strong>extension type</strong> dá um nome e métodos novos a um tipo que já existe, sem criar um objeto extra na memória. A Ana guarda preços em centavos (<code>int</code>), mas quer mostrá-los em reais:</p>
+
+<pre class="file" data-file="extensao.dart">extension type Centavos(int valor) {
+  String get emReais =&gt; 'R\$ ${(valor / 100).toStringAsFixed(2)}';
+}
+
+void main() {
+  final preco = Centavos(275);
+  print(preco.emReais);
+  print(preco.valor);
+}
+</pre>
+<pre class="term">$ dart run extensao.dart; echo "codigo: $?"
+R$ 2.75
+275
+codigo: 0
+</pre>
+<p>Por dentro, <code>preco</code> é só o <code>int</code> 275; por fora, ele tem o tipo <code>Centavos</code> e o getter <code>emReais</code>. É usado sobretudo na ponte com JavaScript (o <code>package:web</code> de <a href="dart-web.html">Dart na Web</a> é feito disso) e em bibliotecas. Parece com as <a href="extension.html">Extensões</a>, mas cria um tipo novo.</p>
+
+<hr>
+
+<h2>3. <span class="versao">Dart 3.6</span> Separador de dígitos</h2>
+<p>Números grandes podem ter <code>_</code> entre os dígitos, só para facilitar a leitura: <code>1_000_000</code> é exatamente <code>1000000</code> (veja a saída do programa da seção 1). Vale para <code>int</code> e <code>double</code>: no lab, <code>print(1_250.50)</code> mostrou <code>1250.5</code>.</p>
+
+<hr>
+
+<h2>4. <span class="versao">Dart 3.7</span> Variáveis curinga (<code>_</code>)</h2>
+<p>Um parâmetro ou variável local chamado <code>_</code> agora quer dizer "não vou usar isto". Ele não cria variável nenhuma, então pode aparecer várias vezes:</p>
+
+<pre class="file" data-file="curinga.dart">void main() {
+  final precos = [0.75, 2.5, 4.0];
+  precos.forEach((_) =&gt; print('item'));
+  final (_, segundo, _) = (10, 20, 30);
+  print(segundo);
+  var _ = 1;
+  var _ = 2;
+  print('ok');
+}
+</pre>
+<pre class="term">$ dart run curinga.dart; echo "codigo: $?"
+item
+item
+item
+20
+ok
+codigo: 0
+</pre>
+<p>Antes do 3.7, <code>_</code> era um nome comum, e repeti-lo dava erro. Com <code>// @dart=3.6</code> na primeira linha do mesmo arquivo:</p>
+<pre class="term">$ dart run curinga_36.dart; echo "codigo: $?"
+curinga_36.dart:8:7: Error: '_' is already declared in this scope.
+  var _ = 2;
+      ^
+curinga_36.dart:7:7: Context: Previous declaration of '_'.
+  var _ = 1;
+      ^
+codigo: 254
+</pre>
+<p>"<code>_</code> já foi declarado neste escopo", e o <code>Context</code> aponta a declaração anterior, na linha 7.</p>
+
+<hr>
+
+<h2>5. <span class="versao">Dart 3.8</span> Elementos que aceitam nulo (<code>?item</code>)</h2>
+<p>Dentro de uma lista, um conjunto ou um mapa, um <code>?</code> antes do elemento quer dizer "ponha só se não for nulo":</p>
+
+<pre class="file" data-file="nulos.dart">void main() {
+  String? sobremesa;
+  String? bebida = 'café';
+  final pedido = ['pão', ?sobremesa, ?bebida];
+  print(pedido);
+}
+</pre>
+<pre class="term">$ dart run nulos.dart; echo "codigo: $?"
+[pão, café]
+codigo: 0
+</pre>
+<p>A <code>sobremesa</code> é <code>null</code> e ficou de fora. Antes, escrevia-se <code>if (sobremesa != null) sobremesa</code> (veja <a href="collection-if-for.html">if e for Dentro de Coleções</a>).</p>
+
+<div class="trydart" data-goal="out:[pão, leite, manteiga];;src:\?manteiga">
+<p class="try-task"><strong>Missão:</strong> troque o <code>if (manteiga != null) manteiga</code> pelo atalho do Dart 3.8. A saída não muda.</p>
+<pre class="script" data-file="main.dart">void main() {
+  String? manteiga = 'manteiga';
+  String? geleia;
+  final compras = ['pão', 'leite', if (manteiga != null) manteiga, ?geleia];
+  print(compras);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String? manteiga = 'manteiga';
+  String? geleia;
+  final compras = ['pão', 'leite', ?manteiga, ?geleia];
+  print(compras);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. <span class="versao">Dart 3.10</span> Atalhos com ponto</h2>
+<p>Quando o Dart já sabe qual tipo espera, você pode omitir o nome do tipo e começar com o ponto: <code>Tamanho cafe = .grande;</code> em vez de <code>Tamanho.grande</code>, e os casos <code>.pequeno =&gt; 50</code> do <code>switch</code> da seção 1. No Flutter, isso encurta muito o código: <code>crossAxisAlignment: .start</code>. A <a href="versoes.html">aula de Versões</a> mostra o erro que aparece num projeto com <code>sdk: ^3.9.0</code>.</p>
+
+<hr>
+
+<h2>7. <span class="versao">Dart 3.12</span> Parâmetros nomeados privados</h2>
+<p>Campos privados começam com <code>_</code> (veja <a href="privado.html">Privacidade</a>). Até o 3.11, um parâmetro nomeado não podia começar com <code>_</code>, e era preciso uma "lista de inicialização" para copiar o valor. Agora, <code>this._titular</code> num parâmetro nomeado funciona, e quem chama usa o nome <strong>sem</strong> o <code>_</code>:</p>
+
+<pre class="file" data-file="privado.dart">class Conta {
+  final String _titular;
+  double _saldo;
+
+  Conta({required this._titular, this._saldo = 0});
+
+  String get resumo =&gt; '$_titular: R\$ $_saldo';
+}
+
+void main() {
+  final conta = Conta(titular: 'Ana', saldo: 150);
+  print(conta.resumo);
+}
+</pre>
+<pre class="term">$ dart run privado.dart; echo "codigo: $?"
+Ana: R$ 150.0
+codigo: 0
+</pre>
+
+<hr>
+
+<h2>8. <span class="versao">Dart 3.13</span> Construtores primários</h2>
+<p>A novidade da versão do lab. Até agora, uma classe simples precisava repetir cada campo três vezes: na declaração, no construtor e no <code>this.</code>. Com um <strong>construtor primário</strong>, os parâmetros vão direto no <strong>cabeçalho</strong> da classe, e cada um com <code>final</code> ou <code>var</code> vira um campo:</p>
+
+<pre class="file" data-file="primario.dart">class Produto(final String nome, final double preco);
+
+class Ponto(var int x, var int y) {
+  new origem() : this(0, 0);
+}
+
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  print('${pao.nome}: R\$ ${pao.preco}');
+  final p = Ponto.origem();
+  p.x = 3;
+  print('(${p.x}, ${p.y})');
+}
+</pre>
+<pre class="term">$ dart run primario.dart; echo "codigo: $?"
+Pão francês: R$ 0.75
+(3, 0)
+codigo: 0
+</pre>
+
+<dl class="anatomy">
+  <dt>class Produto(final String nome, final double preco);</dt><dd>Uma classe inteira numa linha: dois campos <code>final</code> e o construtor <code>Produto(nome, preco)</code>. O <code>;</code> no fim quer dizer "sem corpo".</dd>
+  <dt>class Ponto(var int x, var int y) { … }</dt><dd>Com <code>var</code>, os campos podem mudar (<code>p.x = 3</code>). Aqui a classe tem corpo.</dd>
+  <dt>new origem() : this(0, 0);</dt><dd>Um construtor nomeado declarado com <code>new</code>, sem repetir o nome da classe (antes seria <code>Ponto.origem()</code>). Ele chama o construtor primário com 0 e 0.</dd>
+</dl>
+
+<p>Compare com o jeito de antes, que continua valendo (veja <a href="construtores.html">Construtores</a>):</p>
+<pre class="file" data-file="antes.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+</pre>
+
+<h3>A mudança que quebra código antigo</h3>
+<p>Para abrir espaço para os construtores primários, o Dart 3.13 passou a reservar <code>final</code> e <code>var</code> nos parâmetros. Um <code>final</code> num parâmetro de função comum, que antes era permitido, agora é erro:</p>
+<pre class="file" data-file="final_param.dart">void dobrar(final int x) {
+  print(x * 2);
+}
+
+void main() {
+  dobrar(21);
+}
+</pre>
+<pre class="term">$ dart run final_param.dart; echo "codigo: $?"
+final_param.dart:1:13: Error: Can't have modifier 'final' here.
+Try removing 'final'.
+void dobrar(final int x) {
+            ^^^^^
+codigo: 254
+</pre>
+<p>"Não pode haver o modificador <code>final</code> aqui. Tente removê-lo." <strong>Como consertar:</strong> <code>void dobrar(int x)</code>. (O CHANGELOG do 3.13 lista isso como <em>breaking change</em>, "mudança que quebra".)</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usar uma novidade numa versão de linguagem antiga</strong>
+<p>O mesmo <code>primario.dart</code>, com <code>// @dart=3.12</code> na primeira linha (como se o projeto fosse Dart 3.12):</p>
+<pre class="term">$ dart run primario_312.dart; echo "codigo: $?"
+primario_312.dart:2:14: Error: The 'primary-constructors' language feature is disabled for this library.
+Try removing the `@dart=` annotation or setting the language version to 3.13 or higher.
+class Produto(final String nome, final double preco);
+             ^
+primario_312.dart:1:1: Context: This is the annotation that opts out this library from the 'primary-constructors' language feature.
+// @dart=3.12
+^^^^^^^^^^^^^
+« … o mesmo erro mais 5 vezes, em cada ponto do código que usa o recurso … »
+codigo: 254
+</pre>
+<p>Linha por linha: "o recurso de linguagem <code>primary-constructors</code> está desligado nesta biblioteca"; "tente remover a anotação <code>@dart=</code> ou usar a versão de linguagem 3.13 ou maior"; e o <code>Context</code> aponta o culpado: "esta é a anotação que tira esta biblioteca do recurso", a linha 1. Quando a versão vem do <code>pubspec.yaml</code>, a mensagem é parecida, e o conserto é subir o <code>sdk:</code> e rodar <code>dart pub get</code> (veja <a href="versoes.html">Versões</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Copiar um exemplo novo num Dart velho</strong>
+<p>Se o Dart <strong>instalado</strong> for anterior ao recurso (por exemplo, um SDK 3.9 lendo <code>.grande</code>), não há o que ligar: o SDK simplesmente não conhece a sintaxe e recusa o código. Confira a sua versão com <code>dart --version</code> e compare com o selo da novidade.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Em que versão?</h3>
+<p>Escreva só o número (por exemplo, <code>3.0</code>).</p>
+<div class="ex-code">Separador de dígitos: <input data-answer="3.6" aria-label="versão do separador"><br>Atalhos com ponto: <input data-answer="3.10" aria-label="versão dos atalhos"><br>Construtores primários: <input data-answer="3.13" aria-label="versão dos construtores primários"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que sai?</h3>
+<p>Qual a saída de <code>String? a; final lista = [1, ?a, 3]; print(lista);</code>? Escreva como o Dart mostra.</p>
+<div class="ex-code"><input data-answer="[1, 3]" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que a linha <code>class Produto(final String nome, final double preco);</code> cria?</p>
+<label><input type="radio" name="q3"> Uma função chamada <code>Produto</code></label>
+<label><input type="radio" name="q3"> Uma classe com dois campos <code>final</code> e um construtor com os dois</label>
+<label><input type="radio" name="q3"> Um record com dois valores</label>
+<label><input type="radio" name="q3"> Um erro: classe precisa de chaves</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas novidades veio no Dart 3.0?</p>
+<label><input type="radio" name="q4"> Variáveis curinga</label>
+<label><input type="radio" name="q4"> Atalhos com ponto</label>
+<label><input type="radio" name="q4"> Extension types</label>
+<label><input type="radio" name="q4"> Records e patterns</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. No Dart 3.13, <code>void dobrar(final int x)</code> dá erro. Por quê?</p>
+<label><input type="radio" name="q5"> <code>final</code> e <code>var</code> nos parâmetros foram reservados para os construtores primários</label>
+<label><input type="radio" name="q5"> Porque <code>int</code> não pode ser <code>final</code></label>
+<label><input type="radio" name="q5"> Porque falta o <code>required</code></label>
+<label><input type="radio" name="q5"> Não dá erro</label>
+</div>
+
+<h3>Missão final: a classe em uma linha</h3>
+
+<div class="trydart" data-goal="out:Sonho: R$ 2.5;;src:class Produto\(">
+<p class="try-task"><strong>Missão:</strong> reescreva a classe <code>Produto</code> com um <strong>construtor primário</strong> do Dart 3.13: os dois campos <code>final</code> no cabeçalho, e um <code>;</code> no fim. O <code>main</code> não muda.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final sonho = Produto('Sonho', 2.5);
+  print('${sonho.nome}: R\$ ${sonho.preco}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Produto(final String nome, final double preco);
+
+void main() {
+  final sonho = Produto('Sonho', 2.5);
+  print('${sonho.nome}: R\$ ${sonho.preco}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>3.0</strong>: null safety obrigatório, records, patterns, expressões <code>switch</code>, <code>if-case</code> e modificadores de classe.</li>
+  <li><strong>3.3</strong> extension types · <strong>3.6</strong> <code>1_000_000</code> · <strong>3.7</strong> curinga <code>_</code> · <strong>3.8</strong> <code>?item</code> em coleções · <strong>3.10</strong> <code>.grande</code> · <strong>3.12</strong> <code>this._campo</code> em parâmetro nomeado.</li>
+  <li><strong>3.13</strong>: construtores primários, <code>class Produto(final String nome, final double preco);</code>, e <code>new nome()</code> no corpo; <code>final</code>/<code>var</code> em parâmetro comum virou erro.</li>
+  <li>Novidade numa versão de linguagem antiga dá erro (<code>…language feature is disabled…</code> ou <code>This requires the experimental '…' language feature</code>): suba a versão no <code>pubspec.yaml</code> ou tire o <code>// @dart=</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
