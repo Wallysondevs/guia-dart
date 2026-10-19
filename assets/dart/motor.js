@@ -2623,7 +2623,7 @@
     if (e.nome.charAt(0) === "_" && this.arqDe && c.arq && this.arqDe(e.pNome) !== c.arq) {
       var tn0 = this.tipoTexto(t), ctx0 = this.contexto([t]);
       if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
-      else if (e.setter) this.erro("The setter '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + e.nome + "'.");
+      else if (e.setter) this.erro("The setter '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + e.nome + "'.").ordemPos = e.ordemPos;
       else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
       return;
     }
@@ -2807,10 +2807,10 @@
     if (alvo.k === "Get" && op === "=") {
       if (alvo.alvo.k === "CascadeAlvo" || alvo.alvo.k !== "Ident" || esc.achar(alvo.alvo.nome) || !this.classes[alvo.alvo.nome]) {
         var tobj = this.tipoDe(alvo.alvo, esc), tcampo = null;
-        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'."); } }
+        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'.").ordemPos = e.valor.e; } }
         if (alvo.alvo.k === "This") { var mi2 = this.membroImplicito(alvo.nome, esc); if (mi2) tcampo = mi2.tipo; }
         this.checarNulo(alvo, esc);
-        if (alvo.nome.charAt(0) === "_") this.checarMembro(Object.assign({}, alvo, { setter: true }), esc);
+        if (alvo.nome.charAt(0) === "_") this.checarMembro(Object.assign({}, alvo, { setter: true, ordemPos: e.valor.e }), esc);
         if (tcampo) this.checarAtrib(tcampo, e.valor, esc);
         return "$R." + (alvo.nulo ? "nset" : "set") + "(" + this.expr(alvo.alvo, esc) + ", " + q(alvo.nome) + ", " + this.coagir(this.expr(e.valor, esc), tcampo) + ", " + alvo.pNome + ")";
       }
@@ -2911,7 +2911,8 @@
         if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Not a constant expression|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
         return 2;
       };
-      errs.sort(function (a, b) { return fase(a) - fase(b) || a.pos - b.pos; });
+      var posOrd = function (x) { return x.ordemPos !== undefined && x.ordemPos !== null ? x.ordemPos : x.pos; };
+      errs.sort(function (a, b) { return fase(a) - fase(b) || posOrd(a) - posOrd(b); });
       var semMain = errs.filter(function (x) { return x.extra === "semMain"; });
       if (semMain.length && errs.length === 1) return { erros: arq + ": Error: Undefined name 'main'.\n", n: 1 };
       errs = errs.filter(function (x) { return x.extra !== "semMain"; });
