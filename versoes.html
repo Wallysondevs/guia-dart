@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Versões — o número da versão e a versão da linguagem | Guia Dart</title>
+<meta name="description" content="As versões do Dart para quem nunca programou: dart --version, o que quer dizer 3.13.5, os canais stable e beta, o ritmo de lançamentos, a história do Dart 1 ao Dart 3, a tabela das versões 3.x, a versão da linguagem escolhida pelo pubspec.yaml (sdk: ^3.10.0) e pelo comentário // @dart=, e os erros reais quando a versão não bate. Saídas reais do Dart 3.13.5.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Versões</span></h1>
+
+<p class="intro">O Dart muda: de tempos em tempos sai uma versão nova, com coisas novas na linguagem, nas bibliotecas e nas ferramentas. Saber ler o número da versão evita muita confusão: um tutorial antigo que não funciona, um recurso que "não existe" no seu computador, um projeto que pede uma versão diferente. Nesta aula você vai ver como descobrir a sua versão, o que cada parte do número quer dizer, um pouco da história do Dart e como um projeto escolhe a <strong>versão da linguagem</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ver a versão do Dart: <code>dart --version</code> e <code>Platform.version</code>.</li>
+  <li>O que quer dizer cada parte de <code>3.13.5</code>, e os canais <code>stable</code> e <code>beta</code>.</li>
+  <li>A história do Dart, do 1.0 ao 3.13, com o que cada versão 3.x trouxe.</li>
+  <li>Como o <code>pubspec.yaml</code> (<code>sdk: ^3.10.0</code>) e o comentário <code>// @dart=</code> escolhem a versão da linguagem.</li>
+  <li>Os erros reais quando o código usa algo mais novo que a versão escolhida.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). As datas e os recursos de cada versão vêm do <a href="https://github.com/dart-lang/sdk/blob/main/CHANGELOG.md">CHANGELOG do SDK</a> e da página <a href="https://dart.dev/resources/language/evolution">Language evolution</a> do dart.dev.</p>
+
+<hr>
+
+<h2>A ideia: a edição do livro</h2>
+<p>A Ana comprou um livro de receitas na "3ª edição, 13ª revisão, 5ª reimpressão". A <strong>edição</strong> muda pouco, mas quando muda pode reorganizar o livro inteiro; a <strong>revisão</strong> acrescenta receitas novas sem tirar as antigas; a <strong>reimpressão</strong> só corrige erros de digitação. Se uma amiga diz "faça a receita da página 40 da 2ª edição", na edição da Ana a página pode ser outra. Com programas é igual: o número diz o tamanho da mudança, e o código precisa dizer para qual "edição" foi escrito.</p>
+
+<hr>
+
+<h2>1. Qual é a minha versão?</h2>
+
+<pre class="term">$ dart --version
+Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64"
+</pre>
+
+<dl class="anatomy">
+  <dt>Dart SDK version: 3.13.5</dt><dd>A versão do <strong>SDK</strong> (o kit: compilador, <code>dart run</code>, bibliotecas, <code>dart format</code>…).</dd>
+  <dt>(stable)</dt><dd>O <strong>canal</strong>: <code>stable</code>, a versão "estável", recomendada para todo mundo.</dd>
+  <dt>(Tue Sep 29 01:00:52 2026 -0700)</dt><dd>Quando essa versão foi gerada: terça, 29 de setembro de 2026, no fuso −7 horas (o da Califórnia).</dd>
+  <dt>on "linux_x64"</dt><dd>Para qual sistema e processador este SDK foi feito: Linux, 64 bits (x86-64).</dd>
+</dl>
+
+<p>Um programa também pode descobrir em qual versão está rodando, com o <code>Platform.version</code> da biblioteca <code>dart:io</code>:</p>
+
+<pre class="file" data-file="versao.dart">import 'dart:io';
+
+void main() {
+  print(Platform.version);
+}
+</pre>
+<pre class="term">$ dart run versao.dart
+3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64"
+</pre>
+
+<hr>
+
+<h2>2. O que quer dizer <code>3.13.5</code></h2>
+<p>O Dart segue o <strong>versionamento semântico</strong> (<em>semantic versioning</em>, ou "semver"): três números separados por pontos, <code>MAIOR.MENOR.CORREÇÃO</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>No exemplo</th><th>Muda quando…</th></tr>
+<tr><td><strong>Maior</strong> (<em>major</em>)</td><td><code>3</code></td><td>Há mudanças que <strong>quebram</strong> código antigo. Raro: o Dart 3 saiu em 2023.</td></tr>
+<tr><td><strong>Menor</strong> (<em>minor</em>)</td><td><code>13</code></td><td>Entram recursos novos. Mais ou menos a cada três meses.</td></tr>
+<tr><td><strong>Correção</strong> (<em>patch</em>)</td><td><code>5</code></td><td>Só conserto de defeitos e de segurança. A cada poucas semanas.</td></tr>
+</table>
+</div>
+
+<p>Então <code>3.13.5</code> é "o Dart 3, revisão 13, quinta correção". Um programa escrito para o 3.10 roda no 3.13; um escrito para o 3.13 pode usar coisas que o 3.10 não conhece.</p>
+
+<h3>Os canais</h3>
+<ul>
+  <li><strong><code>stable</code></strong> ("estável"): a que você instala e usa. Este guia usa a estável.</li>
+  <li><strong><code>beta</code></strong>: a próxima versão, para quem quer testar antes. Pode ter defeitos.</li>
+  <li><strong><code>main</code></strong> (ou <code>dev</code>): o código do dia, para quem trabalha no próprio Dart.</li>
+</ul>
+
+<h3>O ritmo</h3>
+<p>Pelas datas do CHANGELOG, as versões menores recentes saíram em fevereiro, maio, agosto e novembro de cada ano (3.7.0 em 12/02/2025, 3.8.0 em 20/05/2025, 3.9.0 em 13/08/2025, 3.10.0 em 12/11/2025, 3.11.0 em 11/02/2026, 3.12.0 em 20/05/2026, 3.13.0 em 12/08/2026), com correções no meio. O Flutter acompanha: cada versão do Flutter traz uma versão do Dart dentro.</p>
+
+<hr>
+
+<h2>3. Um pouco de história</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Ano</th><th>O que marcou</th></tr>
+<tr><td>Dart 1.0</td><td>2013</td><td>A primeira versão estável, criada no Google para a web. Os tipos eram opcionais.</td></tr>
+<tr><td>Dart 2.0</td><td>2018</td><td>Tipos obrigatórios e verificados (o "sistema de tipos forte"), <code>new</code> opcional. Junto com o crescimento do Flutter.</td></tr>
+<tr><td>Dart 2.12</td><td>2021</td><td><strong>Null safety</strong> (veja <a href="null-safety.html">Null Safety</a>), ainda opcional.</td></tr>
+<tr><td>Dart 3.0</td><td>2023</td><td>Null safety obrigatório, <a href="records.html">records</a>, <a href="patterns.html">patterns</a>, <a href="switch.html">expressões <code>switch</code></a> e <a href="modificadores-classe.html">modificadores de classe</a>.</td></tr>
+</table>
+</div>
+
+<h3>As versões 3.x</h3>
+<p>Datas do CHANGELOG do SDK; recursos da página Language evolution. Os detalhes com exemplos rodados estão em <a href="novidades.html">Novidades do Dart</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Lançada em</th><th>Na linguagem</th></tr>
+<tr><td>3.0</td><td>10/05/2023</td><td>Patterns, records, modificadores de classe, expressões <code>switch</code>, <code>if-case</code></td></tr>
+<tr><td>3.1</td><td>16/08/2023</td><td>Nada novo na linguagem</td></tr>
+<tr><td>3.2</td><td>15/11/2023</td><td>Promoção de tipo em campos privados <code>final</code></td></tr>
+<tr><td>3.3</td><td>fev/2024</td><td>Extension types</td></tr>
+<tr><td>3.4</td><td>14/05/2024</td><td>Melhorias na análise de tipos</td></tr>
+<tr><td>3.5</td><td>06/08/2024</td><td>Nada novo na linguagem</td></tr>
+<tr><td>3.6</td><td>11/12/2024</td><td>Separador de dígitos: <code>1_000_000</code></td></tr>
+<tr><td>3.7</td><td>12/02/2025</td><td>Variáveis curinga (<code>_</code>) e o novo estilo do <code>dart format</code></td></tr>
+<tr><td>3.8</td><td>20/05/2025</td><td>Elementos que aceitam nulo em coleções (<code>?item</code>)</td></tr>
+<tr><td>3.9</td><td>13/08/2025</td><td>Nada novo na linguagem</td></tr>
+<tr><td>3.10</td><td>12/11/2025</td><td>Atalhos com ponto (<em>dot shorthands</em>): <code>.medio</code></td></tr>
+<tr><td>3.11</td><td>11/02/2026</td><td>Nada novo na linguagem</td></tr>
+<tr><td>3.12</td><td>20/05/2026</td><td>Parâmetros nomeados privados</td></tr>
+<tr><td>3.13</td><td>12/08/2026</td><td>Construtores primários (<em>primary constructors</em>)</td></tr>
+</table>
+</div>
+
+<p>Repare: muitas versões não mudam a <strong>linguagem</strong> e mesmo assim trazem novidades nas bibliotecas e nas ferramentas (o analisador, o <code>dart format</code>, o <code>pub</code>).</p>
+
+<div class="trydart" data-goal="out:Moradores: 1000000;;src:1_000_000">
+<p class="try-task"><strong>Missão:</strong> o número abaixo é difícil de ler. Use o separador de dígitos do Dart 3.6: escreva <code>1_000_000</code>. Os <code>_</code> só ajudam quem lê; a saída não muda.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final populacao = 1000000;
+  print('Moradores: $populacao');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final populacao = 1_000_000;
+  print('Moradores: $populacao');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. A versão da <em>linguagem</em>: quem escolhe é o projeto</h2>
+<p>Aqui está uma ideia importante: o SDK instalado é o 3.13.5, mas o seu código pode estar sendo lido como <strong>Dart 3.9</strong>, ou 3.5. Cada pacote diz para qual versão da linguagem foi escrito, e o Dart respeita. Assim, um pacote antigo continua funcionando do jeito que o autor escreveu, mesmo num SDK novo.</p>
+
+<h3>No projeto: o <code>environment</code> do <code>pubspec.yaml</code></h3>
+<pre class="file" data-file="pubspec.yaml">name: loja
+environment:
+  sdk: ^3.9.0
+</pre>
+
+<dl class="anatomy">
+  <dt>environment:</dt><dd>"Ambiente": o que o projeto precisa para rodar.</dd>
+  <dt>sdk: ^3.9.0</dt><dd>"Funciona com o SDK 3.9.0 ou mais novo, até antes do 4.0.0". O <code>^</code> (acento circunflexo) quer dizer "compatível com": <code>&gt;=3.9.0 &lt;4.0.0</code>. O número mais <strong>baixo</strong> (3.9) é a versão da linguagem que vale para o código do projeto.</dd>
+</dl>
+
+<p>A Ana usou nesse projeto um recurso do Dart 3.10, o atalho com ponto (<code>.medio</code> em vez de <code>Tamanho.medio</code>):</p>
+
+<pre class="file" data-file="bin/loja.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  Tamanho cafe = .medio;
+  print('Café $cafe');
+}
+</pre>
+
+<pre class="term">$ dart pub get
+Resolving dependencies...
+Downloading packages...
+Got dependencies!
+$ dart run bin/loja.dart; echo "codigo: $?"
+bin/loja.dart:4:18: Error: This requires the experimental 'dot-shorthands' language feature to be enabled.
+Try passing the '--enable-experiment=dot-shorthands' command line option.
+  Tamanho cafe = .medio;
+                 ^
+codigo: 254
+</pre>
+
+<p>O SDK 3.13 conhece o atalho, mas o projeto disse "sou Dart 3.9", e no 3.9 ele não existia. A mensagem diz "isto exige que o recurso <em>experimental</em> <code>dot-shorthands</code> esteja ligado", e sugere a opção <code>--enable-experiment</code>. Não siga essa sugestão: o recurso não é mais experimental; ele só é novo demais para a versão que o projeto pediu. O conserto certo é subir a versão no <code>pubspec.yaml</code> e rodar <code>dart pub get</code> de novo:</p>
+
+<pre class="term">$ sed -i 's/\^3.9.0/^3.10.0/' pubspec.yaml
+$ cat pubspec.yaml
+name: loja
+environment:
+  sdk: ^3.10.0
+$ dart pub get
+Resolving dependencies...
+Downloading packages...
+Got dependencies!
+$ dart run bin/loja.dart; echo "codigo: $?"
+Café Tamanho.medio
+codigo: 0
+</pre>
+
+<p>(O <code>sed</code> trocou o texto dentro do arquivo; você pode simplesmente editar o <code>pubspec.yaml</code> no editor.) O <code>dart pub get</code> anota a versão da linguagem num arquivo interno, o <code>.dart_tool/package_config.json</code>:</p>
+
+<pre class="term">$ grep -B2 -A3 '"name": "loja"' .dart_tool/package_config.json
+  "packages": [
+    {
+      "name": "loja",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+</pre>
+<p><code>"languageVersion": "3.10"</code>: é aqui que o <code>dart run</code> consulta a versão. Por isso, depois de mudar o <code>sdk:</code>, rode sempre <code>dart pub get</code>.</p>
+
+<div class="note">
+<strong>E fora de um projeto?</strong>
+<p>Um arquivo solto, sem <code>pubspec.yaml</code> por perto, é lido na versão do próprio SDK (aqui, 3.13). Por isso o mesmo <code>.medio</code> funcionou direto num arquivo solto na pasta <code>versoes</code> da Ana. É também o caso do editor do guia.</p>
+</div>
+
+<h3>Num arquivo só: o comentário <code>// @dart=</code></h3>
+<p>Um arquivo pode pedir uma versão <strong>mais antiga</strong> que a do projeto, com um comentário especial na primeira linha:</p>
+
+<pre class="file" data-file="antigo.dart">// @dart=3.5
+void main() {
+  final populacao = 1_000_000;
+  print('Moradores: $populacao');
+}
+</pre>
+
+<pre class="term">$ dart run antigo.dart; echo "codigo: $?"
+antigo.dart:3:21: Error: This requires the experimental 'digit-separators' language feature to be enabled.
+Try passing the '--enable-experiment=digit-separators' command line option.
+  final populacao = 1_000_000;
+                    ^^^^^^^^^
+codigo: 254
+</pre>
+<p>Sem o comentário, o mesmo programa roda e mostra <code>Moradores: 1000000</code>. Com <code>// @dart=3.5</code>, o arquivo é lido como Dart 3.5, que ainda não tinha o separador de dígitos (ele chegou no 3.6). É raro precisar disso; serve para migrar um projeto grande aos poucos.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"This requires the experimental '…' language feature"</strong>
+<p>Você viu duas vezes acima: <code>dot-shorthands</code> e <code>digit-separators</code>. Quase sempre quer dizer que o recurso existe no seu SDK, mas o projeto (ou o arquivo) pediu uma versão de linguagem anterior a ele. <strong>Como consertar:</strong> confira na <a href="#versoes-3x">tabela das versões 3.x</a> quando o recurso chegou, suba o <code>sdk:</code> do <code>pubspec.yaml</code> e rode <code>dart pub get</code>. Não use <code>--enable-experiment</code> para recursos que já são estáveis.</p>
+</div>
+
+<div class="cenario">
+<strong>Pedir uma versão que o SDK ainda não tem</strong>
+<pre class="file" data-file="novo.dart">// @dart=3.14
+void main() {
+  print('oi');
+}
+</pre>
+<pre class="term">$ dart run novo.dart; echo "codigo: $?"
+novo.dart:1:1: Error: The specified language version 3.14 is too high. The highest supported language version is 3.13.
+// @dart=3.14
+^^^^^^^^^^^^^
+codigo: 254
+</pre>
+<p>"A versão de linguagem 3.14 é alta demais. A mais alta suportada é a 3.13." O SDK não conhece o futuro. O mesmo vale para um <code>pubspec.yaml</code> com <code>sdk: ^3.14.0</code>:</p>
+<pre class="term">$ dart pub get; echo "codigo: $?"
+Resolving dependencies...
+The current Dart SDK version is 3.13.5.
+
+Because loja requires SDK version ^3.14.0, version solving failed.
+codigo: 1
+</pre>
+<p>"A versão atual do SDK é 3.13.5. Como <code>loja</code> exige o SDK <code>^3.14.0</code>, a resolução de versões falhou." Acontece quando você baixa um projeto feito num Dart mais novo que o seu. <strong>Como consertar:</strong> atualize o SDK (veja <a href="instalar.html">Instalar o Dart</a>) ou baixe o número pedido.</p>
+</div>
+
+<div class="cenario">
+<strong>O tutorial antigo que "não funciona"</strong>
+<p>Um tutorial de 2019 pode ter <code>String nome = null;</code>, <code>import 'dart:html';</code> ou <code>new</code> em todo canto. O primeiro não compila no Dart 3, porque o null safety virou obrigatório:</p>
+<pre class="term">$ dart run nulo.dart; echo "codigo: $?"
+nulo.dart:2:17: Error: A value of type 'Null' can't be assigned to a variable of type 'String'.
+  String nome = null;
+                ^
+codigo: 254
+</pre>
+<p>("Um valor do tipo <code>Null</code> não pode ser guardado numa variável do tipo <code>String</code>"; o conserto é <code>String? nome</code>, veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>.) O segundo está obsoleto (veja <a href="dart-web.html">Dart na Web</a>); o terceiro funciona, mas está fora de estilo. Sempre olhe a data e a versão de um tutorial antes de copiar.</p>
+</div>
+
+<hr>
+
+<h2 id="versoes-3x">Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para</th><th>Use</th></tr>
+<tr><td>Ver a versão do SDK</td><td><code>dart --version</code></td></tr>
+<tr><td>Ver a versão de dentro do programa</td><td><code>Platform.version</code> (<code>import 'dart:io';</code>)</td></tr>
+<tr><td>Dizer a versão mínima do projeto</td><td><code>environment: sdk: ^3.10.0</code> no <code>pubspec.yaml</code>, depois <code>dart pub get</code></td></tr>
+<tr><td>Ler um arquivo como versão antiga</td><td><code>// @dart=3.5</code> na primeira linha</td></tr>
+<tr><td>Saber o que mudou</td><td><a href="https://github.com/dart-lang/sdk/blob/main/CHANGELOG.md">CHANGELOG do SDK</a>, <a href="https://dart.dev/resources/language/evolution">Language evolution</a>, <a href="novidades.html">Novidades do Dart</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. As partes do número</h3>
+<p>Na versão <code>3.13.5</code>:</p>
+<div class="ex-code">A versão maior é <input data-answer="3" aria-label="maior">, a menor é <input data-answer="13" aria-label="menor"> e a correção é <input data-answer="5" aria-label="correção">.</div>
+</div>
+
+<div class="exercise">
+<h3>2. O comando</h3>
+<p>Qual comando mostra a versão do Dart instalado?</p>
+<div class="ex-code"><input data-answer="dart --version" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>sdk: ^3.10.0</code> quer dizer no <code>pubspec.yaml</code>?</p>
+<label><input type="radio" name="q3"> Só funciona no SDK 3.10.0 exatamente</label>
+<label><input type="radio" name="q3"> Funciona em qualquer versão, inclusive a 2.19</label>
+<label><input type="radio" name="q3"> Funciona do 3.10.0 até antes do 4.0.0, e o código é lido como Dart 3.10</label>
+<label><input type="radio" name="q3"> Instala o Dart 3.10 sozinho</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O SDK é 3.13, o projeto pede <code>^3.9.0</code> e o código usa <code>.medio</code> (Dart 3.10). O que acontece?</p>
+<label><input type="radio" name="q4"> Roda normalmente, porque o SDK é 3.13</label>
+<label><input type="radio" name="q4"> Erro: <code>This requires the experimental 'dot-shorthands' language feature to be enabled.</code></label>
+<label><input type="radio" name="q4"> O Dart atualiza o <code>pubspec.yaml</code> sozinho</label>
+<label><input type="radio" name="q4"> Roda, mas mostra um aviso</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual versão tornou o null safety obrigatório e trouxe records e patterns?</p>
+<label><input type="radio" name="q5"> Dart 3.0</label>
+<label><input type="radio" name="q5"> Dart 2.0</label>
+<label><input type="radio" name="q5"> Dart 2.12</label>
+<label><input type="radio" name="q5"> Dart 3.13</label>
+</div>
+
+<h3>Missão final: o recurso do Dart 3.10</h3>
+
+<div class="trydart" data-goal="out:Café Tamanho.grande;;src:=\s*\.grande">
+<p class="try-task"><strong>Missão:</strong> o editor lê o código como a versão do próprio SDK, então os atalhos com ponto (Dart 3.10) funcionam. Troque <code>Tamanho.medio</code> pelo atalho do tamanho <strong>grande</strong>: <code>.grande</code>.</p>
+<pre class="script" data-file="main.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  Tamanho cafe = Tamanho.medio;
+  print('Café $cafe');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  Tamanho cafe = .grande;
+  print('Café $cafe');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>dart --version</code> mostra a versão do SDK, o canal (<code>stable</code>), a data e a plataforma; no programa, <code>Platform.version</code>.</li>
+  <li><code>MAIOR.MENOR.CORREÇÃO</code>: a maior quebra código antigo (raro), a menor traz recursos (a cada ~3 meses), a correção só conserta.</li>
+  <li>Marcos: 1.0 (2013), 2.0 (2018), null safety no 2.12 (2021), Dart 3.0 (2023) com null safety obrigatório, records e patterns; depois, um recurso novo a cada poucas versões (3.6 separador de dígitos, 3.10 atalhos com ponto, 3.13 construtores primários).</li>
+  <li>A <strong>versão da linguagem</strong> do projeto é a mínima do <code>sdk:</code> no <code>pubspec.yaml</code>; mudou, rode <code>dart pub get</code>. Um arquivo pode pedir uma mais antiga com <code>// @dart=X.Y</code>.</li>
+  <li><code>This requires the experimental '…' language feature</code> costuma querer dizer "versão de linguagem baixa demais", não "recurso experimental".</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
