@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart pacotes — usando o pub.dev com dart pub add | Guia Dart</title>
+<meta name="description" content="Pacotes do pub.dev para quem nunca programou: o que é um pacote, como escolher um no pub.dev, dart pub add, dart pub add --dev, versão escolhida, dart pub remove, o cache ~/.pub-cache, um exemplo real com o pacote intl (dinheiro e datas em português), e os erros reais do Dart 3.13 (import sem o pacote, pacote que não existe, nome digitado errado, pub fora do projeto).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Pacotes do pub.dev</span></h1>
+
+<p class="intro">Ninguém escreve tudo do zero. Mostrar <code>R$ 1.234,50</code> no formato brasileiro, escrever a data "sábado, 14 de março de 2026", ler um arquivo CSV, baixar uma página da internet: para cada uma dessas tarefas, alguém já escreveu e publicou um <strong>pacote</strong>. Os pacotes do Dart (e do Flutter) ficam no site <strong>pub.dev</strong>, e entram no seu projeto com um comando: <code>dart pub add</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um pacote e como escolher um no pub.dev.</li>
+  <li>Como acrescentar um pacote com <code>dart pub add</code> (e um de desenvolvimento com <code>--dev</code>), e o que o comando muda no <code>pubspec.yaml</code>.</li>
+  <li>Um exemplo de verdade: o pacote <code>intl</code>, para dinheiro, números e datas em português.</li>
+  <li>Como escolher a versão e como tirar um pacote (<code>dart pub remove</code>).</li>
+  <li>Onde os pacotes ficam guardados no computador.</li>
+  <li>Os erros reais: usar o pacote sem acrescentar, pacote que não existe, nome digitado errado e <code>dart pub</code> fora do projeto.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com internet, num projeto criado com <code>dart create cardapio</code> (veja <a href="dart-create.html">Criando um Projeto</a>). As versões dos pacotes (<code>intl 0.20.3</code>, <code>checks 0.3.2</code>…) eram as mais novas no dia; no seu computador o <code>dart pub add</code> pode escolher versões mais novas, e as linhas com <code>+</code> podem mudar.</p>
+
+<div class="warning">
+<strong>O editor do guia não baixa pacotes</strong>
+<p>O editor desta página só tem as bibliotecas que vêm com o Dart (<code>dart:core</code>, <code>dart:math</code>, <code>dart:convert</code>…). Um <code>import 'package:intl/intl.dart';</code> não funciona nele. Os exemplos com pacotes são para o terminal do seu computador; as caixas "Experimente" mostram o trabalho que o pacote poupa.</p>
+</div>
+
+<hr>
+
+<h2>A ideia: o fornecedor da padaria</h2>
+<p>A padaria da Ana não planta trigo nem cria vacas. Ela <strong>compra</strong> farinha e leite de fornecedores, e cada saco vem com marca, lote e validade. Se um fornecedor muda a receita da farinha, a padaria quer saber antes. Um pacote é esse ingrediente pronto:</p>
+<ul>
+  <li><strong>pub.dev</strong> é o "mercado atacadista": o site oficial onde os pacotes são publicados.</li>
+  <li><strong><code>dart pub add</code></strong> é fazer o pedido: o Dart escolhe uma versão, anota no <code>pubspec.yaml</code> (a lista de fornecedores, veja <a href="pubspec.html">O pubspec.yaml</a>) e baixa.</li>
+  <li>a <strong>versão</strong> é o lote: <code>^0.20.3</code> diz quais lotes servem.</li>
+</ul>
+
+<h3>Escolhendo um pacote no pub.dev</h3>
+<p>No site <code>https://pub.dev</code>, pesquise pela tarefa (por exemplo, "date format"). Na página de cada pacote, confira:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No pub.dev</th><th>O que olhar</th></tr>
+<tr><td><strong>Publisher</strong> (quem publica)</td><td>um selo verificado como <code>dart.dev</code> ou <code>google.dev</code> indica pacotes da própria equipe do Dart</td></tr>
+<tr><td><strong>Likes</strong> e <strong>downloads</strong></td><td>muita gente usando = pacote testado na prática</td></tr>
+<tr><td><strong>Pub points</strong></td><td>uma nota (de 0 a 160) que o site dá para documentação, análise do código e suporte a plataformas</td></tr>
+<tr><td>Data da última versão</td><td>pacote abandonado há anos pode não funcionar com o Dart atual</td></tr>
+<tr><td>Aba <strong>Installing</strong></td><td>o comando exato: <code>dart pub add nome</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Usar um pacote sem acrescentar: o erro</h2>
+<p>Para entender o que o <code>dart pub add</code> faz, a Ana primeiro tenta usar o <code>intl</code> sem acrescentá-lo. Ela troca o <code>bin/cardapio.dart</code> por:</p>
+
+<pre class="file" data-file="bin/cardapio.dart">import 'package:intl/intl.dart';
+
+void main() {
+  final real = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  print(real.format(1234.5));
+}
+</pre>
+
+<pre class="term">$ dart run
+Failed to build cardapio:cardapio:
+Error: Couldn't resolve the package 'intl' in 'package:intl/intl.dart'.
+bin/cardapio.dart:1:8: Error: Not found: 'package:intl/intl.dart'
+import 'package:intl/intl.dart';
+       ^
+bin/cardapio.dart:4:16: Error: Undefined name 'NumberFormat'.
+  final real = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+               ^^^^^^^^^^^^
+$ echo $?
+255
+</pre>
+
+<ul>
+  <li><code>Failed to build cardapio:cardapio:</code> — "falhou ao montar o programa <code>cardapio</code> do pacote <code>cardapio</code>".</li>
+  <li><code>Couldn't resolve the package 'intl'</code> — "não consegui encontrar o pacote <code>intl</code>": ele não está no <code>pubspec.yaml</code>, então o Dart não sabe onde procurar.</li>
+  <li><code>Undefined name 'NumberFormat'</code> — consequência: sem o pacote, a classe <code>NumberFormat</code> não existe.</li>
+</ul>
+
+<hr>
+
+<h2>2. <code>dart pub add</code></h2>
+
+<pre class="term">$ dart pub add intl
+Resolving dependencies...
+Downloading packages...
++ clock 1.1.3
++ intl 0.20.3
+Changed 2 dependencies!
+$ echo $?
+0
+$ grep -A3 '^dependencies' pubspec.yaml
+dependencies:
+  intl: ^0.20.3
+  path: ^1.9.0
+
+</pre>
+
+<ul>
+  <li><code>Resolving dependencies...</code> — escolhendo a versão mais nova do <code>intl</code> que combina com o seu Dart e com os outros pacotes.</li>
+  <li><code>+ intl 0.20.3</code> — o <code>+</code> quer dizer "entrou no projeto". Entrou também o <code>clock</code>, porque o <code>intl</code> depende dele (uma dependência <strong>transitiva</strong>).</li>
+  <li>O <code>grep</code> mostra que o comando escreveu <code>intl: ^0.20.3</code> em <code>dependencies</code>, em ordem alfabética. Você não precisou editar nada.</li>
+</ul>
+
+<p>Agora o mesmo programa funciona:</p>
+
+<pre class="term">$ dart run
+R$ 1.234,50
+</pre>
+
+<p><code>NumberFormat.currency</code> ("formato de número: moeda") com <code>locale: 'pt_BR'</code> ("regras do Brasil") pôs o ponto no milhar, a vírgula nos centavos e as duas casas.</p>
+
+<hr>
+
+<h2>3. O <code>intl</code> na padaria</h2>
+
+<pre class="file" data-file="bin/cardapio.dart">import 'package:intl/intl.dart';
+
+void main() {
+  final real = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final cardapio = {'pão de queijo': 4.5, 'café com leite': 7.0, 'bolo inteiro': 58.9};
+  cardapio.forEach((item, preco) {
+    print('${item.padRight(15)} ${real.format(preco)}');
+  });
+  final milhar = NumberFormat.decimalPattern('pt_BR');
+  print('Pães vendidos no ano: ${milhar.format(48250)}');
+}
+</pre>
+
+<pre class="term">$ dart run
+pão de queijo   R$ 4,50
+café com leite  R$ 7,00
+bolo inteiro    R$ 58,90
+Pães vendidos no ano: 48.250
+</pre>
+
+<p><code>padRight(15)</code> (do próprio Dart, veja <a href="strings-metodos.html">Métodos de String</a>) completa o nome com espaços para alinhar a coluna. <code>NumberFormat.decimalPattern('pt_BR')</code> formata números comuns com o ponto do milhar.</p>
+
+<h3>Datas em português</h3>
+<p>Para nomes de dias e meses em português, o <code>intl</code> precisa carregar os dados do idioma antes, com <code>initializeDateFormatting</code>, que vem de outro arquivo do mesmo pacote:</p>
+
+<pre class="file" data-file="bin/data.dart">import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+
+Future&lt;void&gt; main() async {
+  await initializeDateFormatting('pt_BR');
+  final inauguracao = DateTime(2026, 3, 14);
+  print(DateFormat('EEEE, d \'de\' MMMM \'de\' y', 'pt_BR').format(inauguracao));
+  print(DateFormat('dd/MM/yyyy', 'pt_BR').format(inauguracao));
+}
+</pre>
+
+<pre class="term">$ dart run bin/data.dart
+sábado, 14 de março de 2026
+14/03/2026
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'package:intl/date_symbol_data_local.dart';</dt><dd>Um pacote pode ter vários arquivos; este traz os nomes dos dias e meses de cada idioma.</dd>
+  <dt>await initializeDateFormatting('pt_BR');</dt><dd>Carrega os dados do português do Brasil. Devolve um <a href="future.html">Future</a>, por isso o <code>await</code> e o <code>main</code> <code>async</code>.</dd>
+  <dt>'EEEE, d \'de\' MMMM \'de\' y'</dt><dd>O "molde" da data: <code>EEEE</code> = dia da semana por extenso, <code>d</code> = dia, <code>MMMM</code> = mês por extenso, <code>y</code> = ano. O texto fixo (<code>de</code>) vai entre aspas simples, escapadas com <code>\'</code> dentro da <code>String</code> do Dart.</dd>
+  <dt>'dd/MM/yyyy'</dt><dd>O formato brasileiro curto, com dois dígitos no dia e no mês.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:R$ 1234,50;;out:R$ 4,50;;src:replaceAll">
+<p class="try-task"><strong>Missão:</strong> no editor não há <code>intl</code>. Faça um formatador simples à mão: na função <code>emReais</code>, troque o ponto por vírgula no texto com <code>.replaceAll('.', ',')</code>. (Ele não põe o ponto do milhar, e é aí que o pacote faz falta.)</p>
+<pre class="script" data-file="main.dart">String emReais(double valor) {
+  final texto = valor.toStringAsFixed(2);
+  return 'R\$ $texto';
+}
+
+void main() {
+  print(emReais(1234.5));
+  print(emReais(4.5));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String emReais(double valor) {
+  final texto = valor.toStringAsFixed(2).replaceAll('.', ',');
+  return 'R\$ $texto';
+}
+
+void main() {
+  print(emReais(1234.5));
+  print(emReais(4.5));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Pacotes de desenvolvimento: <code>--dev</code></h2>
+<p>Pacotes que só servem para quem <strong>escreve</strong> o programa (testes, verificadores) vão para <code>dev_dependencies</code>. Basta o <code>--dev</code>. Aqui, o <code>checks</code>, da equipe do Dart, que ajuda a escrever testes:</p>
+
+<pre class="term">$ dart pub add --dev checks
+Resolving dependencies...
+Downloading packages...
++ checks 0.3.2
+Changed 1 dependency!
+$ grep -A4 "^dev_dependencies" pubspec.yaml
+dev_dependencies:
+  checks: ^0.3.2
+  lints: ^6.0.0
+  test: ^1.33.0
+</pre>
+
+<h3>Escolhendo a versão</h3>
+<p>Sem versão, o <code>pub add</code> escolhe a mais nova possível. Para pedir uma restrição sua, escreva <code>nome:restrição</code> (com aspas, para o terminal não estranhar o <code>^</code>):</p>
+
+<pre class="term">$ dart pub add 'collection:^1.19.0'
+Resolving dependencies...
+Downloading packages...
+  collection 1.19.1 (from transitive dependency to direct dependency)
+Changed 1 dependency!
+$ grep -A4 '^dependencies' pubspec.yaml
+dependencies:
+  collection: ^1.19.0
+  intl: ^0.20.3
+  path: ^1.9.0
+
+</pre>
+<p>Desta vez não houve <code>+</code>: o <code>collection</code> já estava baixado como dependência de outro pacote. A linha diz que ele passou "de dependência transitiva para direta": agora o projeto pede por ele com o próprio nome.</p>
+
+<h3>Tirando um pacote: <code>dart pub remove</code></h3>
+<pre class="term">$ dart pub remove collection
+Resolving dependencies...
+Downloading packages...
+  collection 1.19.1 (from direct dependency to transitive dependency)
+Changed 1 dependency!
+$ dart pub remove checks
+Resolving dependencies...
+Downloading packages...
+These packages are no longer being depended on:
+- checks 0.3.2
+Changed 1 dependency!
+</pre>
+<p>O <code>remove</code> apaga a linha do <code>pubspec.yaml</code>. O <code>collection</code> continua baixado (outro pacote precisa dele); o <code>checks</code> saiu de vez: "estes pacotes não são mais usados".</p>
+
+<hr>
+
+<h2>5. Onde os pacotes ficam</h2>
+<p>Os pacotes baixados não ficam dentro do projeto: ficam num <strong>cache</strong> ("depósito") na pasta pessoal, <code>~/.pub-cache</code>, e são usados por todos os projetos do computador. Por isso o segundo <code>dart create</code> é bem mais rápido que o primeiro.</p>
+
+<pre class="term">$ ls ~/.pub-cache/hosted/pub.dev | grep -E '^(intl|path|test)-'
+intl-0.20.3
+path-1.9.1
+test-1.33.0
+</pre>
+
+<p>Cada versão fica numa pasta própria (<code>intl-0.20.3</code>). O <code>pubspec.lock</code> do projeto diz qual delas usar (veja <a href="pubspec.html">O pubspec.yaml</a>).</p>
+
+<hr>
+
+<h2 id="formas">Biblioteca do Dart ou pacote?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Como se importa</th><th>Precisa de <code>pub add</code>?</th><th>Exemplos</th></tr>
+<tr><td>biblioteca do Dart</td><td><code>import 'dart:…';</code></td><td>não: vem com o Dart</td><td><code>dart:io</code>, <code>dart:convert</code>, <code>dart:math</code>, <code>dart:async</code></td></tr>
+<tr><td>pacote do pub.dev</td><td><code>import 'package:nome/arquivo.dart';</code></td><td>sim</td><td><code>intl</code>, <code>http</code>, <code>args</code>, <code>collection</code></td></tr>
+<tr><td>o seu próprio projeto</td><td><code>import 'package:seu_projeto/arquivo.dart';</code></td><td>não</td><td>os arquivos de <code>lib/</code></td></tr>
+</table>
+</div>
+<p>Antes de procurar um pacote, veja se o Dart já não faz a tarefa. E prefira pacotes populares e mantidos: cada pacote é código de outra pessoa rodando no seu programa.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o pacote sem acrescentá-lo</strong>
+<p>É o erro da seção 1: <code>Couldn't resolve the package 'intl' in 'package:intl/intl.dart'</code>. <strong>Como consertar:</strong> <code>dart pub add intl</code> dentro da pasta do projeto.</p>
+</div>
+
+<div class="cenario">
+<strong>Pacote que não existe (ou nome digitado errado)</strong>
+<pre class="term">$ dart pub add itnl
+Because cardapio depends on itnl any which doesn't exist (could not find package itnl at https://pub.dev), version solving failed.
+$ echo $?
+65
+</pre>
+<p>"Como <code>cardapio</code> depende de <code>itnl</code> (qualquer versão), que não existe (não encontrei o pacote <code>itnl</code> em https://pub.dev), a resolução de versões falhou." A Ana trocou as letras de <code>intl</code>. O <code>pubspec.yaml</code> não foi alterado. <strong>Como consertar:</strong> copie o nome exato da página do pacote no pub.dev.</p>
+</div>
+
+<div class="cenario">
+<strong><code>dart pub add</code> fora da pasta do projeto</strong>
+<pre class="term">$ cd ..
+$ dart pub add intl
+Found no `pubspec.yaml` file in `/home/ana` or parent directories
+$ echo $?
+66
+</pre>
+<p>"Não encontrei nenhum <code>pubspec.yaml</code> em <code>/home/ana</code> nem nas pastas acima." Pacotes pertencem a um <strong>projeto</strong>; um arquivo <code>.dart</code> solto não tem onde anotá-los. <strong>Como consertar:</strong> entre na pasta do projeto (<code>cd cardapio</code>) ou crie um com <code>dart create</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pacote que já estava lá</strong>
+<pre class="term">$ dart pub add --dev test
+"test" is already in "dev_dependencies". Will try to update the constraint.
+Resolving dependencies...
+Downloading packages...
+Got dependencies!
+</pre>
+<p>Não é erro: "<code>test</code> já está em <code>dev_dependencies</code>. Vou tentar atualizar a restrição." O <code>dart create</code> já tinha posto o <code>test</code>; o comando só ajustou a restrição para a versão mais nova (no lab, <code>^1.25.6</code> virou <code>^1.33.0</code>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart pub add nome</code></td><td>acrescenta em <code>dependencies</code> e baixa</td></tr>
+<tr><td><code>dart pub add --dev nome</code></td><td>acrescenta em <code>dev_dependencies</code></td></tr>
+<tr><td><code>dart pub add 'nome:^1.2.0'</code></td><td>acrescenta com a restrição escolhida</td></tr>
+<tr><td><code>dart pub remove nome</code></td><td>tira do <code>pubspec.yaml</code></td></tr>
+<tr><td><code>dart pub get</code></td><td>baixa o que o <code>pubspec.yaml</code> pede (depois de editar à mão)</td></tr>
+<tr><td><code>dart pub upgrade</code></td><td>atualiza para as versões mais novas que cabem nas restrições</td></tr>
+<tr><td><code>dart pub outdated</code></td><td>mostra quais pacotes têm versão mais nova</td></tr>
+<tr><td><code>import 'package:nome/nome.dart';</code></td><td>usa o pacote no código</td></tr>
+<tr><td><code>~/.pub-cache</code></td><td>onde os pacotes baixados ficam</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete os comandos</h3>
+<div class="ex-code">dart pub <input data-answer="add" aria-label="subcomando para acrescentar"> intl<br>dart pub add <input data-answer="--dev" aria-label="opção de desenvolvimento"> checks<br>dart pub <input data-answer="remove" aria-label="subcomando para tirar"> checks</div>
+</div>
+
+<div class="exercise">
+<h3>2. O import</h3>
+<p>Depois de <code>dart pub add intl</code>, como se importa o arquivo principal do pacote?</p>
+<div class="ex-code">import '<input data-answer="package:intl/intl.dart" aria-label="caminho do import">';</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Na saída do <code>dart pub add intl</code> apareceu <code>+ clock 1.1.3</code>. Por quê?</p>
+<label><input type="radio" name="q3"> O comando instala sempre o <code>clock</code></label>
+<label><input type="radio" name="q3"> O <code>intl</code> depende do <code>clock</code>, que entrou como dependência transitiva</label>
+<label><input type="radio" name="q3"> Foi um erro do pub</label>
+<label><input type="radio" name="q3"> O <code>clock</code> foi removido</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destes <strong>não</strong> precisa de <code>dart pub add</code>?</p>
+<label><input type="radio" name="q4"> <code>package:intl/intl.dart</code></label>
+<label><input type="radio" name="q4"> <code>package:http/http.dart</code></label>
+<label><input type="radio" name="q4"> <code>package:args/args.dart</code></label>
+<label><input type="radio" name="q4"> <code>dart:convert</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>dart pub add itnl</code> respondeu <code>could not find package itnl at https://pub.dev</code>. O que houve?</p>
+<label><input type="radio" name="q5"> O nome do pacote está errado (não existe no pub.dev)</label>
+<label><input type="radio" name="q5"> Faltou o <code>--dev</code></label>
+<label><input type="radio" name="q5"> O Dart está desatualizado</label>
+<label><input type="radio" name="q5"> Faltou o <code>import</code></label>
+</div>
+
+<h3>Missão final: a lista com total</h3>
+
+<div class="trydart" data-goal="out:Total: R$ 70,40;;src:fold|for">
+<p class="try-task"><strong>Missão:</strong> some os preços do cardápio (com <code>for</code> ou <code>fold</code>) e mostre <code>Total: R$ 70,40</code> usando o formatador <code>emReais</code>. Num projeto, você usaria o <code>NumberFormat</code> do <code>intl</code>; aqui, o formatador feito à mão.</p>
+<pre class="script" data-file="main.dart">String emReais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+
+void main() {
+  final cardapio = {'pão de queijo': 4.5, 'café com leite': 7.0, 'bolo inteiro': 58.9};
+  var total = 0.0;
+  // some os preços aqui
+
+  print('Total: ${emReais(total)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String emReais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+
+void main() {
+  final cardapio = {'pão de queijo': 4.5, 'café com leite': 7.0, 'bolo inteiro': 58.9};
+  var total = 0.0;
+  for (final preco in cardapio.values) {
+    total += preco;
+  }
+  print('Total: ${emReais(total)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Pacotes são código pronto publicado no <strong>pub.dev</strong>. Escolha pelos selos, likes, pontos e data da última versão.</li>
+  <li><code>dart pub add nome</code> (dentro do projeto) escolhe a versão, escreve no <code>pubspec.yaml</code> e baixa; <code>--dev</code> põe em <code>dev_dependencies</code>; <code>dart pub remove</code> tira.</li>
+  <li>No código: <code>import 'package:nome/arquivo.dart';</code>. Sem o <code>pub add</code>, o erro é <code>Couldn't resolve the package</code>.</li>
+  <li>Os pacotes ficam em <code>~/.pub-cache</code>, compartilhados entre projetos.</li>
+  <li>O <code>intl</code> formata dinheiro, números e datas em português (<code>R$ 1.234,50</code>, <code>sábado, 14 de março de 2026</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
