@@ -1,0 +1,592 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto Dart: Jogo de Adivinhação — passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto Dart para iniciantes: o jogo de adivinhação, construído em 5 versões. Ler o palpite com stdin.readLineSync, comparar com if, repetir com while, contar tentativas, sortear com Random (e a semente para testar), validar com int.tryParse e limitar as tentativas. Sessões reais no terminal do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Jogo de Adivinhação</span></h1>
+
+<p class="intro">Hora de juntar o que você aprendeu num programa de verdade: o clássico <strong>jogo de adivinhação</strong>. O computador pensa num número de 1 a 100; você chuta; ele responde "é maior" ou "é menor", até você acertar. Parece simples, e é por isso que é o primeiro projeto de tanta gente: usa leitura do teclado, comparações, laço, contador, números aleatórios e tratamento de entrada inválida. Vamos construir em <strong>cinco versões</strong>, cada uma com uma novidade, testando a cada passo.</p>
+
+<div class="note">
+<strong>Você vai usar</strong>
+<ul>
+  <li><code>stdin.readLineSync()</code> e <code>stdout.write</code> (aula <a href="stdin.html">Lendo o Teclado</a>).</li>
+  <li><code>int.parse</code> e <code>int.tryParse</code> (aula <a href="conversao.html">Conversão de Tipos</a>).</li>
+  <li><code>if</code>/<code>else if</code>, <code>while</code>, <code>continue</code> e <code>return</code> (aulas <a href="if-else.html">if e else</a>, <a href="while.html">while</a>, <a href="break-continue.html">break e continue</a>).</li>
+  <li><code>Random</code> da biblioteca <code>dart:math</code>, com e sem semente.</li>
+</ul>
+</div>
+
+<p>Todas as sessões abaixo rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>adivinha</code>, com o texto digitado por ela aparecendo depois das perguntas. No editor do guia, o que você "digitaria" vem do campo de entrada da caixa (ou é pedido na hora).</p>
+
+<hr>
+
+<h2>O plano</h2>
+<ol class="passo">
+  <li><strong>Versão 1:</strong> um número secreto fixo e <strong>um</strong> palpite.</li>
+  <li><strong>Versão 2:</strong> repetir até acertar (<code>while</code>), com as dicas.</li>
+  <li><strong>Versão 3:</strong> contar as tentativas.</li>
+  <li><strong>Versão 4:</strong> sortear o número de verdade (<code>Random</code>), e a semente para testar.</li>
+  <li><strong>Versão 5:</strong> aguentar entrada errada e limitar as tentativas.</li>
+</ol>
+<p>Construir aos poucos é o jeito profissional: cada versão roda, e se algo quebrar você sabe que foi a última mudança.</p>
+
+<hr>
+
+<h2>Versão 1: um palpite só</h2>
+<p>Primeiro, o esqueleto: o número secreto é fixo (42), o programa lê um palpite e compara.</p>
+
+<pre class="file" data-file="adivinha1.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  stdout.write('Adivinhe o número (1 a 100): ');
+  final palpite = int.parse(stdin.readLineSync()!);
+  if (palpite == segredo) {
+    print('Acertou!');
+  } else if (palpite &lt; segredo) {
+    print('Errou: o número é maior que $palpite.');
+  } else {
+    print('Errou: o número é menor que $palpite.');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:io';</dt><dd>A biblioteca de entrada e saída: dá o <code>stdin</code> (teclado) e o <code>stdout</code> (tela).</dd>
+  <dt>const segredo = 42;</dt><dd>O número a adivinhar. <code>const</code> porque é fixo nesta versão.</dd>
+  <dt>stdout.write('…')</dt><dd>Escreve a pergunta <strong>sem</strong> pular linha, para a resposta aparecer do lado.</dd>
+  <dt>stdin.readLineSync()!</dt><dd>Lê uma linha digitada. Devolve <code>String?</code> (pode ser <code>null</code> se a entrada acabar); o <code>!</code> diz "confie, não é nulo". Na versão 5 vamos fazer melhor.</dd>
+  <dt>int.parse(…)</dt><dd>Transforma o texto <code>'30'</code> no número <code>30</code>, para poder comparar com <code>&lt;</code>.</dd>
+  <dt>if / else if / else</dt><dd>Três caminhos: acertou, o segredo é maior, o segredo é menor.</dd>
+</dl>
+
+<pre class="term">$ dart run adivinha1.dart
+Adivinhe o número (1 a 100): 30
+Errou: o número é maior que 30.
+$ dart run adivinha1.dart
+Adivinhe o número (1 a 100): 42
+Acertou!
+</pre>
+
+<div class="trydart" data-stdin="7" data-goal="out:Acertou!;;src:segredo = 7">
+<p class="try-task"><strong>Missão:</strong> o palpite que vai ser "digitado" é <code>7</code>. Troque o número secreto para 7 e rode: tem de aparecer <code>Acertou!</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  stdout.write('Adivinhe o número (1 a 100): ');
+  final palpite = int.parse(stdin.readLineSync()!);
+  if (palpite == segredo) {
+    print('Acertou!');
+  } else if (palpite &lt; segredo) {
+    print('Errou: o número é maior que $palpite.');
+  } else {
+    print('Errou: o número é menor que $palpite.');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  const segredo = 7;
+  stdout.write('Adivinhe o número (1 a 100): ');
+  final palpite = int.parse(stdin.readLineSync()!);
+  if (palpite == segredo) {
+    print('Acertou!');
+  } else if (palpite &lt; segredo) {
+    print('Errou: o número é maior que $palpite.');
+  } else {
+    print('Errou: o número é menor que $palpite.');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 2: repetir até acertar</h2>
+<p>Um palpite só não é jogo. Queremos repetir <strong>enquanto</strong> o palpite for diferente do segredo: é o <code>while</code>.</p>
+
+<pre class="file" data-file="adivinha2.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  var palpite = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou! Era $segredo.');
+}
+</pre>
+
+<p>O que mudou:</p>
+<ul>
+  <li><code>var palpite = 0;</code> agora é <code>var</code> (muda a cada volta) e começa com 0, um valor que com certeza <strong>não</strong> é o segredo, para o laço entrar na primeira vez.</li>
+  <li><code>while (palpite != segredo)</code>: "enquanto o palpite for diferente do segredo". O <code>!=</code> é "diferente".</li>
+  <li>Dentro do laço, só as dicas. O "Acertou!" saiu para <strong>depois</strong> do laço: se o programa chegou lá, é porque acertou.</li>
+</ul>
+
+<pre class="term">$ dart run adivinha2.dart
+Seu palpite: 50
+É menor!
+Seu palpite: 25
+É maior!
+Seu palpite: 37
+É maior!
+Seu palpite: 43
+É menor!
+Seu palpite: 40
+É maior!
+Seu palpite: 42
+Acertou! Era 42.
+</pre>
+
+<div class="tip">
+<strong>A estratégia de quem joga bem</strong>
+<p>Repare nos palpites: 50 (o meio de 1 a 100), depois 25 (o meio do que sobrou)… Chutar sempre no meio corta as possibilidades pela metade a cada vez. Com essa estratégia, 7 palpites bastam para qualquer número de 1 a 100 (porque 2<sup>7</sup> = 128 &gt; 100). Esse é o número de tentativas da versão 5.</p>
+</div>
+
+<hr>
+
+<h2>Versão 3: contando as tentativas</h2>
+<p>Um placar deixa o jogo mais divertido. Basta uma variável <strong>contadora</strong>, criada antes do laço e aumentada a cada palpite:</p>
+
+<pre class="file" data-file="adivinha3.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  var palpite = 0;
+  var tentativas = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou em $tentativas tentativas!');
+}
+</pre>
+
+<pre class="term">$ dart run adivinha3.dart
+Seu palpite: 50
+É menor!
+Seu palpite: 25
+É maior!
+Seu palpite: 42
+Acertou em 3 tentativas!
+</pre>
+
+<div class="trydart" data-stdin="50\n25\n42" data-goal="out:Acertou em 3 tentativas!;;src:tentativas\+\+|tentativas \+= 1|tentativas = tentativas \+ 1">
+<p class="try-task"><strong>Missão:</strong> este é o código da versão 2. Acrescente o contador de tentativas, como na versão 3, para terminar com <code>Acertou em 3 tentativas!</code> (os palpites "digitados" são 50, 25 e 42).</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  var palpite = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou! Era $segredo.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  var palpite = 0;
+  var tentativas = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou em $tentativas tentativas!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 4: o número sorteado</h2>
+<p>Com o segredo sempre 42, o jogo perde a graça na segunda partida. A biblioteca <code>dart:math</code> tem a classe <code>Random</code> ("aleatório"), que sorteia números:</p>
+
+<pre class="file" data-file="sorteio.dart">import 'dart:math';
+
+void main() {
+  final dado = Random();
+  print('Sem semente: ${dado.nextInt(100) + 1}, ${dado.nextInt(100) + 1}, ${dado.nextInt(100) + 1}');
+  final fixo = Random(42);
+  print('Semente 42: ${fixo.nextInt(100) + 1}, ${fixo.nextInt(100) + 1}, ${fixo.nextInt(100) + 1}');
+}
+</pre>
+
+<pre class="term">$ dart run sorteio.dart
+Sem semente: 58, 56, 59
+Semente 42: 88, 59, 5
+$ dart run sorteio.dart
+Sem semente: 4, 40, 45
+Semente 42: 88, 59, 5
+</pre>
+
+<dl class="anatomy">
+  <dt>Random()</dt><dd>Um sorteador. Cada vez que o programa roda, sai uma sequência diferente (58, 56, 59 na primeira vez; 4, 40, 45 na segunda).</dd>
+  <dt>.nextInt(100)</dt><dd>"Próximo inteiro" de 0 até 99 (o 100 <strong>não</strong> entra). Por isso o <code>+ 1</code>: assim vai de 1 a 100.</dd>
+  <dt>Random(42)</dt><dd>Um sorteador com <strong>semente</strong> (<em>seed</em>) 42. A semente decide a sequência: com a mesma semente, sai sempre a mesma (88, 59, 5 nas duas vezes). Parece inútil num jogo, mas é ótimo para <strong>testar</strong>: você sabe qual vai ser o segredo.</dd>
+</dl>
+
+<p>No jogo, troque o <code>const segredo = 42</code> por um sorteio (e <code>const</code> vira <code>final</code>, porque o valor só é conhecido quando o programa roda):</p>
+
+<pre class="file" data-file="adivinha4.dart">import 'dart:io';
+import 'dart:math';
+
+void main() {
+  final segredo = Random().nextInt(100) + 1;
+  var palpite = 0;
+  var tentativas = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou em $tentativas tentativas! Era $segredo.');
+}
+</pre>
+
+<p>Para conferir que tudo funciona, a Ana fez uma cópia de teste, <code>adivinha4_teste.dart</code>, com <code>Random(42)</code>. Ela já sabe que o primeiro sorteio dessa semente é 88:</p>
+
+<pre class="term">$ dart run adivinha4_teste.dart
+Seu palpite: 50
+É maior!
+Seu palpite: 75
+É maior!
+Seu palpite: 88
+Acertou em 3 tentativas! Era 88.
+</pre>
+
+<div class="warning">
+<strong>A semente é para testar, não para jogar</strong>
+<p>Com <code>Random(42)</code>, o segredo é <strong>sempre</strong> 88: quem jogar duas vezes descobre. Na versão de verdade, use <code>Random()</code> sem semente. E use a semente só para ter repetição durante o teste: não escreva programas cuja lógica dependa de "a semente 42 dá 88".</p>
+</div>
+
+<div class="trydart" data-stdin="1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\n32\n33\n34\n35\n36\n37\n38\n39\n40\n41\n42\n43\n44\n45\n46\n47\n48\n49\n50\n51\n52\n53\n54\n55\n56\n57\n58\n59\n60\n61\n62\n63\n64\n65\n66\n67\n68\n69\n70\n71\n72\n73\n74\n75\n76\n77\n78\n79\n80\n81\n82\n83\n84\n85\n86\n87\n88\n89\n90\n91\n92\n93\n94\n95\n96\n97\n98\n99\n100" data-goal="out:Acertou em;;src:Random\(;;src:nextInt\(100\)">
+<p class="try-task"><strong>Missão:</strong> troque o segredo fixo por um sorteio de 1 a 100 com <code>Random</code> (não esqueça o <code>import 'dart:math';</code>). Para testar, o editor "digita" 1, 2, 3… até 100, então o programa sempre acaba acertando: veja em quantas tentativas, e rode de novo para ver o número mudar.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  const segredo = 42;
+  var palpite = 0;
+  var tentativas = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou em $tentativas tentativas! Era $segredo.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+import 'dart:math';
+
+void main() {
+  final segredo = Random().nextInt(100) + 1;
+  var palpite = 0;
+  var tentativas = 0;
+  while (palpite != segredo) {
+    stdout.write('Seu palpite: ');
+    palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite &lt; segredo) {
+      print('É maior!');
+    } else if (palpite &gt; segredo) {
+      print('É menor!');
+    }
+  }
+  print('Acertou em $tentativas tentativas! Era $segredo.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado: o jogador que não digita número</h2>
+<p>As versões 1 a 4 confiam demais no jogador. Veja o que acontece com a versão 3 quando alguém digita <code>abc</code>:</p>
+
+<pre class="term">$ printf "abc\n" | dart run adivinha3.dart; echo "codigo: $?"
+Seu palpite: Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+abc
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/adivinha/adivinha3.dart:9:19)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+
+<p>(O <code>printf "abc\n" |</code> "digita" <code>abc</code> pelo programa; por isso a resposta não aparece na tela.) Linha por linha:</p>
+<ul>
+  <li><code>Unhandled exception:</code>: "exceção não tratada", o programa quebrou no meio.</li>
+  <li><code>FormatException: Invalid radix-10 number (at character 1)</code>: "erro de formato: número na base 10 inválido, no caractere 1". O <code>int.parse</code> não sabe transformar <code>abc</code> em número; a linha seguinte mostra o texto e o <code>^</code> embaixo do primeiro caractere problemático.</li>
+  <li><code>#0</code> a <code>#3</code>: o caminho por dentro do <code>int.parse</code> (código do próprio Dart).</li>
+  <li><code>#4 main (file:///home/ana/adivinha/adivinha3.dart:9:19)</code>: <strong>a linha que interessa</strong>, a do <strong>seu</strong> arquivo: linha 9, coluna 19, o <code>int.parse</code>.</li>
+  <li><code>codigo: 255</code>: o código de saída de uma exceção não tratada.</li>
+</ul>
+
+<p>E se a entrada acabar (o jogador aperta <kbd>Ctrl</kbd>+<kbd>D</kbd>, ou não há mais nada para ler)? O <code>readLineSync()</code> devolve <code>null</code>, e o <code>!</code> explode:</p>
+
+<pre class="term">$ dart run adivinha3.dart &lt; /dev/null; echo "codigo: $?"
+Seu palpite: Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/adivinha/adivinha3.dart:9:45)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>"O operador de checagem de nulo (<code>!</code>) foi usado num valor nulo", linha 9, coluna 45: exatamente o <code>!</code> depois do <code>readLineSync()</code>. (O <code>&lt; /dev/null</code> dá ao programa uma entrada vazia.) Veja <a href="late.html">late e o Operador !</a>.</p>
+
+<hr>
+
+<h2>Versão 5: à prova de erros, com limite</h2>
+<p>A versão final conserta os dois problemas e acrescenta um limite de 7 tentativas:</p>
+
+<pre class="file" data-file="adivinha5.dart">import 'dart:io';
+import 'dart:math';
+
+const maxTentativas = 7;
+
+void main() {
+  final segredo = Random().nextInt(100) + 1;
+  print('Pensei num número de 1 a 100. Você tem $maxTentativas tentativas.');
+  var tentativas = 0;
+  while (tentativas &lt; maxTentativas) {
+    stdout.write('Tentativa ${tentativas + 1}: ');
+    final texto = stdin.readLineSync();
+    if (texto == null) {
+      print('\nTchau!');
+      return;
+    }
+    final palpite = int.tryParse(texto.trim());
+    if (palpite == null || palpite &lt; 1 || palpite &gt; 100) {
+      print('Digite um número inteiro de 1 a 100.');
+      continue;
+    }
+    tentativas++;
+    if (palpite == segredo) {
+      print('Acertou em $tentativas tentativas!');
+      return;
+    }
+    print(palpite &lt; segredo ? 'É maior!' : 'É menor!');
+  }
+  print('Acabaram as tentativas. Era $segredo.');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>const maxTentativas = 7;</dt><dd>O limite, numa constante com nome (fora do <code>main</code>). Para mudar a dificuldade, muda-se num lugar só.</dd>
+  <dt>while (tentativas &lt; maxTentativas)</dt><dd>Agora o laço para por <strong>dois</strong> motivos: acabaram as tentativas (a condição fica falsa) ou o jogador acertou (o <code>return</code>).</dd>
+  <dt>if (texto == null) { … return; }</dt><dd>Se a entrada acabou, despede-se e sai do <code>main</code>, sem <code>!</code> e sem exceção. Depois desse <code>if</code>, o Dart sabe que <code>texto</code> não é nulo.</dd>
+  <dt>int.tryParse(texto.trim())</dt><dd>"Tenta converter": devolve o número, ou <code>null</code> se o texto não for número, <strong>sem</strong> exceção. O <code>trim()</code> tira espaços das pontas (<code>' 50 '</code> vira <code>'50'</code>).</dd>
+  <dt>palpite == null || palpite &lt; 1 || palpite &gt; 100</dt><dd>Inválido se não for número <strong>ou</strong> estiver fora de 1 a 100.</dd>
+  <dt>continue;</dt><dd>Volta para o começo do laço <strong>sem</strong> contar a tentativa: o jogador não perde a vez por digitar errado.</dd>
+  <dt>palpite &lt; segredo ? 'É maior!' : 'É menor!'</dt><dd>O <a href="ternario.html">operador ternário</a>: escolhe uma das duas dicas.</dd>
+</dl>
+
+<p>Uma partida em que a Ana testou de tudo: um texto, um número fora da faixa, uma linha vazia (só <kbd>Enter</kbd>) e, de propósito, chutes ignorando as dicas, para ver o fim das tentativas:</p>
+
+<pre class="term">$ dart run adivinha5.dart
+Pensei num número de 1 a 100. Você tem 7 tentativas.
+Tentativa 1: 50
+É maior!
+Tentativa 2: abc
+Digite um número inteiro de 1 a 100.
+Tentativa 2: 150
+Digite um número inteiro de 1 a 100.
+Tentativa 2:
+Digite um número inteiro de 1 a 100.
+Tentativa 2: 25
+É maior!
+Tentativa 3: 12
+É maior!
+Tentativa 4: 6
+É maior!
+Tentativa 5: 3
+É maior!
+Tentativa 6: 2
+É maior!
+Tentativa 7: 1
+É maior!
+Acabaram as tentativas. Era 62.
+</pre>
+
+<p>Repare: as entradas inválidas não gastaram tentativa (continuou "Tentativa 2"), e o programa terminou normalmente, mostrando o segredo sorteado nessa partida (62).</p>
+
+<hr>
+
+<h2>Ideias para continuar</h2>
+<ul>
+  <li>Perguntar "Jogar de novo? (s/n)" no fim e repetir tudo com outro <code>while</code> por fora.</li>
+  <li>Níveis: fácil (1 a 50, 10 tentativas), difícil (1 a 1000, 10 tentativas).</li>
+  <li>Guardar o recorde (menor número de tentativas) num arquivo (aula <a href="arquivos.html">Lendo e Escrevendo Arquivos</a>).</li>
+  <li>Transformar a comparação numa função <code>String dica(int palpite, int segredo)</code> e testá-la com <code>package:test</code> (aula <a href="testes.html">Testes</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A faixa do sorteio</h3>
+<p>Complete para sortear um número de 1 a 6, como um dado:</p>
+<div class="ex-code">final dado = Random().nextInt(<input data-answer="6" aria-label="limite"> ) + <input data-answer="1" aria-label="deslocamento">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Converter sem quebrar</h3>
+<p>Qual método converte texto em <code>int</code> devolvendo <code>null</code> (em vez de exceção) quando o texto não é número?</p>
+<div class="ex-code">int.<input data-answer="tryParse" aria-label="método"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que a versão 2 começa com <code>var palpite = 0;</code>?</p>
+<label><input type="radio" name="q3"> Porque o jogador sempre começa chutando 0</label>
+<label><input type="radio" name="q3"> Porque o Dart exige que todo número comece com 0</label>
+<label><input type="radio" name="q3"> Para o <code>while (palpite != segredo)</code> ser verdadeiro na primeira vez, já que 0 nunca é o segredo</label>
+<label><input type="radio" name="q3"> Para contar as tentativas</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>Random(42)</code> sorteou 88 duas vezes seguidas, em execuções diferentes. Por quê?</p>
+<label><input type="radio" name="q4"> Coincidência</label>
+<label><input type="radio" name="q4"> Com a mesma semente, a sequência sorteada é sempre a mesma</label>
+<label><input type="radio" name="q4"> O <code>Random</code> está com defeito</label>
+<label><input type="radio" name="q4"> Porque 88 é o dobro de 42 mais 4</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Na versão 5, o que o <code>continue</code> faz quando o palpite é inválido?</p>
+<label><input type="radio" name="q5"> Volta ao começo do laço sem contar a tentativa</label>
+<label><input type="radio" name="q5"> Encerra o programa</label>
+<label><input type="radio" name="q5"> Conta a tentativa e mostra a dica</label>
+<label><input type="radio" name="q5"> Sorteia outro número</label>
+</div>
+
+<h3>Missão final: o jogo à prova de erros</h3>
+
+<div class="trydart" data-stdin="abc\n1\n2\n3\n4\n5\n6\n7" data-goal="out:Digite um número inteiro de 1 a 100.;;semerro;;src:tryParse">
+<p class="try-task"><strong>Missão:</strong> o primeiro "palpite" digitado é <code>abc</code>, e o programa quebra com <code>FormatException</code>. Troque o <code>int.parse</code> por <code>int.tryParse</code> e, se o resultado for <code>null</code>, mostre <code>Digite um número inteiro de 1 a 100.</code> e use <code>continue</code>. O jogo tem de ir até o fim sem exceção.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+import 'dart:math';
+
+const maxTentativas = 7;
+
+void main() {
+  final segredo = Random().nextInt(100) + 1;
+  var tentativas = 0;
+  while (tentativas &lt; maxTentativas) {
+    stdout.write('Tentativa ${tentativas + 1}: ');
+    final palpite = int.parse(stdin.readLineSync()!);
+    tentativas++;
+    if (palpite == segredo) {
+      print('Acertou em $tentativas tentativas!');
+      return;
+    }
+    print(palpite &lt; segredo ? 'É maior!' : 'É menor!');
+  }
+  print('Acabaram as tentativas. Era $segredo.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+import 'dart:math';
+
+const maxTentativas = 7;
+
+void main() {
+  final segredo = Random().nextInt(100) + 1;
+  var tentativas = 0;
+  while (tentativas &lt; maxTentativas) {
+    stdout.write('Tentativa ${tentativas + 1}: ');
+    final palpite = int.tryParse(stdin.readLineSync() ?? '');
+    if (palpite == null) {
+      print('Digite um número inteiro de 1 a 100.');
+      continue;
+    }
+    tentativas++;
+    if (palpite == segredo) {
+      print('Acertou em $tentativas tentativas!');
+      return;
+    }
+    print(palpite &lt; segredo ? 'É maior!' : 'É menor!');
+  }
+  print('Acabaram as tentativas. Era $segredo.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Construa aos poucos: segredo fixo → laço → contador → sorteio → validação. Cada versão roda antes da próxima.</li>
+  <li><code>stdout.write</code> pergunta sem pular linha; <code>stdin.readLineSync()</code> lê a resposta (<code>String?</code>).</li>
+  <li><code>while (palpite != segredo)</code> repete até acertar; o "Acertou" fica depois do laço.</li>
+  <li><code>Random().nextInt(100) + 1</code> sorteia de 1 a 100; <code>Random(42)</code> repete sempre a mesma sequência, útil para testar.</li>
+  <li><code>int.parse</code> com texto inválido lança <code>FormatException</code>, e o <code>!</code> com entrada vazia lança <code>Null check operator used on a null value</code>; <code>int.tryParse</code> + checagem de <code>null</code> + <code>continue</code> deixam o jogo à prova de erros.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
