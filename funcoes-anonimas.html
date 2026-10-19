@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Funções Anônimas — funções sem nome, escritas onde são usadas | Guia Dart</title>
+<meta name="description" content="Funções anônimas do Dart para quem nunca programou: (parâmetros) { corpo }, a forma curta com =>, passar uma função para forEach, sort e where, o Closure: (int) =&gt; int do print, o _ para parâmetros ignorados e os erros reais do Dart 3 (o ; depois do }), o =&gt; com chaves, a quantidade e o tipo dos parâmetros).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Funções Anônimas</span></h1>
+
+<p class="intro">Nas aulas anteriores, toda função tinha um <strong>nome</strong>: <code>void saudar()</code>, <code>double media(…)</code>. Você declarava a função num lugar e chamava pelo nome em outro. Muitas vezes, porém, uma função é usada <strong>uma vez só</strong>, num lugar só, e dar nome a ela seria desperdício. Para isso existe a <strong>função anônima</strong> ("anônima" = sem nome): você escreve a função <strong>direto onde ela vai ser usada</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve uma função sem nome: <code>(parâmetros) { corpo }</code>.</li>
+  <li>A forma curta com a seta: <code>(item) =&gt; print(item)</code>.</li>
+  <li>Onde ela aparece de verdade: no <code>forEach</code> (para cada), no <code>sort</code> (ordenar) e no <code>where</code> (filtrar).</li>
+  <li>Que o Dart descobre sozinho o tipo dos parâmetros, e o que o <code>print</code> mostra de uma função (<code>Closure: (int) =&gt; int</code>).</li>
+  <li>O <code>_</code> para um parâmetro que você não vai usar.</li>
+  <li>Os erros reais: o <code>;</code> esquecido depois do <code>})</code>, a seta com chaves, parâmetros a mais e de tipo errado, e como uma função anônima aparece no stack trace (<code>main.&lt;anonymous closure&gt;</code>).</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: o bilhete preso na encomenda</h2>
+<p>A Ana manda o sobrinho ao mercado com a lista de compras. Ela pode fazer de dois jeitos:</p>
+<ul>
+  <li>escrever num caderno uma "receita" chamada <em>"Como conferir um item"</em> e dizer: "para cada item, siga a receita <em>Como conferir um item</em>" (é a função <strong>com nome</strong>);</li>
+  <li>ou simplesmente dizer: "para cada item, <strong>risque da lista quando pegar</strong>". A instrução vai junto com o pedido, sem título, sem caderno (é a função <strong>anônima</strong>).</li>
+</ul>
+<p>Se a instrução só serve para aquela ida ao mercado, o segundo jeito é mais rápido e fica tudo num lugar só. É exatamente para isso que servem as funções anônimas.</p>
+
+<hr>
+
+<h2>1. A primeira função anônima: <code>forEach</code></h2>
+<p>Toda lista do Dart tem o método <code>forEach</code> (em inglês, "para cada"). Ele recebe <strong>uma função</strong> e a chama uma vez para cada item da lista, entregando o item como argumento. Em vez de criar uma função com nome para isso, a Ana escreve a função ali mesmo, entre os parênteses do <code>forEach</code>:</p>
+
+<pre class="file" data-file="compras.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras.forEach((item) {
+    print('- $item');
+  });
+}
+</pre>
+
+<pre class="term">$ dart run compras.dart
+- arroz
+- feijão
+- café
+</pre>
+
+<dl class="anatomy">
+  <dt>compras.forEach( … );</dt><dd>Chama o método <code>forEach</code> da lista. Tudo o que está entre os parênteses dele é <strong>um argumento só</strong>: a função anônima inteira. O <code>;</code> do fim fecha a chamada do <code>forEach</code>, como em qualquer chamada.</dd>
+  <dt>(item)</dt><dd>A lista de <strong>parâmetros</strong> da função, como numa função normal, só que <strong>sem tipo de retorno e sem nome</strong> na frente. Cada vez que o <code>forEach</code> chama a função, o <code>item</code> recebe um elemento da lista: <code>'arroz'</code>, depois <code>'feijão'</code>, depois <code>'café'</code>.</dd>
+  <dt>{ print('- $item'); }</dt><dd>O <strong>corpo</strong> da função, entre chaves, igual ao de qualquer função. Pode ter quantas linhas você quiser.</dd>
+  <dt>})</dt><dd>A <code>}</code> fecha o corpo da função anônima; o <code>)</code> fecha os parênteses do <code>forEach</code>. Esse par <code>});</code> é muito comum em Dart: acostume o olho a ele.</dd>
+</dl>
+
+<p>Compare com a mesma coisa feita com uma função <strong>com nome</strong> (veja <a href="funcoes.html">Funções</a>):</p>
+
+<pre class="file" data-file="com_nome.dart">void mostrarItem(String item) {
+  print('- $item');
+}
+
+void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras.forEach(mostrarItem);
+}
+</pre>
+
+<p>A saída é a mesma. A diferença é só onde a função mora. Repare que, para passar a função com nome, escreve-se <code>mostrarItem</code> <strong>sem parênteses</strong>: você está entregando a função, não chamando. (Esse assunto, a função tratada como um valor, é a próxima aula: <a href="funcoes-valores.html">Funções como Valores</a>.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>Função com nome</th><th>Função anônima</th></tr>
+<tr><td>Tipo de retorno</td><td><code>void</code></td><td>(não se escreve: o Dart descobre)</td></tr>
+<tr><td>Nome</td><td><code>mostrarItem</code></td><td>(não tem)</td></tr>
+<tr><td>Parâmetros</td><td><code>(String item)</code></td><td><code>(item)</code> (o tipo é opcional)</td></tr>
+<tr><td>Corpo</td><td><code>{ print('- $item'); }</code></td><td><code>{ print('- $item'); }</code></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:* café;;src:forEach\s*\(\s*\(">
+<p class="try-task"><strong>Missão:</strong> troque o traço <code>-</code> por um asterisco <code>*</code> dentro da função anônima e acrescente <code>'café'</code> na lista. Rode e veja a função ser chamada uma vez a mais.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((item) {
+    print('- $item');
+  });
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras.forEach((item) {
+    print('* $item');
+  });
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A forma curta: a seta <code>=&gt;</code></h2>
+<p>Quando o corpo é <strong>uma expressão só</strong>, dá para trocar as chaves pela seta, como você viu em <a href="arrow.html">Funções de Uma Linha</a>. Com função anônima, isso é ainda mais comum:</p>
+
+<pre class="file" data-file="seta.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras.forEach((item) =&gt; print('- $item'));
+}
+</pre>
+
+<pre class="term">$ dart run seta.dart
+- arroz
+- feijão
+- café
+</pre>
+
+<p><code>(item) =&gt; print('- $item')</code> quer dizer "receba um <code>item</code> e <strong>devolva</strong> o resultado de <code>print('- $item')</code>". Sem chaves, sem <code>return</code>, sem <code>;</code> dentro. O único <code>;</code> é o do fim da linha, que fecha o <code>forEach</code>.</p>
+
+<h3>A seta que devolve um valor: ordenar e filtrar</h3>
+<p>No <code>forEach</code>, ninguém usa o que a função devolve. Em outros métodos, o valor devolvido é o que importa. O <code>sort</code> (ordenar) pergunta à sua função: "entre <code>a</code> e <code>b</code>, quem vem primeiro?". A resposta é um número: negativo (<code>a</code> antes), zero (empate) ou positivo (<code>b</code> antes), e o <code>compareTo</code> já calcula esse número:</p>
+
+<pre class="file" data-file="ordenar.dart">void main() {
+  final precos = [12.90, 4.50, 8.75, 3.20];
+  precos.sort((a, b) =&gt; a.compareTo(b));
+  print(precos);
+  precos.sort((a, b) =&gt; b.compareTo(a));
+  print(precos);
+}
+</pre>
+
+<pre class="term">$ dart run ordenar.dart
+[3.2, 4.5, 8.75, 12.9]
+[12.9, 8.75, 4.5, 3.2]
+</pre>
+
+<p>A função anônima tem <strong>dois</strong> parâmetros, <code>a</code> e <code>b</code>. Trocando a ordem (<code>b.compareTo(a)</code>), a lista fica do mais caro para o mais barato. (Repare que o Dart mostra <code>12.9</code>, não <code>12.90</code>: o zero do fim não muda o número; veja <a href="int-double.html">Números</a>.)</p>
+
+<p>O <code>where</code> ("onde") pergunta à sua função: "este item fica?". A função devolve <code>true</code> ou <code>false</code>:</p>
+
+<pre class="file" data-file="aprovados.dart">void main() {
+  final notas = [8.5, 5.0, 7.0, 9.5, 4.0];
+  final boas = notas.where((nota) =&gt; nota &gt;= 7);
+  print(boas);
+}
+</pre>
+
+<pre class="term">$ dart run aprovados.dart
+(8.5, 7.0, 9.5)
+</pre>
+
+<p>Ficaram só as notas para as quais <code>nota &gt;= 7</code> deu <code>true</code>. (Os parênteses em vez de colchetes não são engano: o <code>where</code> devolve um <code>Iterable</code>, e não uma <code>List</code>. O <code>sort</code>, o <code>where</code> e companhia têm aulas próprias: <a href="list-metodos.html">Métodos de Lista</a> e <a href="iterables.html">map, where, reduce e Outros</a>.)</p>
+
+<div class="trydart" data-goal="out:(5.0, 4.0);;src:where\s*\(\s*\(">
+<p class="try-task"><strong>Missão:</strong> agora a professora quer as notas de quem ficou de <strong>recuperação</strong>: as menores que 7. Mude só a condição dentro da função anônima.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [8.5, 5.0, 7.0, 9.5, 4.0];
+  final recuperacao = notas.where((nota) =&gt; nota &gt;= 7);
+  print(recuperacao);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [8.5, 5.0, 7.0, 9.5, 4.0];
+  final recuperacao = notas.where((nota) =&gt; nota &lt; 7);
+  print(recuperacao);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. E o tipo dos parâmetros?</h2>
+<p>Em <code>(item) =&gt; print(item)</code> não se escreveu <code>String item</code>, e mesmo assim o Dart sabe que <code>item</code> é uma <code>String</code>: o <code>forEach</code> de uma <code>List&lt;String&gt;</code> só aceita uma função que receba <code>String</code>, e o Dart <strong>deduz</strong> o tipo daí (isso se chama <em>inferência de tipo</em>). Você <strong>pode</strong> escrever o tipo, se ajudar a ler: <code>(String item) =&gt; print(item)</code>. O que não pode é escrever um tipo <strong>diferente</strong> (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<p>Uma função anônima também pode ser guardada numa variável. Aí não há um <code>forEach</code> para dar a dica, e é bom escrever o tipo do parâmetro:</p>
+
+<pre class="file" data-file="tipo.dart">void main() {
+  final dobro = (int x) =&gt; x * 2;
+  print(dobro(21));
+  print(dobro);
+  print((String nome) =&gt; 'Olá, $nome');
+}
+</pre>
+
+<pre class="term">$ dart run tipo.dart
+42
+Closure: (int) =&gt; int
+Closure: (String) =&gt; String
+</pre>
+
+<dl class="anatomy">
+  <dt>42</dt><dd><code>dobro(21)</code> chamou a função guardada na variável, como se ela tivesse nome.</dd>
+  <dt>Closure: (int) =&gt; int</dt><dd>O que o <code>print</code> mostra quando você imprime <strong>a função</strong> (sem chamar): "uma função que recebe um <code>int</code> e devolve um <code>int</code>". O Dart chama toda função anônima de <em>closure</em> (o motivo do nome está na aula <a href="closures.html">Closures</a>).</dd>
+  <dt>Closure: (String) =&gt; String</dt><dd>Até uma função escrita direto dentro do <code>print</code> é um valor que pode ser mostrado. Ela nunca foi chamada: o <code>Olá</code> não aparece.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Mais de um parâmetro, e o <code>_</code></h2>
+<p>Para numerar a lista, a Ana usa o <code>asMap()</code>, que transforma a lista num mapa de posição → item (veja <a href="map.html">Mapas</a>). O <code>forEach</code> de um mapa entrega <strong>dois</strong> argumentos, então a função anônima tem dois parâmetros:</p>
+
+<pre class="file" data-file="dois.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras.asMap().forEach((i, item) {
+    final numero = i + 1;
+    print('$numero. $item');
+  });
+}
+</pre>
+
+<pre class="term">$ dart run dois.dart
+1. arroz
+2. feijão
+3. café
+</pre>
+
+<p>Quando um dos parâmetros não interessa, escreva <code>_</code> (sublinhado) no lugar do nome: é um aviso para quem lê, "este eu recebo, mas não uso". No estoque da padaria, só as quantidades:</p>
+
+<pre class="file" data-file="underscore.dart">void main() {
+  final estoque = {'pão': 30, 'leite': 12};
+  estoque.forEach((_, quantidade) =&gt; print(quantidade));
+}
+</pre>
+
+<pre class="term">$ dart run underscore.dart
+30
+12
+</pre>
+
+<p><span class="versao">Dart 3.7</span> A partir do Dart 3.7, o <code>_</code> é um <strong>coringa</strong> (<em>wildcard</em>) de verdade: ele não cria variável nenhuma, e você pode usar <code>_</code> em mais de um parâmetro da mesma função, como <code>(_, _) =&gt; …</code>.</p>
+
+<hr>
+
+<h2>5. Chamar na hora: a função que roda uma vez</h2>
+<p>Uma função anônima pode ser <strong>chamada no mesmo lugar em que é escrita</strong>, com <code>()</code> logo depois da <code>}</code>. É útil para calcular um valor que precisa de várias linhas:</p>
+
+<pre class="file" data-file="imediata.dart">void main() {
+  final mensagem = () {
+    final hora = 9;
+    return hora &lt; 12 ? 'Bom dia!' : 'Boa tarde!';
+  }();
+  print(mensagem);
+}
+</pre>
+
+<pre class="term">$ dart run imediata.dart
+Bom dia!
+</pre>
+
+<p><code>() { … }</code> é uma função sem parâmetros; o <code>()</code> do fim a chama na hora, e o que ela devolve (<code>'Bom dia!'</code>) vai para <code>mensagem</code>. A variável <code>hora</code> só existe lá dentro. É um uso raro no dia a dia; o mais comum, de longe, é passar a função para um método, como nas seções 1 e 2.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Mostrar cada item da lista pode ser escrito de quatro jeitos. Todos mostram a mesma saída:</p>
+
+<pre class="file" data-file="formas.dart">// 1) for-in: sem função nenhuma
+for (final item in compras) {
+  print('- $item');
+}
+
+// 2) forEach com função anônima de bloco
+compras.forEach((item) {
+  print('- $item');
+});
+
+// 3) forEach com função anônima de seta
+compras.forEach((item) =&gt; print('- $item'));
+
+// 4) forEach com função com nome
+compras.forEach(mostrarItem);
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Só percorrer uma lista e fazer algo com cada item</td><td><code>for (final item in lista)</code> (veja <a href="for-in.html">for-in</a>). O guia de estilo do Dart (Effective Dart) prefere o <code>for-in</code> ao <code>forEach</code> com função anônima: ele aceita <code>break</code>, <code>await</code> e é mais fácil de ler.</td></tr>
+<tr><td>Um método pede uma função (<code>sort</code>, <code>where</code>, <code>map</code>, <code>any</code>…) e a regra é curta</td><td>Função anônima de seta: <code>(a, b) =&gt; a.compareTo(b)</code></td></tr>
+<tr><td>A regra tem várias linhas, mas só é usada ali</td><td>Função anônima de bloco: <code>(x) { …; return …; }</code></td></tr>
+<tr><td>A mesma regra é usada em vários lugares, ou merece um nome que explique</td><td>Função com nome, passada sem parênteses: <code>lista.forEach(mostrarItem)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>;</code> depois do <code>})</code></strong>
+<pre class="file" data-file="err_pontovirgula.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((item) {
+    print(item);
+  })
+  print('fim');
+}
+</pre>
+<pre class="term">$ dart run err_pontovirgula.dart
+err_pontovirgula.dart:5:4: Error: Expected ';' after this.
+  })
+   ^
+</pre>
+<dl class="anatomy">
+  <dt>err_pontovirgula.dart:5:4</dt><dd>Arquivo, linha 5, coluna 4: o <code>)</code> do <code>})</code>.</dd>
+  <dt>Error: Expected ';' after this.</dt><dd>"Era esperado <code>;</code> depois disto." A chamada <code>compras.forEach(…)</code> é uma instrução como qualquer outra e termina com <code>;</code>. O <code>;</code> de dentro (depois do <code>print(item)</code>) é do corpo da função, não conta para fora.</dd>
+  <dt>  })  e  ^</dt><dd>A linha do problema e o <code>^</code> embaixo do lugar exato.</dd>
+</dl>
+<p>Com erro de compilação, nada roda: nem o primeiro item aparece. <strong>Como consertar:</strong> <code>});</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Seta e chaves juntas: <code>=&gt; { … }</code></strong>
+<pre class="file" data-file="err_setabloco.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((item) =&gt; {
+    print(item);
+  });
+}
+</pre>
+<pre class="term">$ dart run err_setabloco.dart
+err_setabloco.dart:4:16: Error: Expected '}' before this.
+    print(item);
+               ^
+</pre>
+<p>"Era esperado <code>}</code> antes disto", apontando para o <code>;</code>. Quem vem do JavaScript escreve <code>=&gt; { … }</code>, mas no Dart a seta é seguida de <strong>uma expressão</strong>, e <code>{ … }</code> depois da seta é lido como um <strong>conjunto</strong> (um <code>Set</code>, veja <a href="set.html">Conjuntos</a>), onde não cabe <code>;</code>. <strong>Como consertar:</strong> escolha um dos dois: <code>(item) { print(item); }</code> <strong>ou</strong> <code>(item) =&gt; print(item)</code>. Nunca os dois juntos.</p>
+</div>
+
+<div class="cenario">
+<strong>Parâmetros a mais</strong>
+<pre class="file" data-file="err_param.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((i, item) {
+    print('$i: $item');
+  });
+}
+</pre>
+<pre class="term">$ dart run err_param.dart
+err_param.dart:3:19: Error: The argument type 'void Function(String, dynamic)' can't be assigned to the parameter type 'void Function(String)'.
+  compras.forEach((i, item) {
+                  ^
+</pre>
+<p>"O tipo do argumento, <code>void Function(String, dynamic)</code> (uma função que recebe dois valores), não pode ser atribuído ao tipo do parâmetro, <code>void Function(String)</code> (uma função que recebe <strong>um</strong> <code>String</code>)." O <code>forEach</code> de uma lista entrega <strong>um</strong> item por vez, sem a posição. O Dart lê <code>Function(…)</code> como "função que recebe …". <strong>Como consertar:</strong> use um parâmetro só, ou, se quer a posição, <code>compras.asMap().forEach((i, item) { … })</code> (seção 4).</p>
+</div>
+
+<div class="cenario">
+<strong>Tipo errado no parâmetro</strong>
+<pre class="file" data-file="err_tipo.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((int item) {
+    print(item);
+  });
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:3:19: Error: The argument type 'void Function(int)' can't be assigned to the parameter type 'void Function(String)'.
+  compras.forEach((int item) {
+                  ^
+</pre>
+<p>A mesma mensagem, agora porque a função diz que recebe <code>int</code>, e a lista é de <code>String</code>. <strong>Como consertar:</strong> tire o tipo (o Dart descobre) ou escreva o certo: <code>(String item)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Exceção dentro da função anônima: o stack trace</strong>
+<p>A Ana converte para número o que foi digitado, e alguém digitou <code>dez</code> por extenso:</p>
+<pre class="file" data-file="err_parse.dart">void main() {
+  final digitados = ['12', '7', 'dez'];
+  digitados.forEach((texto) {
+    final n = int.parse(texto);
+    print(n * 2);
+  });
+}
+</pre>
+<pre class="term">$ dart run err_parse.dart
+24
+14
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+dez
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main.&lt;anonymous closure&gt; (file:///home/ana/err_parse.dart:4:19)
+#5      List.forEach (dart:core-patch/growable_array.dart:428:8)
+#6      main (file:///home/ana/err_parse.dart:3:13)
+#7      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#8      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>24 e 14</dt><dd>Desta vez o programa compilou e <strong>rodou</strong>: os dois primeiros itens funcionaram. O erro só aconteceu no terceiro.</dd>
+  <dt>Unhandled exception: / FormatException: …</dt><dd>"Exceção não tratada: erro de formato, número inválido na base 10, no caractere 1", e embaixo o texto culpado (<code>dez</code>) com o <code>^</code> no primeiro caractere.</dd>
+  <dt>#0 a #3</dt><dd>As funções de dentro do próprio Dart (<code>dart:core</code>) que o <code>int.parse</code> chamou. Não são suas: pule.</dd>
+  <dt>#4 main.&lt;anonymous closure&gt; (…err_parse.dart:4:19)</dt><dd>A <strong>primeira linha com o seu arquivo</strong>, e a mais importante: o erro foi na linha 4, dentro de uma "closure anônima" que mora dentro do <code>main</code>. É assim que a sua função sem nome aparece: <code>&lt;anonymous closure&gt;</code>.</dd>
+  <dt>#5 List.forEach e #6 main (…:3:13)</dt><dd>Quem chamou quem: o <code>main</code> (linha 3) chamou o <code>forEach</code>, que chamou a sua função anônima.</dd>
+  <dt>echo $? → 255</dt><dd>O código de saída de um programa Dart que termina com exceção não tratada.</dd>
+</dl>
+<p><strong>Como consertar:</strong> use <code>int.tryParse(texto)</code>, que devolve <code>null</code> em vez de dar erro (veja <a href="conversao.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="trydart" data-goal="out:- feijão;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. Leia a mensagem, conserte e rode até aparecer a lista. (São dois erros: o Dart pode mostrar os dois de uma vez.)</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((item) =&gt; {
+    print('- $item');
+  })
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.forEach((item) {
+    print('- $item');
+  });
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>(item) { print(item); }</code></td><td>Função anônima de bloco, com um parâmetro</td></tr>
+<tr><td><code>(item) =&gt; print(item)</code></td><td>Função anônima de seta (uma expressão só)</td></tr>
+<tr><td><code>(a, b) =&gt; a.compareTo(b)</code></td><td>Dois parâmetros; devolve o resultado da expressão</td></tr>
+<tr><td><code>() { … }</code></td><td>Sem parâmetros</td></tr>
+<tr><td><code>(String item) =&gt; …</code></td><td>Com o tipo do parâmetro escrito</td></tr>
+<tr><td><code>(_, quantidade) =&gt; …</code></td><td>Parâmetro ignorado (<code>_</code>, coringa no Dart 3.7+)</td></tr>
+<tr><td><code>() { … }()</code></td><td>Função anônima chamada na hora</td></tr>
+<tr><td><code>lista.forEach(…)</code> / <code>sort(…)</code> / <code>where(…)</code></td><td>Métodos que recebem uma função</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Expected ';' after this.</code> no <code>})</code></td><td>Faltou o <code>;</code> que fecha a chamada do método</td></tr>
+<tr><td><code>Expected '}' before this.</code> dentro de <code>=&gt; { … }</code></td><td>Seta e chaves juntas</td></tr>
+<tr><td><code>The argument type 'void Function(…)' can't be assigned to the parameter type 'void Function(String)'</code></td><td>Quantidade ou tipo de parâmetros diferente do que o método entrega</td></tr>
+<tr><td><code>main.&lt;anonymous closure&gt;</code> no stack trace</td><td>O erro aconteceu dentro de uma função anônima escrita no <code>main</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a função anônima</h3>
+<p>Complete para mostrar cada nome da lista <code>nomes</code>, usando a seta:</p>
+<div class="ex-code">nomes.forEach((nome) <input data-answer="=&gt;" aria-label="a seta"> print(nome));</div>
+</div>
+
+<div class="exercise">
+<h3>2. Do maior para o menor</h3>
+<p>Complete para ordenar <code>idades</code> da maior para a menor:</p>
+<div class="ex-code">idades.sort((a, b) =&gt; <input data-answer="b" aria-label="quem vem antes">.compareTo(<input data-answer="a" aria-label="quem vem depois">));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que o <code>print</code> mostra em <code>print((int x) =&gt; x + 1);</code>?</p>
+<label><input type="radio" name="q3"> <code>x + 1</code></label>
+<label><input type="radio" name="q3"> Um erro de compilação</label>
+<label><input type="radio" name="q3"> <code>Closure: (int) =&gt; int</code></label>
+<label><input type="radio" name="q3"> <code>1</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas é uma função anônima <strong>correta</strong> para <code>compras.forEach(…)</code>?</p>
+<label><input type="radio" name="q4"> <code>(item) =&gt; { print(item); }</code></label>
+<label><input type="radio" name="q4"> <code>(item) { print(item); }</code></label>
+<label><input type="radio" name="q4"> <code>void (item) { print(item); }</code></label>
+<label><input type="radio" name="q4"> <code>(i, item) =&gt; print(item)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. No stack trace aparece <code>#4 main.&lt;anonymous closure&gt; (file:///home/ana/x.dart:7:5)</code>. Onde aconteceu o erro?</p>
+<label><input type="radio" name="q5"> Na linha 7, dentro de uma função anônima escrita no <code>main</code></label>
+<label><input type="radio" name="q5"> Numa função chamada <code>anonymous</code></label>
+<label><input type="radio" name="q5"> Dentro do próprio Dart, não no meu código</label>
+<label><input type="radio" name="q5"> Na linha 4</label>
+</div>
+
+<h3>Missão final: os preços em ordem</h3>
+
+<div class="trydart" data-goal="out:[2.5, 4.0, 7.9, 15.0];;src:sort\s*\(\s*\(">
+<p class="try-task"><strong>Missão:</strong> a padaria quer a tabela de preços do mais barato para o mais caro. Chame <code>precos.sort(…)</code> com uma função anônima de dois parâmetros, no lugar do comentário.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [7.90, 2.50, 15.00, 4.00];
+  // ordene aqui
+  print(precos);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [7.90, 2.50, 15.00, 4.00];
+  precos.sort((a, b) =&gt; a.compareTo(b));
+  print(precos);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma função anônima é uma função <strong>sem nome</strong>, escrita onde vai ser usada: <code>(parâmetros) { corpo }</code> ou, com uma expressão só, <code>(parâmetros) =&gt; expressão</code>.</li>
+  <li>O uso mais comum é passá-la para um método que pede uma função: <code>forEach</code>, <code>sort</code>, <code>where</code>. O método decide quantas vezes chamá-la e com quais argumentos.</li>
+  <li>O tipo dos parâmetros é opcional: o Dart deduz pelo método. Um tipo diferente, ou parâmetros a mais, dá <code>The argument type … can't be assigned …</code>.</li>
+  <li>Seta <strong>ou</strong> chaves, nunca <code>=&gt; { … }</code>. E a chamada do método termina em <code>});</code>.</li>
+  <li><code>print</code> de uma função mostra <code>Closure: (int) =&gt; int</code>; no stack trace, ela aparece como <code>main.&lt;anonymous closure&gt;</code>.</li>
+  <li>Para só percorrer uma lista, o <code>for-in</code> costuma ser mais claro que o <code>forEach</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
