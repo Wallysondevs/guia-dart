@@ -124,11 +124,10 @@ Try accessing using ?. instead.
 <p>Se a pessoa só aperta <kbd>Enter</kbd>, o <code>readLineSync()</code> devolve um texto <strong>vazio</strong> (<code>''</code>), não <code>null</code>. O <code>null</code> aparece quando a entrada <strong>acabou</strong> e não há linha nenhuma para ler. No terminal, isso se faz com <kbd>Ctrl</kbd>+<kbd>D</kbd> ("fim da entrada"). A Ana rodou o primeiro programa e, na pergunta, apertou <kbd>Ctrl</kbd>+<kbd>D</kbd>:</p>
 
 <pre class="term">$ dart run ola_nome.dart
-Qual é o seu nome?
-Olá, null!
+Qual é o seu nome? Olá, null!
 </pre>
 
-<p>O programa não quebrou, mas mostrou <code>Olá, null!</code>: o <code>print</code> transforma o <code>null</code> no texto <code>null</code>. A entrada também acaba quando ela vem de um arquivo ou de outro programa, em vez do teclado. Com <code>&lt; /dev/null</code> (um "arquivo vazio" do Linux) e com <code>echo Bia |</code> (o <code>echo</code> "digita" <code>Bia</code> pelo programa):</p>
+<p>O <kbd>Ctrl</kbd>+<kbd>D</kbd> não aparece na tela e não pula linha, por isso o <code>Olá</code> saiu grudado na pergunta. O programa não quebrou, mas mostrou <code>Olá, null!</code>: o <code>print</code> transforma o <code>null</code> no texto <code>null</code>. A entrada também acaba quando ela vem de um arquivo ou de outro programa, em vez do teclado. Com <code>&lt; /dev/null</code> (um "arquivo vazio" do Linux) e com <code>echo Bia |</code> (o <code>echo</code> "digita" <code>Bia</code> pelo programa):</p>
 
 <pre class="term">$ dart run ola_nome.dart &lt; /dev/null
 Qual é o seu nome? Olá, null!
@@ -136,7 +135,7 @@ $ echo Bia | dart run ola_nome.dart
 Qual é o seu nome? Olá, Bia!
 </pre>
 
-<p>(Aqui a resposta não aparece na tela, porque ninguém digitou: ela veio pronta. Por isso o <code>Olá</code> ficou na mesma linha da pergunta.)</p>
+<p>(Aqui a resposta também não aparece na tela, porque ninguém digitou: ela veio pronta. Por isso o <code>Olá</code> ficou na mesma linha da pergunta, como no <kbd>Ctrl</kbd>+<kbd>D</kbd>.)</p>
 
 <hr>
 
@@ -158,8 +157,7 @@ void main() {
 Qual é o seu nome? Ana
 Olá, Ana! Seu nome tem 3 letras.
 $ dart run seguro.dart
-Qual é o seu nome?
-Olá, visitante! Seu nome tem 9 letras.
+Qual é o seu nome? Olá, visitante! Seu nome tem 9 letras.
 </pre>
 
 <p>Na segunda vez a Ana apertou <kbd>Ctrl</kbd>+<kbd>D</kbd>: o <code>null</code> virou <code>'visitante'</code>. Esse é o jeito mais usado, e o que este guia vai usar: <code>stdin.readLineSync() ?? ''</code> (texto vazio como reserva).</p>
@@ -192,8 +190,7 @@ void main() {
 </pre>
 
 <pre class="term">$ dart run bang.dart
-Qual é o seu nome?
-Unhandled exception:
+Qual é o seu nome? Unhandled exception:
 Null check operator used on a null value
 #0      main (file:///home/ana/bang.dart:5:36)
 #1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
