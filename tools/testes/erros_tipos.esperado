@@ -1,0 +1,29 @@
+erros_tipos.dart:5:11: Error: The getter 'idade' isn't defined for the type 'Pessoa'.
+ - 'Pessoa' is from 'erros_tipos.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'idade'.
+  print(p.idade);
+          ^^^^^
+erros_tipos.dart:6:5: Error: The method 'falar' isn't defined for the type 'Pessoa'.
+ - 'Pessoa' is from 'erros_tipos.dart'.
+Try correcting the name to the name of an existing method, or defining a method named 'falar'.
+  p.falar();
+    ^^^^^
+erros_tipos.dart:7:14: Error: A value of type 'String' can't be assigned to a variable of type 'Pessoa'.
+ - 'Pessoa' is from 'erros_tipos.dart'.
+  Pessoa q = 'x';
+             ^
+erros_tipos.dart:8:21: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  List<int> l = [1, 'a'];
+                    ^
+erros_tipos.dart:10:5: Error: The setter 'numero' isn't defined for the type 'Conta'.
+ - 'Conta' is from 'erros_tipos.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'numero'.
+  c.numero = 3;
+    ^^^^^^
+erros_tipos.dart:11:3: Error: A non-null value must be returned since the return type 'int' doesn't allow null.
+  int f(int x) { }
+  ^
+erros_tipos.dart:12:14: Error: A value of type 'double' can't be assigned to a variable of type 'String'.
+  String s = 3.5;
+             ^
+[exit 254]

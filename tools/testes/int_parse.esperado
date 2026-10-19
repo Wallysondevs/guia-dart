@@ -1,0 +1,13 @@
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+x
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/int_parse.dart:2:13)
+#5      _delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+[exit 255]

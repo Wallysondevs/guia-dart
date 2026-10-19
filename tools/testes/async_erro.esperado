@@ -1,0 +1,7 @@
+a
+b
+Unhandled exception:
+Bad state: ruim
+#0      main (file:///home/ana/async_erro.dart:5:3)
+<asynchronous suspension>
+[exit 255]

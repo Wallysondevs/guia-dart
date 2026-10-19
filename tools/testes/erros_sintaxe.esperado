@@ -1,0 +1,4 @@
+erros_sintaxe.dart:2:13: Error: Expected ';' after this.
+  print("oi")
+            ^
+[exit 254]

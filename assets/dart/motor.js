@@ -131,6 +131,7 @@
      2. Parser
      =================================================================== */
   var TPARAMS_VISTOS = new Set();
+  var CONT_CORINGA = 0;
   var CONST_SDK = new Set(["Duration", "Object", "MapEntry", "Symbol", "JsonEncoder", "JsonEncoder.withIndent", "JsonDecoder", "Exception", "Error", "StateError", "FormatException", "ArgumentError", "UnsupportedError", "UnimplementedError", "Deprecated", "LineSplitter", "Point", "RangeError", "Utf8Codec", "Utf8Encoder", "Utf8Decoder", "Base64Codec"]);
   var ERROS_LEX = [];
   var MODIFICADORES_CLASSE = new Set(["abstract", "base", "final", "interface", "sealed", "mixin"]);
@@ -355,6 +356,7 @@
     if (rep) { // extension type
       var impls = []; if (this.accept("implements")) { do { impls.push(this.parseType()); } while (this.accept(",")); }
       var mem = this.parseClassBody(nome);
+      mem.push({ k: "Ctor", nome: "", classe: nome, params: { pos: [{ nome: rep.nome, campo: true, p: ini.p, tipo: rep.tipo }], opc: [], nomeados: [] }, inits: [], corpo: null, p: ini.p, sintetico: true });
       return this.no("ExtType", ini, { nome: nome, rep: rep, membros: mem });
     }
     this.expect("on");
@@ -491,7 +493,7 @@
         }
         if (soTipos && (this.isOp(",") || this.isOp(")") || this.isOp("]") || this.isOp("}"))) { p.tipo = tp; p.nome = "$p" + (r.pos.length + r.opc.length + r.nomeados.length); p.p = this.peek().p; }
         else {
-          var nt2 = this.ident(); p.nome = nt2.v; p.p = nt2.p; p.tipo = tp;
+          var nt2 = this.ident(); p.nome = nt2.v === "_" ? "$_" + (++CONT_CORINGA) : nt2.v; p.p = nt2.p; p.tipo = tp;
           if (this.isOp("(")) { var fps = this.parseParams(true); p.tipo = { k: "TFun", ret: tp, params: fps, nul: false }; if (this.accept("?")) p.tipo.nul = true; }
         }
       }
@@ -1409,7 +1411,7 @@
     });
     // construtores
     var ctors = c.membros.filter(function (d) { return d.k === "Ctor"; });
-    if (ehExt) ctors.push({ k: "Ctor", nome: "", params: { pos: [{ nome: c.rep.nome, campo: true, p: c.p }], opc: [], nomeados: [] }, inits: [], corpo: null, p: c.p, sintetico: true });
+    if (ehExt) { L.push(js + ".prototype.m_toString = function () { return $R.str(this." + mNome(c.rep.nome) + "); };"); L.push(js + ".prototype.$eq = function (o) { return o instanceof " + js + " && $R.eq(o." + mNome(c.rep.nome) + ", this." + mNome(c.rep.nome) + "); };"); }
     if (!ctors.length && !c.mixin) ctors.push({ k: "Ctor", nome: "", params: { pos: [], opc: [], nomeados: [] }, inits: [], corpo: null, p: c.p, sintetico: true });
     ctors.forEach(function (k) { L.push(self.genCtor(c, k, cesc)); });
     if (ehEnum) {
@@ -1507,6 +1509,7 @@
   };
 
   /* ---- funções ---- */
+  function chaveNom(p) { return p.campo && p.nome.charAt(0) === "_" && p.nome.length > 1 ? p.nome.slice(1) : p.nome; }
   G.paramsJs = function (ps, fesc, ctor) {
     var self = this, nomes = [], pre = "";
     ps.pos.concat(ps.opc, ps.nomeados).forEach(function (p) { self.checarTipo(p.tipo); });
@@ -1522,7 +1525,7 @@
       nomes.push("$n");
       ps.nomeados.forEach(function (p) {
         fesc.def(p.nome, { k: "local", js: jsNome(p.nome), tipo: p.tipo || (p.campo ? self.tipoCampo(fesc, p.nome) : null), param: true });
-        pre += " let " + jsNome(p.nome) + " = $n[" + q(p.nome) + "]; if (" + jsNome(p.nome) + " === undefined) " + jsNome(p.nome) + " = " + (p.padrao ? self.expr(p.padrao, fesc) : "null") + ";";
+        pre += " let " + jsNome(p.nome) + " = $n[" + q(chaveNom(p)) + "]; if (" + jsNome(p.nome) + " === undefined) " + jsNome(p.nome) + " = " + (p.padrao ? self.expr(p.padrao, fesc) : "null") + ";";
       });
     }
     ps.pos.concat(ps.opc, ps.nomeados).forEach(function (p) {
@@ -1609,6 +1612,7 @@
         this.checarTipo(s.tipo);
         var kw = "let";
         return s.vars.map(function (v) {
+          if (v.nome === "_") return v.init ? "void (" + self.expr(v.init, esc) + ");" : "";
           var tipo = s.tipo || (v.init ? self.tipoDe(v.init, esc) : null);
           var info = { k: "local", js: jsNome(v.nome), tipo: tipo, final: s.final, declTipo: s.tipo, late: s.late, p: v.p, constante: s.constante };
           if (!v.init && !s.late && s.tipo && s.tipo.k === "T" && !s.tipo.nul && s.tipo.nome !== "dynamic" && s.tipo.nome !== "Null" && !(s.tipo.nome === "void")) info.naoAtribuida = true;
@@ -2456,6 +2460,13 @@
     if (!t || t.k !== "T" || !this.classes[t.nome]) return;
     var m = this.membrosDe(t.nome);
     var c = this.classes[t.nome];
+    if (e.nome.charAt(0) === "_" && this.arqDe && c.arq && this.arqDe(e.pNome) !== c.arq) {
+      var tn0 = this.tipoTexto(t), ctx0 = this.contexto([t]);
+      if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
+      else if (e.setter) this.erro("The setter '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + e.nome + "'.");
+      else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + tn0 + "'.", e.pNome, e.nome.length, ctx0 + "\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
+      return;
+    }
     if (m.inst[e.nome]) return;
     if (["toString", "hashCode", "runtimeType", "noSuchMethod"].indexOf(e.nome) >= 0) return;
     if (c.k === "Enum" && (e.nome === "index" || e.nome === "name")) return;
@@ -2540,7 +2551,7 @@
     var self = this;
     var todos = ps.pos.concat(ps.opc);
     var l = a.pos.map(function (x, i) { var p = todos[i]; return p ? self.exprT(x, esc, p.tipo) : self.expr(x, esc); });
-    if (a.nom.length) l.push("{" + a.nom.map(function (x) { var p = ps.nomeados.filter(function (y) { return y.nome === x.nome; })[0]; return q(x.nome) + ": " + (p ? self.exprT(x.valor, esc, p.tipo) : self.expr(x.valor, esc)); }).join(", ") + "}");
+    if (a.nom.length) l.push("{" + a.nom.map(function (x) { var p = ps.nomeados.filter(function (y) { return chaveNom(y) === x.nome; })[0]; return q(x.nome) + ": " + (p ? self.exprT(x.valor, esc, p.tipo) : self.expr(x.valor, esc)); }).join(", ") + "}");
     return l.join(", ");
   };
   G.checarArgs = function (d, e, nome) {
@@ -2557,10 +2568,10 @@
       return;
     }
     a.nom.forEach(function (x) {
-      if (!ps.nomeados.some(function (p) { return p.nome === x.nome; })) self.erro("No named parameter with the name '" + x.nome + "'.", x.p, x.nome.length);
+      if (!ps.nomeados.some(function (p) { return chaveNom(p) === x.nome; })) self.erro("No named parameter with the name '" + x.nome + "'.", x.p, x.nome.length);
     });
     ps.nomeados.forEach(function (p) {
-      if (p.obrig && !a.nom.some(function (x) { return x.nome === p.nome; })) self.erro("Required named parameter '" + p.nome + "' must be provided.", a.p, 1);
+      if (p.obrig && !a.nom.some(function (x) { return x.nome === chaveNom(p); })) self.erro("Required named parameter '" + chaveNom(p) + "' must be provided.", a.p, 1);
     });
   };
   G.checarArgTipo = function (tipo, x) {
@@ -2630,6 +2641,7 @@
         if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'."); } }
         if (alvo.alvo.k === "This") { var mi2 = this.membroImplicito(alvo.nome, esc); if (mi2) tcampo = mi2.tipo; }
         this.checarNulo(alvo, esc);
+        if (alvo.nome.charAt(0) === "_") this.checarMembro(Object.assign({}, alvo, { setter: true }), esc);
         if (tcampo) this.checarAtrib(tcampo, e.valor, esc);
         return "$R." + (alvo.nulo ? "nset" : "set") + "(" + this.expr(alvo.alvo, esc) + ", " + q(alvo.nome) + ", " + this.coagir(this.expr(e.valor, esc), tcampo) + ", " + alvo.pNome + ")";
       }

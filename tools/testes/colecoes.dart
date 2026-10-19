@@ -1,0 +1,36 @@
+import 'dart:math';
+void main() {
+  final l = [5, 3, 8, 1];
+  l.sort();
+  print(l);
+  print(l.map((x) => x * x).where((x) => x > 5));
+  print(l.reversed.toList());
+  print(l.fold(0, (a, b) => a + b));
+  final m = {'b': 2, 'a': 1};
+  m['c'] = 3;
+  print(m);
+  print(m.keys.toList()..sort());
+  print(m.entries.map((e) => '${e.key}=${e.value}').join(', '));
+  final s = {1, 2, 3}.union({3, 4});
+  print(s);
+  print(List.generate(30, (i) => i));
+  print(Iterable.generate(30, (i) => i));
+  print('ana'.padLeft(6, '*') + '|' + 'x'.padRight(3) + '|');
+  print('a,b,,c'.split(','));
+  print(3.14159.toStringAsFixed(2));
+  print(10.0 / 3);
+  print(1e21);
+  print(-0.0);
+  print(9223372036854775807 + 1);
+  print(-7 % 3);
+  print(max(3, 7.5));
+  final r = Random(42);
+  print([r.nextInt(100), r.nextInt(100), r.nextInt(100)]);
+  print(r.nextDouble());
+  print(r.nextBool());
+  print((nome: 'Ana', idade: 30));
+  print(DateTime(2026, 1, 5, 9, 3));
+  print(Duration(hours: 1, minutes: 5, seconds: 3));
+  final sb = StringBuffer('x')..write(1)..writeln('!');
+  print(sb);
+}

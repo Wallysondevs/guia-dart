@@ -103,32 +103,106 @@ No `.exercise`, `data-answer="a|b"` aceita respostas alternativas (comparação 
 ## 4. O editor do guia (`assets/dartsim.js`)
 > **Esta seção é mantida pelo agente do simulador.** Antes de escrever uma frase do tipo "no editor…", confira com as ferramentas dele (`tools/sim.js`).
 
-**O que é.** O DartPad compila num servidor do Google; o guia não depende disso. O "Experimente" usa o **Dart do guia**: um tradutor de Dart 3 para JavaScript feito para o guia (`assets/dart/motor.js` = lexer, parser, verificação e gerador; `runtime.js` = a `dart:core`/`dart:io`/`dart:math`/`dart:async`/`dart:convert`; `executar.js` = o `dart run`). Roda num Web Worker (`assets/dart/dart-worker.js`), baixa ~180 KB no 1º Rodar e para laços infinitos (■ Parar ou 10 s). **Não é o SDK oficial**: as saídas das aulas (`pre.term`) vêm sempre do lab (§5); o editor imita o `dart run` e o testador `--nativo` mostra onde ele difere.
+### 4.1 O que é
+O DartPad compila num servidor do Google; o guia não depende disso. O "Experimente" usa o **Dart do guia**: um tradutor de Dart 3 para JavaScript feito para o guia, que roda no navegador do leitor:
+- `assets/dart/motor.js`: lexer, parser, verificação (os erros de compilação) e gerador de JavaScript;
+- `assets/dart/runtime.js`: a biblioteca (`dart:core`, `dart:io`, `dart:math`, `dart:async`, `dart:convert`, `dart:collection` e `dart:isolate`, só o que o guia usa);
+- `assets/dart/executar.js`: o `dart run` (main, args, stdin, exceções, código de saída);
+- `assets/dart/dart-worker.js`: o Web Worker. A página não trava, e o ■ Parar (ou o limite de 10 s) encerra o worker.
 
-**Como o editor mostra as coisas**
-- O comando aparece como `ana@notebook:~$ dart run main.dart [args]`; depois, `[código de saída: N]`.
-- **Erro de compilação**: o formato do `dart run` — `main.dart:3:9: Error: Undefined name 'idadee'.`, a linha do código e o `^^^^`; código de saída **254**; em vermelho.
-- **Exceção não tratada**: `Unhandled exception:`, a mensagem (`toString()` do Dart) e o stack trace `#0      main (file:///home/ana/main.dart:4:10)` com as duas linhas finais do `dart:isolate-patch`; código **255**.
-- `print` usa o `toString()` do Dart: `[1, 2, 3]`, `{a: 1}`, `{1, 2}`, `(1, a, x: 2)`, `Instance of 'Pessoa'`, `Cor.azul`, `1.0`, `2.5`, `null`; `Iterable` preguiçoso (`map`, `where`) sai entre parênteses `(2, 4, 6)`.
-- `int` tem 64 bits (como na VM: `9223372036854775807 + 1` dá o negativo), `double` é o double do Dart; `5 / 2` = `2.5`, `4 / 2` = `2.0`, `7 ~/ 2` = `3`, `-7 % 3` = `2`.
-- `stdin.readLineSync()`: com `data-stdin`, lê dali (e o terminal mostra o eco); sem `data-stdin`, o leitor **digita** no terminal (Ctrl+D = fim de entrada → `null`). Por dentro, o programa roda de novo desde o começo a cada linha digitada (a saída repetida não aparece de novo).
-- `File('dados.txt')`: as abas são os arquivos da pasta (`/home/ana`); o que o programa grava vale até o fim daquele Rodar (a meta `arquivo:` confere).
-- `import 'contas.dart';` funciona entre abas; `package:` não (o editor não baixa pacotes: use o lab).
-- `assert` não roda (como no `dart run` sem `--enable-asserts`).
-- `Random(42)` usa o algoritmo da VM (mesma semente, mesmos números — confira no lab antes de pôr na meta); `Random()` sem semente, `DateTime.now()` e `hashCode` mudam: nunca em metas.
+O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`pre.term`) vêm **sempre** do lab (§5). O editor imita o `dart run` do Dart 3.13.5, e o `testar --nativo` mostra onde ele difere.
 
-**O que o editor confere na compilação** (o resto roda e pode virar exceção em vez de erro): sintaxe (`Expected ';' after this.`, `Expected an identifier, but got ')'.` + `Try inserting…`, chaves sem par), nome indefinido (`Undefined name`, `Method not found`), tipo errado com valor literal ou de tipo conhecido (`A value of type 'String' can't be assigned to a variable of type 'int'.`), acesso a membro de tipo anulável (`Property 'length' cannot be accessed on 'String?' because it is potentially null.` + `Try accessing using ?. instead.`), getter/método inexistente numa classe sua, número de argumentos, `required` faltando, atribuir a `final`. **Em construção** (avise se precisar numa aula): `const` com valor não constante, tipo inexistente (`'string' isn't a type`), palavra reservada como nome, análise de fluxo de null safety (promoção depois de `if (x != null)`), `switch` não exaustivo, erros de tipos genéricos.
+### 4.2 Como o editor mostra as coisas
+- O comando aparece como `ana@notebook:~$ dart run main.dart [args]` e, no fim, `[código de saída: N]`.
+- **Erro de compilação**: no formato do `dart run`, em vermelho. Primeiro `main.dart:3:9: Error: Undefined name 'idadee'.`, depois as linhas de contexto (` - 'Pessoa' is from 'main.dart'.`), o `Try …`, a linha do código e o `^^^^`. Todos os erros de verificação aparecem, em ordem. Erros de **sintaxe**: só o primeiro (o lab às vezes mostra mais). Código de saída **254**.
+- **Exceção não tratada**: `Unhandled exception:`, a mensagem (o `toString()` do Dart) e o stack trace `#0      main (file:///home/ana/main.dart:4:10)`, com as duas linhas finais do `dart:isolate-patch`. Para `List.[]`, `int.parse` e `double.parse`, vêm também as linhas `dart:core-patch` do lab. Código de saída **255**.
+- `print` usa o `toString()` do Dart:
+  - coleções: `[1, 2, 3]`, `{a: 1}`, `{1, 2}`;
+  - records e objetos: `(1, a, x: 2)`, `Instance of 'Pessoa'`, `Cor.azul`;
+  - números e null: `1.0`, `2.5`, `null`;
+  - `Iterable` preguiçoso (`map`, `where`, `reversed`): entre parênteses, `(2, 4, 6)`, e encurtado com `...` como no Dart.
+- **Números**:
+  - `int` tem 64 bits, como na VM: `9223372036854775807 + 1` dá o negativo;
+  - `5 / 2` = `2.5`, `4 / 2` = `2.0`, `7 ~/ 2` = `3`, `-7 % 3` = `2`;
+  - literal inteiro em contexto `double` vira double: `double x = 3;` e `<double>[10]` mostram `3.0` e `[10.0]`, e `double Function() f = () => 0;` também;
+  - `toStringAsFixed` e `toStringAsPrecision` funcionam como no Dart.
+- **Entrada** (`stdin.readLineSync()`):
+  - com `data-stdin`, lê dali, e o terminal mostra o eco do que foi lido;
+  - sem `data-stdin`, o leitor **digita** no terminal (Ctrl+D = fim de entrada → `null`);
+  - por dentro, a cada linha digitada o programa roda de novo desde o começo, e a saída repetida não aparece outra vez.
+- **Arquivos** (`File('dados.txt')`): as abas são os arquivos da pasta `/home/ana`. O que o programa grava vale até o fim daquele Rodar (a meta `arquivo:` confere). `readAsStringSync`, `readAsLinesSync`, `writeAsStringSync` (com `mode: FileMode.append`), `existsSync`, `deleteSync` e `openWrite`.
+- **Imports**:
+  - `import 'contas.dart';` funciona entre abas, também com `as`, `show` e `hide`. Cada arquivo tem os seus nomes; usar sem prefixo um nome que dois imports trazem dá o erro do lab (`'formatar' is imported from both …`);
+  - **as bibliotecas do SDK precisam de import**, como no lab: `sqrt` sem `import 'dart:math';` dá `Method not found: 'sqrt'.`, e `stdin` sem `dart:io` dá `Undefined name 'stdin'.`;
+  - `package:` não funciona (o editor não baixa pacotes): use o lab.
+- **Assíncrono**: `async`/`await`, `Future` (`delayed`, `value`, `wait`, `then`, `catchError`, `whenComplete`, `timeout`), `Stream` (`async*`, `await for`, `listen`, `StreamController`, `Stream.periodic`, `fromIterable`), `Timer`, `Completer`, `Isolate.run` (roda na mesma linha de execução) e `sync*`. A ordem das mensagens segue a do Dart (microtarefas antes de timers). Um `Future` que falha sem ninguém esperar por ele encerra o programa com `Unhandled exception:` (código 255), como no lab.
+- **O que não roda**: `assert` (como no `dart run` sem `--enable-asserts`).
+- **Números sorteados**: `Random(42)` usa o algoritmo da VM, então a mesma semente dá os mesmos números (confira no lab antes de pôr na meta). `Random()` sem semente, `DateTime.now()` e o `hashCode` padrão mudam a cada execução: **nunca** os use em metas.
 
-**Diferenças conhecidas** (o testador `--nativo` registra as demais em `tools/DIFERENCAS.md`): nomes internos (`_GrowableList`, `_Map`) e linhas `dart:core-patch/…` do stack trace podem diferir; exceções depois de `await` mostram só o frame da função `async` + `<asynchronous suspension>`; desempenho (o editor é mais lento em laços com milhões de voltas); `Isolate`, `Process`, `HttpClient` e pacotes não existem no editor.
+### 4.3 O que o editor confere na compilação (erros 254, com a mensagem do lab)
+**Sintaxe**:
+- `Expected ';' after this.`, `Expected an identifier, but got ')'.` + `Try inserting…`, chaves sem par;
+- palavra reservada como nome: `'class' can't be used as an identifier because it's a keyword.`;
+- letras com acento em nomes: `The non-ASCII character 'ç' (U+00E7) can't be used in identifiers…`.
 
-**Ferramentas (na VPS, em `~/guia-dart`)**
+**Nomes**:
+- `Undefined name 'x'.`, `Method not found: 'f'.`, `Member not found: 'Produto.brinde'.`;
+- tipo inexistente: `'string' isn't a type.`; e, em `extends`/`with`/`implements`, `Type 'X' not found.`;
+- nome ambíguo entre imports.
+
+**Tipos**:
+- `A value of type 'String' can't be assigned to a variable of type 'int'.`, também com elementos de uma lista tipada e argumentos (`The argument type … can't be assigned to the parameter type …`);
+- getter, método ou setter inexistente numa classe sua ou em `Object`, e membro `_privado` usado de outra aba (outra biblioteca) (`The getter 'length' isn't defined for the type 'Object'.`), e atribuir a um campo `final`;
+- `Too few/many positional arguments`, `Required named parameter 'x' must be provided.`, `No named parameter with the name 'x'.`.
+
+**Null safety**:
+- membro, método ou operador de tipo anulável (`Property 'length' cannot be accessed on 'String?' because it is potentially null.`);
+- **com promoção de tipo**: depois de `if (x != null)`, de `if (x == null) return;` (ou `continue`/`break`/`throw`/`exit`), no `else` de `x == null`, depois de `x is T`, de `x ??= …` e de `x = valorNãoNulo`, dentro de `&&`/`||` e de `? :`;
+- `Non-nullable variable 'x' must be assigned before it can be used.`;
+- `A non-null value must be returned since the return type 'int' doesn't allow null.`.
+
+**`final`/`const`**:
+- `Can't assign to the final variable 'x'.`;
+- `Not a constant expression.`;
+- `Cannot invoke a non-'const' constructor where a const expression is expected.` (ex.: `const agora = DateTime.now();`).
+
+**`switch` exaustivo**:
+- expressão `switch` sobre `int`/`double`/`String`/`num` sem `_`: `The type 'int' is not exhaustively matched by the switch cases since it doesn't match 'int()'.`;
+- sobre `bool` (`'false'`), enum (`'Cor.azul'`) e classe `sealed` (também no comando `switch`).
+
+**Ainda não confere** (roda, e pode virar exceção ou rodar "certo" onde o lab recusa; avise se a aula precisar):
+- a análise de fluxo mais fina (promoção de campos privados `final`, atribuição definida dentro de laços);
+- erros de tipos genéricos e de *function types*;
+- `@override` incorreto, métodos abstratos não implementados, modificadores de classe (`base`/`final`/`interface` fora da biblioteca);
+- `late final` atribuído duas vezes (no lab é exceção em tempo de execução; no editor, não);
+- vários erros de sintaxe ao mesmo tempo (o editor mostra o primeiro).
+
+### 4.4 Versões do Dart 3 no editor
+Funcionam:
+- records e patterns (destructuring, `if-case`, `switch` com guardas `when`, padrões de objeto, lista, mapa e relacionais), expressões `switch`, `sealed`/`base`/`final`/`interface`/`mixin class` (3.0);
+- extension types (3.3), com o `toString()` da representação;
+- `_` coringa que não cria variável e pode repetir (3.7);
+- elementos nulos `?item` em coleções (3.8);
+- *dot shorthands* `.grande` (3.10, procurando o membro estático pelo nome);
+- parâmetros nomeados privados `{required this._nome}` chamados com `nome:` (3.12);
+- construtor primário `class Produto(final String nome);` (o que o lab 3.13.5 aceita).
+
+### 4.5 Diferenças conhecidas
+O testador `--nativo` registra as demais em `tools/DIFERENCAS.md`.
+- **Nomes internos**: `_GrowableList`, `_Map` e as linhas `dart:core-patch/…` do stack trace podem diferir.
+- **Exceções depois de `await`**: mostram o frame da função `async` + `<asynchronous suspension>`, sem a cadeia completa.
+- **Desempenho**: o editor é mais lento em laços com milhões de voltas (o limite é 10 s).
+- **O que o editor não tem**: `Process`, `HttpClient`, `Isolate.spawn` de verdade (portas), `dart:ffi`, `dart:mirrors` e pacotes.
+
+### 4.6 Ferramentas (na VPS, em `~/guia-dart`)
 | Comando | O que faz |
 | --- | --- |
-| `timeout 60 node tools/sim.js main.dart [--stdin "Ana\n30"] [--digitar "Ana"] [--args "a b"] [--goal "out:…"]` | roda como o editor rodaria e diz se a meta passaria |
-| `timeout 60 node tools/sim.js -e 'void main() => print(1);'` | idem, com o código na linha |
-| `~/guia-dart-lab/testar [--nativo] pagina.html` (no notebook) | o testador: inicial falha, solução cumpre, escapes, links, privacidade; `--nativo` roda no Dart do lab e registra as diferenças em `tools/DIFERENCAS.md` |
+| `timeout 60 node tools/sim.js main.dart [outros.dart] [--stdin "Ana\n30"] [--digitar "Ana"] [--args "a b"] [--goal "out:…"]` | roda como o editor rodaria e diz se a meta passaria |
+| `timeout 60 node tools/sim.js -e 'void main() => print(1);' [--js]` | idem, com o código na linha (`--js` mostra o JavaScript gerado) |
+| `~/guia-dart-lab/testar [--nativo] pagina.html` (no notebook) | o testador: o inicial falha, a solução cumpre, escapes, links, privacidade; o `--nativo` roda também no Dart do lab e registra as diferenças em `tools/DIFERENCAS.md` |
+| `timeout 600 node tools/diferencial.js [--sdk]` | o teste diferencial do motor: `tools/testes/*.dart` com a saída real do lab (`*.esperado`) |
 
-Achou uma diferença que não está aqui? Anote no relatório (para o agente do simulador).
+Achou uma diferença que não está aqui? Anote no relatório para o agente do simulador.
 
 ## 5. Fidelidade: o laboratório (`~/guia-dart-lab/lab`, na VPS)
 É a máquina da Ana (usuária `ana`, computador `notebook`, `/home/ana`, pt_BR, Ubuntu 26.04) com o **Dart SDK oficial** (versão no `COMO-USAR.md` do lab). Toda saída de terminal mostrada numa aula vem de lá:

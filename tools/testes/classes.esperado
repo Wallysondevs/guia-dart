@@ -1,0 +1,14 @@
+Circulo(2.0)
+12.56
+desenhando Circulo
+Cor.verde
+[Cor.vermelho, Cor.verde]
+1
+pix a@b
+boleto longo
+boleto
+true
+1
+pegou: FormatException: ruim
+fim
+[exit 0]

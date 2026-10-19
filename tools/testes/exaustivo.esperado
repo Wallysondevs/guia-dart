@@ -1,0 +1,17 @@
+exaustivo.dart:6:19: Error: The type 'int' is not exhaustively matched by the switch cases since it doesn't match 'int()'.
+Try adding a wildcard pattern or cases that match 'int()'.
+  var x = switch (n) { 1 => "um", 2 => "dois" };
+                  ^
+exaustivo.dart:7:19: Error: The type 'String' is not exhaustively matched by the switch cases since it doesn't match 'String()'.
+Try adding a wildcard pattern or cases that match 'String()'.
+  var y = switch (s) { "a" => 1 };
+                  ^
+exaustivo.dart:8:19: Error: The type 'double' is not exhaustively matched by the switch cases since it doesn't match 'double()'.
+Try adding a wildcard pattern or cases that match 'double()'.
+  var z = switch (d) { < 5 => 1, >= 5 => 2 };
+                  ^
+exaustivo.dart:9:19: Error: The type 'bool' is not exhaustively matched by the switch cases since it doesn't match 'false'.
+Try adding a wildcard pattern or cases that match 'false'.
+  var w = switch (b) { true => 1 };
+                  ^
+[exit 254]

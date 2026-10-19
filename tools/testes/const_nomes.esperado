@@ -1,0 +1,19 @@
+const_nomes.dart:6:8: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  var ação = 2;
+       ^
+const_nomes.dart:6:9: Error: The non-ASCII character 'ã' (U+00E3) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  var ação = 2;
+        ^
+const_nomes.dart:3:13: Error: Not a constant expression.
+  const b = a * 2;
+            ^
+const_nomes.dart:4:26: Error: Cannot invoke a non-'const' constructor where a const expression is expected.
+Try using a constructor or factory that is 'const'.
+  const agora = DateTime.now();
+                         ^^^
+const_nomes.dart:5:3: Error: 'string' isn't a type.
+  string cliente = "x";
+  ^^^^^^
+[exit 254]

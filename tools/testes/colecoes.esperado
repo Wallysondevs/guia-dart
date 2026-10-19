@@ -1,0 +1,6 @@
+colecoes.dart:8:31: Error: The operator '+' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '+' operator.
+  print(l.fold(0, (a, b) => a + b));
+                              ^
+[exit 254]

@@ -1,0 +1,8 @@
+nulos.dart:3:14: Error: A value of type 'double?' can't be assigned to a variable of type 'double'.
+  double x = p;
+             ^
+nulos.dart:5:11: Error: Method 'toUpperCase' cannot be called on 'String?' because it is potentially null.
+Try calling using ?. instead.
+  print(s.toUpperCase());
+          ^^^^^^^^^^^
+[exit 254]
