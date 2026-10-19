@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Herança (extends) — uma classe que aproveita outra | Guia Dart</title>
+<meta name="description" content="Herança no Dart para quem nunca programou: class Bebida extends Produto, a superclasse e a subclasse, o construtor com super.nome e com : super(...), métodos novos na subclasse, is e a cadeia até Object, por que só existe um extends, e os erros reais do Dart 3.13 (construtor sem super, getter não definido, type cast).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Herança (extends)</span></h1>
+
+<p class="intro">Na lojinha da Ana, tudo o que se vende é um <strong>produto</strong>: tem nome e preço. Mas algumas coisas são produtos <strong>com algo a mais</strong>: uma bebida também tem volume (300 ml, 2 litros). Em vez de escrever a classe <code>Bebida</code> do zero, repetindo nome e preço, o Dart deixa você dizer: <em>"uma Bebida é um Produto, mais o volume"</em>. Isso se chama <strong>herança</strong>, e a palavra-chave é <code>extends</code> (em inglês, "estende", "amplia").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é herança: <strong>superclasse</strong> (a classe "mãe") e <strong>subclasse</strong> (a "filha").</li>
+  <li>Como escrever <code>class Bebida extends Produto</code> e o que a subclasse ganha de graça.</li>
+  <li>Como o construtor da filha passa os dados para o da mãe: <code>super.nome</code> e <code>: super(nome, preco)</code>.</li>
+  <li>Como acrescentar campos e métodos novos só na subclasse.</li>
+  <li>Como testar o tipo com <code>is</code>, e por que toda classe, no fim, herda de <code>Object</code>.</li>
+  <li>Os erros reais: construtor sem <code>super</code>, dois <code>extends</code>, campo que só a filha tem, e o <code>as</code> que falha durante a execução.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>). Esta aula usa classes, campos e construtores: se precisar, revise <a href="classes.html">Classes</a> e <a href="construtores.html">Construtores</a>.</p>
+
+<hr>
+
+<h2>A ideia: "é um"</h2>
+<p>Pense numa ficha de cadastro da lojinha. A ficha de <strong>produto</strong> tem dois campos: nome e preço. A ficha de <strong>bebida</strong> é a mesma ficha de produto com <strong>um campo a mais</strong> embaixo: volume. Ninguém redesenha a ficha inteira; você pega a de produto e acrescenta uma linha.</p>
+<p>Herança é isso. A frase que ajuda a decidir quando usar é: <strong>"uma Bebida <em>é um</em> Produto"</strong>. Se a frase faz sentido, herança costuma ser uma boa escolha. "Um Refrigerante é uma Bebida": faz sentido. "Um Carrinho é um Produto": não faz (o carrinho <em>tem</em> produtos), então ali não é herança.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Também chamada de</th><th>No exemplo</th></tr>
+<tr><td><strong>Superclasse</strong></td><td>classe mãe, classe base</td><td><code>Produto</code></td></tr>
+<tr><td><strong>Subclasse</strong></td><td>classe filha, classe derivada</td><td><code>Bebida</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. A primeira subclasse</h2>
+
+<pre class="file" data-file="produtos.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+
+  print(pao.descricao());
+  print(suco.descricao());
+  print('${suco.nome} tem ${suco.volumeMl} ml');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Produto { … }</dt><dd>Uma classe comum, como as da aula <a href="classes.html">Classes</a>: dois campos, um construtor e um método. Ela vai ser a <strong>superclasse</strong>.</dd>
+  <dt>class Bebida extends Produto</dt><dd>"A classe Bebida <strong>estende</strong> Produto". Com isso, toda <code>Bebida</code> já nasce com <code>nome</code>, <code>preco</code> e <code>descricao()</code>, sem você reescrever nada.</dd>
+  <dt>int volumeMl;</dt><dd>O campo <strong>a mais</strong>, que só a bebida tem.</dd>
+  <dt>Bebida(super.nome, super.preco, this.volumeMl);</dt><dd>O construtor da filha. <code>this.volumeMl</code> você já conhece: guarda o valor no campo da própria Bebida. <code>super.nome</code> e <code>super.preco</code> querem dizer: "este valor vai para o construtor da <strong>superclasse</strong>", que é quem cuida de <code>nome</code> e <code>preco</code>. (<code>super</code> = "de cima", "superior".)</dd>
+  <dt>suco.descricao()</dt><dd>O método foi escrito em <code>Produto</code>, mas funciona na <code>Bebida</code>: ela <strong>herdou</strong>.</dd>
+</dl>
+
+<pre class="term">$ dart run produtos.dart
+Pão francês: R$ 0.75
+Suco de laranja: R$ 6.50
+Suco de laranja tem 300 ml
+</pre>
+
+<p>A segunda linha veio do método <code>descricao()</code> da mãe, aplicado ao suco. A terceira usa o <code>nome</code> (herdado) e o <code>volumeMl</code> (próprio da bebida) lado a lado: para quem usa o objeto, não há diferença entre um e outro.</p>
+
+<div class="tip">
+<strong>A filha tem tudo da mãe; a mãe não tem nada da filha</strong>
+<p>Toda <code>Bebida</code> tem <code>nome</code>, <code>preco</code> e <code>volumeMl</code>. Um <code>Produto</code> comum continua só com <code>nome</code> e <code>preco</code>: o pão não tem volume. A herança só desce, nunca sobe (o erro que aparece quando se esquece disso está em <a href="#errado">Quando dá errado</a>).</p>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> crie mais uma bebida, <code>Bebida('Água mineral', 2.5, 500)</code>, e mostre a descrição dela. Depois tente mostrar <code>pao.volumeMl</code> e leia o erro.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+
+  print(pao.descricao());
+  print(suco.descricao());
+  print('${suco.nome} tem ${suco.volumeMl} ml');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O construtor da filha chama o da mãe</h2>
+<p>Quando você cria uma <code>Bebida</code>, o Dart monta o objeto em duas etapas: primeiro roda o construtor do <code>Produto</code> (que preenche nome e preço), depois termina a parte da <code>Bebida</code>. Por isso a filha <strong>precisa</strong> entregar à mãe o que o construtor dela pede. Há duas formas de escrever isso.</p>
+
+<h3>Forma curta: <code>super.nome</code> <span class="versao">Dart 2.17</span></h3>
+<p>É a que você viu acima: <code>Bebida(super.nome, super.preco, this.volumeMl);</code>. Cada <code>super.</code> é um parâmetro que passa direto para a mãe, na mesma ordem em que o construtor dela pede (primeiro o nome, depois o preço). Chama-se <strong>parâmetro super</strong> e existe desde o Dart 2.17.</p>
+
+<h3>Forma longa: <code>: super(nome, preco)</code></h3>
+
+<pre class="file" data-file="super_longo.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(String nome, double preco, this.volumeMl) : super(nome, preco);
+}
+
+void main() {
+  final suco = Bebida('Suco de uva', 7.0, 500);
+  print('${suco.nome}, R\$ ${suco.preco}, ${suco.volumeMl} ml');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Bebida(String nome, double preco, this.volumeMl)</dt><dd>Parâmetros comuns: <code>nome</code> e <code>preco</code> chegam aqui como variáveis normais.</dd>
+  <dt>: super(nome, preco)</dt><dd>Depois dos dois-pontos vem a <strong>lista de inicialização</strong> (veja <a href="construtores.html">Construtores</a>). <code>super(…)</code> chama o construtor da mãe com esses valores.</dd>
+</dl>
+
+<pre class="term">$ dart run super_longo.dart
+Suco de uva, R$ 7.0, 500 ml
+</pre>
+
+<p>O resultado é o mesmo. A forma longa ainda é útil quando você quer <strong>mexer</strong> no valor antes de mandá-lo para a mãe, por exemplo <code>: super(nome.trim(), preco)</code>. Quando é só repassar, a forma curta é a recomendada (é o que o lint <code>use_super_parameters</code> do Dart sugere).</p>
+
+<hr>
+
+<h2>3. Acrescentando um método na subclasse</h2>
+<p>A filha pode ter métodos que a mãe não tem. A bebida sabe calcular o preço por litro; o pão, não:</p>
+
+<pre class="file" data-file="metodo_novo.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+
+  double precoPorLitro() =&gt; preco / volumeMl * 1000;
+}
+
+void main() {
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+  print(suco.descricao());
+  print('Por litro: R\$ ${suco.precoPorLitro().toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run metodo_novo.dart
+Suco de laranja: R$ 6.50
+Por litro: R$ 21.67
+</pre>
+
+<p>Dentro de <code>precoPorLitro()</code>, o <code>preco</code> é o campo herdado: a filha usa os campos da mãe como se fossem dela. (E se a bebida quiser uma <code>descricao()</code> <strong>diferente</strong>, com o volume junto? Isso é <strong>sobrescrever</strong> um método, o assunto da próxima aula: <a href="override.html">Sobrescrevendo (@override)</a>.)</p>
+
+<hr>
+
+<h2>4. Uma lista de produtos e o <code>is</code></h2>
+<p>Como toda bebida <strong>é um</strong> produto, uma <code>List&lt;Produto&gt;</code> aceita bebidas. E o operador <code>is</code> (veja <a href="operadores-tipo.html">is, is! e as</a>) pergunta "este objeto é deste tipo?":</p>
+
+<pre class="file" data-file="is_lista.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  final List&lt;Produto&gt; carrinho = [
+    Produto('Pão francês', 0.75),
+    Bebida('Suco de laranja', 6.5, 300),
+    Produto('Manteiga', 12.9),
+  ];
+
+  for (final item in carrinho) {
+    if (item is Bebida) {
+      print('${item.nome} (bebida, ${item.volumeMl} ml)');
+    } else {
+      print(item.nome);
+    }
+  }
+
+  final suco = Bebida('Suco de uva', 7.0, 500);
+  print(suco is Bebida);
+  print(suco is Produto);
+  print(suco is Object);
+  print(Produto('Bolo', 20) is Bebida);
+}
+</pre>
+
+<pre class="term">$ dart run is_lista.dart
+Pão francês
+Suco de laranja (bebida, 300 ml)
+Manteiga
+true
+true
+true
+false
+</pre>
+
+<ul>
+  <li>Dentro do <code>if (item is Bebida)</code>, o Dart já sabe que <code>item</code> é uma bebida e deixa usar <code>item.volumeMl</code>. Isso se chama <strong>promoção de tipo</strong>.</li>
+  <li><code>suco is Produto</code> deu <code>true</code>: a bebida é <strong>também</strong> um produto.</li>
+  <li><code>suco is Object</code> deu <code>true</code>: no Dart, <strong>toda classe herda de <code>Object</code></strong>, mesmo sem escrever <code>extends</code>. <code>class Produto</code> é, por baixo, <code>class Produto extends Object</code>. É de lá que vêm o <code>toString()</code> e o <code>==</code> que todo objeto tem (aula <a href="tostring-igualdade.html">toString, == e hashCode</a>).</li>
+  <li>O bolo é só <code>Produto</code>: <code>is Bebida</code> deu <code>false</code>.</li>
+</ul>
+
+<hr>
+
+<h2>5. Herança em vários andares</h2>
+<p>Uma subclasse pode ser mãe de outra. Um refrigerante é uma bebida, que é um produto:</p>
+
+<pre class="file" data-file="cadeia.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+class Refrigerante extends Bebida {
+  bool zeroAcucar;
+
+  Refrigerante(super.nome, super.preco, super.volumeMl, {this.zeroAcucar = false});
+}
+
+void main() {
+  final refri = Refrigerante('Guaraná', 5.0, 350, zeroAcucar: true);
+  print('${refri.nome}, ${refri.volumeMl} ml, zero: ${refri.zeroAcucar}');
+  print(refri is Bebida);
+  print(refri is Produto);
+}
+</pre>
+
+<pre class="term">$ dart run cadeia.dart
+Guaraná, 350 ml, zero: true
+true
+true
+</pre>
+
+<p>O <code>Refrigerante</code> passa três valores para cima com <code>super.</code> (nome, preço e volume, que é tudo o que o construtor da <code>Bebida</code> pede) e guarda o seu próprio <code>zeroAcucar</code>, um <a href="parametros-nomeados.html">parâmetro nomeado</a> com valor padrão. A cadeia fica: <code>Object</code> → <code>Produto</code> → <code>Bebida</code> → <code>Refrigerante</code>.</p>
+
+<div class="warning">
+<strong>Não exagere nos andares</strong>
+<p>Dois ou três níveis ainda se leem bem. Uma cadeia muito comprida obriga quem lê a subir classe por classe para descobrir de onde veio um campo. Se a frase "é um" começar a soar forçada, prefira outra ferramenta: <a href="interfaces.html">implements</a>, <a href="mixins.html">mixins</a> ou simplesmente um campo (o carrinho <em>tem</em> uma lista de produtos).</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Para uma "bebida que é um produto com volume", existem estes caminhos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A frase "X <strong>é um</strong> Y" faz sentido e X aproveita os campos e métodos de Y</td><td><code>class X extends Y</code> (esta aula)</td></tr>
+<tr><td>O construtor da filha só repassa os valores para a mãe</td><td><code>Bebida(super.nome, super.preco, this.volumeMl)</code></td></tr>
+<tr><td>A filha precisa transformar um valor antes de repassar</td><td><code>Bebida(String nome, …) : super(nome.trim(), …)</code></td></tr>
+<tr><td>X só precisa <strong>prometer</strong> os mesmos métodos que Y, sem aproveitar o código</td><td><code>implements</code> (aula <a href="interfaces.html">Interfaces</a>)</td></tr>
+<tr><td>Várias classes sem parentesco precisam do mesmo pedaço de código</td><td><code>with</code> (aula <a href="mixins.html">Mixins</a>)</td></tr>
+<tr><td>X <strong>tem um</strong> Y (o carrinho tem produtos)</td><td>Um campo: <code>final List&lt;Produto&gt; itens</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A filha não passou nada para o construtor da mãe</strong>
+<pre class="file" data-file="erro_semsuper.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(this.volumeMl);
+}
+
+void main() {
+  print(Bebida(300).volumeMl);
+}
+</pre>
+<pre class="term">$ dart run erro_semsuper.dart
+erro_semsuper.dart:11:3: Error: The implicitly called unnamed constructor from 'Produto' has required parameters.
+Try adding an explicit super initializer with the required arguments.
+  Bebida(this.volumeMl);
+  ^
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro_semsuper.dart:11:3:</code> é o arquivo, a linha 11 e a coluna 3, onde começa o construtor da <code>Bebida</code>. <code>Error:</code> avisa que é erro de <strong>compilação</strong>: o programa nem começou a rodar.</li>
+  <li>"O construtor sem nome de <code>Produto</code>, chamado <strong>implicitamente</strong> (sem você escrever), tem parâmetros obrigatórios." Como a <code>Bebida</code> não chamou a mãe, o Dart tentou chamar <code>Produto()</code> vazio, e esse construtor exige nome e preço.</li>
+  <li>"Tente acrescentar um inicializador <code>super</code> explícito com os argumentos obrigatórios."</li>
+  <li>Depois vem a linha do código e o <code>^</code>, que aponta a coluna.</li>
+</ul>
+<p>O código de saída foi <strong>254</strong>, o do erro de compilação. <strong>Como consertar:</strong> <code>Bebida(super.nome, super.preco, this.volumeMl);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou herdar de duas classes</strong>
+<pre class="file" data-file="erro_dois.dart">class Produto {
+  String nome = 'sem nome';
+}
+
+class Gelado {
+  int temperatura = 4;
+}
+
+class Sorvete extends Produto, Gelado {}
+
+void main() {
+  print(Sorvete().nome);
+}
+</pre>
+<pre class="term">$ dart run erro_dois.dart
+erro_dois.dart:9:30: Error: Each class definition can have at most one extends clause.
+Try choosing one superclass and define your class to implement (or mix in) the others.
+class Sorvete extends Produto, Gelado {}
+                             ^
+</pre>
+<p>"Cada classe pode ter no máximo uma cláusula <code>extends</code>. Escolha uma superclasse e faça a sua classe <strong>implementar</strong> (ou <strong>misturar</strong>) as outras." No Dart, cada classe tem <strong>uma mãe só</strong>. O próprio erro já indica as saídas: <code>implements</code> (aula <a href="interfaces.html">Interfaces</a>) e <code>with</code> (aula <a href="mixins.html">Mixins</a>). O <code>^</code> aponta a vírgula, onde começou o problema.</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu à mãe um campo que só a filha tem</strong>
+<pre class="file" data-file="erro_filho.dart">// (Produto e Bebida iguais aos da seção 1)
+void main() {
+  final pao = Produto('Pão francês', 0.75);
+  print(pao.volumeMl);
+}
+</pre>
+<pre class="term">$ dart run erro_filho.dart
+erro_filho.dart:16:13: Error: The getter 'volumeMl' isn't defined for the type 'Produto'.
+ - 'Produto' is from 'erro_filho.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'volumeMl'.
+  print(pao.volumeMl);
+            ^^^^^^^^
+</pre>
+<p>"O <em>getter</em> <code>volumeMl</code> não está definido para o tipo <code>Produto</code>." (Um <em>getter</em> é o que lê um campo; veja <a href="getters-setters.html">get e set</a>.) A linha <code>- 'Produto' is from 'erro_filho.dart'.</code> só conta em que arquivo a classe foi declarada. Os <code>^^^^^^^^</code> sublinham o nome inteiro. O pão é só <code>Produto</code>, e produto não tem volume. (Os números 16:13 são do arquivo completo, com as classes; aqui elas foram resumidas no comentário.)</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>super.</code> mas esqueceu o <code>extends</code></strong>
+<pre class="file" data-file="erro_esqueceu_extends.dart">// (a classe Produto da seção 2 vem antes, nas linhas 1 a 6)
+
+class Bebida {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  print(Bebida('Suco', 6.5, 300).nome);
+}
+</pre>
+<pre class="term">$ dart run erro_esqueceu_extends.dart
+erro_esqueceu_extends.dart:11:16: Error: The super constructor has no corresponding positional parameter.
+  Bebida(super.nome, super.preco, this.volumeMl);
+               ^
+erro_esqueceu_extends.dart:11:28: Error: The super constructor has no corresponding positional parameter.
+  Bebida(super.nome, super.preco, this.volumeMl);
+                           ^
+erro_esqueceu_extends.dart:15:34: Error: The getter 'nome' isn't defined for the type 'Bebida'.
+ - 'Bebida' is from 'erro_esqueceu_extends.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'nome'.
+  print(Bebida('Suco', 6.5, 300).nome);
+                                 ^^^^
+</pre>
+<p>Três erros de uma vez, todos com a mesma causa. Sem <code>extends Produto</code>, a mãe da <code>Bebida</code> é <code>Object</code>, cujo construtor não recebe nada: "o construtor da superclasse não tem parâmetro posicional correspondente" (para o <code>super.nome</code> e para o <code>super.preco</code>), e a bebida não tem <code>nome</code>. Quando aparecem vários erros, conserte <strong>o primeiro</strong> e rode de novo: os outros costumam sumir junto. <strong>Como consertar:</strong> <code>class Bebida extends Produto</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Forçou um produto a ser bebida com <code>as</code> (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_cast.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto {
+  int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  final List&lt;Produto&gt; carrinho = [
+    Bebida('Suco de laranja', 6.5, 300),
+    Produto('Pão francês', 0.75),
+  ];
+
+  for (final item in carrinho) {
+    final bebida = item as Bebida;
+    print('${bebida.nome}: ${bebida.volumeMl} ml');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_cast.dart
+Suco de laranja: 300 ml
+Unhandled exception:
+type 'Produto' is not a subtype of type 'Bebida' in type cast
+#0      main (file:///home/ana/erro_cast.dart:21:25)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Desta vez o programa <strong>compilou e começou a rodar</strong>: o suco saiu certinho. No segundo item, o pão:</p>
+<ul>
+  <li><code>Unhandled exception:</code> "exceção não tratada": algo deu errado <strong>durante a execução</strong> e ninguém cuidou disso (veja <a href="excecoes.html">Exceções</a>).</li>
+  <li>"O tipo <code>Produto</code> não é um subtipo do tipo <code>Bebida</code> numa conversão de tipo." O <code>as Bebida</code> prometeu ao Dart que o item era uma bebida; o pão não é, e a promessa quebrou.</li>
+  <li><code>#0      main (file:///home/ana/erro_cast.dart:21:25)</code>: a primeira linha do <strong>stack trace</strong> ("rastro da pilha") diz onde foi: função <code>main</code>, linha 21, coluna 25 do arquivo. As linhas <code>#1</code> e <code>#2</code> são do próprio Dart, que chamou o seu <code>main</code>; pode ignorá-las.</li>
+</ul>
+<p>O código de saída foi <strong>255</strong>, o de exceção não tratada. <strong>Como consertar:</strong> pergunte antes com <code>if (item is Bebida)</code>, como na seção 4. Use <code>as</code> só quando você <strong>tem certeza</strong> do tipo. A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> compara os dois tipos de erro com calma.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class Bebida extends Produto { … }</code></td><td>Bebida herda os campos e métodos de Produto</td></tr>
+<tr><td><code>Bebida(super.nome, super.preco, this.volumeMl);</code></td><td>Repassa nome e preço para o construtor da mãe <span class="versao">Dart 2.17</span></td></tr>
+<tr><td><code>Bebida(String n, double p, this.volumeMl) : super(n, p);</code></td><td>A mesma coisa, na forma longa</td></tr>
+<tr><td><code>Refrigerante(super.nome, super.preco, super.volumeMl, {this.zeroAcucar = false})</code></td><td>Repassa três valores para a mãe e guarda um próprio</td></tr>
+<tr><td><code>objeto is Bebida</code></td><td><code>true</code> se o objeto for Bebida (ou uma filha dela)</td></tr>
+<tr><td><code>objeto as Bebida</code></td><td>Trata o objeto como Bebida; exceção se não for</td></tr>
+<tr><td><code>Object</code></td><td>A mãe de todas as classes</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The implicitly called unnamed constructor from 'X' has required parameters.</code></td><td>O construtor da filha não chamou o da mãe (faltou <code>super.</code> ou <code>: super(…)</code>)</td></tr>
+<tr><td><code>Each class definition can have at most one extends clause.</code></td><td>Dois <code>extends</code>: o Dart só aceita uma mãe</td></tr>
+<tr><td><code>The getter 'x' isn't defined for the type 'Produto'.</code></td><td>Pediu à mãe um campo que só a filha tem</td></tr>
+<tr><td><code>The super constructor has no corresponding positional parameter.</code></td><td>Faltou o <code>extends</code>, ou sobrou um <code>super.</code></td></tr>
+<tr><td><code>type 'Produto' is not a subtype of type 'Bebida' in type cast</code></td><td>Um <code>as</code> com o tipo errado (durante a execução)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a subclasse</h3>
+<p>Complete para <code>Doce</code> herdar de <code>Produto</code> e repassar o nome e o preço:</p>
+<div class="ex-code">class Doce <input data-answer="extends" aria-label="palavra-chave da herança"> Produto {<br>&nbsp;&nbsp;int pesoG;<br>&nbsp;&nbsp;Doce(<input data-answer="super" aria-label="palavra antes de .nome">.nome, super.preco, this.pesoG);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas mães?</h3>
+<p>Quantas classes podem aparecer depois do <code>extends</code> numa mesma declaração? Responda com um número.</p>
+<div class="ex-code">No máximo <input data-answer="1|uma" aria-label="número de superclasses">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>class Bebida extends Produto</code>, qual destas linhas mostra <code>false</code>?</p>
+<label><input type="radio" name="q3"> <code>print(Bebida('Suco', 6.5, 300) is Produto);</code></label>
+<label><input type="radio" name="q3"> <code>print(Bebida('Suco', 6.5, 300) is Object);</code></label>
+<label><input type="radio" name="q3"> <code>print(Produto('Pão', 0.75) is Bebida);</code></label>
+<label><input type="radio" name="q3"> <code>print(Bebida('Suco', 6.5, 300) is Bebida);</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destes pares <strong>não</strong> combina com herança?</p>
+<label><input type="radio" name="q4"> Refrigerante e Bebida</label>
+<label><input type="radio" name="q4"> Carrinho e Produto (o carrinho guarda produtos)</label>
+<label><input type="radio" name="q4"> Bebida e Produto</label>
+<label><input type="radio" name="q4"> Gerente e Funcionario</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O programa mostrou uma linha e depois <code>Unhandled exception: type 'Produto' is not a subtype of type 'Bebida' in type cast</code>. O que aconteceu?</p>
+<label><input type="radio" name="q5"> O programa não compilou</label>
+<label><input type="radio" name="q5"> Faltou o <code>super</code> no construtor</label>
+<label><input type="radio" name="q5"> A classe tem dois <code>extends</code></label>
+<label><input type="radio" name="q5"> Durante a execução, um <code>as Bebida</code> recebeu um produto que não era bebida</label>
+</div>
+
+<h3>Missão final: os doces da lojinha</h3>
+
+<div class="trydart" data-goal="out:Brigadeiro: R$ 3.00 (25 g);;src:extends\s+Produto">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>Doce</code>, filha de <code>Produto</code>, com um campo <code>int pesoG</code> e um construtor que repassa nome e preço para a mãe. O <code>main</code> já está pronto: ele deve mostrar <code>Brigadeiro: R$ 3.00 (25 g)</code>.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+// escreva a classe Doce aqui
+
+void main() {
+  final doce = Doce('Brigadeiro', 3.0, 25);
+  print('${doce.descricao()} (${doce.pesoG} g)');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Doce extends Produto {
+  int pesoG;
+
+  Doce(super.nome, super.preco, this.pesoG);
+}
+
+void main() {
+  final doce = Doce('Brigadeiro', 3.0, 25);
+  print('${doce.descricao()} (${doce.pesoG} g)');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Brigadeiro: R$ 3.00 (25 g)</code>. Sem a classe, o Dart avisa <code>Error: Method not found: 'Doce'.</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>class Filha extends Mae</code>: a filha herda todos os campos e métodos da mãe e pode acrescentar os seus.</li>
+  <li>Use herança quando a frase "a filha <strong>é uma</strong> mãe" faz sentido.</li>
+  <li>O construtor da filha tem de alimentar o da mãe: <code>super.nome</code> (forma curta, Dart 2.17+) ou <code>: super(nome, preco)</code>.</li>
+  <li>A herança só desce: a filha tem tudo da mãe, a mãe não tem nada da filha.</li>
+  <li>Cada classe tem <strong>uma</strong> mãe só; todas descendem de <code>Object</code>.</li>
+  <li><code>is</code> pergunta o tipo com segurança; <code>as</code> afirma o tipo e, se errar, dá exceção durante a execução (código 255). Erros de compilação saem com código 254.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
