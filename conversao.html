@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Conversão de Tipos — parse, tryParse e toString | Guia Dart</title>
+<meta name="description" content="Converter tipos no Dart para quem nunca programou: texto para número com int.parse e double.parse, int.tryParse que devolve null, número para texto com toString e toStringAsFixed, int para double e de volta, o preço com vírgula, e os erros reais do Dart 3 (FormatException, String em variável int, int? em int, o as que não converte).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Conversão de Tipos</span></h1>
+
+<p class="intro">Tudo o que a pessoa digita no teclado chega ao programa como <strong>texto</strong>. Se ela digita <code>30</code>, o programa recebe <code>'30'</code>, dois caracteres, e não o número trinta. Antes de fazer conta, é preciso <strong>converter</strong>. O caminho de volta também acontece: transformar o número em texto para mostrar bonito. Nesta aula você aprende as duas direções, e o que acontece quando o texto não é um número.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como transformar texto em número: <code>int.parse</code>, <code>double.parse</code> e <code>num.parse</code>.</li>
+  <li>Como converter sem risco de parar o programa: <code>int.tryParse</code>, que devolve <code>null</code>.</li>
+  <li>Como transformar número em texto: <code>toString()</code>, <code>toStringAsFixed</code> e a interpolação.</li>
+  <li>Como passar de <code>int</code> para <code>double</code> e de volta.</li>
+  <li>Como lidar com o preço digitado com vírgula (<code>4,50</code>).</li>
+  <li>Os erros reais: <code>FormatException</code>, texto numa variável <code>int</code>, <code>int?</code> num <code>int</code>, e o <code>as</code> que não converte.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o número escrito no papel</h2>
+<p>Na padaria, a cliente deixa um bilhete: <em>"30 pães"</em>. Esse "30" no papel é tinta: você não consegue somar 1 ao papel. Primeiro você <strong>lê</strong> o bilhete e entende "trinta"; aí, sim, faz a conta de cabeça. Depois, para responder, você <strong>escreve</strong> o resultado num papel de novo.</p>
+<p>No Dart é igual. <code>'30'</code> (com aspas) é o bilhete: uma <a href="strings.html">String</a>. <code>30</code> (sem aspas) é o número de verdade: um <a href="int-double.html">int</a>. Ler o bilhete é o <strong>parse</strong> (em inglês, "analisar"); escrever de volta é o <strong>toString</strong> ("para texto"). O Dart nunca faz essa troca sozinho: você pede.</p>
+
+<hr>
+
+<h2>1. De texto para número: <code>parse</code></h2>
+
+<pre class="file" data-file="parse.dart">void main() {
+  var textoIdade = '30';
+  var textoPreco = '4.50';
+  int idade = int.parse(textoIdade);
+  double preco = double.parse(textoPreco);
+  print(idade + 1);
+  print(preco * 2);
+  print(textoIdade + '1');
+  print(double.parse('7'));
+  print(num.parse('7'));
+  print(num.parse('7.5'));
+  print(int.parse(' 42 '));
+  print(int.parse('-15'));
+  print(int.parse('ff', radix: 16));
+}
+</pre>
+
+<pre class="term">$ dart run parse.dart
+31
+9.0
+301
+7.0
+7
+7.5
+42
+-15
+255
+</pre>
+
+<dl class="anatomy">
+  <dt>int.parse(textoIdade)</dt><dd>Lê o texto <code>'30'</code> e devolve o <code>int</code> 30. Agora <code>idade + 1</code> dá <code>31</code>.</dd>
+  <dt>double.parse(textoPreco)</dt><dd>Lê <code>'4.50'</code> e devolve o <code>double</code> 4.5. <code>preco * 2</code> dá <code>9.0</code>.</dd>
+  <dt>textoIdade + '1'</dt><dd>Sem converter, o <code>+</code> <strong>junta textos</strong>: <code>'30'</code> com <code>'1'</code> dá <code>'301'</code>. Esse é o motivo de converter.</dd>
+  <dt>double.parse('7')</dt><dd>Um texto sem ponto também serve para <code>double</code>: <code>7.0</code>.</dd>
+  <dt>num.parse</dt><dd>Devolve <code>int</code> se o texto for inteiro, <code>double</code> se tiver ponto.</dd>
+  <dt>int.parse(' 42 ')</dt><dd>Espaços antes e depois são ignorados.</dd>
+  <dt>radix: 16</dt><dd>"Base 16": lê o texto em hexadecimal. <code>'ff'</code> é 255. Sem o <code>radix</code>, a base é 10, a de sempre.</dd>
+</dl>
+
+<p>Repare na forma: <code>int.parse(…)</code> é uma função que pertence <strong>ao tipo</strong> <code>int</code>, não a uma variável. Você chama pelo nome do tipo que quer receber.</p>
+
+<div class="trydart" data-goal="out:Total: R$ 7.50;;src:int\.parse;;src:double\.parse">
+<p class="try-task"><strong>Missão:</strong> a quantidade e o preço chegaram como texto, e o programa nem compila (multiplicar dois textos não faz sentido). Converta <code>textoQtd</code> com <code>int.parse</code> e <code>textoPreco</code> com <code>double.parse</code>, guarde em variáveis e mostre <code>Total: R$ 7.50</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var textoQtd = '3';
+  var textoPreco = '2.50';
+  print('Total: R\$ ${textoQtd * textoPreco}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var textoQtd = '3';
+  var textoPreco = '2.50';
+  var quantidade = int.parse(textoQtd);
+  var preco = double.parse(textoPreco);
+  print('Total: R\$ ${(quantidade * preco).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<p>Se você rodar o código inicial, verá o erro real: <code>A value of type 'String' can't be assigned to a variable of type 'int'.</code> (o <code>*</code> de um texto espera um <code>int</code>, o número de repetições, como em <code>'-' * 20</code>).</p>
+
+<hr>
+
+<h2>2. Converter sem parar o programa: <code>tryParse</code></h2>
+<p>E se o texto não for um número? Com <code>parse</code>, o programa <strong>para</strong> com uma exceção (veja <a href="#errado">Quando dá errado</a>). Quando o texto vem de uma pessoa, que pode digitar qualquer coisa, use o <code>tryParse</code> ("tentar analisar"):</p>
+
+<pre class="file" data-file="tryparse.dart">void main() {
+  print(int.tryParse('42'));
+  print(int.tryParse('abc'));
+  print(int.tryParse('4.5'));
+  print(double.tryParse('4,50'));
+  var quantidade = int.tryParse('doze') ?? 0;
+  print(quantidade);
+}
+</pre>
+
+<pre class="term">$ dart run tryparse.dart
+42
+null
+null
+null
+0
+</pre>
+
+<dl class="anatomy">
+  <dt>int.tryParse('42')</dt><dd>Deu certo: devolve <code>42</code>.</dd>
+  <dt>int.tryParse('abc')</dt><dd>Não é número: em vez de parar, devolve <code>null</code>, o "nada" do Dart.</dd>
+  <dt>int.tryParse('4.5')</dt><dd>Tem ponto: não é um <code>int</code> válido, <code>null</code>.</dd>
+  <dt>double.tryParse('4,50')</dt><dd>Com vírgula, nem o <code>double</code> entende: <code>null</code>.</dd>
+  <dt>int.tryParse('doze') ?? 0</dt><dd>O <code>??</code> quer dizer "se der <code>null</code>, use este outro valor". Aqui, 0. É o par perfeito do <code>tryParse</code> (aula <a href="operadores-null.html">?. , ?? e ??=</a>).</dd>
+</dl>
+
+<p>Por poder devolver <code>null</code>, o tipo do resultado de <code>int.tryParse</code> não é <code>int</code>: é <code>int?</code> ("int ou nada"). O Dart cobra que você trate o caso do <code>null</code>; o porquê está em <a href="null-safety.html">Null Safety</a>.</p>
+
+<hr>
+
+<h2>3. De número para texto: <code>toString</code></h2>
+
+<pre class="file" data-file="tostring.dart">void main() {
+  int paes = 7;
+  double preco = 0.8;
+  String a = paes.toString();
+  String b = preco.toString();
+  String c = (paes * preco).toStringAsFixed(2);
+  String d = '$paes';
+  print(a + ' pães');
+  print(b);
+  print(c);
+  print(d.length);
+  print(255.toRadixString(2));
+}
+</pre>
+
+<pre class="term">$ dart run tostring.dart
+7 pães
+0.8
+5.60
+1
+11111111
+</pre>
+
+<dl class="anatomy">
+  <dt>paes.toString()</dt><dd>O <code>int</code> 7 vira o texto <code>'7'</code>. Agora o <code>+ ' pães'</code> funciona.</dd>
+  <dt>(paes * preco).toStringAsFixed(2)</dt><dd>Texto com 2 casas decimais: o jeito de mostrar dinheiro.</dd>
+  <dt>'$paes'</dt><dd>A <a href="interpolacao.html">interpolação</a> também converte: <code>'$paes'</code> é o texto <code>'7'</code>, de tamanho 1. Na prática, é o jeito mais usado.</dd>
+  <dt>255.toRadixString(2)</dt><dd>Texto em outra base: 255 em binário é <code>11111111</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Entre <code>int</code> e <code>double</code></h2>
+
+<pre class="file" data-file="numeros.dart">void main() {
+  int inteiro = 7;
+  double decimal = 7.9;
+  print(inteiro.toDouble());
+  print(decimal.toInt());
+  print(decimal.round());
+  print(decimal.floor());
+  print(decimal.ceil());
+}
+</pre>
+
+<pre class="term">$ dart run numeros.dart
+7.0
+7
+8
+7
+8
+</pre>
+
+<p><code>toDouble()</code> nunca perde nada. Já de <code>double</code> para <code>int</code> você <strong>escolhe</strong> o que fazer com as casas decimais: <code>toInt()</code> corta (7.9 vira 7), <code>round()</code> arredonda (8), <code>floor()</code> vai para baixo (7), <code>ceil()</code> vai para cima (8). Detalhes em <a href="int-double.html">int e double</a>.</p>
+
+<hr>
+
+<h2>5. O preço digitado com vírgula</h2>
+<p>No Brasil, a Ana digita <code>4,50</code>. O <code>double.parse</code> só entende ponto. A solução é trocar a vírgula por ponto antes de converter:</p>
+
+<pre class="file" data-file="virgula.dart">void main() {
+  var digitado = '4,50';
+  var preco = double.parse(digitado.replaceAll(',', '.'));
+  print(preco);
+}
+</pre>
+
+<pre class="term">$ dart run virgula.dart
+4.5
+</pre>
+
+<p>O <code>replaceAll(',', '.')</code> ("trocar todos") devolve um texto novo, <code>'4.50'</code>, e o <code>parse</code> lê esse texto. Mais métodos de texto em <a href="strings-metodos.html">Métodos de String</a>. (Para ler do teclado de verdade, veja <a href="stdin.html">Lendo o Teclado</a>.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>De → para</th><th>Formas</th><th>Qual usar</th></tr>
+<tr><td>texto → <code>int</code></td><td><code>int.parse(t)</code>, <code>int.tryParse(t)</code></td><td><code>tryParse</code> se o texto vem de uma pessoa ou de um arquivo; <code>parse</code> se você tem certeza</td></tr>
+<tr><td>texto → <code>double</code></td><td><code>double.parse(t)</code>, <code>double.tryParse(t)</code></td><td>O mesmo; troque a vírgula por ponto antes</td></tr>
+<tr><td>texto → <code>int</code> ou <code>double</code></td><td><code>num.parse(t)</code>, <code>num.tryParse(t)</code></td><td>Quando os dois servem</td></tr>
+<tr><td>número → texto</td><td><code>'$n'</code>, <code>n.toString()</code>, <code>n.toStringAsFixed(2)</code></td><td>Interpolação no dia a dia; <code>toStringAsFixed</code> para dinheiro</td></tr>
+<tr><td><code>int</code> → <code>double</code></td><td><code>n.toDouble()</code></td><td>Sempre seguro</td></tr>
+<tr><td><code>double</code> → <code>int</code></td><td><code>toInt()</code>, <code>round()</code>, <code>floor()</code>, <code>ceil()</code></td><td><code>round()</code> se não souber qual</td></tr>
+<tr><td>texto → <code>bool</code></td><td><code>bool.parse(t)</code>, <code>bool.tryParse(t)</code></td><td>Veja <a href="bool.html">Booleanos</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou o texto direto, sem converter</strong>
+<pre class="file" data-file="err_semparse.dart">void main() {
+  String texto = '30';
+  int idade = texto;
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run err_semparse.dart
+err_semparse.dart:3:15: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int idade = texto;
+              ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O Dart <strong>não converte sozinho</strong>, nem quando o texto parece um número. É um erro de compilação: nada roda. <strong>Como consertar:</strong> <code>int idade = int.parse(texto);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O texto não é um número: <code>FormatException</code></strong>
+<pre class="file" data-file="err_abc.dart">void main() {
+  var idade = int.parse('trinta');
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run err_abc.dart
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+trinta
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/err_abc.dart:2:19)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Este compila (o Dart não sabe o que tem dentro do texto até rodar) e para <strong>durante a execução</strong>. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa parou no meio (código de saída 255).</dd>
+  <dt>FormatException: Invalid radix-10 number (at character 1)</dt><dd>"Erro de formato: número de base 10 inválido (no caractere 1)." O <code>t</code> de <code>trinta</code>, o primeiro caractere, já não é um algarismo.</dd>
+  <dt>trinta e ^</dt><dd>O texto que veio, com o <code>^</code> embaixo do caractere problemático. Depois vem uma linha em branco.</dd>
+  <dt>#0 a #3</dt><dd>O caminho <strong>dentro</strong> do Dart: o <code>int.parse</code> chamou funções internas até desistir. Pode pular.</dd>
+  <dt>#4 main (file:///home/ana/err_abc.dart:2:19)</dt><dd>A primeira linha com o <strong>seu</strong> arquivo: linha 2, coluna 19, o <code>parse</code>. Num stack trace, procure sempre a primeira linha com o nome do seu arquivo.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se o texto pode não ser número, use <code>int.tryParse('trinta') ?? 0</code>, ou trate a exceção (<a href="excecoes.html">Exceções</a>).</p>
+</div>
+
+<div class="cenario">
+<strong><code>int.parse</code> com ponto, <code>double.parse</code> com vírgula</strong>
+<pre class="file" data-file="err_ponto.dart">void main() {
+  var preco = int.parse('4.50');
+  print(preco);
+}
+</pre>
+<pre class="term">$ dart run err_ponto.dart
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+4.50
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/err_ponto.dart:2:19)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O <code>int.parse</code> só aceita inteiros. (Repare que o <code>^</code> aponta o caractere 1, e não o ponto: o Dart desiste do texto inteiro.) <strong>Como consertar:</strong> <code>double.parse('4.50')</code>. E com vírgula, o <code>double.parse</code> também falha:</p>
+<pre class="file" data-file="err_virgula.dart">void main() {
+  var preco = double.parse('4,50');
+  print(preco);
+}
+</pre>
+<pre class="term">$ dart run err_virgula.dart
+Unhandled exception:
+FormatException: Invalid double
+4,50
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      main (file:///home/ana/err_virgula.dart:2:22)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"<code>double</code> inválido." <strong>Como consertar:</strong> <code>double.parse(digitado.replaceAll(',', '.'))</code>, como na seção 5.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto vazio</strong>
+<pre class="file" data-file="err_vazio.dart">void main() {
+  var idade = int.parse('');
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run err_vazio.dart
+Unhandled exception:
+FormatException: Invalid number (at character 1)
+
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int.parse (dart:core-patch/integers_patch.dart:71:14)
+#2      main (file:///home/ana/err_vazio.dart:2:19)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Acontece quando a pessoa só aperta <kbd>Enter</kbd>: o texto é <code>''</code>, e a linha do texto aparece em branco, com o <code>^</code> embaixo do nada. <strong>Como consertar:</strong> <code>int.tryParse</code> (que devolve <code>null</code> para <code>''</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou o resultado do <code>tryParse</code> num <code>int</code></strong>
+<pre class="file" data-file="err_try.dart">void main() {
+  int idade = int.tryParse('30');
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run err_try.dart
+err_try.dart:2:19: Error: A value of type 'int?' can't be assigned to a variable of type 'int'.
+  int idade = int.tryParse('30');
+                  ^
+</pre>
+<p>"Um valor do tipo <code>int?</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O <code>?</code> no fim do tipo quer dizer "ou <code>null</code>". O <code>tryParse</code> pode devolver <code>null</code>, e a variável <code>int</code> não aceita <code>null</code>; o Dart recusa antes de rodar, mesmo que hoje o texto seja <code>'30'</code>. <strong>Como consertar:</strong> dê um valor para o caso do <code>null</code>: <code>int idade = int.tryParse('30') ?? 0;</code>. É o assunto das próximas aulas: <a href="null-safety.html">Null Safety</a> e <a href="tipos-anulaveis.html">Tipos Anuláveis</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Achou que o <code>as</code> converte</strong>
+<pre class="file" data-file="err_as.dart">void main() {
+  Object texto = '30';
+  int idade = texto as int;
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run err_as.dart
+Unhandled exception:
+type 'String' is not a subtype of type 'int' in type cast
+#0      main (file:///home/ana/err_as.dart:3:21)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"O tipo <code>String</code> não é um subtipo do tipo <code>int</code>, na conversão de tipo (<em>type cast</em>)." O <code>as</code> não transforma nada: ele só <strong>afirma</strong> "confie em mim, isto já é um <code>int</code>". Como era um texto, a afirmação era falsa, e o programa parou. (O <code>Object</code> é o tipo que aceita qualquer valor: aula <a href="dynamic-object.html">dynamic e Object</a>; o <code>as</code> está em <a href="operadores-tipo.html">is, is! e as</a>.) <strong>Como consertar:</strong> para converter texto em número, é sempre <code>int.parse</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Resultado</th></tr>
+<tr><td><code>int.parse('30')</code></td><td><code>30</code> (exceção se não for inteiro)</td></tr>
+<tr><td><code>double.parse('4.50')</code></td><td><code>4.5</code></td></tr>
+<tr><td><code>num.parse('7.5')</code></td><td><code>7.5</code> (<code>int</code> ou <code>double</code>)</td></tr>
+<tr><td><code>int.tryParse('abc')</code></td><td><code>null</code> (tipo <code>int?</code>)</td></tr>
+<tr><td><code>int.tryParse(t) ?? 0</code></td><td>O número, ou 0 se não der</td></tr>
+<tr><td><code>int.parse('ff', radix: 16)</code></td><td><code>255</code></td></tr>
+<tr><td><code>7.toString()</code>, <code>'$n'</code></td><td><code>'7'</code></td></tr>
+<tr><td><code>5.6.toStringAsFixed(2)</code></td><td><code>'5.60'</code></td></tr>
+<tr><td><code>7.toDouble()</code></td><td><code>7.0</code></td></tr>
+<tr><td><code>7.9.toInt()</code> / <code>7.9.round()</code></td><td><code>7</code> / <code>8</code></td></tr>
+<tr><td><code>t.replaceAll(',', '.')</code></td><td>Troca vírgula por ponto antes do <code>parse</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'int'.</code></td><td>Usou o texto sem <code>parse</code></td></tr>
+<tr><td><code>FormatException: Invalid radix-10 number</code></td><td><code>int.parse</code> de texto que não é inteiro (letras, ponto, vazio)</td></tr>
+<tr><td><code>FormatException: Invalid double</code></td><td><code>double.parse</code> de texto com vírgula ou letras</td></tr>
+<tr><td><code>A value of type 'int?' can't be assigned to a variable of type 'int'.</code></td><td><code>tryParse</code> sem tratar o <code>null</code>: use <code>?? valor</code></td></tr>
+<tr><td><code>type 'String' is not a subtype of type 'int' in type cast</code></td><td>Usou <code>as</code> para converter: use <code>parse</code></td></tr>
+<tr><td><code>301</code> em vez de <code>31</code></td><td>Somou textos: converta antes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para transformar o texto em número inteiro:</p>
+<div class="ex-code">var idade = <input data-answer="int" aria-label="tipo">.<input data-answer="parse" aria-label="método">('25');</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto dá?</h3>
+<p>Escreva exatamente o que o Dart mostra:</p>
+<div class="ex-code">print('2' + '2'); → <input data-answer="22" aria-label="resultado 1"><br>print(int.parse('2') + 2); → <input data-answer="4" aria-label="resultado 2"><br>print(int.tryParse('dois')); → <input data-answer="null" aria-label="resultado 3"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual linha transforma o texto <code>'9,90'</code> no <code>double</code> 9.9?</p>
+<label><input type="radio" name="q3"> <code>double.parse('9,90')</code></label>
+<label><input type="radio" name="q3"> <code>'9,90' as double</code></label>
+<label><input type="radio" name="q3"> <code>double.parse('9,90'.replaceAll(',', '.'))</code></label>
+<label><input type="radio" name="q3"> <code>int.parse('9,90').toDouble()</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Qual a diferença entre <code>int.parse('x')</code> e <code>int.tryParse('x')</code>?</p>
+<label><input type="radio" name="q4"> O primeiro para o programa com <code>FormatException</code>; o segundo devolve <code>null</code></label>
+<label><input type="radio" name="q4"> O primeiro devolve <code>0</code>; o segundo devolve <code>null</code></label>
+<label><input type="radio" name="q4"> Os dois não compilam</label>
+<label><input type="radio" name="q4"> Nenhuma</label>
+</div>
+
+<h3>Missão final: o caixa que não quebra</h3>
+
+<div class="trydart" data-goal="out:Quantidade: 1;;out:Total: R$ 12.90;;src:tryParse">
+<p class="try-task"><strong>Missão:</strong> a cliente digitou o preço <code>12,90</code> (com vírgula) e a quantidade <code>dois</code> (por extenso). O programa para com <code>FormatException</code>. Conserte: use <code>int.tryParse(…) ?? 1</code> na quantidade (se não der, conta 1) e troque a vírgula por ponto antes do <code>double.parse</code>. A saída deve ser <code>Quantidade: 1</code> e <code>Total: R$ 12.90</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var digitado = '12,90';
+  var quantidade = int.parse('dois');
+  var preco = double.parse(digitado);
+  var total = preco * quantidade;
+  print('Quantidade: $quantidade');
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var digitado = '12,90';
+  var quantidade = int.tryParse('dois') ?? 1;
+  var preco = double.parse(digitado.replaceAll(',', '.'));
+  var total = preco * quantidade;
+  print('Quantidade: $quantidade');
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run caixa.dart
+Quantidade: 1
+Total: R$ 12.90
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O Dart não converte tipos sozinho: <code>'30'</code> (texto) e <code>30</code> (número) são coisas diferentes.</li>
+  <li>Texto → número: <code>int.parse</code>, <code>double.parse</code>, <code>num.parse</code>. Se o texto não for número, o programa para com <code>FormatException</code>.</li>
+  <li><code>int.tryParse</code> / <code>double.tryParse</code> devolvem <code>null</code> em vez de parar; o tipo é <code>int?</code>, e <code>?? valor</code> dá um valor para o caso do <code>null</code>.</li>
+  <li>Número → texto: <code>'$n'</code>, <code>toString()</code>, <code>toStringAsFixed(2)</code>.</li>
+  <li><code>int</code> → <code>double</code>: <code>toDouble()</code>. <code>double</code> → <code>int</code>: <code>toInt()</code>, <code>round()</code>, <code>floor()</code>, <code>ceil()</code>.</li>
+  <li>Preço com vírgula: <code>replaceAll(',', '.')</code> antes do <code>parse</code>. E o <code>as</code> não converte: só afirma o tipo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
