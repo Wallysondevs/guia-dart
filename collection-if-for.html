@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart if e for dentro de coleções — listas que se montam sozinhas | Guia Dart</title>
+<meta name="description" content="O collection if e o collection for do Dart para quem nunca programou: colocar um item na lista só se uma condição for verdadeira, if/else dentro da lista, gerar itens com for, filtrar com for + if, usar em Map e Set, as outras formas de fazer (add, where/map) e os erros reais do Dart 3.13 (chaves sobrando, dois-pontos de ternário, condição que não é bool, divisão por zero).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">if e for</span> Dentro de Coleções</h1>
+
+<p class="intro">Você já sabe criar uma lista escrevendo os itens entre colchetes: <code>['pão', 'leite']</code> (veja <a href="list.html">Listas</a>). Mas muitas vezes a lista <strong>depende</strong> de alguma coisa: o bolo só entra na lista de compras se vier visita; a lista de aprovados só tem as notas boas. O Dart deixa você escrever um <code>if</code> e um <code>for</code> <strong>dentro dos colchetes</strong>, no meio dos itens. Os nomes oficiais são <strong>collection if</strong> e <strong>collection for</strong> ("if de coleção" e "for de coleção").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como pôr um item na lista <strong>só se</strong> uma condição for verdadeira: <code>if (temVisita) 'bolo'</code>.</li>
+  <li>Como escolher entre dois itens com <code>if … else</code> dentro da lista.</li>
+  <li>Como <strong>gerar</strong> vários itens com um <code>for</code> dentro da lista: <code>[for (final p in precos) p * 2]</code>.</li>
+  <li>Como juntar os dois para <strong>filtrar</strong>: <code>[for (final n in notas) if (n &gt;= 7) n]</code>.</li>
+  <li>Como usar os dois em <strong>mapas</strong> (<code>Map</code>) e <strong>conjuntos</strong> (<code>Set</code>).</li>
+  <li>As outras formas de fazer a mesma coisa e os erros reais que o Dart mostra.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: a lista de compras com observações</h2>
+<p>A Ana escreve a lista do mercado num papel. Às vezes ela anota assim:</p>
+<ul>
+  <li>pão</li>
+  <li>leite</li>
+  <li>bolo <em>(só se vier visita)</em></li>
+  <li>uma fruta de cada tipo que estiver na promoção</li>
+</ul>
+<p>A terceira linha é um <strong>if</strong>: o bolo só vai para o carrinho se a condição for verdadeira. A quarta linha é um <strong>for</strong>: ela vira várias compras, uma para cada fruta da promoção. O papel continua sendo <strong>uma lista só</strong>; a decisão e a repetição estão escritas no meio dela. É exatamente isso que o collection if e o collection for fazem no Dart.</p>
+
+<hr>
+
+<h2>1. O <code>if</code> dentro da lista</h2>
+
+<pre class="file" data-file="compras.dart">void main() {
+  final temVisita = true;
+  final compras = [
+    'pão',
+    'leite',
+    if (temVisita) 'bolo',
+  ];
+  print(compras);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final temVisita = true;</dt><dd>Uma variável <code>bool</code> (verdadeiro ou falso; veja <a href="bool.html">Booleanos</a>). Ela decide se o bolo entra.</dd>
+  <dt>final compras = [</dt><dd>Começa a lista, como sempre. Cada item fica numa linha, separado por vírgula.</dd>
+  <dt>if (temVisita) 'bolo',</dt><dd>O <strong>collection if</strong>. Lê-se: "se tem visita, põe <code>'bolo'</code> aqui". A condição vai entre parênteses, como no <a href="if-else.html">if comum</a>, mas <strong>sem chaves</strong>: logo depois do parêntese vem o item. Se a condição for falsa, é como se a linha não existisse.</dd>
+  <dt>,</dt><dd>A vírgula depois do último item é opcional. O estilo oficial do Dart recomenda colocá-la em listas de várias linhas: assim, para acrescentar um item, você só escreve uma linha nova.</dd>
+</dl>
+
+<pre class="term">$ dart run compras.dart
+[pão, leite, bolo]
+</pre>
+
+<p>Agora a mesma lista com <code>temVisita = false</code> (e uma linha a mais, para contar os itens):</p>
+
+<pre class="file" data-file="compras2.dart">void main() {
+  final temVisita = false;
+  final compras = [
+    'pão',
+    'leite',
+    if (temVisita) 'bolo',
+  ];
+  print(compras);
+  print('Itens: ${compras.length}');
+}
+</pre>
+
+<pre class="term">$ dart run compras2.dart
+[pão, leite]
+Itens: 2
+</pre>
+
+<p>Repare: a lista não ficou com um "buraco" nem com um <code>null</code> no lugar do bolo. Ela tem <strong>2</strong> itens, e não 3. O <code>if</code> decide se o item <strong>existe</strong> na lista.</p>
+
+<h3>if … else: um item ou outro</h3>
+<p>Com <code>else</code> ("senão"), sempre entra um item: o primeiro se a condição for verdadeira, o segundo se for falsa.</p>
+
+<pre class="file" data-file="lanche.dart">void main() {
+  final chovendo = true;
+  final lanche = [
+    'sanduíche',
+    if (chovendo) 'chocolate quente' else 'suco gelado',
+  ];
+  print(lanche);
+}
+</pre>
+
+<pre class="term">$ dart run lanche.dart
+[sanduíche, chocolate quente]
+</pre>
+
+<p>Com <code>chovendo = false</code>, a lista seria <code>[sanduíche, suco gelado]</code>. O tamanho é sempre 2.</p>
+
+<div class="trydart" data-goal="out:[pão, leite, café, bolo];;src:if\s*\(">
+<p class="try-task"><strong>Missão:</strong> a lista abaixo sempre leva o bolo. Faça o bolo entrar <strong>só se</strong> <code>temVisita</code> for verdadeiro (use um <code>if</code> dentro da lista). Depois, troque para <code>false</code> e veja o bolo sumir.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final temVisita = true;
+  final compras = [
+    'pão',
+    'leite',
+    'café',
+    'bolo',
+  ];
+  print(compras);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final temVisita = true;
+  final compras = [
+    'pão',
+    'leite',
+    'café',
+    if (temVisita) 'bolo',
+  ];
+  print(compras);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O <code>for</code> dentro da lista</h2>
+<p>O collection for <strong>gera</strong> itens: para cada elemento de outra coleção, ele põe um item novo na lista. A Ana tem os preços de três produtos e quer saber quanto custam dois de cada:</p>
+
+<pre class="file" data-file="dobro.dart">void main() {
+  final precos = [4, 10, 7];
+  final dobro = [for (final p in precos) p * 2];
+  print(precos);
+  print(dobro);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>[ … ]</dt><dd>Os colchetes de sempre: o resultado é uma lista nova.</dd>
+  <dt>for (final p in precos)</dt><dd>O mesmo cabeçalho do <a href="for-in.html">for-in</a>: "para cada <code>p</code> em <code>precos</code>". De novo, <strong>sem chaves</strong>.</dd>
+  <dt>p * 2</dt><dd>O item que entra na lista nova a cada volta. Na 1ª volta <code>p</code> vale 4 e entra 8; depois 10 vira 20; depois 7 vira 14.</dd>
+</dl>
+
+<pre class="term">$ dart run dobro.dart
+[4, 10, 7]
+[8, 20, 14]
+</pre>
+
+<p>A lista original, <code>precos</code>, não mudou: o <code>for</code> criou uma lista <strong>nova</strong>.</p>
+
+<h3>Misturando itens fixos e gerados</h3>
+<p>O <code>for</code> pode ficar no meio de outros itens. A Ana monta as etiquetas da feira: um título, uma linha por fruta e o total no fim.</p>
+
+<pre class="file" data-file="etiquetas.dart">void main() {
+  final frutas = ['maçã', 'banana', 'uva'];
+  final etiquetas = [
+    'Feira da Ana',
+    for (final f in frutas) '- $f',
+    'Total: ${frutas.length} frutas',
+  ];
+  for (final linha in etiquetas) {
+    print(linha);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run etiquetas.dart
+Feira da Ana
+- maçã
+- banana
+- uva
+Total: 3 frutas
+</pre>
+
+<p>A lista <code>etiquetas</code> tem 5 itens: 1 fixo, 3 gerados pelo <code>for</code> e mais 1 fixo. O segundo <code>for</code>, fora dos colchetes, é um <code>for</code> comum, que só mostra as linhas.</p>
+
+<h3>O <code>for</code> com contador também vale</h3>
+<p>Além do <code>for-in</code>, o <code>for</code> clássico de três partes (veja <a href="for.html">for</a>) também funciona dentro da lista:</p>
+
+<pre class="file" data-file="contagem.dart">void main() {
+  final numeros = [for (var i = 1; i &lt;= 5; i++) i * 10];
+  print(numeros);
+}
+</pre>
+
+<pre class="term">$ dart run contagem.dart
+[10, 20, 30, 40, 50]
+</pre>
+
+<hr>
+
+<h2>3. <code>for</code> + <code>if</code>: filtrar</h2>
+<p>O item de um <code>for</code> pode ser um <code>if</code>. Assim, só entram na lista nova os elementos que passam no teste. A professora quer as notas a partir de 7:</p>
+
+<pre class="file" data-file="aprovados.dart">void main() {
+  final notas = [8.5, 6.0, 9.0, 4.5, 7.0];
+  final boas = [
+    for (final n in notas)
+      if (n &gt;= 7) n,
+  ];
+  print('Todas: $notas');
+  print('A partir de 7: $boas');
+}
+</pre>
+
+<pre class="term">$ dart run aprovados.dart
+Todas: [8.5, 6.0, 9.0, 4.5, 7.0]
+A partir de 7: [8.5, 9.0, 7.0]
+</pre>
+
+<p>Leia de fora para dentro: "para cada nota <code>n</code>, <strong>se</strong> <code>n &gt;= 7</code>, põe <code>n</code>". As notas 6.0 e 4.5 não passaram no <code>if</code> e ficaram de fora. A ordem das que passaram é a mesma da lista original.</p>
+
+<div class="trydart" data-goal="out:[10, 15, 20];;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> a padaria vende pacotes com estes números de pães. Monte a lista <code>grandes</code> com um <code>for</code> e um <code>if</code> dentro dos colchetes, deixando só os pacotes com <strong>10 pães ou mais</strong>. O resultado deve ser <code>[10, 15, 20]</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final pacotes = [6, 10, 4, 15, 20, 8];
+  final grandes = [];
+  print(grandes);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final pacotes = [6, 10, 4, 15, 20, 8];
+  final grandes = [
+    for (final p in pacotes)
+      if (p &gt;= 10) p,
+  ];
+  print(grandes);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Em mapas e conjuntos</h2>
+<p>O <code>if</code> e o <code>for</code> funcionam também dentro das chaves <code>{ }</code> de um <a href="map.html">Map</a> (pares <code>chave: valor</code>) e de um <a href="set.html">Set</a> (itens sem repetição):</p>
+
+<pre class="file" data-file="mapa.dart">void main() {
+  final produtos = ['pão', 'leite', 'café'];
+  final tamanhos = {for (final p in produtos) p: p.length};
+  print(tamanhos);
+
+  final temDesconto = true;
+  final pedido = {
+    'cliente': 'Ana',
+    'total': '25.00',
+    if (temDesconto) 'cupom': 'PADARIA10',
+  };
+  print(pedido);
+
+  final turmas = ['A', 'B', 'A', 'C', 'B'];
+  final semRepetir = {for (final t in turmas) 'Turma $t'};
+  print(semRepetir);
+}
+</pre>
+
+<pre class="term">$ dart run mapa.dart
+{pão: 3, leite: 5, café: 4}
+{cliente: Ana, total: 25.00, cupom: PADARIA10}
+{Turma A, Turma B, Turma C}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Trecho</th><th>O que faz</th></tr>
+<tr><td><code>{for (final p in produtos) p: p.length}</code></td><td>Gera um <strong>par</strong> por produto: a chave é o nome, o valor é o número de letras. Como tem <code>chave: valor</code>, o Dart sabe que é um <code>Map</code>.</td></tr>
+<tr><td><code>if (temDesconto) 'cupom': 'PADARIA10'</code></td><td>O par do cupom só entra no mapa se houver desconto.</td></tr>
+<tr><td><code>{for (final t in turmas) 'Turma $t'}</code></td><td>Sem dois-pontos, é um <code>Set</code>: as turmas repetidas (<code>A</code> e <code>B</code>) entram uma vez só.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Filtrar as notas a partir de 7 pode ser escrito de três jeitos. Os três dão o mesmo resultado:</p>
+
+<pre class="file" data-file="formas.dart">void main() {
+  final notas = [8.5, 6.0, 9.0, 4.5, 7.0];
+
+  // 1) laço comum + add
+  final a = &lt;double&gt;[];
+  for (final n in notas) {
+    if (n &gt;= 7) {
+      a.add(n);
+    }
+  }
+
+  // 2) where (filtrar) + toList
+  final b = notas.where((n) =&gt; n &gt;= 7).toList();
+
+  // 3) collection for + if
+  final c = [for (final n in notas) if (n &gt;= 7) n];
+
+  print(a);
+  print(b);
+  print(c);
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+[8.5, 9.0, 7.0]
+[8.5, 9.0, 7.0]
+[8.5, 9.0, 7.0]
+</pre>
+
+<ol class="passo">
+  <li><strong>Laço + <code>add</code>:</strong> cria uma lista vazia (<code>&lt;double&gt;[]</code>, "lista de double vazia") e vai acrescentando. Funciona, mas são 6 linhas, e a lista precisa ser montada aos poucos.</li>
+  <li><strong><code>where</code> + <code>toList</code>:</strong> <code>where</code> ("onde") filtra com uma função de uma linha, e o <code>toList()</code> transforma o resultado em lista (veja <a href="iterables.html">map, where, reduce e Outros</a>).</li>
+  <li><strong>collection for + if:</strong> uma linha, e a lista nasce pronta. Funciona bem quando a lista tem também itens fixos (como as etiquetas da feira).</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um item que às vezes entra, às vezes não, no meio de itens fixos</td><td>collection <code>if</code></td></tr>
+<tr><td>Gerar itens a partir de outra coleção, misturados com itens fixos</td><td>collection <code>for</code></td></tr>
+<tr><td>Só filtrar ou só transformar uma coleção inteira</td><td>collection <code>for</code> (+ <code>if</code>) ou <code>where</code>/<code>map</code>: os dois são comuns</td></tr>
+<tr><td>Muita lógica por item (várias linhas, <code>print</code>, contas intermediárias)</td><td>laço comum com <code>add</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Já existe no Dart 3: o <code>if-case</code> dentro da lista</strong> <span class="versao">Dart 3.0</span>
+<p>Desde o Dart 3.0, o <code>if</code> de coleção também aceita um <strong>pattern</strong>: <code>if (desconto case int d when d &gt; 0) 'Desconto: R\$ $d'</code> só põe o item se <code>desconto</code> for um <code>int</code> maior que zero (no lab, saiu <code>[Pão: R$ 8, Desconto: R$ 10]</code>). Patterns têm aula própria: <a href="patterns.html">Patterns e Desestruturação</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Pôs chaves depois do <code>if</code></strong>
+<p>No <code>if</code> comum, o bloco vai entre chaves. Dentro da lista, não:</p>
+<pre class="file" data-file="chaves.dart">void main() {
+  final temVisita = true;
+  final List&lt;String&gt; compras = [
+    'pão',
+    if (temVisita) {'bolo'},
+  ];
+  print(compras);
+}
+</pre>
+<pre class="term">$ dart run chaves.dart
+chaves.dart:5:20: Error: A value of type 'Set&lt;String&gt;' can't be assigned to a variable of type 'String'.
+ - 'Set' is from 'dart:core'.
+    if (temVisita) {'bolo'},
+                   ^
+$ echo $?
+254
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>chaves.dart:5:20</dt><dd>Arquivo, linha 5, coluna 20: o lugar do problema. O <code>^</code> embaixo aponta a coluna, bem na chave <code>{</code>.</dd>
+  <dt>Error: A value of type 'Set&lt;String&gt;' can't be assigned to a variable of type 'String'.</dt><dd>"Um valor do tipo <code>Set&lt;String&gt;</code> não pode ser guardado onde se espera um <code>String</code>." Dentro da lista, <code>{'bolo'}</code> não é um bloco: é um <strong>conjunto</strong> com um item. A lista é de <code>String</code>, e um conjunto não é um texto.</dd>
+  <dt>- 'Set' is from 'dart:core'.</dt><dd>Só uma informação extra: o tipo <code>Set</code> vem da biblioteca básica do Dart.</dd>
+  <dt>echo $? → 254</dt><dd>O código de saída de um erro de compilação: o programa nem começou.</dd>
+</dl>
+<p><strong>Como consertar:</strong> tire as chaves: <code>if (temVisita) 'bolo',</code>. (Sem o tipo <code>List&lt;String&gt;</code>, seria pior: o Dart aceitaria e você teria uma lista misturando textos e um conjunto.)</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu como um ternário (<code>? :</code>)</strong>
+<pre class="file" data-file="ternario.dart">void main() {
+  final chovendo = true;
+  final lanche = [
+    'sanduíche',
+    if (chovendo) 'chocolate quente' : 'suco gelado',
+  ];
+  print(lanche);
+}
+</pre>
+<pre class="term">$ dart run ternario.dart
+ternario.dart:5:38: Error: Expected ']' before this.
+    if (chovendo) 'chocolate quente' : 'suco gelado',
+                                     ^
+</pre>
+<p>"Era esperado um <code>]</code> antes disto." Depois de <code>'chocolate quente'</code>, o Dart esperava uma vírgula, o <code>else</code> ou o fim da lista; os dois-pontos não fazem sentido ali. <strong>Como consertar:</strong> use <code>else</code>: <code>if (chovendo) 'chocolate quente' else 'suco gelado'</code>. (Ou use o <a href="ternario.html">ternário</a> inteiro, sem <code>if</code>: <code>chovendo ? 'chocolate quente' : 'suco gelado'</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>A condição não é <code>bool</code></strong>
+<pre class="file" data-file="naobool.dart">void main() {
+  final visitas = 2;
+  final compras = ['pão', if (visitas) 'bolo'];
+  print(compras);
+}
+</pre>
+<pre class="term">$ dart run naobool.dart
+naobool.dart:3:31: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  final compras = ['pão', if (visitas) 'bolo'];
+                              ^
+</pre>
+<p>"Um valor do tipo <code>int</code> não pode ser usado onde se espera um <code>bool</code>." Em algumas linguagens, um número diferente de zero vale como "verdadeiro"; no Dart, não: a condição do <code>if</code> tem de ser <code>true</code> ou <code>false</code>. <strong>Como consertar:</strong> escreva a pergunta inteira: <code>if (visitas &gt; 0) 'bolo'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>print</code> no lugar do item: sem erro, mas lista de <code>null</code></strong>
+<pre class="file" data-file="printdentro.dart">void main() {
+  final nomes = ['Ana', 'Bia'];
+  final x = [for (final n in nomes) print(n)];
+  print(x);
+}
+</pre>
+<pre class="term">$ dart run printdentro.dart
+Ana
+Bia
+[null, null]
+</pre>
+<p>O Dart não reclamou. O <code>print(n)</code> rodou duas vezes (mostrou <code>Ana</code> e <code>Bia</code>), mas o <code>print</code> não <strong>devolve</strong> nada, então a lista ficou com dois "nada" (<code>null</code>). O item de um collection for é um <strong>valor</strong>, não um comando. <strong>Como consertar:</strong> para só mostrar, use um <code>for</code> comum, fora dos colchetes: <code>for (final n in nomes) { print(n); }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma conta que falha no meio do <code>for</code></strong>
+<p>A Ana divide uma conta de R$ 120 por quantidades de pessoas, e uma delas é 0:</p>
+<pre class="file" data-file="divisao.dart">void main() {
+  final conta = 120;
+  final pessoas = [4, 3, 0, 6];
+  final partes = [for (final p in pessoas) conta ~/ p];
+  print(partes);
+}
+</pre>
+<pre class="term">$ dart run divisao.dart
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/divisao.dart:4:50)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa compilou, começou a rodar e, no meio, aconteceu um problema que ninguém tratou (veja <a href="excecoes.html">Exceções</a>).</dd>
+  <dt>IntegerDivisionByZeroException</dt><dd>"Exceção de divisão inteira por zero". O <code>~/</code> (divisão inteira; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>) não sabe dividir por 0.</dd>
+  <dt>#0 int.~/ …</dt><dd>A pilha de chamadas: a linha <code>#0</code> é onde o erro nasceu, dentro do próprio <code>~/</code> do Dart.</dd>
+  <dt>#1 main (file:///home/ana/divisao.dart:4:50)</dt><dd>A linha que interessa: o <strong>seu</strong> código, linha 4, coluna 50, a conta dentro do <code>for</code>. As linhas <code>#2</code> e <code>#3</code> são o Dart preparando o programa; pode ignorar.</dd>
+  <dt>echo $? → 255</dt><dd>O código de saída de uma exceção não tratada. Repare que a lista nunca foi mostrada: ela não chegou a ficar pronta.</dd>
+</dl>
+<p><strong>Como consertar:</strong> filtre o zero com um <code>if</code> dentro do <code>for</code>: <code>[for (final p in pessoas) if (p &gt; 0) conta ~/ p]</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:[30, 40, 20];;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o programa da divisão da conta. Rode e veja a exceção. Depois, acrescente um <code>if</code> dentro do <code>for</code> para pular as quantidades iguais a 0. O resultado deve ser <code>[30, 40, 20]</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final conta = 120;
+  final pessoas = [4, 3, 0, 6];
+  final partes = [for (final p in pessoas) conta ~/ p];
+  print(partes);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final conta = 120;
+  final pessoas = [4, 3, 0, 6];
+  final partes = [for (final p in pessoas) if (p &gt; 0) conta ~/ p];
+  print(partes);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>[a, if (cond) b]</code></td><td>Põe <code>b</code> só se <code>cond</code> for <code>true</code></td></tr>
+<tr><td><code>[if (cond) b else c]</code></td><td>Põe <code>b</code> ou <code>c</code> (sempre entra um)</td></tr>
+<tr><td><code>[for (final x in lista) expr]</code></td><td>Um item novo para cada <code>x</code></td></tr>
+<tr><td><code>[for (var i = 0; i &lt; n; i++) expr]</code></td><td>O <code>for</code> de três partes também vale</td></tr>
+<tr><td><code>[for (final x in lista) if (cond) x]</code></td><td>Filtrar: só os que passam no teste</td></tr>
+<tr><td><code>{for (final x in lista) x: valor}</code></td><td>Gerar um <code>Map</code></td></tr>
+<tr><td><code>{'a': 1, if (cond) 'b': 2}</code></td><td>Par opcional num <code>Map</code></td></tr>
+<tr><td><code>{for (final x in lista) x}</code></td><td>Gerar um <code>Set</code> (sem repetidos)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'Set&lt;…&gt;' can't be assigned to … 'String'</code></td><td>Chaves <code>{ }</code> depois do <code>if</code>/<code>for</code> dentro da lista</td></tr>
+<tr><td><code>Expected ']' before this.</code></td><td>Usou <code>:</code> no lugar do <code>else</code>, ou faltou uma vírgula</td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to … 'bool'</code></td><td>A condição do <code>if</code> não é <code>true</code>/<code>false</code></td></tr>
+<tr><td>Lista cheia de <code>null</code></td><td>O item do <code>for</code> é um comando que não devolve nada (como <code>print</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a lista</h3>
+<p>Complete para o guarda-chuva só entrar na mochila se estiver chovendo:</p>
+<div class="ex-code">final mochila = ['caderno', <input data-answer="if" aria-label="palavra-chave"> (chovendo) 'guarda-chuva'];</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é o resultado?</h3>
+<p>O que este trecho mostra? Escreva exatamente como o <code>print</code> mostraria.</p>
+<pre class="file" data-file="ex2.dart">final n = [1, 2, 3];
+print([for (final x in n) x * 3]);
+</pre>
+<div class="ex-code">Mostra <input data-answer="[3, 6, 9]" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>final temVisita = false;</code> e <code>final c = ['pão', if (temVisita) 'bolo'];</code>. Quanto vale <code>c.length</code>?</p>
+<label><input type="radio" name="q3"> 2, porque o bolo vira <code>null</code></label>
+<label><input type="radio" name="q3"> 1</label>
+<label><input type="radio" name="q3"> 0</label>
+<label><input type="radio" name="q3"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas linhas está <strong>certa</strong> no Dart?</p>
+<label><input type="radio" name="q4"> <code>[if (ok) { 'sim' }]</code> para uma lista de <code>String</code></label>
+<label><input type="radio" name="q4"> <code>[if (ok) 'sim' : 'não']</code></label>
+<label><input type="radio" name="q4"> <code>[if (ok) 'sim' else 'não']</code></label>
+<label><input type="radio" name="q4"> <code>[if ok 'sim']</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>{for (final t in ['A', 'B', 'A']) t}</code> cria o quê?</p>
+<label><input type="radio" name="q5"> Um <code>Set</code> com <code>A</code> e <code>B</code></label>
+<label><input type="radio" name="q5"> Um <code>Map</code></label>
+<label><input type="radio" name="q5"> Uma lista com <code>A</code>, <code>B</code> e <code>A</code></label>
+<label><input type="radio" name="q5"> Dá erro: <code>for</code> só funciona em listas</label>
+</div>
+
+<h3>Missão final: o cardápio do dia</h3>
+
+<div class="trydart" data-goal="out:Cardápio;;out:- café;;out:- pão de queijo;;out:- bolo de fubá;;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> monte a lista <code>cardapio</code> com: o título <code>'Cardápio'</code>; uma linha <code>'- item'</code> para cada item de <code>itens</code> (use um <code>for</code> dentro da lista); e, só se <code>sexta</code> for <code>true</code>, a linha <code>'- bolo de fubá'</code> (use um <code>if</code>).</p>
+<pre class="script" data-file="main.dart">void main() {
+  final itens = ['café', 'pão de queijo'];
+  final sexta = true;
+  final cardapio = [
+    'Cardápio',
+    // escreva o for e o if aqui
+  ];
+  for (final linha in cardapio) {
+    print(linha);
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final itens = ['café', 'pão de queijo'];
+  final sexta = true;
+  final cardapio = [
+    'Cardápio',
+    for (final item in itens) '- $item',
+    if (sexta) '- bolo de fubá',
+  ];
+  for (final linha in cardapio) {
+    print(linha);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Dentro de <code>[ ]</code> e <code>{ }</code>, o Dart aceita <code>if</code> e <code>for</code> no meio dos itens: o <strong>collection if</strong> e o <strong>collection for</strong>.</li>
+  <li><code>if (cond) item</code> põe o item só se a condição for verdadeira; com <code>else</code>, sempre entra um dos dois. Sem chaves e sem dois-pontos.</li>
+  <li><code>for (final x in lista) expr</code> gera um item para cada elemento; o <code>for</code> de três partes também vale.</li>
+  <li><code>for</code> + <code>if</code> filtra: <code>[for (final n in notas) if (n &gt;= 7) n]</code>.</li>
+  <li>Funciona em <code>Map</code> (<code>chave: valor</code>) e em <code>Set</code>.</li>
+  <li>O item é um <strong>valor</strong>: um <code>print</code> ali dentro enche a lista de <code>null</code>.</li>
+  <li>Na próxima aula, outra forma de juntar coleções dentro dos colchetes: <a href="spread.html">o spread (<code>...</code>)</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
