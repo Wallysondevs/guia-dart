@@ -64,7 +64,7 @@
 </pre>
 </div>
 
-<p>Na primeira vez, o editor avisa <strong>"Carregando o Dart do editor (…, só na primeira vez)…"</strong>: o navegador está baixando o editor, uns 180 KB (menos que uma foto). Isso leva um instante e só acontece uma vez. Depois, cada Rodar leva uma fração de segundo. Em seguida aparece o <strong>terminal da caixa</strong>, com a resposta. Repare nas partes:</p>
+<p>Na primeira vez, o editor avisa <strong>"Carregando o Dart do editor (…, só na primeira vez)…"</strong>: o navegador está baixando o editor, uns 320 KB (menos que uma foto). Isso leva um instante e só acontece uma vez. Depois, cada Rodar leva uma fração de segundo. Em seguida aparece o <strong>terminal da caixa</strong>, com a resposta. Repare nas partes:</p>
 
 <div class="table-wrap">
 <table class="ref">
@@ -435,7 +435,7 @@ $ echo $?
 
 <h2>Resumo</h2>
 <ul>
-  <li>As caixas Experimente rodam o programa dentro do seu navegador, com um editor que imita o <strong>Dart 3.13.5</strong> (baixado uma vez, uns 180 KB). O seu código não sai do seu computador. As saídas das aulas vêm do Dart oficial, no terminal.</li>
+  <li>As caixas Experimente rodam o programa dentro do seu navegador, com um editor que imita o <strong>Dart 3.13.5</strong> (baixado uma vez, uns 320 KB). O seu código não sai do seu computador. As saídas das aulas vêm do Dart oficial, no terminal.</li>
   <li>Cada <strong>Rodar</strong> é um <code>dart run main.dart</code> novo, numa pasta <code>/home/ana</code> nova, só com os arquivos das abas. O terminal da caixa mostra o comando, a saída, os erros em vermelho e o <strong>código de saída</strong>: 0 (tudo certo), 254 (erro de compilação), 255 (exceção).</li>
   <li><strong>Restaurar</strong> volta ao código original; <strong>Ver solução</strong> (nas missões) pergunta antes de trocar o seu código. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> roda; o <kbd>Enter</kbd> recua 2 espaços depois de <code>{</code>.</li>
   <li>O <code>stdin.readLineSync()</code> espera você digitar no terminal da caixa (<kbd>Ctrl</kbd>+<kbd>D</kbd> = fim da entrada, e ele devolve <code>null</code>), ou lê do campo <strong>Entrada</strong>. O campo <strong>Argumentos</strong> vira a lista <code>args</code> do <code>main</code>.</li>

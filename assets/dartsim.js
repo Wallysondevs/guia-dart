@@ -15,9 +15,9 @@
    ===================================================================== */
 (function () {
   "use strict";
-  var DART_BYTES = 180000;   // download na 1ª vez (motor.js + runtime.js + executar.js; aproximado)
+  var DART_BYTES = 320000;   // download na 1ª vez (motor.js + runtime.js + executar.js, sem compressão)
   var DART_VERSAO = "3.13.5"; // a versão que o editor imita (a do lab)
-  var DART_REV = "1";         // muda quando o motor muda (cache do navegador)
+  var DART_REV = "20261019b"; // mude quando o motor mudar (cache do navegador)
   var TEMPO_MAX = 10000;     // ms rodando sem parar (sem contar a espera pelo teclado)
   var MAX_LINHAS = 3000;     // linhas mostradas no terminal (o resto é resumido)
   var DartSim = { TEMPO_MAX: TEMPO_MAX, VERSAO: DART_VERSAO };

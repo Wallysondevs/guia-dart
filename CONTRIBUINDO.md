@@ -110,11 +110,11 @@ O DartPad compila num servidor do Google; o guia não depende disso. O "Experime
 - `assets/dart/executar.js`: o `dart run` (main, args, stdin, exceções, código de saída);
 - `assets/dart/dart-worker.js`: o Web Worker. A página não trava, e o ■ Parar (ou o limite de 10 s) encerra o worker.
 
-O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`pre.term`) vêm **sempre** do lab (§5). O editor imita o `dart run` do Dart 3.13.5, e o `testar --nativo` mostra onde ele difere.
+O 1º Rodar baixa uns 320 KB (uns 80 KB com a compressão do servidor). **Não é o SDK oficial.** As saídas das aulas (`pre.term`) vêm **sempre** do lab (§5). O editor imita o `dart run` do Dart 3.13.5, e o `testar --nativo` mostra onde ele difere.
 
 ### 4.2 Como o editor mostra as coisas
 - O comando aparece como `ana@notebook:~$ dart run main.dart [args]` e, no fim, `[código de saída: N]`.
-- **Erro de compilação**: no formato do `dart run`, em vermelho. Primeiro `main.dart:3:9: Error: Undefined name 'idadee'.`, depois as linhas de contexto (` - 'Pessoa' is from 'main.dart'.`), o `Try …`, a linha do código e o `^^^^`. Todos os erros de verificação aparecem, em ordem. Erros de **sintaxe**: só o primeiro (o lab às vezes mostra mais). Os erros saem na ordem do lab: primeiro os do scanner (letras com acento), depois os de classe (membros abstratos), os de nomes e argumentos, os de tipo e, por fim, os campos `final`. Código de saída **254**.
+- **Erro de compilação**: no formato do `dart run`, em vermelho. Primeiro `main.dart:3:9: Error: Undefined name 'idadee'.`, depois as linhas de contexto (` - 'Pessoa' is from 'main.dart'.`), o `Try …`, a linha do código e o `^^^^`. Todos os erros de verificação aparecem, em ordem. Erros de **sintaxe**: o editor continua depois de um `;` que falta no fim da linha, de uma string sem fim e de parênteses sem par (como o lab), mas para no primeiro erro de sintaxe de outro tipo. O lab costuma mostrar mais alguns erros "em cascata"; as primeiras linhas são as mesmas. Os erros saem na ordem do lab: primeiro os do scanner (letras com acento), depois os de classe (membros abstratos), os de nomes e argumentos, os de tipo e, por fim, os campos `final`. Código de saída **254**.
 - **Exceção não tratada**: `Unhandled exception:`, a mensagem (o `toString()` do Dart) e o stack trace `#0      main (file:///home/ana/main.dart:4:10)`, com as duas linhas finais do `dart:isolate-patch`. Para `List.[]`, `int.parse` e `double.parse`, vêm também as linhas `dart:core-patch` do lab. Código de saída **255**.
 - `print` usa o `toString()` do Dart:
   - coleções: `[1, 2, 3]`, `{a: 1}`, `{1, 2}`;
@@ -180,7 +180,7 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 - erros de tipos genéricos e de *function types*;
 - `@override` incorreto e modificadores de classe (`base`/`final`/`interface` fora da biblioteca);
 - `late final` atribuído duas vezes (no lab é exceção em tempo de execução; no editor, não);
-- vários erros de sintaxe ao mesmo tempo (o editor mostra o primeiro).
+- a "cascata" depois de certos erros de sintaxe (`for (var n = 1, n <= 4, n++)`, `var quantidade de alunos`, `x =< y`): o editor mostra as primeiras mensagens, o lab mostra mais.
 
 ### 4.4 Versões do Dart 3 no editor
 Funcionam:
@@ -195,7 +195,8 @@ Funcionam:
 ### 4.5 Diferenças conhecidas
 O testador `--nativo` registra as demais em `tools/DIFERENCAS.md`.
 - **Nomes internos**: `_GrowableList`, `_Map` e as linhas `dart:core-patch/…` do stack trace podem diferir.
-- **Exceções depois de `await`**: mostram o frame da função `async` + `<asynchronous suspension>`, sem a cadeia completa.
+- **Exceções em código assíncrono**: o stack trace segue o do lab (`<asynchronous suspension>` depois de cada função que esperou; as linhas de `Future.delayed` e do `Timer`), mas em cadeias longas pode faltar algum frame.
+- **Entrada digitada × lab**: o `--nativo` manda o `data-digitar` para o lab como um arquivo (`< entrada`); um programa que lê mais linhas do que as digitadas recebe `null` nos dois, mas com `Random()` sem semente as saídas não batem.
 - **Desempenho**: o editor é mais lento em laços com milhões de voltas (o limite é 10 s).
 - **O que o editor não tem**: `Process`, `HttpClient`, `Isolate.spawn` de verdade (portas), `dart:ffi`, `dart:mirrors` e pacotes.
 
