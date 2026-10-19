@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Patterns — desmontando records, listas e mapas | Guia Dart</title>
+<meta name="description" content="Patterns do Dart 3 para quem nunca programou: desestruturar um record em variáveis (final (nome, idade) = …), campos com nome (:nome), listas ([a, b, c] e ...resto), o curinga _, trocar duas variáveis, mapas, patterns no for-in, o if-case e o switch com patterns, e os erros reais do Dart 3.13 (Pattern matching error e tipos que não combinam).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Patterns</span> e Desestruturação <span class="versao">Dart 3.0</span></h1>
+
+<p class="intro">Na aula de <a href="records.html">Records</a>, você juntou vários valores num pacotinho: <code>('Ana', 30)</code>. Agora vem o caminho de volta: <strong>desmontar</strong> o pacote e pôr cada valor na sua variável, numa linha só. Isso se chama <strong>desestruturação</strong>, e o que descreve o "formato" do pacote se chama <strong>pattern</strong> (em inglês, "padrão" ou "molde"). Os patterns chegaram no <strong>Dart 3.0</strong>, junto com os records, e funcionam também com listas e mapas.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como desmontar um record: <code>final (nome, idade) = aluna;</code></li>
+  <li>Como pegar campos pelo nome: <code>final (:nome, :preco) = produto;</code></li>
+  <li>Como desmontar uma lista: <code>final [ouro, prata, bronze] = podio;</code>, e o <code>...resto</code>.</li>
+  <li>O curinga <code>_</code> ("não quero esse") e a troca de duas variáveis numa linha.</li>
+  <li>Patterns no <code>for-in</code>, em mapas, no <code>if-case</code> e no <code>switch</code>.</li>
+  <li>Os erros reais: o formato não combina (erro de compilação) e o <code>Pattern matching error</code> (ao rodar).</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a fôrma de gelo</h2>
+<p>Pense numa fôrma de gelo com três buracos. Você despeja água e cada buraco recebe a sua parte. O <strong>formato</strong> da fôrma decide onde cada parte vai parar.</p>
+<p>Um pattern é a fôrma. Você escreve, do lado esquerdo do <code>=</code>, o formato do valor, com <strong>nomes de variáveis</strong> nos "buracos": <code>(nome, idade)</code>. O Dart encaixa o valor da direita nesse formato e cada variável recebe a sua parte. Se o valor <strong>não couber</strong> na fôrma (três buracos, mas só dois valores), dá erro.</p>
+
+<hr>
+
+<h2>1. Desmontando um record</h2>
+
+<pre class="file" data-file="desmontar.dart">void main() {
+  final aluna = ('Ana', 30);
+  final (nome, idade) = aluna;
+  print(nome);
+  print(idade);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final aluna = ('Ana', 30);</dt><dd>Um record com dois campos (veja <a href="records.html">Records</a>).</dd>
+  <dt>final (nome, idade) = aluna;</dt><dd>A desestruturação. O lado esquerdo, <code>(nome, idade)</code>, é o <strong>pattern</strong>: "um record com dois campos". Ele cria <strong>duas variáveis</strong> de uma vez: <code>nome</code> recebe o 1º campo e <code>idade</code> recebe o 2º. O <code>final</code> vale para as duas.</dd>
+  <dt>print(nome); print(idade);</dt><dd>Agora são variáveis comuns. O Dart sabe até os tipos: <code>nome</code> é <code>String</code> e <code>idade</code> é <code>int</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run desmontar.dart
+Ana
+30
+</pre>
+
+<p>Sem pattern, seriam duas linhas: <code>final nome = aluna.$1;</code> e <code>final idade = aluna.$2;</code>. O pattern faz o mesmo, mais curto e com nomes melhores que <code>$1</code> e <code>$2</code>.</p>
+
+<h3>Campos com nome</h3>
+<p>Num record com campos nomeados, o pattern diz <strong>qual campo</strong> vai para qual variável:</p>
+
+<pre class="file" data-file="nomeados.dart">void main() {
+  final produto = (nome: 'café', preco: 18.9);
+
+  final (nome: n, preco: p) = produto;
+  print('$n custa $p');
+
+  final (:nome, :preco) = produto;
+  print('$nome custa $preco');
+}
+</pre>
+
+<pre class="term">$ dart run nomeados.dart
+café custa 18.9
+café custa 18.9
+</pre>
+
+<dl class="anatomy">
+  <dt>(nome: n, preco: p)</dt><dd>"O campo <code>nome</code> vai para a variável <code>n</code>; o campo <code>preco</code>, para <code>p</code>."</dd>
+  <dt>(:nome, :preco)</dt><dd>Atalho para quando a variável tem <strong>o mesmo nome</strong> do campo: <code>:nome</code> quer dizer <code>nome: nome</code>. É a forma mais usada.</dd>
+</dl>
+
+<h3>O curinga <code>_</code></h3>
+<p>Quando um valor não interessa, ponha <code>_</code> (sublinhado) no lugar dele. O <code>_</code> encaixa qualquer coisa e não cria variável nenhuma:</p>
+
+<pre class="file" data-file="curinga.dart">(int, int) menorEMaior(List&lt;int&gt; notas) {
+  var menor = notas.first;
+  var maior = notas.first;
+  for (final n in notas) {
+    if (n &lt; menor) menor = n;
+    if (n &gt; maior) maior = n;
+  }
+  return (menor, maior);
+}
+
+void main() {
+  final (_, maior) = menorEMaior([7, 9, 4, 10, 6]);
+  print('Maior nota: $maior');
+}
+</pre>
+
+<pre class="term">$ dart run curinga.dart
+Maior nota: 10
+</pre>
+
+<div class="trydart" data-goal="out:Bia tem 25 anos;;src:final\s*\(">
+<p class="try-task"><strong>Missão:</strong> em vez de usar <code>aluna.$1</code> e <code>aluna.$2</code>, desmonte o record em duas variáveis, <code>nome</code> e <code>idade</code>, com <code>final (…) = aluna;</code>, e use-as no <code>print</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final aluna = ('Bia', 25);
+  print('${aluna.$1} tem ${aluna.$2} anos');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final aluna = ('Bia', 25);
+  final (nome, idade) = aluna;
+  print('$nome tem $idade anos');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Desmontando uma lista</h2>
+<p>Com <strong>colchetes</strong>, o pattern descreve uma lista. O pódio da corrida da escola:</p>
+
+<pre class="file" data-file="lista.dart">void main() {
+  final podio = ['Bia', 'Caio', 'Ana'];
+  final [ouro, prata, bronze] = podio;
+  print('1º lugar: $ouro');
+  print('2º lugar: $prata');
+  print('3º lugar: $bronze');
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+1º lugar: Bia
+2º lugar: Caio
+3º lugar: Ana
+</pre>
+
+<p>O pattern <code>[ouro, prata, bronze]</code> quer dizer "uma lista com <strong>exatamente</strong> três itens". Se a lista tiver outro tamanho, o programa para com erro ao rodar (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<h3>O resto: <code>...</code></h3>
+<p>Quando o tamanho pode variar, use <code>...</code> para "o resto" (os mesmos três pontos do <a href="spread.html">spread</a>, agora do lado de quem recebe):</p>
+
+<pre class="file" data-file="resto.dart">void main() {
+  final fila = ['Ana', 'Bia', 'Caio', 'Davi'];
+  final [primeira, ...outros] = fila;
+  print('Atendendo: $primeira');
+  print('Esperando: $outros');
+
+  final [..., ultimo] = fila;
+  print('Último da fila: $ultimo');
+}
+</pre>
+
+<pre class="term">$ dart run resto.dart
+Atendendo: Ana
+Esperando: [Bia, Caio, Davi]
+Último da fila: Davi
+</pre>
+
+<dl class="anatomy">
+  <dt>[primeira, ...outros]</dt><dd>"O primeiro item vai para <code>primeira</code>; <strong>todos os outros</strong>, numa lista, vão para <code>outros</code>."</dd>
+  <dt>[..., ultimo]</dt><dd>"Ignore o começo, quantos itens forem, e me dê o <strong>último</strong>." O <code>...</code> sem nome descarta o resto.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Trocar duas variáveis numa linha</h2>
+<p>O pattern também funciona numa <strong>atribuição</strong>, sem <code>final</code> nem <code>var</code>, com variáveis que já existem. O truque clássico é trocar dois valores:</p>
+
+<pre class="file" data-file="trocar.dart">void main() {
+  var a = 'café';
+  var b = 'chá';
+  (a, b) = (b, a);
+  print('a = $a, b = $b');
+}
+</pre>
+
+<pre class="term">$ dart run trocar.dart
+a = chá, b = café
+</pre>
+
+<p>O lado direito, <code>(b, a)</code>, monta um record com os valores <strong>de antes</strong>; o lado esquerdo desmonta esse record em <code>a</code> e <code>b</code>. Sem pattern, a troca precisaria de uma terceira variável (<code>final temp = a; a = b; b = temp;</code>).</p>
+
+<hr>
+
+<h2>4. Patterns no <code>for-in</code> e em mapas</h2>
+<p>Uma lista de records (nome e nota de cada aluno) fica fácil de percorrer: o pattern vai direto no <a href="for-in.html">for-in</a>.</p>
+
+<pre class="file" data-file="forin.dart">void main() {
+  final turma = [('Ana', 9.0), ('Bia', 6.5), ('Caio', 8.0)];
+  for (final (nome, nota) in turma) {
+    print('$nome tirou $nota');
+  }
+
+  final precos = {'pão': 1.0, 'leite': 5.5};
+  for (final MapEntry(:key, :value) in precos.entries) {
+    print('$key: R\$ $value');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run forin.dart
+Ana tirou 9.0
+Bia tirou 6.5
+Caio tirou 8.0
+pão: R$ 1.0
+leite: R$ 5.5
+</pre>
+
+<dl class="anatomy">
+  <dt>for (final (nome, nota) in turma)</dt><dd>A cada volta, o record da vez é desmontado em <code>nome</code> e <code>nota</code>.</dd>
+  <dt>precos.entries</dt><dd>Os pares do mapa, cada um como um <code>MapEntry</code> ("entrada do mapa"), com os campos <code>key</code> (chave) e <code>value</code> (valor). Veja <a href="map-metodos.html">Percorrendo Mapas</a>.</dd>
+  <dt>MapEntry(:key, :value)</dt><dd>Um pattern de <strong>objeto</strong>: o nome do tipo e, entre parênteses, os campos que você quer. Funciona com qualquer classe, não só com <code>MapEntry</code>.</dd>
+</dl>
+
+<p>Um mapa também pode ser desmontado pelas chaves, com <strong>chaves</strong> <code>{ }</code> no pattern:</p>
+
+<pre class="file" data-file="mapa.dart">void main() {
+  final pedido = {'cliente': 'Ana', 'mesa': 4};
+  final {'cliente': cliente, 'mesa': mesa} = pedido;
+  print('$cliente está na mesa $mesa');
+}
+</pre>
+
+<pre class="term">$ dart run mapa.dart
+Ana está na mesa 4
+</pre>
+
+<div class="warning">
+<strong>Cuidado com a chave que falta</strong>
+<p>Se o mapa não tiver uma das chaves do pattern, o programa compila, mas para ao rodar com <code>Bad state: Pattern matching error</code> (veja <a href="#errado">Quando dá errado</a>). Para mapas que vêm de fora (um arquivo, a internet), prefira o <code>if-case</code> da próxima seção, que testa antes.</p>
+</div>
+
+<hr>
+
+<h2>5. Patterns que testam: <code>if-case</code> e <code>switch</code></h2>
+<p>Até aqui, o pattern <strong>tinha</strong> de encaixar. Mas ele também pode ser uma <strong>pergunta</strong>: "esse valor tem esse formato? Se tiver, desmonte". É o <code>if (valor case pattern)</code>:</p>
+
+<pre class="file" data-file="ifcase.dart">void main() {
+  final List&lt;Object&gt; dados = [('Ana', 30), 'oi', ('Bia', '25'), 42];
+  for (final d in dados) {
+    if (d case (String nome, int idade)) {
+      print('$nome tem $idade anos');
+    } else {
+      print('Não é (String, int): $d');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run ifcase.dart
+Ana tem 30 anos
+Não é (String, int): oi
+Não é (String, int): (Bia, 25)
+Não é (String, int): 42
+</pre>
+
+<dl class="anatomy">
+  <dt>if (d case (String nome, int idade))</dt><dd>"Se <code>d</code> for um record com um <code>String</code> e um <code>int</code>, desmonte em <code>nome</code> e <code>idade</code> e entre no bloco." Os tipos dentro do pattern são <strong>testes</strong>.</dd>
+  <dt>('Bia', '25')</dt><dd>Caiu no <code>else</code>: a idade estava entre aspas, era um <code>String</code>, e o pattern pedia <code>int</code>. Nenhum erro: o <code>if-case</code> só respondeu "não encaixa".</dd>
+</dl>
+
+<p>O <code>switch</code> leva essa ideia mais longe: vários patterns, um embaixo do outro, e vale o <strong>primeiro</strong> que encaixar. A expressão <code>switch</code> e o <code>when</code> ("quando", uma condição extra) têm aula própria em <a href="switch.html">switch e Expressões switch</a>; aqui, um exemplo com listas:</p>
+
+<pre class="file" data-file="switch.dart">String descrever(List&lt;int&gt; fila) {
+  return switch (fila) {
+    [] =&gt; 'fila vazia',
+    [final so] =&gt; 'só uma senha: $so',
+    [final primeira, ...] when primeira &gt; 100 =&gt; 'senha alta na frente: $primeira',
+    [final primeira, ...final resto] =&gt; 'próxima: $primeira, depois mais ${resto.length}',
+  };
+}
+
+void main() {
+  print(descrever([]));
+  print(descrever([7]));
+  print(descrever([150, 3]));
+  print(descrever([12, 13, 14]));
+}
+</pre>
+
+<pre class="term">$ dart run switch.dart
+fila vazia
+só uma senha: 7
+senha alta na frente: 150
+próxima: 12, depois mais 2
+</pre>
+
+<p>Dentro de um <code>switch</code> ou de um <code>if-case</code>, a variável nova leva <code>final</code> (ou <code>var</code>) na frente: <code>[final so]</code>. Sem ele, o Dart entenderia <code>so</code> como uma <strong>constante</strong> para comparar, e não como uma variável nova.</p>
+
+<div class="trydart" data-goal="out:Ana: 9.0;;out:Caio: 8.0;;src:case">
+<p class="try-task"><strong>Missão:</strong> a lista mistura registros certos e errados. Complete o <code>if</code> com um <code>case</code> para mostrar só os que são <code>(String, double)</code>, no formato <code>Ana: 9.0</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final List&lt;Object&gt; notas = [('Ana', 9.0), ('Bia', 'faltou'), ('Caio', 8.0)];
+  for (final n in notas) {
+    if (true) {
+      print(n);
+    }
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final List&lt;Object&gt; notas = [('Ana', 9.0), ('Bia', 'faltou'), ('Caio', 8.0)];
+  for (final n in notas) {
+    if (n case (String nome, double nota)) {
+      print('$nome: $nota');
+    }
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sem pattern</th><th>Com pattern</th></tr>
+<tr><td><code>final nome = aluna.$1;</code><br><code>final idade = aluna.$2;</code></td><td><code>final (nome, idade) = aluna;</code></td></tr>
+<tr><td><code>final nome = produto.nome;</code><br><code>final preco = produto.preco;</code></td><td><code>final (:nome, :preco) = produto;</code></td></tr>
+<tr><td><code>final primeira = fila[0];</code><br><code>final outros = fila.sublist(1);</code></td><td><code>final [primeira, ...outros] = fila;</code></td></tr>
+<tr><td><code>final temp = a; a = b; b = temp;</code></td><td><code>(a, b) = (b, a);</code></td></tr>
+<tr><td><code>if (d is (String, int)) { final nome = d.$1; … }</code></td><td><code>if (d case (String nome, int idade)) { … }</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Você <strong>sabe</strong> o formato do valor (o tipo garante)</td><td>Desestruturação: <code>final (a, b) = …;</code></td></tr>
+<tr><td>O valor <strong>pode ou não</strong> ter o formato</td><td><code>if (x case …)</code></td></tr>
+<tr><td>Vários formatos possíveis, cada um com uma resposta</td><td><code>switch</code> com patterns</td></tr>
+<tr><td>Precisa só de um campo, uma vez</td><td>O acesso simples (<code>r.$1</code>, <code>lista[0]</code>) já basta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A lista tem outro tamanho</strong>
+<pre class="file" data-file="tamanho.dart">void main() {
+  final podio = ['Bia', 'Caio'];
+  final [ouro, prata, bronze] = podio;
+  print(bronze);
+}
+</pre>
+<pre class="term">$ dart run tamanho.dart
+Unhandled exception:
+Bad state: Pattern matching error
+#0      main (file:///home/ana/tamanho.dart:3:3)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": compilou, mas falhou ao rodar.</dd>
+  <dt>Bad state: Pattern matching error</dt><dd>"Estado inválido: erro ao encaixar o pattern." A fôrma tinha 3 buracos e a lista só 2 itens. O Dart não tem como saber o tamanho de uma lista antes de rodar, por isso o erro só aparece agora.</dd>
+  <dt>#0 main (file:///home/ana/tamanho.dart:3:3)</dt><dd>Onde: linha 3, a da desestruturação.</dd>
+  <dt>echo $? → 255</dt><dd>Código de saída de exceção não tratada.</dd>
+</dl>
+<p><strong>Como consertar:</strong> use <code>...</code> para aceitar qualquer tamanho (<code>final [ouro, ...outros] = podio;</code>) ou teste antes com <code>if (podio case [final ouro, final prata, final bronze])</code>. Um mapa sem uma das chaves do pattern dá exatamente a mesma mensagem.</p>
+</div>
+
+<div class="cenario">
+<strong>O record tem outro número de campos</strong>
+<pre class="file" data-file="formato.dart">void main() {
+  final aluna = ('Ana', 30);
+  final (nome, idade, cidade) = aluna;
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run formato.dart
+formato.dart:3:9: Error: The matched value of type '(String, int)' isn't assignable to the required type '(Object?, Object?, Object?)'.
+ - 'Object' is from 'dart:core'.
+Try changing the required type of the pattern, or the matched value type.
+  final (nome, idade, cidade) = aluna;
+        ^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>formato.dart:3:9</dt><dd>Linha 3, coluna 9: o começo do pattern.</dd>
+  <dt>The matched value of type '(String, int)' isn't assignable to the required type '(Object?, Object?, Object?)'.</dt><dd>"O valor, do tipo <code>(String, int)</code>, não serve para o tipo que o pattern exige: um record de <strong>três</strong> campos quaisquer." (<code>Object?</code> quer dizer "qualquer coisa, até <code>null</code>"; veja <a href="dynamic-object.html">dynamic e Object</a>.)</dd>
+  <dt>Try changing the required type of the pattern, or the matched value type.</dt><dd>"Tente mudar o pattern ou o valor."</dd>
+</dl>
+<p>Diferente da lista, aqui o erro é de <strong>compilação</strong>: o tipo do record diz quantos campos ele tem, então o Dart percebe antes de rodar. <strong>Como consertar:</strong> o pattern precisa ter o mesmo formato: <code>final (nome, idade) = aluna;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Campos com nome desmontados como se fossem sem nome</strong>
+<pre class="file" data-file="semnome.dart">void main() {
+  final produto = (nome: 'café', preco: 18.9);
+  final (nome, preco) = produto;
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run semnome.dart
+semnome.dart:3:9: Error: The matched value of type '({String nome, double preco})' isn't assignable to the required type '(Object?, Object?)'.
+ - 'Object' is from 'dart:core'.
+Try changing the required type of the pattern, or the matched value type.
+  final (nome, preco) = produto;
+        ^
+</pre>
+<p>O pattern <code>(nome, preco)</code> pede dois campos <strong>sem nome</strong>; o record tem dois campos <strong>com nome</strong>. Para o Dart, são formatos diferentes, mesmo que as variáveis tenham os mesmos nomes dos campos. <strong>Como consertar:</strong> ponha os dois-pontos: <code>final (:nome, :preco) = produto;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Testou tipos numa desestruturação comum</strong>
+<p>Os tipos dentro do pattern são testes. Numa desestruturação comum (fora do <code>if-case</code> e do <code>switch</code>), o Dart exige ter <strong>certeza</strong> de que eles passam:</p>
+<pre class="file" data-file="refutavel.dart">void main() {
+  Object dado = ('Ana', 30);
+  final (String nome, int idade) = dado;
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run refutavel.dart
+refutavel.dart:3:17: Error: The matched value of type 'Object?' isn't assignable to the required type 'String'.
+ - 'Object' is from 'dart:core'.
+Try changing the required type of the pattern, or the matched value type.
+  final (String nome, int idade) = dado;
+                ^
+refutavel.dart:3:27: Error: The matched value of type 'Object?' isn't assignable to the required type 'int'.
+ - 'Object' is from 'dart:core'.
+Try changing the required type of the pattern, or the matched value type.
+  final (String nome, int idade) = dado;
+                          ^
+refutavel.dart:3:9: Error: The matched value of type 'Object' isn't assignable to the required type '(Object?, Object?)'.
+ - 'Object' is from 'dart:core'.
+Try changing the required type of the pattern, or the matched value type.
+  final (String nome, int idade) = dado;
+        ^
+</pre>
+<p>Três erros para a mesma linha: o <code>dado</code> é do tipo <code>Object</code> ("qualquer objeto"), então o Dart não tem garantia de que ele é um record, nem de que os campos são <code>String</code> e <code>int</code>. Ele mostra todos os problemas que achou, cada um com a sua coluna. <strong>Como consertar:</strong> como o valor <strong>pode</strong> não encaixar, use o <code>if-case</code>: <code>if (dado case (String nome, int idade)) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável já existia</strong>
+<pre class="file" data-file="jaexiste.dart">void main() {
+  final nome = 'Bia';
+  final (nome, idade) = ('Ana', 30);
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run jaexiste.dart
+jaexiste.dart:3:10: Error: 'nome' is already declared in this scope.
+  final (nome, idade) = ('Ana', 30);
+         ^^^^
+jaexiste.dart:2:9: Context: Previous declaration of 'nome'.
+  final nome = 'Bia';
+        ^^^^
+</pre>
+<p>"<code>nome</code> já foi declarada neste escopo." Com <code>final</code> (ou <code>var</code>) na frente, o pattern <strong>cria</strong> variáveis novas, e já havia uma <code>nome</code>. A parte <code>Context:</code> ("contexto") mostra onde está a primeira. <strong>Como consertar:</strong> use outro nome no pattern, ou, se a ideia era mudar a variável que já existe, declare-a com <code>var</code> e faça uma atribuição sem <code>final</code>: <code>(nome, idade) = …</code> (as duas precisam existir).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pattern</th><th>Encaixa em</th></tr>
+<tr><td><code>final (a, b) = r;</code></td><td>Record de 2 campos sem nome</td></tr>
+<tr><td><code>final (:nome, :preco) = r;</code></td><td>Record com campos <code>nome</code> e <code>preco</code></td></tr>
+<tr><td><code>final (nome: n) = r;</code></td><td>Campo <code>nome</code> na variável <code>n</code></td></tr>
+<tr><td><code>final [a, b, c] = lista;</code></td><td>Lista de exatamente 3 itens</td></tr>
+<tr><td><code>final [a, ...resto] = lista;</code></td><td>Lista com 1 ou mais itens; o resto numa lista</td></tr>
+<tr><td><code>final [..., ultimo] = lista;</code></td><td>O último item</td></tr>
+<tr><td><code>final {'k': v} = mapa;</code></td><td>Mapa com a chave <code>'k'</code></td></tr>
+<tr><td><code>_</code></td><td>Qualquer valor, sem criar variável</td></tr>
+<tr><td><code>(a, b) = (b, a);</code></td><td>Troca os valores de duas variáveis</td></tr>
+<tr><td><code>for (final (a, b) in lista)</code></td><td>Desmonta cada item do <code>for-in</code></td></tr>
+<tr><td><code>MapEntry(:key, :value)</code></td><td>Pattern de objeto: pega campos de um objeto</td></tr>
+<tr><td><code>if (x case (String a, int b))</code></td><td>Testa o formato e os tipos; desmonta se encaixar</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Bad state: Pattern matching error</code> (ao rodar)</td><td>Lista de outro tamanho ou mapa sem a chave</td></tr>
+<tr><td><code>The matched value of type '…' isn't assignable to the required type '(Object?, …)'</code></td><td>O pattern tem outro número de campos, ou sem nome × com nome</td></tr>
+<tr><td><code>The matched value of type 'Object?' isn't assignable to the required type 'String'</code></td><td>Teste de tipo numa desestruturação comum: use <code>if-case</code></td></tr>
+<tr><td><code>'x' is already declared in this scope</code></td><td>O pattern com <code>final</code>/<code>var</code> criou uma variável que já existia</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a desestruturação</h3>
+<p>Complete para pegar os campos <code>nome</code> e <code>preco</code> em variáveis de mesmo nome:</p>
+<div class="ex-code">final (<input data-answer=":nome" aria-label="primeiro campo">, <input data-answer=":preco" aria-label="segundo campo">) = produto;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que sobra?</h3>
+<p><code>final [a, ...b] = [10, 20, 30];</code>. O que <code>print(b)</code> mostra?</p>
+<div class="ex-code"><input data-answer="[20, 30]" aria-label="valor de b"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>final [x, y] = [1, 2, 3];</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> <code>x</code> vale 1 e <code>y</code> vale 2; o 3 é ignorado</label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Compila, mas para ao rodar com <code>Pattern matching error</code></label>
+<label><input type="radio" name="q3"> <code>y</code> vale <code>[2, 3]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Para que serve o <code>_</code> em <code>final (_, maior) = menorEMaior(notas);</code>?</p>
+<label><input type="radio" name="q4"> Para ignorar o primeiro valor, sem criar variável</label>
+<label><input type="radio" name="q4"> Cria uma variável privada chamada <code>_</code></label>
+<label><input type="radio" name="q4"> Faz o <code>maior</code> ser opcional</label>
+<label><input type="radio" name="q4"> É um erro: todo campo precisa de nome</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. <code>var a = 1; var b = 2; (a, b) = (b, a);</code>. Quanto valem <code>a</code> e <code>b</code>?</p>
+<label><input type="radio" name="q5"> <code>a = 1</code>, <code>b = 2</code></label>
+<label><input type="radio" name="q5"> <code>a = 2</code>, <code>b = 1</code></label>
+<label><input type="radio" name="q5"> <code>a = 2</code>, <code>b = 2</code></label>
+<label><input type="radio" name="q5"> Erro: <code>a</code> já foi declarada</label>
+</div>
+
+<h3>Missão final: o boletim</h3>
+
+<div class="trydart" data-goal="out:Ana: 9.0 (aprovada);;out:Bia: 5.5 (recuperação);;src:for\s*\(\s*final\s*\(">
+<p class="try-task"><strong>Missão:</strong> percorra a turma com um <code>for</code> que <strong>desmonta</strong> cada record em <code>nome</code> e <code>nota</code> (<code>for (final (nome, nota) in turma)</code>). Mostre <code>Ana: 9.0 (aprovada)</code> para nota a partir de 7 e <code>Bia: 5.5 (recuperação)</code> para as outras.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final turma = [('Ana', 9.0), ('Bia', 5.5), ('Caio', 7.0)];
+  for (final aluno in turma) {
+    print(aluno);
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final turma = [('Ana', 9.0), ('Bia', 5.5), ('Caio', 7.0)];
+  for (final (nome, nota) in turma) {
+    final situacao = nota &gt;= 7 ? 'aprovada' : 'recuperação';
+    print('$nome: $nota ($situacao)');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>pattern</strong> descreve o formato de um valor; do lado esquerdo do <code>=</code>, ele <strong>desmonta</strong> o valor em variáveis. Existe desde o <span class="versao">Dart 3.0</span>.</li>
+  <li>Records: <code>(a, b)</code>, <code>(:nome, :preco)</code>. Listas: <code>[a, b]</code>, <code>[a, ...resto]</code>. Mapas: <code>{'chave': v}</code>. Objetos: <code>MapEntry(:key, :value)</code>.</li>
+  <li><code>_</code> ignora um valor; <code>(a, b) = (b, a)</code> troca duas variáveis.</li>
+  <li>Se o formato pode não encaixar, use <code>if (x case …)</code> ou <code>switch</code>: eles testam em vez de dar erro.</li>
+  <li>Record de outro formato: erro de <strong>compilação</strong>. Lista de outro tamanho ou mapa sem a chave: <code>Bad state: Pattern matching error</code> <strong>ao rodar</strong>.</li>
+  <li>Próxima parte do curso: <a href="classes.html">Classes</a>, os "moldes" para criar os seus próprios tipos de objeto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
