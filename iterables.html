@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart map, where, reduce e Outros — transformar, filtrar e resumir coleções | Guia Dart</title>
+<meta name="description" content="Os métodos de Iterable do Dart para quem nunca programou: map (transformar), where (filtrar), o (2, 4, 6) com parênteses e o toList(), encadear where e map, reduce e fold (resumir num valor), any, every, firstWhere com orElse, take, skip, o Iterable preguiçoso e os erros reais do Dart 3 (Bad state: No element, Iterable não é List, o [] que não existe, o fold dentro do print).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">map, where, reduce e Outros</span></h1>
+
+<p class="intro">Três coisas que você vai fazer com coleções o tempo todo: <strong>transformar</strong> cada item (todos os preços com desconto), <strong>filtrar</strong> (só as notas boas) e <strong>resumir</strong> tudo num valor só (o total da compra). Até agora, você fazia isso com um <code>for</code> e uma variável. O Dart tem métodos prontos para cada uma, que cabem numa linha: <code>map</code>, <code>where</code>, <code>reduce</code> e <code>fold</code>. E eles têm uma surpresa: devolvem um <code>Iterable</code>, e não uma lista.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>map</code>: transformar cada item.</li>
+  <li><code>where</code>: ficar só com os itens que obedecem a uma regra.</li>
+  <li>O que é um <code>Iterable</code>, por que o <code>print</code> mostra <code>(2, 4, 6)</code> com parênteses, e o <code>.toList()</code>.</li>
+  <li>Como encadear: <code>where(…).map(…).toList()</code>.</li>
+  <li><code>reduce</code> e <code>fold</code>: resumir a coleção num valor só (soma, maior, contagem).</li>
+  <li><code>any</code>, <code>every</code>, <code>firstWhere</code>, <code>take</code> e <code>skip</code>.</li>
+  <li>Que o <code>Iterable</code> é "preguiçoso": só calcula quando alguém pede.</li>
+  <li>Os erros reais: <code>reduce</code> e <code>firstWhere</code> sem resultado (<code>Bad state: No element</code>), o <code>Iterable</code> guardado como <code>List</code>, o <code>[0]</code> e o <code>fold</code> dentro do <code>print</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Todos os métodos recebem uma função, quase sempre anônima: se precisar, reveja <a href="funcoes-anonimas.html">Funções Anônimas</a>.</p>
+
+<hr>
+
+<h2>A ideia: a esteira da fábrica de biscoitos</h2>
+<p>Numa fábrica de biscoitos, a massa passa por uma esteira com várias máquinas:</p>
+<ul>
+  <li>a máquina que <strong>transforma</strong>: cada bolinha de massa vira um biscoito assado (é o <code>map</code>: entra um, sai um, transformado);</li>
+  <li>o funcionário que <strong>separa</strong> os quebrados: só os inteiros seguem (é o <code>where</code>: alguns passam, outros não);</li>
+  <li>a balança no fim, que <strong>resume</strong> tudo num número: o peso da caixa (é o <code>reduce</code>/<code>fold</code>).</li>
+</ul>
+<p>E as máquinas são ligadas uma na outra: o que sai de uma entra na próxima. No Dart, isso é <strong>encadear</strong> métodos.</p>
+
+<hr>
+
+<h2>1. <code>map</code>: transformar cada item</h2>
+
+<pre class="file" data-file="mapear.dart">void main() {
+  final numeros = [1, 2, 3];
+  final dobros = numeros.map((n) =&gt; n * 2);
+  print(dobros);
+  print(dobros.runtimeType);
+  final lista = dobros.toList();
+  print(lista);
+  final precos = [10.0, 25.0, 4.5];
+  final comDesconto = precos.map((p) =&gt; p * 0.9).toList();
+  print(comDesconto);
+  final nomes = ['ana', 'bia'];
+  print(nomes.map((n) =&gt; n.toUpperCase()).toList());
+  print(nomes.map((n) =&gt; n.length).toList());
+}
+</pre>
+
+<pre class="term">$ dart run mapear.dart
+(2, 4, 6)
+MappedListIterable&lt;int, int&gt;
+[2, 4, 6]
+[9.0, 22.5, 4.05]
+[ANA, BIA]
+[3, 3]
+</pre>
+
+<dl class="anatomy">
+  <dt>numeros.map((n) =&gt; n * 2)</dt><dd><code>map</code> ("mapear", no sentido de "fazer corresponder") chama a função para <strong>cada</strong> item e junta os resultados, na mesma ordem. Entram 3 itens, saem 3 itens. A lista original não muda. (Não confunda com o tipo <code>Map</code>, de <a href="map.html">Mapas</a>: o nome é igual, a ideia é outra.)</dd>
+  <dt>(2, 4, 6)</dt><dd><strong>Parênteses</strong>, não colchetes! O <code>map</code> não devolve uma <code>List</code>: devolve um <code>Iterable</code>, e é assim que o <code>print</code> mostra um <code>Iterable</code>.</dd>
+  <dt>MappedListIterable&lt;int, int&gt;</dt><dd>O tipo exato, interno do Dart: "um <code>Iterable</code> feito de um <code>map</code> sobre uma lista, de <code>int</code> para <code>int</code>". Para você, basta saber que é um <code>Iterable&lt;int&gt;</code>.</dd>
+  <dt>dobros.toList() → [2, 4, 6]</dt><dd>"Para lista": transforma o <code>Iterable</code> numa <code>List</code> de verdade, com colchetes.</dd>
+  <dt>map((n) =&gt; n.length)</dt><dd>O tipo pode mudar: entra <code>String</code>, sai <code>int</code> (o tamanho de cada nome).</dd>
+</dl>
+
+<h3>O que é um <code>Iterable</code>?</h3>
+<p><code>Iterable</code> (de "iterar", percorrer) é qualquer coisa que dá para <strong>percorrer item por item</strong> com um <code>for-in</code>. Listas e conjuntos são <code>Iterable</code>s; as <code>keys</code> e os <code>values</code> de um mapa também. A diferença é que um <code>Iterable</code> "puro" é só uma sequência: ele <strong>não tem</strong> <code>[0]</code>, <code>add</code> nem <code>sort</code>. Na maioria das vezes, depois do <code>map</code> ou do <code>where</code>, você vai querer o <code>.toList()</code>.</p>
+
+<div class="trydart" data-goal="out:[1.5, 3.0, 4.5];;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> a padaria aumentou tudo em 50%. Use <code>map</code> para multiplicar cada preço por 1.5 e mostre como lista: <code>[1.5, 3.0, 4.5]</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [1.0, 2.0, 3.0];
+  print(precos);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [1.0, 2.0, 3.0];
+  print(precos.map((p) =&gt; p * 1.5).toList());
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>where</code>: filtrar</h2>
+
+<pre class="file" data-file="filtrar.dart">void main() {
+  final notas = [8.5, 5.0, 7.0, 9.5, 4.0];
+  final aprovadas = notas.where((n) =&gt; n &gt;= 7);
+  print(aprovadas);
+  print(aprovadas.length);
+  final recuperacao = notas.where((n) =&gt; n &lt; 7).toList();
+  print(recuperacao);
+  final produtos = ['pão', 'pão de queijo', 'leite', 'pão doce'];
+  print(produtos.where((p) =&gt; p.startsWith('pão')).toList());
+}
+</pre>
+
+<pre class="term">$ dart run filtrar.dart
+(8.5, 7.0, 9.5)
+3
+[5.0, 4.0]
+[pão, pão de queijo, pão doce]
+</pre>
+
+<p><code>where</code> ("onde") chama a função para cada item; ela responde <code>true</code> (fica) ou <code>false</code> (sai). Os que ficam mantêm a ordem. De novo, o resultado é um <code>Iterable</code> (parênteses), que tem <code>length</code> e pode virar lista com <code>.toList()</code>.</p>
+
+<hr>
+
+<h2>3. Encadeando: filtrar, depois transformar</h2>
+<p>O que sai do <code>where</code> é um <code>Iterable</code>, e todo <code>Iterable</code> tem <code>map</code>. Então dá para ligar as máquinas da esteira:</p>
+
+<pre class="file" data-file="encadear.dart">void main() {
+  final precos = [4.5, 32.0, 12.9, 55.0, 3.25];
+  final caros = precos
+      .where((p) =&gt; p &gt; 10)
+      .map((p) =&gt; 'R\$ ${p.toStringAsFixed(2)}')
+      .toList();
+  print(caros);
+}
+</pre>
+
+<pre class="term">$ dart run encadear.dart
+[R$ 32.00, R$ 12.90, R$ 55.00]
+</pre>
+
+<p>Leia de cima para baixo: dos preços, fique com os maiores que 10; transforme cada um num texto com <code>R$</code>; faça uma lista. Um passo por linha, cada linha começando com o ponto, é o jeito que o <code>dart format</code> organiza uma cadeia longa.</p>
+
+<div class="trydart" data-goal="out:[ANA, CAIO];;src:\.where\(;;src:\.map\(">
+<p class="try-task"><strong>Missão:</strong> dos alunos, fique só com os aprovados (nota 7 ou mais) e mostre os nomes em maiúsculas, numa lista: <code>[ANA, CAIO]</code>. Dica: os itens são <em>records</em> <code>(nome, nota)</code>; use <code>a.$1</code> para o nome e <code>a.$2</code> para a nota (veja <a href="records.html">Records</a>).</p>
+<pre class="script" data-file="main.dart">void main() {
+  final alunos = [('Ana', 9.5), ('Bia', 6.0), ('Caio', 8.0)];
+  print(alunos);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final alunos = [('Ana', 9.5), ('Bia', 6.0), ('Caio', 8.0)];
+  print(alunos
+      .where((a) =&gt; a.$2 &gt;= 7)
+      .map((a) =&gt; a.$1.toUpperCase())
+      .toList());
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>reduce</code> e <code>fold</code>: resumir num valor só</h2>
+
+<pre class="file" data-file="reduzir.dart">void main() {
+  final precos = [4.5, 12.9, 3.25];
+  final total = precos.reduce((soma, p) =&gt; soma + p);
+  print(total);
+  final maior = precos.reduce((a, b) =&gt; a &gt; b ? a : b);
+  print(maior);
+  final total2 = precos.fold(0.0, (soma, p) =&gt; soma + p);
+  print(total2);
+  final vazio = &lt;double&gt;[];
+  final totalVazio = vazio.fold(0.0, (soma, p) =&gt; soma + p);
+  print(totalVazio);
+  final nomes = ['Ana', 'Bia', 'Caio'];
+  final letras = nomes.fold(0, (soma, nome) =&gt; soma + nome.length);
+  print(letras);
+}
+</pre>
+
+<pre class="term">$ dart run reduzir.dart
+20.65
+12.9
+20.65
+0.0
+10
+</pre>
+
+<dl class="anatomy">
+  <dt>precos.reduce((soma, p) =&gt; soma + p)</dt><dd><code>reduce</code> ("reduzir") começa com o <strong>primeiro item</strong> e vai combinando com o próximo: 4.5 + 12.9 = 17.4; 17.4 + 3.25 = 20.65. O primeiro parâmetro (<code>soma</code>) é o resultado acumulado até ali; o segundo (<code>p</code>), o item da vez.</dd>
+  <dt>reduce((a, b) =&gt; a &gt; b ? a : b)</dt><dd>A mesma ideia, guardando sempre o maior dos dois (veja <a href="ternario.html">O Operador Ternário</a>): o maior preço.</dd>
+  <dt>precos.fold(0.0, (soma, p) =&gt; soma + p)</dt><dd><code>fold</code> ("dobrar") é igual, mas você dá o <strong>valor inicial</strong> (aqui, <code>0.0</code>) em vez de começar pelo primeiro item.</dd>
+  <dt>vazio.fold(…) → 0.0</dt><dd>Com a lista vazia, o <code>fold</code> devolve o valor inicial. (O <code>reduce</code>, sem primeiro item para começar, dá erro: veja <a href="#errado">Quando dá errado</a>.)</dd>
+  <dt>nomes.fold(0, (soma, nome) =&gt; soma + nome.length) → 10</dt><dd>Com o <code>fold</code>, o resultado pode ser de <strong>outro tipo</strong>: os itens são <code>String</code>, o resultado é <code>int</code> (o total de letras: 3 + 3 + 4).</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>reduce</code></th><th><code>fold</code></th></tr>
+<tr><td>Começa com</td><td>O primeiro item</td><td>O valor que você dá</td></tr>
+<tr><td>Coleção vazia</td><td>Exceção (<code>Bad state: No element</code>)</td><td>Devolve o valor inicial</td></tr>
+<tr><td>Tipo do resultado</td><td>O mesmo dos itens</td><td>Qualquer um (o do valor inicial)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Perguntas sobre a coleção: <code>any</code>, <code>every</code> e <code>firstWhere</code></h2>
+
+<pre class="file" data-file="anyevery.dart">void main() {
+  final notas = [8.5, 5.0, 7.0, 9.5];
+  print(notas.any((n) =&gt; n &lt; 6));
+  print(notas.every((n) =&gt; n &gt;= 5));
+  print(notas.every((n) =&gt; n &gt;= 7));
+  print(&lt;double&gt;[].every((n) =&gt; n &gt;= 7));
+  print(notas.contains(7.0));
+  final primeiraBaixa = notas.firstWhere((n) =&gt; n &lt; 7);
+  print(primeiraBaixa);
+  final dez = notas.firstWhere((n) =&gt; n == 10, orElse: () =&gt; -1);
+  print(dez);
+}
+</pre>
+
+<pre class="term">$ dart run anyevery.dart
+true
+true
+false
+true
+true
+5.0
+-1.0
+</pre>
+
+<dl class="anatomy">
+  <dt>any((n) =&gt; n &lt; 6) → true</dt><dd>"<strong>Algum</strong> item obedece?" Basta um (o 5.0). Ele para de olhar assim que acha.</dd>
+  <dt>every((n) =&gt; n &gt;= 5) → true</dt><dd>"<strong>Todos</strong> obedecem?" Todas as notas são 5 ou mais.</dd>
+  <dt>every((n) =&gt; n &gt;= 7) → false</dt><dd>O 5.0 não obedece, então não são todos.</dd>
+  <dt>&lt;double&gt;[].every(…) → true</dt><dd>Curiosidade da lógica: numa coleção vazia, "todos obedecem" é verdade (não há ninguém que desobedeça). E <code>any</code> numa vazia dá <code>false</code>.</dd>
+  <dt>firstWhere((n) =&gt; n &lt; 7) → 5.0</dt><dd>"O primeiro que obedece": devolve o <strong>item</strong>, não a posição.</dd>
+  <dt>firstWhere(…, orElse: () =&gt; -1) → -1.0</dt><dd>Nenhuma nota é 10: o <code>orElse</code> ("senão") dá o valor de reserva. Sem ele, seria uma exceção. (Saiu <code>-1.0</code> porque a lista é de <code>double</code>.)</dd>
+</dl>
+
+<hr>
+
+<h2>6. Pedaços: <code>take</code> e <code>skip</code></h2>
+
+<pre class="file" data-file="outros.dart">void main() {
+  final fila = ['Ana', 'Bia', 'Caio', 'Davi', 'Edu'];
+  print(fila.take(2));
+  print(fila.skip(2));
+  print(fila.skip(1).take(3).toList());
+  print(fila.map((n) =&gt; n[0]).join());
+  print(fila.toSet().runtimeType);
+  for (final inicial in fila.map((n) =&gt; n[0])) {
+    print(inicial);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run outros.dart
+(Ana, Bia)
+(Caio, Davi, Edu)
+[Bia, Caio, Davi]
+ABCDE
+_Set&lt;String&gt;
+A
+B
+C
+D
+E
+</pre>
+
+<ul>
+  <li><code>take(2)</code>: "pegue" os 2 primeiros. <code>skip(2)</code>: "pule" os 2 primeiros e fique com o resto. Encadeados, pegam um pedaço do meio.</li>
+  <li><code>join()</code> funciona em qualquer <code>Iterable</code>: aqui, juntou as iniciais (<code>n[0]</code> é a primeira letra do texto) sem separador.</li>
+  <li><code>toSet()</code> também existe em qualquer <code>Iterable</code> (veja <a href="set.html">Conjuntos</a>).</li>
+  <li>E dá para percorrer um <code>Iterable</code> com <code>for-in</code> sem transformá-lo em lista.</li>
+</ul>
+
+<hr>
+
+<h2>7. O <code>Iterable</code> é preguiçoso</h2>
+<p>Um detalhe que surpreende: o <code>map</code> e o <code>where</code> <strong>não calculam nada na hora</strong>. Eles guardam a "receita" e só fazem as contas quando alguém pede os itens. Veja, com um <code>print</code> dentro da função:</p>
+
+<pre class="file" data-file="preguica.dart">void main() {
+  final numeros = [1, 2, 3];
+  final dobros = numeros.map((n) {
+    print('calculando $n');
+    return n * 2;
+  });
+  print('antes de usar');
+  print(dobros.first);
+  print('de novo:');
+  print(dobros.toList());
+}
+</pre>
+
+<pre class="term">$ dart run preguica.dart
+antes de usar
+calculando 1
+2
+de novo:
+calculando 1
+calculando 2
+calculando 3
+[2, 4, 6]
+</pre>
+
+<p>Nada foi calculado na linha do <code>map</code>: o <code>antes de usar</code> saiu primeiro. O <code>first</code> calculou <strong>só</strong> o primeiro item. E o <code>toList()</code> calculou tudo <strong>de novo</strong>, inclusive o 1. Por isso, se você vai usar o resultado mais de uma vez (ou a função é pesada), guarde o <code>.toList()</code> numa variável: assim as contas são feitas uma vez só.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Somar os preços acima de R$ 10, de dois jeitos:</p>
+
+<pre class="file" data-file="formas.dart">// 1) for e variável
+var total = 0.0;
+for (final p in precos) {
+  if (p &gt; 10) {
+    total = total + p;
+  }
+}
+
+// 2) where e fold
+final total = precos.where((p) =&gt; p &gt; 10).fold(0.0, (s, p) =&gt; s + p);
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Quero…</th><th>Método</th><th>Devolve</th></tr>
+<tr><td>Transformar cada item</td><td><code>map</code></td><td><code>Iterable</code> (mesmo tamanho)</td></tr>
+<tr><td>Ficar com alguns itens</td><td><code>where</code></td><td><code>Iterable</code> (menor ou igual)</td></tr>
+<tr><td>Um valor só (soma, maior, contagem)</td><td><code>fold</code> (ou <code>reduce</code>, se nunca estiver vazia)</td><td>Um valor</td></tr>
+<tr><td>Saber se algum / todos obedecem</td><td><code>any</code> / <code>every</code></td><td><code>bool</code></td></tr>
+<tr><td>O primeiro que obedece</td><td><code>firstWhere(…, orElse: …)</code></td><td>Um item</td></tr>
+<tr><td>Usar <code>[i]</code>, <code>add</code>, <code>sort</code> no resultado</td><td><code>.toList()</code> no fim</td><td><code>List</code></td></tr>
+<tr><td>A lógica tem muitos passos, <code>break</code> ou mensagens no meio</td><td>Um <code>for</code> comum</td><td>—</td></tr>
+</table>
+</div>
+<p>Os métodos deixam claro <strong>o que</strong> você quer (filtrar, transformar, somar); o <code>for</code> mostra <strong>como</strong>. Os dois estão certos: use o que ficar mais fácil de ler. Para montar uma lista com condições, há ainda o <code>if</code> e o <code>for</code> dentro dos colchetes (aula <a href="collection-if-for.html">if e for Dentro de Coleções</a>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Guardou o resultado do <code>map</code> numa <code>List</code></strong>
+<pre class="file" data-file="err_lista.dart">void main() {
+  final numeros = [1, 2, 3];
+  List&lt;int&gt; dobros = numeros.map((n) =&gt; n * 2);
+  print(dobros);
+}
+</pre>
+<pre class="term">$ dart run err_lista.dart
+err_lista.dart:3:30: Error: A value of type 'Iterable&lt;int&gt;' can't be assigned to a variable of type 'List&lt;int&gt;'.
+ - 'Iterable' is from 'dart:core'.
+ - 'List' is from 'dart:core'.
+  List&lt;int&gt; dobros = numeros.map((n) =&gt; n * 2);
+                             ^
+</pre>
+<dl class="anatomy">
+  <dt>A value of type 'Iterable&lt;int&gt;' can't be assigned to a variable of type 'List&lt;int&gt;'.</dt><dd>"Um valor do tipo <code>Iterable&lt;int&gt;</code> não pode ser atribuído a uma variável do tipo <code>List&lt;int&gt;</code>." Toda lista é um <code>Iterable</code>, mas nem todo <code>Iterable</code> é uma lista.</dd>
+  <dt>- 'Iterable' is from 'dart:core'. / - 'List' …</dt><dd>De onde vêm os dois tipos (os dois são da biblioteca básica).</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>numeros.map((n) =&gt; n * 2).toList()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>[0]</code> no resultado do <code>where</code></strong>
+<pre class="file" data-file="err_indice.dart">void main() {
+  final notas = [8.5, 5.0, 7.0];
+  final boas = notas.where((n) =&gt; n &gt;= 7);
+  print(boas[0]);
+}
+</pre>
+<pre class="term">$ dart run err_indice.dart
+err_indice.dart:4:13: Error: The operator '[]' isn't defined for the type 'Iterable&lt;double&gt;'.
+ - 'Iterable' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '[]' operator.
+  print(boas[0]);
+            ^
+</pre>
+<p>"O operador <code>[]</code> não está definido para <code>Iterable&lt;double&gt;</code>." <strong>Como consertar:</strong> <code>boas.first</code>, <code>boas.elementAt(0)</code> ou <code>.toList()</code> antes.</p>
+</div>
+
+<div class="cenario">
+<strong><code>reduce</code> numa lista vazia</strong>
+<pre class="file" data-file="err_vazio.dart">void main() {
+  final precos = &lt;double&gt;[];
+  final total = precos.reduce((soma, p) =&gt; soma + p);
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_vazio.dart
+Unhandled exception:
+Bad state: No element
+#0      ListBase.reduce (dart:collection/list.dart:187:22)
+#1      main (file:///home/ana/err_vazio.dart:3:24)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Estado ruim: nenhum elemento." O <code>reduce</code> começa pelo primeiro item, e não há nenhum. Um carrinho vazio é normal, então esse erro aparece em programas de verdade. <strong>Como consertar:</strong> use <code>fold(0.0, …)</code>, que devolve 0.0 com a lista vazia.</p>
+</div>
+
+<div class="cenario">
+<strong><code>firstWhere</code> que não acha nada</strong>
+<pre class="file" data-file="err_firstwhere.dart">void main() {
+  final notas = [8.5, 5.0, 7.0];
+  final dez = notas.firstWhere((n) =&gt; n == 10);
+  print(dez);
+}
+</pre>
+<pre class="term">$ dart run err_firstwhere.dart
+Unhandled exception:
+Bad state: No element
+#0      ListBase.firstWhere (dart:collection/list.dart:132:5)
+#1      main (file:///home/ana/err_firstwhere.dart:3:21)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>A mesma mensagem, agora vinda do <code>firstWhere</code> (veja a linha <code>#0</code>). <strong>Como consertar:</strong> <code>orElse: () =&gt; -1</code> (seção 5), ou confira antes com <code>any</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>reduce</code> com resultado de outro tipo</strong>
+<pre class="file" data-file="err_reduce.dart">void main() {
+  final nomes = ['Ana', 'Bia', 'Caio'];
+  final letras = nomes.reduce((soma, nome) =&gt; soma + nome.length);
+  print(letras);
+}
+</pre>
+<pre class="term">$ dart run err_reduce.dart
+err_reduce.dart:3:59: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  final letras = nomes.reduce((soma, nome) =&gt; soma + nome.length);
+                                                          ^
+</pre>
+<p>No <code>reduce</code>, o acumulado (<code>soma</code>) tem o tipo dos itens: <code>String</code>. Então <code>soma + nome.length</code> tenta somar um texto com um número. <strong>Como consertar:</strong> use <code>fold</code>, que deixa o resultado ter outro tipo: <code>nomes.fold(0, (soma, nome) =&gt; soma + nome.length)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>fold</code> direto dentro do <code>print</code></strong>
+<pre class="file" data-file="err_fold.dart">void main() {
+  final precos = [4.5, 12.9, 3.25];
+  print(precos.fold(0.0, (soma, p) =&gt; soma + p));
+}
+</pre>
+<pre class="term">$ dart run err_fold.dart
+err_fold.dart:3:44: Error: The operator '+' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '+' operator.
+  print(precos.fold(0.0, (soma, p) =&gt; soma + p));
+                                           ^
+</pre>
+<p>Esta é traiçoeira: a mesma linha que funcionou guardada numa variável (seção 4) não compila dentro do <code>print</code>. "O operador <code>+</code> não está definido para <code>Object?</code>": como o <code>print</code> aceita qualquer coisa (<code>Object?</code>), o Dart concluiu que o resultado do <code>fold</code>, e portanto a <code>soma</code>, era <code>Object?</code>. <strong>Como consertar:</strong> diga o tipo do resultado entre <code>&lt; &gt;</code>: <code>precos.fold&lt;double&gt;(0.0, (soma, p) =&gt; soma + p)</code> (no lab, mostra <code>20.65</code>), ou guarde numa variável antes de mostrar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>c.map((x) =&gt; …)</code></td><td>Transforma cada item (<code>Iterable</code>)</td></tr>
+<tr><td><code>c.where((x) =&gt; …)</code></td><td>Fica com os que dão <code>true</code> (<code>Iterable</code>)</td></tr>
+<tr><td><code>.toList()</code> / <code>.toSet()</code></td><td>Transforma o <code>Iterable</code> em lista / conjunto</td></tr>
+<tr><td><code>c.reduce((acc, x) =&gt; …)</code></td><td>Combina tudo, começando pelo primeiro item</td></tr>
+<tr><td><code>c.fold(inicial, (acc, x) =&gt; …)</code></td><td>Combina tudo, começando pelo valor inicial</td></tr>
+<tr><td><code>c.any(…)</code> / <code>c.every(…)</code></td><td>Algum obedece? / Todos obedecem?</td></tr>
+<tr><td><code>c.firstWhere(…, orElse: () =&gt; …)</code></td><td>O primeiro que obedece (ou o de reserva)</td></tr>
+<tr><td><code>c.take(n)</code> / <code>c.skip(n)</code></td><td>Os <code>n</code> primeiros / todos menos os <code>n</code> primeiros</td></tr>
+<tr><td><code>c.join(sep)</code>, <code>c.contains(x)</code>, <code>c.length</code>, <code>c.first</code></td><td>Também existem em qualquer <code>Iterable</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>(2, 4, 6)</code> com parênteses no <code>print</code></td><td>É um <code>Iterable</code>, não uma lista: normal. Use <code>.toList()</code> se precisar de lista</td></tr>
+<tr><td><code>A value of type 'Iterable&lt;…&gt;' can't be assigned to a variable of type 'List&lt;…&gt;'</code></td><td>Faltou o <code>.toList()</code></td></tr>
+<tr><td><code>The operator '[]' isn't defined for the type 'Iterable&lt;…&gt;'</code></td><td><code>[i]</code> num <code>Iterable</code>: use <code>first</code>, <code>elementAt</code> ou <code>.toList()</code></td></tr>
+<tr><td><code>Bad state: No element</code></td><td><code>reduce</code> em coleção vazia, ou <code>firstWhere</code> sem <code>orElse</code> que não achou</td></tr>
+<tr><td><code>The operator '+' isn't defined for the type 'Object?'</code> num <code>fold</code></td><td>O Dart não descobriu o tipo do resultado: <code>fold&lt;double&gt;(…)</code></td></tr>
+<tr><td>A função do <code>map</code> rodou várias vezes</td><td>O <code>Iterable</code> recalcula a cada uso: guarde o <code>.toList()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Transformar ou filtrar?</h3>
+<p>Complete para ficar só com os números pares (<code>n % 2 == 0</code>):</p>
+<div class="ex-code">numeros.<input data-answer="where" aria-label="método">((n) =&gt; n % 2 == 0).toList()</div>
+</div>
+
+<div class="exercise">
+<h3>2. Somar com valor inicial</h3>
+<p>Complete para somar <code>precos</code> mesmo se a lista estiver vazia:</p>
+<div class="ex-code">precos.<input data-answer="fold" aria-label="método">(0.0, (soma, p) =&gt; soma + p)</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>print([1, 2, 3].map((n) =&gt; n + 1));</code> mostra?</p>
+<label><input type="radio" name="q3"> <code>[2, 3, 4]</code></label>
+<label><input type="radio" name="q3"> <code>[1, 2, 3]</code></label>
+<label><input type="radio" name="q3"> <code>(2, 3, 4)</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>[4, 8, 15].any((n) =&gt; n &gt; 10)</code> dá:</p>
+<label><input type="radio" name="q4"> <code>false</code></label>
+<label><input type="radio" name="q4"> <code>true</code></label>
+<label><input type="radio" name="q4"> <code>15</code></label>
+<label><input type="radio" name="q4"> <code>(15)</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Por que <code>fold</code> é mais seguro que <code>reduce</code> para somar um carrinho de compras?</p>
+<label><input type="radio" name="q5"> Porque é mais rápido</label>
+<label><input type="radio" name="q5"> Porque devolve uma lista</label>
+<label><input type="radio" name="q5"> Porque não precisa de função</label>
+<label><input type="radio" name="q5"> Porque, com o carrinho vazio, devolve o valor inicial em vez de dar <code>Bad state: No element</code></label>
+</div>
+
+<h3>Missão final: o relatório da turma</h3>
+
+<div class="trydart" data-goal="out:Média: 7.5;;out:Aprovados: 4;;out:Todos passaram de 5? true;;src:\.fold\(|\.reduce\(;;src:\.where\(;;src:\.every\(">
+<p class="try-task"><strong>Missão:</strong> sem nenhum <code>for</code>, mostre três linhas: a média das notas (some com <code>fold</code> ou <code>reduce</code> e divida pelo <code>length</code>), quantas são 7 ou mais (<code>where</code> + <code>length</code>) e se todas são maiores que 5 (<code>every</code>). Deve aparecer <code>Média: 7.5</code>, <code>Aprovados: 4</code> e <code>Todos passaram de 5? true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [8.0, 6.0, 9.5, 7.0, 7.0];
+  print(notas);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [8.0, 6.0, 9.5, 7.0, 7.0];
+  final soma = notas.fold(0.0, (s, n) =&gt; s + n);
+  print('Média: ${soma / notas.length}');
+  print('Aprovados: ${notas.where((n) =&gt; n &gt;= 7).length}');
+  print('Todos passaram de 5? ${notas.every((n) =&gt; n &gt; 5)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>map</code> transforma cada item; <code>where</code> filtra. Os dois devolvem um <code>Iterable</code>, que o <code>print</code> mostra com <strong>parênteses</strong>: <code>(2, 4, 6)</code>.</li>
+  <li>Um <code>Iterable</code> se percorre, mas não tem <code>[i]</code>, <code>add</code> nem <code>sort</code>: use <code>.toList()</code> quando precisar de lista.</li>
+  <li>Os métodos se encadeiam: <code>where(…).map(…).toList()</code>.</li>
+  <li><code>reduce</code> e <code>fold</code> resumem a coleção num valor; prefira <code>fold</code>, que aceita coleção vazia e outro tipo de resultado.</li>
+  <li><code>any</code>/<code>every</code> respondem "algum?"/"todos?"; <code>firstWhere</code> precisa de <code>orElse</code> quando pode não achar.</li>
+  <li>O <code>Iterable</code> é preguiçoso: calcula só quando alguém pede, e recalcula a cada uso.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
