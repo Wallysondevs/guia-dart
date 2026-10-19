@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Exceções — try, catch, on e finally | Guia Dart</title>
+<meta name="description" content="Exceções no Dart para quem nunca programou: o que é uma exceção, o Unhandled exception e o código de saída 255, try e catch, on FormatException, vários on, catch (e, s) com o stack trace, finally, int.tryParse como alternativa e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Exceções</span></h1>
+
+<p class="intro">Um programa pode estar escrito certinho, compilar sem nenhuma reclamação e, mesmo assim, tropeçar <strong>enquanto roda</strong>: alguém digita <code>doze</code> onde se esperava <code>12</code>, uma lista não tem a posição pedida, uma conta divide por zero. Quando isso acontece, o Dart <strong>lança uma exceção</strong> (em inglês, <em>exception</em>, "algo fora do normal"). Se ninguém cuidar dela, o programa para na hora. Nesta aula você aprende a <strong>pegar</strong> a exceção com <code>try</code> e <code>catch</code> e a decidir o que fazer em vez de parar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma exceção e o que o Dart mostra quando ninguém a trata (<code>Unhandled exception:</code> e o código de saída 255).</li>
+  <li>Como usar <code>try</code> ("tente") e <code>catch</code> ("pegue") para o programa continuar.</li>
+  <li>Como pegar só um tipo de exceção com <code>on FormatException</code>, e vários tipos com vários <code>on</code>.</li>
+  <li>Como ver o tipo da exceção e o caminho até ela: <code>catch (e, s)</code>.</li>
+  <li>Como garantir que uma parte rode sempre, dando certo ou errado: <code>finally</code> ("finalmente").</li>
+  <li>Quando é melhor não usar exceção nenhuma: <code>int.tryParse</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: o plano B do caixa da padaria</h2>
+<p>A Ana trabalha no caixa da padaria. O normal é a cliente dizer quanto vai pagar, a Ana digitar o valor e calcular o troco. Mas às vezes acontece algo fora do normal: a máquina de cartão cai, a nota é falsa, a cliente fala "doze" e a Ana digita as letras em vez do número. A padaria tem um <strong>plano B</strong> para essas situações: "se a máquina cair, aceite Pix; se não der, anote no caderno". O atendimento não para por causa de um problema.</p>
+<p>No Dart é igual:</p>
+<ul>
+  <li>O <strong>plano A</strong> é o código normal. Você o coloca dentro de um <code>try { }</code>: "tente fazer isto".</li>
+  <li>Se algo fora do normal acontecer lá dentro, o Dart <strong>lança</strong> uma exceção: um objeto que diz <strong>o que</strong> deu errado.</li>
+  <li>O <strong>plano B</strong> fica no <code>catch { }</code>: "se der problema, pegue a exceção e faça isto".</li>
+  <li>Sem plano B, a exceção "sobe" até o <code>main</code>, ninguém a pega, e o programa termina ali mesmo.</li>
+</ul>
+
+<div class="note">
+<strong>Exceção não é erro de compilação</strong>
+<p>Na aula <a href="erros.html">Lendo uma Mensagem de Erro</a> você viu os dois tipos de problema. O <strong>erro de compilação</strong> (<code>main.dart:3:9: Error: …</code>) aparece <strong>antes</strong> de o programa rodar: nada roda. A <strong>exceção</strong> aparece <strong>durante</strong> a execução: o que veio antes já rodou. O <code>try</code>/<code>catch</code> só serve para exceções; erro de compilação você conserta no código.</p>
+</div>
+
+<hr>
+
+<h2>1. Uma exceção que ninguém tratou</h2>
+<p>O <code>int.parse</code> transforma um texto em número inteiro (veja <a href="conversao.html">Conversão de Tipos</a>). Com <code>'12'</code>, dá 12. Com <code>'doze'</code>, ele não tem como fazer a conversão, e lança uma exceção:</p>
+
+<pre class="file" data-file="sem_try.dart">void main() {
+  print('Calculando o troco...');
+  final pago = int.parse('doze');
+  print('A cliente pagou $pago reais.');
+  print('Fim do programa.');
+}
+</pre>
+
+<pre class="term">$ dart run sem_try.dart
+Calculando o troco...
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+doze
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/sem_try.dart:3:20)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Calculando o troco...</dt><dd>A linha 2 rodou normalmente. Exceção acontece <strong>durante</strong> a execução: o que vem antes dela já foi feito.</dd>
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada". Aconteceu uma exceção e nenhum <code>catch</code> a pegou.</dd>
+  <dt>FormatException: Invalid radix-10 number (at character 1)</dt><dd>O <strong>tipo</strong> da exceção (<code>FormatException</code>, "exceção de formato": o texto não está no formato esperado) e a mensagem: "número inválido na base 10 (no caractere 1)". Base 10 é a contagem normal, com os dígitos de 0 a 9.</dd>
+  <dt>doze / ^</dt><dd>O texto que o <code>int.parse</code> recebeu e um <code>^</code> embaixo do primeiro caractere que ele não entendeu (o <code>d</code>).</dd>
+  <dt>#0 … #3</dt><dd>O <strong>stack trace</strong> ("rastro da pilha"): o caminho de funções até o problema, da mais funda (<code>#0</code>) para a de fora. As linhas com <code>dart:core-patch</code> são o código interno do Dart: pode pular.</dd>
+  <dt>#4      main (file:///home/ana/sem_try.dart:3:20)</dt><dd>A primeira linha que é <strong>sua</strong>: a função <code>main</code>, no arquivo <code>sem_try.dart</code>, <strong>linha 3, coluna 20</strong> (onde começa o <code>parse</code>). É aqui que você olha primeiro.</dd>
+  <dt>#5, #6</dt><dd>O próprio Dart chamando o seu <code>main</code>. Também pode pular.</dd>
+  <dt>echo $? → 255</dt><dd>O código de saída. <code>0</code> quer dizer "terminou bem"; quando o programa morre por uma exceção não tratada, o Dart devolve <strong>255</strong>. (Erro de compilação devolve 254.)</dd>
+</dl>
+
+<p>Repare: <code>A cliente pagou</code> e <code>Fim do programa.</code> <strong>não</strong> apareceram. A exceção interrompeu tudo a partir da linha 3.</p>
+
+<hr>
+
+<h2>2. <code>try</code> e <code>catch</code>: o plano B</h2>
+<p>Agora o mesmo programa, com a parte arriscada dentro de um <code>try</code>:</p>
+
+<pre class="file" data-file="com_try.dart">void main() {
+  print('Calculando o troco...');
+  try {
+    final pago = int.parse('doze');
+    print('A cliente pagou $pago reais.');
+  } catch (e) {
+    print('Não deu para ler o valor: $e');
+  }
+  print('Fim do programa.');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>try { … }</dt><dd>"Tente". O bloco com o plano A. O Dart roda as linhas dele em ordem, como sempre.</dd>
+  <dt>final pago = int.parse('doze');</dt><dd>Aqui a exceção é lançada. O Dart <strong>abandona o resto do <code>try</code></strong> na mesma hora (o <code>print('A cliente pagou…')</code> não roda) e pula para o <code>catch</code>.</dd>
+  <dt>catch (e) { … }</dt><dd>"Pegue". O plano B. Só roda se alguma exceção foi lançada dentro do <code>try</code>. Os parênteses são obrigatórios.</dd>
+  <dt>e</dt><dd>Uma variável com a exceção que foi pega (o nome <code>e</code> é tradição; pode ser <code>erro</code>). Colocar <code>$e</code> num texto mostra a mensagem dela.</dd>
+  <dt>print('Fim do programa.');</dt><dd>Depois do <code>catch</code>, a vida segue: o programa continua normalmente.</dd>
+</dl>
+
+<pre class="term">$ dart run com_try.dart
+Calculando o troco...
+Não deu para ler o valor: FormatException: Invalid radix-10 number (at character 1)
+doze
+^
+
+Fim do programa.
+$ echo $?
+0
+</pre>
+
+<p>A exceção foi a mesma, mas desta vez alguém a pegou: o programa mostrou o aviso, seguiu até o fim e terminou com código <strong>0</strong>. Se o texto fosse <code>'12'</code>, nenhuma exceção aconteceria, o <code>try</code> rodaria inteiro e o <code>catch</code> seria pulado.</p>
+
+<div class="trydart" data-goal="out:Fim do programa.;;semerro;;src:\btry\b">
+<p class="try-task"><strong>Missão:</strong> este programa morre na linha do <code>int.parse</code> e nunca mostra <code>Fim do programa.</code>. Coloque as duas linhas do meio dentro de um <code>try { }</code> e acrescente um <code>catch (e) { }</code> que mostre um aviso. O programa deve chegar ao fim sem exceção.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Calculando o troco...');
+  final pago = int.parse('doze');
+  print('A cliente pagou $pago reais.');
+  print('Fim do programa.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Calculando o troco...');
+  try {
+    final pago = int.parse('doze');
+    print('A cliente pagou $pago reais.');
+  } catch (e) {
+    print('Não deu para ler o valor: $e');
+  }
+  print('Fim do programa.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>on</code>: pegar só o tipo que você espera</h2>
+<p>O <code>catch (e)</code> sozinho pega <strong>qualquer</strong> exceção, até as que você não imaginou (e talvez quisesse ver). Na maioria das vezes é melhor dizer qual problema você sabe tratar. Para isso existe o <code>on</code> ("em caso de"), seguido do <strong>tipo</strong> da exceção:</p>
+
+<pre class="file" data-file="on.dart">void main() {
+  final textos = ['10', 'dez', '7'];
+  for (final texto in textos) {
+    try {
+      final n = int.parse(texto);
+      print('$texto virou o número $n');
+    } on FormatException catch (e) {
+      print('"$texto" não é número: ${e.message}');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run on.dart
+10 virou o número 10
+"dez" não é número: Invalid radix-10 number
+7 virou o número 7
+</pre>
+
+<dl class="anatomy">
+  <dt>on FormatException</dt><dd>"Em caso de <code>FormatException</code>". Este plano B só vale para esse tipo de exceção.</dd>
+  <dt>catch (e)</dt><dd>Opcional depois do <code>on</code>: dá um nome à exceção, para você usar. Como o Dart já sabe que <code>e</code> é uma <code>FormatException</code>, dá para usar o que ela tem, como o <code>e.message</code> (só a mensagem, sem o nome do tipo).</dd>
+  <dt>o laço continua</dt><dd>O <code>try</code> está <strong>dentro</strong> do <code>for</code>: cada volta tem o seu plano B. O <code>'dez'</code> deu problema, mas o <code>'7'</code> foi lido normalmente na volta seguinte.</dd>
+</dl>
+
+<h3>Vários <code>on</code>, um para cada problema</h3>
+<p>Um mesmo <code>try</code> pode ter vários planos B. A Ana tem um estoque de caixas por posição na prateleira e quer saber quantos itens vão em cada pacote de 120. Três coisas podem dar errado: o pedido não ser número, a posição não existir, e a conta dividir por zero:</p>
+
+<pre class="file" data-file="varios.dart">void main() {
+  final estoque = [12, 0, 5];
+  for (final pedido in ['1', '9', 'x', '0']) {
+    try {
+      final i = int.parse(pedido);
+      final qtd = estoque[i];
+      print('Posição $i: $qtd itens, ${120 ~/ qtd} por caixa');
+    } on FormatException {
+      print('"$pedido": isso não é uma posição.');
+    } on RangeError catch (e) {
+      print('"$pedido": posição fora da lista ($e)');
+    } on UnsupportedError catch (e) {
+      print('"$pedido": conta impossível ($e)');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run varios.dart
+"1": conta impossível (IntegerDivisionByZeroException)
+"9": posição fora da lista (RangeError (length): Invalid value: Not in inclusive range 0..2: 9)
+"x": isso não é uma posição.
+Posição 0: 12 itens, 10 por caixa
+</pre>
+
+<ul>
+  <li><code>'1'</code>: a posição 1 tem <code>0</code> itens, e <code>120 ~/ 0</code> (divisão inteira por zero) lança <code>IntegerDivisionByZeroException</code>, que é um tipo de <code>UnsupportedError</code> ("operação não suportada").</li>
+  <li><code>'9'</code>: a lista só tem as posições 0, 1 e 2; pedir a 9 lança <code>RangeError</code> ("erro de intervalo"): "valor inválido, fora do intervalo 0..2: 9".</li>
+  <li><code>'x'</code>: o <code>int.parse</code> lança <code>FormatException</code>. Aqui o <code>on</code> veio sem <code>catch</code>, porque a mensagem não era necessária.</li>
+  <li><code>'0'</code>: tudo deu certo, nenhum <code>on</code> rodou.</li>
+</ul>
+<p>O Dart testa os <code>on</code> <strong>de cima para baixo</strong> e usa o primeiro cujo tipo combina. Os outros são pulados.</p>
+
+<div class="tip">
+<strong><code>Exception</code> e <code>Error</code></strong>
+<p>Repare que alguns nomes terminam em <code>Exception</code> e outros em <code>Error</code>. No Dart, uma <code>Exception</code> é um problema <strong>esperado</strong>, que vem de fora (texto digitado errado, arquivo que não existe): faz sentido tratar. Um <code>Error</code> (<code>RangeError</code>, <code>UnsupportedError</code>…) quase sempre é um <strong>engano no código</strong>: o melhor conserto é corrigir o programa (conferir o tamanho da lista antes, não dividir por zero) e não esconder o problema com um <code>catch</code>. Os dois podem ser pegos; aqui os <code>Error</code> foram pegos só para você ver os nomes.</p>
+</div>
+
+<hr>
+
+<h2>4. <code>catch (e, s)</code>: o tipo e o caminho até o problema</h2>
+<p>O <code>catch</code> aceita uma segunda variável: o <strong>stack trace</strong>, o mesmo rastro que aparece no <code>Unhandled exception</code>. E toda exceção tem o <code>runtimeType</code>, o nome do tipo dela:</p>
+
+<pre class="file" data-file="pilha.dart">void main() {
+  try {
+    final lista = [1, 2, 3];
+    print(lista[3]);
+  } catch (e, s) {
+    print('Erro: $e');
+    print('Tipo: ${e.runtimeType}');
+    print('Onde:');
+    print(s);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run pilha.dart
+Erro: RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+Tipo: RangeError
+Onde:
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/pilha.dart:4:16)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+
+</pre>
+
+<p>O <code>s</code> (de <em>stack</em>) é do tipo <code>StackTrace</code>. Ele é útil para anotar num arquivo de registro (um <em>log</em>) onde o problema aconteceu: aqui, <code>pilha.dart</code>, linha 4. Quando você só precisa de um aviso para a pessoa, o <code>e</code> basta. O <code>runtimeType</code> é bom para descobrir o tipo de uma exceção e depois escrever o <code>on</code> certo.</p>
+
+<hr>
+
+<h2>5. <code>finally</code>: o que roda sempre</h2>
+<p>Às vezes uma parte do código precisa rodar <strong>de qualquer jeito</strong>, dando certo ou errado: fechar o caixa no fim do atendimento, fechar um arquivo, mostrar "pronto". Para isso existe o <code>finally</code> ("finalmente"), que vem depois dos <code>on</code>/<code>catch</code>:</p>
+
+<pre class="file" data-file="finally.dart">void main() {
+  for (final valor in ['50', 'cinquenta']) {
+    print('--- caixa aberto ---');
+    try {
+      final v = int.parse(valor);
+      print('Recebido: R\$ $v');
+    } on FormatException {
+      print('Valor inválido: $valor');
+    } finally {
+      print('--- caixa fechado ---');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run finally.dart
+--- caixa aberto ---
+Recebido: R$ 50
+--- caixa fechado ---
+--- caixa aberto ---
+Valor inválido: cinquenta
+--- caixa fechado ---
+</pre>
+
+<p>Com <code>'50'</code>, rodou o <code>try</code> inteiro e depois o <code>finally</code>. Com <code>'cinquenta'</code>, rodou o começo do <code>try</code>, o <code>on</code> e depois o <code>finally</code>. (O <code>\$</code> em <code>R\$</code> é para o Dart mostrar o cifrão em vez de achar que vem uma variável; veja <a href="interpolacao.html">Interpolação</a>.)</p>
+
+<p>O <code>finally</code> roda até quando <strong>ninguém</strong> pega a exceção. Um <code>try</code> pode ter só o <code>finally</code>, sem <code>catch</code>:</p>
+
+<pre class="file" data-file="finally2.dart">void main() {
+  try {
+    print('Abrindo o caixa');
+    final v = int.parse('vinte');
+    print('Recebido: $v');
+  } finally {
+    print('Fechando o caixa (sempre)');
+  }
+  print('Esta linha não roda');
+}
+</pre>
+
+<pre class="term">$ dart run finally2.dart
+Abrindo o caixa
+Fechando o caixa (sempre)
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+vinte
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/finally2.dart:4:19)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>A ordem é o que importa: o <code>finally</code> fechou o caixa <strong>antes</strong> de o programa morrer com a exceção. A linha depois do <code>try</code> não rodou, porque a exceção continuou sem ninguém para pegá-la.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para transformar texto em número, existe um jeito que <strong>não lança exceção</strong>: o <code>int.tryParse</code> ("tente converter"). Em vez de lançar <code>FormatException</code>, ele devolve <code>null</code> quando o texto não é número (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>):</p>
+
+<pre class="file" data-file="tp.dart">void main() {
+  for (final texto in ['12', 'doze']) {
+    final n = int.tryParse(texto);
+    if (n == null) {
+      print('"$texto" não é número');
+    } else {
+      print('Número: $n');
+    }
+  }
+  print(int.tryParse('doze') ?? 0);
+}
+</pre>
+
+<pre class="term">$ dart run tp.dart
+Número: 12
+"doze" não é número
+0
+</pre>
+
+<p>A última linha usa o <code>??</code> ("se for nulo, use este outro"; veja <a href="operadores-null.html">?. , ?? e ??=</a>) para ficar com 0 quando o texto não é número.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Converter um texto que pode não ser número (o que a pessoa digitou)</td><td><code>int.tryParse</code> / <code>double.tryParse</code> e um <code>if</code> ou <code>??</code>: mais simples, sem exceção</td></tr>
+<tr><td>Uma operação que lança exceção e não tem versão "try" (ler arquivo, <code>jsonDecode</code>, funções de outros)</td><td><code>try { } on TipoDaExcecao catch (e) { }</code></td></tr>
+<tr><td>Você sabe tratar só um tipo de problema</td><td><code>on Tipo</code>: os outros continuam aparecendo, como devem</td></tr>
+<tr><td>Um último aviso genérico, para o programa não morrer</td><td><code>catch (e)</code> sem <code>on</code> (use com cuidado: ele esconde até os seus enganos)</td></tr>
+<tr><td>Algo que tem de rodar de qualquer jeito</td><td><code>finally { }</code></td></tr>
+<tr><td>Índice fora da lista, divisão por zero</td><td>Nenhum <code>catch</code>: confira antes (<code>if (i &lt; lista.length)</code>, <code>if (qtd != 0)</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses do <code>catch</code></strong>
+<pre class="file" data-file="e1.dart">void main() {
+  try {
+    print(int.parse('doze'));
+  } catch e {
+    print('Erro: $e');
+  }
+}
+</pre>
+<pre class="term">$ dart run e1.dart
+e1.dart:4:11: Error: 'catch' must be followed by '(identifier)' or '(identifier, identifier)'.
+No types are needed, the first is given by 'on', the second is always 'StackTrace'.
+  } catch e {
+          ^
+e1.dart:4:11: Error: A catch clause must have a body, even if it is empty.
+Try adding an empty body.
+  } catch e {
+          ^
+e1.dart:4:11: Error: Expected ';' after this.
+  } catch e {
+          ^
+e1.dart:4:11: Error: Undefined name 'e'.
+  } catch e {
+          ^
+e1.dart:5:19: Error: Undefined name 'e'.
+    print('Erro: $e');
+                  ^
+$ echo $?
+254
+</pre>
+<p>A primeira mensagem é a que importa: "o <code>catch</code> tem de ser seguido de <code>(nome)</code> ou <code>(nome, nome)</code>. Não precisa de tipos: o primeiro é dado pelo <code>on</code>, o segundo é sempre <code>StackTrace</code>". As outras quatro são consequência dela: sem os parênteses, o Dart se perdeu e passou a achar que o <code>e</code> era uma variável qualquer. É um <strong>erro de compilação</strong> (código 254): nada rodou. <strong>Como consertar:</strong> <code>catch (e)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>try</code> sozinho</strong>
+<pre class="file" data-file="e2.dart">void main() {
+  try {
+    print(int.parse('doze'));
+  }
+  print('Fim');
+}
+</pre>
+<pre class="term">$ dart run e2.dart
+e2.dart:2:3: Error: A try block must be followed by an 'on', 'catch', or 'finally' clause.
+Try adding either a catch or finally clause, or remove the try statement.
+  try {
+  ^^^
+</pre>
+<p>"Um bloco <code>try</code> tem de ser seguido de um <code>on</code>, <code>catch</code> ou <code>finally</code>. Acrescente um <code>catch</code> ou um <code>finally</code>, ou tire o <code>try</code>". Tentar sem plano B não faz sentido. <strong>Como consertar:</strong> acrescente o <code>catch (e) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou fora do <code>try</code> uma variável criada dentro dele</strong>
+<pre class="file" data-file="e3.dart">void main() {
+  try {
+    final pago = int.parse('20');
+  } on FormatException {
+    print('Valor inválido');
+  }
+  print('Pago: $pago');
+}
+</pre>
+<pre class="term">$ dart run e3.dart
+e3.dart:7:17: Error: Undefined name 'pago'.
+  print('Pago: $pago');
+                ^^^^
+</pre>
+<p>"Nome não definido: <code>pago</code>". O <code>try { }</code> é um bloco como o do <code>if</code>: a variável criada lá dentro só existe até o <code>}</code> (veja <a href="sintaxe.html">Instruções e Blocos</a>). <strong>Como consertar:</strong> use a variável dentro do <code>try</code>, ou crie-a antes com um valor padrão: <code>var pago = 0;</code> antes do <code>try</code> e <code>pago = int.parse('20');</code> dentro dele.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>on</code> é de outro tipo: a exceção passa direto</strong>
+<pre class="file" data-file="e4.dart">void main() {
+  final precos = [4, 9, 3];
+  try {
+    print(precos[5]);
+  } on FormatException {
+    print('Valor inválido');
+  }
+  print('Fim');
+}
+</pre>
+<pre class="term">$ dart run e4.dart
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 5
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/e4.dart:4:17)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>Tinha <code>try</code>, mas o plano B era só para <code>FormatException</code>, e o que aconteceu foi um <code>RangeError</code>. Nenhum <code>on</code> combinou, então a exceção continuou como se não houvesse <code>try</code>: <code>Unhandled exception</code>, código 255, e o <code>Fim</code> não apareceu. <strong>Como consertar:</strong> aqui o certo é não pedir a posição 5 de uma lista de 3 (o problema está no código). Se você quiser tratar, use o tipo que aparece na mensagem: <code>on RangeError</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Pago: 20;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. São dois problemas: o <code>catch</code> sem parênteses e a variável <code>pago</code> que só existe dentro do <code>try</code>. Conserte os dois (crie <code>var pago = 0;</code> antes do <code>try</code>) até aparecer <code>Pago: 20</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  try {
+    final pago = int.parse('20');
+  } catch e {
+    print('Valor inválido: $e');
+  }
+  print('Pago: $pago');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var pago = 0;
+  try {
+    pago = int.parse('20');
+  } catch (e) {
+    print('Valor inválido: $e');
+  }
+  print('Pago: $pago');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>try { … }</code></td><td>Roda o plano A; se uma exceção for lançada, abandona o resto do bloco</td></tr>
+<tr><td><code>catch (e) { … }</code></td><td>Pega qualquer exceção; <code>e</code> é a exceção</td></tr>
+<tr><td><code>catch (e, s) { … }</code></td><td>Pega a exceção e o stack trace (<code>StackTrace</code>)</td></tr>
+<tr><td><code>on FormatException { … }</code></td><td>Pega só esse tipo, sem dar nome a ela</td></tr>
+<tr><td><code>on FormatException catch (e) { … }</code></td><td>Pega só esse tipo e dá o nome <code>e</code> (com <code>e.message</code>)</td></tr>
+<tr><td>vários <code>on</code></td><td>Testados de cima para baixo; roda o primeiro que combina</td></tr>
+<tr><td><code>finally { … }</code></td><td>Roda sempre, depois do <code>try</code> e do <code>catch</code>, com ou sem exceção</td></tr>
+<tr><td><code>e.runtimeType</code></td><td>O nome do tipo da exceção</td></tr>
+<tr><td><code>int.tryParse(texto)</code></td><td>Converte sem lançar exceção: devolve <code>null</code> se não der</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Exceção (no lab)</th><th>Quando aparece</th></tr>
+<tr><td><code>FormatException: Invalid radix-10 number</code></td><td><code>int.parse</code> de um texto que não é número inteiro</td></tr>
+<tr><td><code>RangeError (length): Invalid value: Not in inclusive range 0..2: 5</code></td><td>Posição que não existe na lista</td></tr>
+<tr><td><code>IntegerDivisionByZeroException</code></td><td>Divisão inteira (<code>~/</code>) por zero</td></tr>
+<tr><td><code>Unhandled exception:</code> + código de saída 255</td><td>Ninguém pegou a exceção</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o plano B</h3>
+<p>Complete para pegar só a exceção de formato e mostrar a mensagem dela:</p>
+<div class="ex-code"><input data-answer="try" aria-label="palavra-chave do plano A"> {<br>&nbsp;&nbsp;print(int.parse(texto));<br>} <input data-answer="on" aria-label="palavra-chave do tipo"> FormatException <input data-answer="catch" aria-label="palavra-chave que dá nome"> (e) {<br>&nbsp;&nbsp;print(e.message);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O código de saída</h3>
+<p>Um programa terminou com <code>Unhandled exception:</code>. Qual número o <code>echo $?</code> mostra logo depois?</p>
+<div class="ex-code">O código de saída é <input data-answer="255" aria-label="código de saída">.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que este trecho mostra? <code>try { print('A'); int.parse('x'); print('B'); } catch (e) { print('C'); } finally { print('D'); }</code></p>
+<label><input type="radio" name="q3"> A B C D</label>
+<label><input type="radio" name="q3"> A B D</label>
+<label><input type="radio" name="q3"> A C D</label>
+<label><input type="radio" name="q3"> A C</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Um <code>try</code> tem só <code>on FormatException { … }</code>, e lá dentro acontece um <code>RangeError</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> O <code>on FormatException</code> roda mesmo assim</label>
+<label><input type="radio" name="q4"> A exceção não é pega: <code>Unhandled exception</code> e o programa termina</label>
+<label><input type="radio" name="q4"> O Dart ignora a exceção e continua</label>
+<label><input type="radio" name="q4"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é o jeito mais simples de converter um texto digitado que pode não ser número?</p>
+<label><input type="radio" name="q5"> <code>int.tryParse(texto)</code> e testar se deu <code>null</code></label>
+<label><input type="radio" name="q5"> <code>int.parse(texto)</code> sem <code>try</code></label>
+<label><input type="radio" name="q5"> <code>catch (e)</code> sozinho, sem <code>try</code></label>
+<label><input type="radio" name="q5"> <code>finally</code></label>
+</div>
+
+<h3>Missão final: somar o que dá para somar</h3>
+
+<div class="trydart" data-goal="out:Total: 35;;out:Inválidos: 2;;src:on\s+FormatException">
+<p class="try-task"><strong>Missão:</strong> a Ana anotou os valores de uma venda, mas alguns vieram errados (<code>abc</code>, e <code>7,5</code> com vírgula). Hoje o programa morre no primeiro valor ruim. Ponha o <code>total += int.parse(texto);</code> dentro de um <code>try</code> com <code>on FormatException</code>: no plano B, some 1 em <code>invalidos</code> e mostre <code>Ignorado: </code> e o texto. No fim deve aparecer <code>Total: 35</code> e <code>Inválidos: 2</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final digitados = ['10', 'abc', '5', '7,5', '20'];
+  var total = 0;
+  var invalidos = 0;
+  for (final texto in digitados) {
+    total += int.parse(texto);
+  }
+  print('Total: $total');
+  print('Inválidos: $invalidos');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final digitados = ['10', 'abc', '5', '7,5', '20'];
+  var total = 0;
+  var invalidos = 0;
+  for (final texto in digitados) {
+    try {
+      total += int.parse(texto);
+    } on FormatException {
+      invalidos++;
+      print('Ignorado: $texto');
+    }
+  }
+  print('Total: $total');
+  print('Inválidos: $invalidos');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Ignorado: abc</code>, <code>Ignorado: 7,5</code>, <code>Total: 35</code> e <code>Inválidos: 2</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>exceção</strong> é um problema que acontece enquanto o programa roda. Sem tratamento, o Dart mostra <code>Unhandled exception:</code>, o tipo, a mensagem e o stack trace, e termina com código <strong>255</strong>.</li>
+  <li>No stack trace, procure a primeira linha com o <strong>seu</strong> arquivo: <code>main (file:///home/ana/…dart:linha:coluna)</code>.</li>
+  <li><code>try { }</code> é o plano A; <code>catch (e) { }</code> é o plano B. Quando a exceção é lançada, o resto do <code>try</code> é pulado e o programa continua depois do <code>catch</code>.</li>
+  <li><code>on Tipo</code> pega só aquele tipo; com vários <code>on</code>, vale o primeiro que combina. Os outros tipos passam direto.</li>
+  <li><code>catch (e, s)</code> dá também o stack trace; <code>e.runtimeType</code> mostra o tipo.</li>
+  <li><code>finally { }</code> roda sempre, dando certo ou errado, mesmo quando ninguém pega a exceção.</li>
+  <li>Para converter texto, prefira <code>int.tryParse</code>; para enganos do código (<code>RangeError</code>, divisão por zero), conserte o código em vez de esconder com <code>catch</code>.</li>
+  <li>Na próxima aula, <a href="throw.html">Lançando Exceções (throw)</a>, é você quem lança a exceção.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
