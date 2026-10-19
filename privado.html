@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Privacidade (_) — o sublinhado protege o arquivo, não a classe | Guia Dart</title>
+<meta name="description" content="Privacidade no Dart para quem nunca programou: o _ no começo do nome deixa campos, métodos, funções, classes e construtores privados da biblioteca (o arquivo), e não da classe. Dois arquivos com import, o saldo protegido da conta, o getter público só de leitura, o construtor privado, e os erros reais do Dart 3.13 (The setter '_saldo' isn't defined, Method not found: '_Rascunho').">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Privacidade (_)</span></h1>
+
+<p class="intro">A conta do banco tem um saldo. Ninguém deveria poder escrever <code>conta.saldo = 1000000</code> e ficar rico: o saldo só deveria mudar por <strong>depósito</strong> e <strong>saque</strong>, que conferem os valores. Para esconder partes de uma classe, o Dart usa um sinal só: o <strong>sublinhado</strong> <code>_</code> no começo do nome. <code>_saldo</code> é <strong>privado</strong>. Mas atenção, porque aqui o Dart é diferente de quase todas as outras linguagens: o <code>_</code> esconde o nome <strong>do resto dos arquivos</strong>, e não do resto do arquivo. A privacidade é do <strong>arquivo</strong>, e não da classe.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que o <code>_</code> faz: privado da <strong>biblioteca</strong>, que no Dart é o <strong>arquivo</strong>.</li>
+  <li>Por que, no mesmo arquivo, o <code>main</code> consegue mexer no <code>_saldo</code> (e o que isso quer dizer).</li>
+  <li>Como separar a classe num arquivo próprio, com <code>import</code>, para a proteção valer.</li>
+  <li>O par mais comum: campo privado + getter público (só leitura).</li>
+  <li>Métodos, funções, classes e construtores privados.</li>
+  <li>Os erros reais que o Dart mostra quando alguém tenta usar o que é privado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>). Os arquivos ficaram juntos na pasta pessoal dela, e cada programa foi executado com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a cozinha da padaria</h2>
+<p>A padaria tem o <strong>balcão</strong>, onde qualquer cliente pede pão, e a <strong>cozinha</strong>, onde só entra quem trabalha lá. Lá dentro, o padeiro, a confeiteira e o ajudante mexem à vontade nas coisas uns dos outros: na massa, no forno, na receita. A porta da cozinha não separa as <strong>pessoas</strong> de dentro; ela separa a <strong>cozinha</strong> de quem está fora.</p>
+<p>No Dart, a cozinha é o <strong>arquivo</strong>. Tudo que tem nome começando com <code>_</code> é "coisa da cozinha": qualquer classe ou função <strong>do mesmo arquivo</strong> pode usar; quem está em <strong>outro arquivo</strong> só vê o balcão, isto é, os nomes sem <code>_</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Quem pode usar</th></tr>
+<tr><td><code>saldo</code>, <code>depositar</code>, <code>Conta</code></td><td>Todo mundo: é <strong>público</strong></td></tr>
+<tr><td><code>_saldo</code>, <code>_registrar</code>, <code>_Rascunho</code></td><td>Só o código do <strong>mesmo arquivo</strong>: é <strong>privado</strong></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. No mesmo arquivo, o <code>_</code> não protege nada</h2>
+<p>Comece pela surpresa. A classe <code>Conta</code> tem o saldo privado, e o <code>main</code> está no <strong>mesmo arquivo</strong>:</p>
+
+<pre class="file" data-file="mesmo.dart">class Conta {
+  final String dona;
+  double _saldo = 0;
+
+  Conta(this.dona);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+}
+
+void main() {
+  final conta = Conta('Ana');
+  conta.depositar(100);
+  conta._saldo = 1000000;
+  print('Saldo: ${conta.saldo}');
+}
+</pre>
+
+<pre class="term">$ dart run mesmo.dart
+Saldo: 1000000.0
+</pre>
+
+<p>Nenhum erro. O <code>main</code> está na mesma "cozinha" que a <code>Conta</code>, e para o Dart isso basta. Quem vem do Java, do C# ou do C++ espera que um campo privado só possa ser usado <strong>dentro da classe</strong>; no Dart, não existe privado "da classe". O <code>_</code> só começa a proteger quando o código que tenta usar está em <strong>outro arquivo</strong>.</p>
+
+<div class="warning">
+<strong>Por que isso importa</strong>
+<p>Para testar a privacidade, nunca confie num programa de um arquivo só: ele sempre vai deixar. Separe a classe num arquivo próprio, como na próxima seção. É assim que se organiza um programa de verdade, e é assim que funcionam os pacotes do Dart.</p>
+</div>
+
+<hr>
+
+<h2>2. Dois arquivos: agora o <code>_</code> protege</h2>
+<p>A classe vai para o arquivo <code>conta.dart</code>. O programa principal, em <code>banco.dart</code>, a traz com <code>import</code> (veja <a href="imports.html">import, export e Bibliotecas</a>):</p>
+
+<pre class="file" data-file="conta.dart">class Conta {
+  final String dona;
+  double _saldo = 0;
+
+  Conta(this.dona);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    if (valor &lt;= 0) {
+      throw ArgumentError('depósito precisa ser positivo: $valor');
+    }
+    _saldo += valor;
+    _registrar('depósito de $valor');
+  }
+
+  void sacar(double valor) {
+    if (valor &gt; _saldo) {
+      throw StateError('saldo insuficiente: tem $_saldo, pediu $valor');
+    }
+    _saldo -= valor;
+    _registrar('saque de $valor');
+  }
+
+  void _registrar(String texto) {
+    print('[extrato de $dona] $texto');
+  }
+}
+
+double _taxaDoMes() =&gt; 2.5;
+
+double taxaComDesconto() =&gt; _taxaDoMes() * 0.8;
+</pre>
+
+<pre class="file" data-file="banco.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta.depositar(100);
+  conta.sacar(30);
+  print('Saldo: ${conta.saldo}');
+  print('Taxa: ${taxaComDesconto()}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'conta.dart';</dt><dd>"Traga o que o arquivo <code>conta.dart</code> oferece." O nome é o caminho do arquivo, a partir da pasta onde está <code>banco.dart</code>. Só os nomes <strong>públicos</strong> chegam.</dd>
+  <dt>double _saldo = 0;</dt><dd>O saldo, privado. Só o código de <code>conta.dart</code> o vê.</dd>
+  <dt>double get saldo =&gt; _saldo;</dt><dd>Um getter público (veja <a href="getters-setters.html">get e set</a>). Quem está fora pode <strong>ler</strong> o saldo, mas não há setter: não pode <strong>escrever</strong>.</dd>
+  <dt>depositar / sacar</dt><dd>Os únicos jeitos de mudar o saldo, e os dois conferem os valores.</dd>
+  <dt>void _registrar(…)</dt><dd>Um <strong>método privado</strong>: um "ajudante" interno, que os métodos públicos usam e que ninguém de fora deve chamar.</dd>
+  <dt>double _taxaDoMes()</dt><dd>Uma <strong>função</strong> privada, fora da classe: o <code>_</code> vale para qualquer nome do arquivo.</dd>
+  <dt>double taxaComDesconto()</dt><dd>Uma função pública, que usa a privada por dentro.</dd>
+</dl>
+
+<pre class="term">$ dart run banco.dart
+[extrato de Ana] depósito de 100.0
+[extrato de Ana] saque de 30.0
+Saldo: 70.0
+Taxa: 2.0
+</pre>
+
+<p>Tudo funcionou pelo "balcão": <code>Conta</code>, <code>depositar</code>, <code>sacar</code>, <code>saldo</code> e <code>taxaComDesconto</code>. Agora, a tentativa de ficar rico, num outro arquivo:</p>
+
+<pre class="file" data-file="hacker.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta._saldo = 1000000;
+  print('Saldo: ${conta.saldo}');
+}
+</pre>
+
+<pre class="term">$ dart run hacker.dart
+hacker.dart:5:9: Error: The setter '_saldo' isn't defined for the type 'Conta'.
+ - 'Conta' is from 'conta.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named '_saldo'.
+  conta._saldo = 1000000;
+        ^^^^^^
+$ echo $?
+254
+</pre>
+
+<dl class="anatomy">
+  <dt>hacker.dart:5:9</dt><dd>Linha 5, coluna 9, no <code>_saldo</code>.</dd>
+  <dt>The setter '_saldo' isn't defined for the type 'Conta'.</dt><dd>"O setter <code>_saldo</code> não está definido para o tipo <code>Conta</code>." Repare: o Dart não diz "é privado"; para quem está em outro arquivo, o <code>_saldo</code> simplesmente <strong>não existe</strong>.</dd>
+  <dt>- 'Conta' is from 'conta.dart'.</dt><dd>A classe vem de <code>conta.dart</code>, outro arquivo. É a pista de que o problema é privacidade.</dd>
+  <dt>echo $? → 254</dt><dd>Erro de compilação: o programa nem rodou.</dd>
+</dl>
+
+<p>A mesma linha, <code>conta._saldo = 1000000;</code>, passou na seção 1 e foi barrada aqui. A única diferença é <strong>em que arquivo</strong> ela está.</p>
+
+<div class="trydart" data-goal="out:Saldo: 150.0;;semerro;;src:depositar\s*\(\s*50">
+<p class="try-task"><strong>Missão:</strong> esta caixa tem dois arquivos (veja as abas): <code>main.dart</code> e <code>conta.dart</code>. Rode e leia o erro: o <code>main.dart</code> tenta mexer no saldo privado. Troque a linha errada por um depósito de 50 (<code>conta.depositar(50);</code>), para o saldo ficar em <code>150.0</code>.</p>
+<pre class="script" data-file="main.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta.depositar(100);
+  conta._saldo = conta._saldo + 50;
+  print('Saldo: ${conta.saldo}');
+}
+</pre>
+<pre class="script" data-file="conta.dart">class Conta {
+  final String dona;
+  double _saldo = 0;
+
+  Conta(this.dona);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    if (valor &lt;= 0) {
+      throw ArgumentError('depósito precisa ser positivo: $valor');
+    }
+    _saldo += valor;
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta.depositar(100);
+  conta.depositar(50);
+  print('Saldo: ${conta.saldo}');
+}
+</pre>
+<pre class="solucao" data-file="conta.dart">class Conta {
+  final String dona;
+  double _saldo = 0;
+
+  Conta(this.dona);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    if (valor &lt;= 0) {
+      throw ArgumentError('depósito precisa ser positivo: $valor');
+    }
+    _saldo += valor;
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Dentro do arquivo, todos se conhecem</h2>
+<p>Como a privacidade é do arquivo, duas classes do <strong>mesmo arquivo</strong> usam o que é privado uma da outra. Isso é útil. Na fila da padaria, só o balcão pode criar fichas (ninguém imprime ficha falsa):</p>
+
+<pre class="file" data-file="ficha.dart">class Ficha {
+  final int numero;
+  Ficha._(this.numero);
+}
+
+class Balcao {
+  int _proxima = 1;
+
+  Ficha chamar() {
+    final f = Ficha._(_proxima);
+    _proxima++;
+    return f;
+  }
+}
+
+class _Rascunho {
+  final String texto = 'só aqui dentro';
+}
+</pre>
+
+<pre class="file" data-file="fila.dart">import 'ficha.dart';
+
+void main() {
+  final balcao = Balcao();
+  print('Ficha ${balcao.chamar().numero}');
+  print('Ficha ${balcao.chamar().numero}');
+  print('Ficha ${balcao.chamar().numero}');
+}
+</pre>
+
+<pre class="term">$ dart run fila.dart
+Ficha 1
+Ficha 2
+Ficha 3
+</pre>
+
+<dl class="anatomy">
+  <dt>Ficha._(this.numero);</dt><dd>Um <strong>construtor privado</strong>: um <a href="construtores-nomeados.html">construtor nomeado</a> cujo nome é só o <code>_</code>. Fora de <code>ficha.dart</code>, ninguém consegue criar uma <code>Ficha</code>.</dd>
+  <dt>Ficha._(_proxima)</dt><dd>O <code>Balcao</code> é <strong>outra classe</strong>, mas está no mesmo arquivo: pode usar o construtor privado da <code>Ficha</code>. Numa linguagem com privado "da classe", isso seria proibido.</dd>
+  <dt>int _proxima</dt><dd>O próximo número, privado: ninguém de fora pula a fila.</dd>
+  <dt>class _Rascunho</dt><dd>Uma <strong>classe inteira</strong> privada: só existe para quem está dentro de <code>ficha.dart</code>.</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de proteger um campo</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>De fora do arquivo…</th></tr>
+<tr><td>Campo público comum</td><td><code>double saldo = 0;</code></td><td>Lê e escreve à vontade</td></tr>
+<tr><td>Campo <code>final</code></td><td><code>final String dona;</code></td><td>Só lê; e nem a própria classe muda depois de criado</td></tr>
+<tr><td>Privado + getter</td><td><code>double _saldo = 0;</code> + <code>double get saldo =&gt; _saldo;</code></td><td>Só lê; a classe muda por dentro (depósito, saque)</td></tr>
+<tr><td>Privado + getter + setter que confere</td><td><code>set saldo(double v) { if (…) throw …; _saldo = v; }</code></td><td>Lê e escreve, mas só valores aceitos</td></tr>
+<tr><td>Totalmente privado</td><td><code>int _proxima = 1;</code></td><td>Nem vê</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Boa prática</strong>
+<p>Comece com tudo o que for "detalhe de funcionamento" privado (<code>_proxima</code>, <code>_registrar</code>) e deixe público só o que outras partes do programa precisam usar. É mais fácil abrir uma porta depois do que fechar uma porta que todo mundo já usa.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Todos os erros abaixo vêm de arquivos que fazem <code>import 'conta.dart';</code> ou <code>import 'ficha.dart';</code>, os arquivos das seções 2 e 3.</p>
+
+<div class="cenario">
+<strong>Ler um campo privado de outro arquivo</strong>
+<pre class="file" data-file="leitura.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  print(conta._saldo);
+}
+</pre>
+<pre class="term">$ dart run leitura.dart
+leitura.dart:5:15: Error: The getter '_saldo' isn't defined for the type 'Conta'.
+ - 'Conta' is from 'conta.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named '_saldo'.
+  print(conta._saldo);
+              ^^^^^^
+</pre>
+<p>Para <strong>ler</strong>, a mensagem fala em <em>getter</em>. <strong>Como consertar:</strong> use o getter público: <code>conta.saldo</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escrever no getter público, que não tem setter</strong>
+<pre class="file" data-file="settersaldo.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta.saldo = 500;
+}
+</pre>
+<pre class="term">$ dart run settersaldo.dart
+settersaldo.dart:5:9: Error: The setter 'saldo' isn't defined for the type 'Conta'.
+ - 'Conta' is from 'conta.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'saldo'.
+  conta.saldo = 500;
+        ^^^^^
+</pre>
+<p>Sem o <code>_</code>, o <code>saldo</code> é visível, mas é só um getter: não dá para escrever. É exatamente a proteção que se queria. <strong>Como consertar:</strong> <code>conta.depositar(500);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamar um método privado</strong>
+<pre class="file" data-file="metodopriv.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Ana');
+  conta._registrar('depósito falso de 500');
+}
+</pre>
+<pre class="term">$ dart run metodopriv.dart
+metodopriv.dart:5:9: Error: The method '_registrar' isn't defined for the type 'Conta'.
+ - 'Conta' is from 'conta.dart'.
+Try correcting the name to the name of an existing method, or defining a method named '_registrar'.
+  conta._registrar('depósito falso de 500');
+        ^^^^^^^^^^
+</pre>
+<p>"O método <code>_registrar</code> não está definido." O extrato só é escrito pelos métodos da própria conta. Ninguém de fora inventa um lançamento.</p>
+</div>
+
+<div class="cenario">
+<strong>Função, classe ou construtor privados</strong>
+<pre class="file" data-file="funcpriv.dart">import 'conta.dart';
+
+void main() {
+  print(_taxaDoMes());
+}
+</pre>
+<pre class="term">$ dart run funcpriv.dart
+funcpriv.dart:4:9: Error: Method not found: '_taxaDoMes'.
+  print(_taxaDoMes());
+        ^^^^^^^^^^
+</pre>
+<pre class="file" data-file="classepriv.dart">import 'ficha.dart';
+
+void main() {
+  final r = _Rascunho();
+  print(r.texto);
+}
+</pre>
+<pre class="term">$ dart run classepriv.dart
+classepriv.dart:4:13: Error: Method not found: '_Rascunho'.
+  final r = _Rascunho();
+            ^^^^^^^^^
+</pre>
+<pre class="file" data-file="fichafalsa.dart">import 'ficha.dart';
+
+void main() {
+  final falsa = Ficha._(1);
+  print(falsa.numero);
+}
+</pre>
+<pre class="term">$ dart run fichafalsa.dart
+fichafalsa.dart:4:23: Error: Member not found: 'Ficha._'.
+  final falsa = Ficha._(1);
+                      ^
+</pre>
+<p>Três mensagens, a mesma ideia: para quem está fora, o nome com <code>_</code> <strong>não existe</strong>. "Método não encontrado: <code>_taxaDoMes</code>"; "Método não encontrado: <code>_Rascunho</code>" (o Dart achou que fosse uma função, já que nenhuma classe com esse nome é visível); "Membro não encontrado: <code>Ficha._</code>". <strong>Como consertar:</strong> use o que é público (<code>taxaComDesconto()</code>, <code>balcao.chamar()</code>), ou, se for mesmo para ser usado de fora, tire o <code>_</code> do nome.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>import</code></strong>
+<pre class="file" data-file="semimport.dart">void main() {
+  final conta = Conta('Ana');
+  print(conta.saldo);
+}
+</pre>
+<pre class="term">$ dart run semimport.dart
+semimport.dart:2:17: Error: Method not found: 'Conta'.
+  final conta = Conta('Ana');
+                ^^^^^
+</pre>
+<p>Sem o <code>import 'conta.dart';</code>, nem a parte pública chega. <strong>Como consertar:</strong> acrescente o <code>import</code> na primeira linha.</p>
+</div>
+
+<div class="cenario">
+<strong>A proteção funcionou: exceção do saque</strong>
+<p>Quando ninguém consegue mexer no <code>_saldo</code> por fora, as regras dos métodos públicos valem sempre. A Bia tentou sacar mais do que tinha:</p>
+<pre class="file" data-file="saque.dart">import 'conta.dart';
+
+void main() {
+  final conta = Conta('Bia');
+  conta.depositar(50);
+  conta.sacar(80);
+  print('Saldo: ${conta.saldo}');
+}
+</pre>
+<pre class="term">$ dart run saque.dart
+[extrato de Bia] depósito de 50.0
+Unhandled exception:
+Bad state: saldo insuficiente: tem 50.0, pediu 80.0
+#0      Conta.sacar (file:///home/ana/conta.dart:19:7)
+#1      main (file:///home/ana/saque.dart:6:9)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Bad state: saldo insuficiente: …</dt><dd>"Estado inválido", seguido da mensagem do <code>StateError</code> que o <code>sacar</code> lançou: a conta não está em condição de fazer esse saque.</dd>
+  <dt>#0 Conta.sacar (file:///home/ana/conta.dart:19:7)</dt><dd>O erro nasceu no <strong>outro arquivo</strong>, <code>conta.dart</code>, linha 19 (o <code>throw</code>). O stack trace mostra cada arquivo pelo caminho completo.</dd>
+  <dt>#1 main (file:///home/ana/saque.dart:6:9)</dt><dd>Quem pediu o saque: <code>saque.dart</code>, linha 6.</dd>
+</dl>
+<p>Isso não é defeito: é a conta se protegendo. Para o programa continuar, trate a exceção (veja <a href="excecoes.html">Exceções</a>) ou confira o saldo antes de sacar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>double _saldo;</code></td><td>Campo privado do arquivo</td></tr>
+<tr><td><code>void _registrar() { … }</code></td><td>Método privado</td></tr>
+<tr><td><code>double _taxa() =&gt; …;</code> (fora de classe)</td><td>Função privada</td></tr>
+<tr><td><code>class _Rascunho { … }</code></td><td>Classe privada</td></tr>
+<tr><td><code>Ficha._(this.numero);</code></td><td>Construtor privado: só o arquivo cria objetos</td></tr>
+<tr><td><code>double get saldo =&gt; _saldo;</code></td><td>Leitura pública de um campo privado</td></tr>
+<tr><td><code>import 'conta.dart';</code></td><td>Traz os nomes públicos de outro arquivo</td></tr>
+<tr><td>Mesmo arquivo</td><td>Tudo é visível, com ou sem <code>_</code>, até entre classes diferentes</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The setter/getter '_x' isn't defined for the type 'C'.</code> + <code>'C' is from 'outro.dart'</code></td><td>Campo privado de outro arquivo</td></tr>
+<tr><td><code>The method '_x' isn't defined for the type 'C'.</code></td><td>Método privado de outro arquivo</td></tr>
+<tr><td><code>Method not found: '_x'.</code></td><td>Função ou classe privada de outro arquivo</td></tr>
+<tr><td><code>Member not found: 'C._'.</code></td><td>Construtor privado de outro arquivo</td></tr>
+<tr><td><code>Method not found: 'C'.</code></td><td>Faltou o <code>import</code></td></tr>
+<tr><td>Mexeu no <code>_x</code> e funcionou</td><td>Você está no mesmo arquivo: o <code>_</code> não protege dentro dele</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Deixe privado</h3>
+<p>Como se escreve o campo <code>senha</code> para ele ser privado?</p>
+<div class="ex-code">String <input data-answer="_senha" aria-label="nome do campo"> = '1234';</div>
+</div>
+
+<div class="exercise">
+<h3>2. Privado de quê?</h3>
+<p>No Dart, um nome que começa com <code>_</code> é privado de quê? (uma palavra: o que o Dart chama de biblioteca)</p>
+<div class="ex-code">Do <input data-answer="arquivo" aria-label="resposta"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A classe <code>Conta</code>, com <code>double _saldo</code>, e o <code>main</code>, que faz <code>conta._saldo = 10;</code>, estão no <strong>mesmo arquivo</strong>. O que acontece?</p>
+<label><input type="radio" name="q3"> Erro de compilação: <code>_saldo</code> é privado da classe</label>
+<label><input type="radio" name="q3"> Funciona: no mesmo arquivo, o <code>_</code> não protege</label>
+<label><input type="radio" name="q3"> Exceção ao rodar</label>
+<label><input type="radio" name="q3"> O valor é ignorado em silêncio</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Em <code>conta.dart</code>: <code>double _saldo = 0;</code> e <code>double get saldo =&gt; _saldo;</code>. Em <code>banco.dart</code>, com <code>import 'conta.dart';</code>, qual linha funciona?</p>
+<label><input type="radio" name="q4"> <code>conta._saldo = 5;</code></label>
+<label><input type="radio" name="q4"> <code>print(conta._saldo);</code></label>
+<label><input type="radio" name="q4"> <code>conta.saldo = 5;</code></label>
+<label><input type="radio" name="q4"> <code>print(conta.saldo);</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para que serve um construtor privado como <code>Ficha._(this.numero);</code>?</p>
+<label><input type="radio" name="q5"> Só o código do mesmo arquivo pode criar fichas</label>
+<label><input type="radio" name="q5"> A ficha não pode ser criada por ninguém</label>
+<label><input type="radio" name="q5"> O campo <code>numero</code> fica privado</label>
+<label><input type="radio" name="q5"> A ficha só pode ser criada uma vez</label>
+</div>
+
+<h3>Missão final: o contador de visitas</h3>
+
+<div class="trydart" data-goal="out:Visitas: 3;;semerro;;src:_total">
+<p class="try-task"><strong>Missão:</strong> no arquivo <code>contador.dart</code> (segunda aba), torne o campo privado: troque <code>total</code> por <code>_total</code> e crie um getter público <code>int get total =&gt; _total;</code>. O método <code>visitar</code> passa a somar em <code>_total</code>. O <code>main.dart</code> não precisa mudar e deve mostrar <code>Visitas: 3</code>.</p>
+<pre class="script" data-file="main.dart">import 'contador.dart';
+
+void main() {
+  final c = Contador();
+  c.visitar();
+  c.visitar();
+  c.visitar();
+  print('Visitas: ${c.total}');
+}
+</pre>
+<pre class="script" data-file="contador.dart">class Contador {
+  int total = 0;
+
+  void visitar() {
+    total++;
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'contador.dart';
+
+void main() {
+  final c = Contador();
+  c.visitar();
+  c.visitar();
+  c.visitar();
+  print('Visitas: ${c.total}');
+}
+</pre>
+<pre class="solucao" data-file="contador.dart">class Contador {
+  int _total = 0;
+
+  int get total =&gt; _total;
+
+  void visitar() {
+    _total++;
+  }
+}
+</pre>
+</div>
+
+<p>Depois de cumprir a missão, tente escrever <code>c.total = 100;</code> no <code>main.dart</code>: agora o Dart recusa, porque o <code>total</code> só tem getter.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um nome que começa com <code>_</code> é <strong>privado</strong>: vale para campos, métodos, funções, classes e construtores.</li>
+  <li>Privado <strong>da biblioteca</strong>, que no Dart é o <strong>arquivo</strong>; não existe privado "da classe". No mesmo arquivo, tudo é visível, até entre classes diferentes.</li>
+  <li>Para a proteção valer, a classe fica num arquivo próprio e quem usa faz <code>import</code>.</li>
+  <li>Para quem está fora, o nome privado simplesmente <strong>não existe</strong>: <code>isn't defined</code>, <code>Method not found</code>, <code>Member not found</code>.</li>
+  <li>O par mais comum: campo privado + getter público (só leitura) + métodos públicos que conferem as mudanças.</li>
+  <li>Próxima aula: <a href="static.html">Membros static</a>, coisas que pertencem à classe, e não a cada objeto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
