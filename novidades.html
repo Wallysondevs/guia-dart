@@ -181,28 +181,76 @@ codigo: 0
 </pre>
 <p>A <code>sobremesa</code> é <code>null</code> e ficou de fora. Antes, escrevia-se <code>if (sobremesa != null) sobremesa</code> (veja <a href="collection-if-for.html">if e for Dentro de Coleções</a>).</p>
 
-<div class="trydart" data-goal="out:[pão, leite, manteiga];;src:\?manteiga">
-<p class="try-task"><strong>Missão:</strong> troque o <code>if (manteiga != null) manteiga</code> pelo atalho do Dart 3.8. A saída não muda.</p>
-<pre class="script" data-file="main.dart">void main() {
-  String? manteiga = 'manteiga';
-  String? geleia;
-  final compras = ['pão', 'leite', if (manteiga != null) manteiga, ?geleia];
-  print(compras);
-}
-</pre>
-<pre class="solucao" data-file="main.dart">void main() {
-  String? manteiga = 'manteiga';
-  String? geleia;
-  final compras = ['pão', 'leite', ?manteiga, ?geleia];
-  print(compras);
-}
-</pre>
+<div class="note">
+<strong>No editor do guia</strong>
+<p>O editor do guia ainda não entende o <code>?item</code> dentro de coleções (nem os extension types, as variáveis curinga e os parâmetros nomeados privados desta página): esses exemplos rodam no Dart do terminal, como mostrado acima.</p>
 </div>
 
 <hr>
 
 <h2>6. <span class="versao">Dart 3.10</span> Atalhos com ponto</h2>
 <p>Quando o Dart já sabe qual tipo espera, você pode omitir o nome do tipo e começar com o ponto: <code>Tamanho cafe = .grande;</code> em vez de <code>Tamanho.grande</code>, e os casos <code>.pequeno =&gt; 50</code> do <code>switch</code> da seção 1. No Flutter, isso encurta muito o código: <code>crossAxisAlignment: .start</code>. A <a href="versoes.html">aula de Versões</a> mostra o erro que aparece num projeto com <code>sdk: ^3.9.0</code>.</p>
+
+<pre class="file" data-file="cafe.dart">enum Tamanho { pequeno, medio, grande }
+
+int mililitros(Tamanho t) {
+  return switch (t) {
+    .pequeno =&gt; 50,
+    .medio =&gt; 100,
+    .grande =&gt; 200,
+  };
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('Café ${t.name}: ${mililitros(t)} ml');
+  }
+}
+</pre>
+<pre class="term">$ dart run cafe.dart
+Café pequeno: 50 ml
+Café medio: 100 ml
+Café grande: 200 ml
+</pre>
+<p>Dentro do <code>switch (t)</code>, o Dart sabe que <code>t</code> é um <code>Tamanho</code>, então <code>.pequeno</code> quer dizer <code>Tamanho.pequeno</code>. Já no <code>for</code>, o <code>Tamanho.values</code> (a lista de todos os valores do <code>enum</code>) precisa do nome: ali não há um tipo esperado para o Dart adivinhar.</p>
+
+<div class="trydart" data-goal="out:Café familia: 500 ml;;src:^\s*\.familia\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> a padaria lançou o café tamanho família, de 500 ml. Acrescente <code>familia</code> no <code>enum</code> e o caso no <code>switch</code>, usando o atalho com ponto (<code>.familia =&gt; 500</code>).</p>
+<pre class="script" data-file="main.dart">enum Tamanho { pequeno, medio, grande }
+
+int mililitros(Tamanho t) {
+  return switch (t) {
+    .pequeno =&gt; 50,
+    .medio =&gt; 100,
+    .grande =&gt; 200,
+  };
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('Café ${t.name}: ${mililitros(t)} ml');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">enum Tamanho { pequeno, medio, grande, familia }
+
+int mililitros(Tamanho t) {
+  return switch (t) {
+    .pequeno =&gt; 50,
+    .medio =&gt; 100,
+    .grande =&gt; 200,
+    .familia =&gt; 500,
+  };
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('Café ${t.name}: ${mililitros(t)} ml');
+  }
+}
+</pre>
+</div>
+<p>Se você puser o <code>familia</code> no <code>enum</code> e esquecer o caso, o <code>dart run</code> do terminal recusa: no lab, deu <code>cafe.dart:4:18: Error: The type 'Tamanho' is not exhaustively matched by the switch cases since it doesn't match 'Tamanho.familia'.</code> ("o tipo <code>Tamanho</code> não é coberto por inteiro pelos casos do <code>switch</code>: falta <code>Tamanho.familia</code>"), com código de saída 254.</p>
 
 <hr>
 
