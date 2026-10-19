@@ -2702,6 +2702,15 @@
         if (!this.topo[cn] && GLOBAIS.has(cn) && !VALORES_GLOBAIS.has(cn)) return "$R.criar(" + q(cn) + ", " + q(nome) + ", [" + this.argsArr(e.args, esc) + "], null, " + a.pNome + ")";
       }
       var alvo = this.expr(a.alvo, esc);
+      // tipo esperado das funções passadas a métodos de coleções (orElse: () => -1 numa List<double> dá -1.0)
+      var tr0 = this.tipoDe(a.alvo, esc);
+      if (tr0 && tr0.k === "T" && tr0.args && tr0.args.length) {
+        var tEl = tr0.args[tr0.args.length - 1];
+        if (["firstWhere", "lastWhere", "singleWhere"].indexOf(nome) >= 0) e.args.nom.forEach(function (x) { if (x.nome === "orElse" && x.valor.k === "Lambda") x.valor.retEsperado = tEl; });
+        if (tr0.nome === "Map" && nome === "putIfAbsent" && e.args.pos[1] && e.args.pos[1].k === "Lambda") e.args.pos[1].retEsperado = tEl;
+        if (tr0.nome === "Map" && nome === "update") { if (e.args.pos[1] && e.args.pos[1].k === "Lambda") e.args.pos[1].retEsperado = tEl; e.args.nom.forEach(function (x) { if (x.nome === "ifAbsent" && x.valor.k === "Lambda") x.valor.retEsperado = tEl; }); }
+        if ((tr0.nome === "List" || tr0.nome === "Set") && (nome === "add" || nome === "contains" || nome === "indexOf" || nome === "remove") && e.args.pos[0] && e.args.pos[0].k === "Num" && tEl.k === "T" && tEl.nome === "double") e.args.pos[0].dbl = true;
+      }
       if (!this.checarNuloCall(e, esc)) this.checarMembro(a, esc, true);
       return "$R." + (a.nulo ? "nchamar" : "chamar") + "(" + alvo + ", " + q(nome) + ", [" + this.argsArr(e.args, esc) + "], " + a.pNome + ")";
     }
@@ -2864,12 +2873,25 @@
     var incluidos = {}; incluidos[arq] = true;
     ERROS_LEX.length = 0;
     var imports = [];
+    var errosRec = [];
     try {
       var fila = [{ nome: arq, src: src, base: 0 }];
       while (fila.length) {
         var f = fila.shift();
         var toks = deslocar(lexer(f.src), f.base);
-        var ds = new Parser(toks, combinado).parseProgram();
+        // como o CFE: falta de ";" no fim da linha vira erro e a análise continua (o ";" é "inserido")
+        var ds = null;
+        for (var volta = 0; ; volta++) {
+          try { ds = new Parser(toks.slice(), combinado).parseProgram(); break; }
+          catch (e) {
+            if (!(e instanceof ErroDart) || e.msg !== "Expected ';' after this." || volta > 30) throw e;
+            var k = -1;
+            for (var j = 0; j < toks.length; j++) if (toks[j].p === e.pos) k = j;
+            if (k < 0 || !toks[k + 1] || !(toks[k + 1].nl || toks[k + 1].t === "eof" || (toks[k + 1].t === "op" && toks[k + 1].v === "}"))) throw e;
+            toks.splice(k + 1, 0, { t: "op", v: ";", p: toks[k].e, e: toks[k].e, virtual: true });
+            errosRec.push(e);
+          }
+        }
         ds.forEach(function (d) {
           if (d.k === "Import") imports.push(d);
           if (d.k === "Import" && d.uri && !/^(dart|package):/.test(d.uri)) {
@@ -2889,7 +2911,7 @@
         });
       }
     } catch (e) {
-      if (e instanceof ErroDart) { var todos = ERROS_LEX.slice(); todos.push(e); todos.sort(function (a, b) { return a.pos - b.pos; }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
+      if (e instanceof ErroDart) { var todos = ERROS_LEX.slice().concat(errosRec); todos.push(e); todos.sort(function (a, b) { return a.pos - b.pos; }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
       throw e;
     }
     var g = new Gerador(prog, combinado, arq);
@@ -2897,6 +2919,7 @@
     g.imports = imports;
     g.arqPrincipal = arq;
     ERROS_LEX.forEach(function (e) { e.lex = true; g.erros.push(e); });
+    errosRec.forEach(function (e) { g.erros.push(e); });
     var js;
     try { js = g.gerar(); }
     catch (e) {
