@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart dart run — rodando um programa no terminal | Guia Dart</title>
+<meta name="description" content="Como rodar um programa Dart com dart run para quem nunca programou: criar o arquivo .dart, abrir o terminal na pasta certa, rodar, editar e rodar de novo, o atalho dart arquivo.dart, programas em outras pastas, o código de saída (0, 254, 255) e os erros reais Could not find file e Found no pubspec.yaml explicados.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">dart run</span></h1>
+
+<p class="intro">Você escreveu um programa Dart num arquivo. E agora? Para ele fazer alguma coisa, alguém precisa <strong>rodá-lo</strong> (também se diz "executar"). No seu computador, quem faz isso é o comando <code>dart run</code>, digitado no terminal. Esta aula mostra o caminho completo: criar o arquivo, rodar, mudar e rodar de novo, e entender as respostas que o <code>dart</code> dá quando alguma coisa está no lugar errado.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O ciclo de todo programador: <strong>escrever → salvar → rodar → ver a saída</strong>.</li>
+  <li>A criar um arquivo <code>.dart</code> e rodá-lo com <code>dart run arquivo.dart</code>.</li>
+  <li>Por que a <strong>pasta</strong> em que o terminal está faz diferença, e como rodar um programa de outra pasta.</li>
+  <li>O atalho <code>dart arquivo.dart</code>, sem o <code>run</code>.</li>
+  <li>O que é o <strong>código de saída</strong> (<code>0</code>, <code>254</code>, <code>255</code>) e como vê-lo com <code>echo $?</code>.</li>
+  <li>Os erros reais <code>Could not find file</code> e <code>Found no `pubspec.yaml` file</code>.</li>
+</ul>
+</div>
+
+<p>Para esta aula você precisa do Dart instalado (aula <a href="instalar.html">Instalar o Dart</a>). Sem ele, use as caixas "Experimente": o botão <strong>Rodar</strong> faz o mesmo que um <code>dart run main.dart</code> (aula <a href="simulador.html">O Editor do Guia</a>). Os terminais abaixo foram colhidos na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>, Ubuntu) com o <strong>Dart SDK 3.13.5</strong>.</p>
+
+<hr>
+
+<h2>A ideia: a receita e o cozinheiro</h2>
+<p>O arquivo <code>.dart</code> é a receita escrita. Ela pode ficar na gaveta para sempre: enquanto ninguém a seguir, nenhum bolo sai do forno. O <code>dart run</code> é o cozinheiro: você entrega a receita, ele lê e faz. E, se você mudar a receita, precisa pedir de novo para o cozinheiro fazer; o bolo de ontem não muda sozinho.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Passo</th><th>Onde</th><th>O que você faz</th></tr>
+<tr><td>1. Escrever</td><td>Num editor de texto (VS Code, Gedit, Bloco de Notas…)</td><td>Digita o programa</td></tr>
+<tr><td>2. Salvar</td><td>No editor (<kbd>Ctrl</kbd>+<kbd>S</kbd>)</td><td>Grava o arquivo com o nome terminado em <code>.dart</code></td></tr>
+<tr><td>3. Rodar</td><td>No terminal</td><td><code>dart run nome.dart</code></td></tr>
+<tr><td>4. Ver</td><td>No terminal</td><td>Lê a saída (ou a mensagem de erro) e volta ao passo 1</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Criando o arquivo</h2>
+<p>Abra o seu editor de texto, digite o programa abaixo e salve na sua <strong>pasta pessoal</strong> (no Linux, <code>/home/seu-nome</code>; no Windows, <code>C:\Users\seu-nome</code>) com o nome <code>ola.dart</code>:</p>
+
+<pre class="file" data-file="ola.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+
+<div class="tip">
+<strong>Cuidado com o nome do arquivo</strong>
+<p>O nome tem de terminar em <code>.dart</code>. No Windows, o Bloco de Notas às vezes salva como <code>ola.dart.txt</code> sem você perceber: na janela de salvar, escolha "Todos os arquivos" no tipo. E, pelo estilo oficial do Dart, nomes de arquivo usam só letras minúsculas, sem acento, com <code>_</code> no lugar do espaço: <code>lista_compras.dart</code>.</p>
+</div>
+
+<p>Agora abra o terminal. Ele começa na sua pasta pessoal, a mesma onde está o arquivo. Dois comandos ajudam a se localizar: <code>pwd</code> ("em que pasta estou?") e <code>cat</code> (mostra o conteúdo de um arquivo):</p>
+
+<pre class="term">$ pwd
+/home/ana
+$ cat ola.dart
+void main() {
+  print('Olá, Ana!');
+}
+</pre>
+
+<hr>
+
+<h2>2. Rodando: <code>dart run</code></h2>
+
+<pre class="term">$ dart run ola.dart
+Olá, Ana!
+</pre>
+
+<dl class="anatomy">
+  <dt>dart</dt><dd>O programa do Dart SDK.</dd>
+  <dt>run</dt><dd>A ferramenta escolhida: "rodar".</dd>
+  <dt>ola.dart</dt><dd>O arquivo a rodar. O <code>dart</code> procura esse nome <strong>na pasta em que o terminal está</strong>.</dd>
+  <dt>Olá, Ana!</dt><dd>A <strong>saída</strong>: o que o programa mostrou. Depois dela, o terminal mostra o <code>$</code> de novo, pronto para o próximo comando.</dd>
+</dl>
+
+<p>Por trás desse comando, o <code>dart</code> leu o arquivo inteiro, conferiu se está bem escrito, compilou (traduziu para a linguagem da máquina) e só então rodou o <code>main</code>. Tudo isso leva em torno de um segundo, por isso a resposta não é instantânea.</p>
+
+<div class="trydart" data-goal="out:Olá, Bia!">
+<p class="try-task"><strong>Missão:</strong> este é o mesmo <code>ola.dart</code>. Faça ele cumprimentar a <code>Bia</code> e clique em Rodar (no seu computador, seria salvar e digitar <code>dart run ola.dart</code> de novo).</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Olá, Bia!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Mudou o arquivo? Rode de novo</h2>
+<p>A Ana criou um <code>recado.dart</code> e rodou. Depois acrescentou uma linha no editor, salvou e rodou de novo. (Aqui, para você ver o arquivo nas duas versões, ela escreveu o arquivo direto no terminal com <code>cat &gt;</code>; no dia a dia, use o editor.)</p>
+
+<pre class="term">$ cat &gt; recado.dart &lt;&lt;'FIM'
+&gt; void main() {
+&gt;   print('Bom dia!');
+&gt; }
+&gt; FIM
+$ dart run recado.dart
+Bom dia!
+$ cat &gt; recado.dart &lt;&lt;'FIM'
+&gt; void main() {
+&gt;   print('Bom dia!');
+&gt;   print('O pão já saiu.');
+&gt; }
+&gt; FIM
+$ dart run recado.dart
+Bom dia!
+O pão já saiu.
+</pre>
+
+<p>A cada <code>dart run</code>, o Dart lê o arquivo <strong>como ele está no disco naquele momento</strong>. Por isso o erro mais comum de quem começa é mudar o código, esquecer de salvar e rodar: sai a versão antiga, e parece que "o Dart não obedeceu". Salvou, rodou.</p>
+
+<div class="tip">
+<strong>Atalho do terminal</strong>
+<p>Para repetir um comando, aperte a <strong>seta para cima</strong> e depois Enter: o terminal traz de volta o último comando digitado. Você vai fazer isso centenas de vezes.</p>
+</div>
+
+<hr>
+
+<h2>4. A pasta em que o terminal está</h2>
+<p>A Ana organizou os programas da padaria numa pasta chamada <code>programas</code>. Do jeito que o terminal está (na pasta pessoal), o <code>dart</code> não acha o arquivo:</p>
+
+<pre class="term">$ dart run padaria.dart
+Could not find file `padaria.dart`
+$ ls programas
+padaria.dart
+</pre>
+
+<p>"Não encontrei o arquivo <code>padaria.dart</code>". O arquivo existe (o <code>ls programas</code>, "liste a pasta programas", mostra), mas está numa pasta dentro da pasta pessoal, e o <code>dart</code> só procura onde o terminal está. Há dois jeitos de resolver:</p>
+
+<h3>Jeito 1: dizer o caminho</h3>
+<pre class="term">$ dart run programas/padaria.dart
+Padaria do Bairro
+Pão francês saindo às 7h
+</pre>
+<p><code>programas/padaria.dart</code> é o <strong>caminho</strong> do arquivo: "dentro da pasta <code>programas</code>, o arquivo <code>padaria.dart</code>". A barra <code>/</code> separa as pastas (no Windows também se usa <code>\</code>).</p>
+
+<h3>Jeito 2: entrar na pasta com <code>cd</code></h3>
+<pre class="term">$ cd programas
+$ pwd
+/home/ana/programas
+$ dart run padaria.dart
+Padaria do Bairro
+Pão francês saindo às 7h
+</pre>
+<p>O <code>cd</code> (<em>change directory</em>, "mude de pasta") leva o terminal para dentro de <code>programas</code>. A partir daí, o nome sozinho basta. Para voltar uma pasta, <code>cd ..</code>.</p>
+
+<div class="tip">
+<strong>No VS Code</strong>
+<p>Abra a pasta do projeto pelo menu Arquivo → Abrir Pasta e use o terminal embutido (menu Terminal → Novo Terminal): ele já abre <strong>dentro</strong> da pasta, e o <code>dart run arquivo.dart</code> funciona direto.</p>
+</div>
+
+<hr>
+
+<h2>5. O atalho: <code>dart arquivo.dart</code></h2>
+<p>Para rodar um arquivo, o <code>run</code> pode ficar de fora:</p>
+
+<pre class="term">$ dart ola.dart
+Olá, Ana!
+</pre>
+
+<p>O resultado é o mesmo. Este guia escreve sempre <code>dart run arquivo.dart</code>, que deixa claro o que está acontecendo, mas você vai ver o atalho em tutoriais e respostas na internet.</p>
+
+<h3>Formas de rodar: qual usar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>dart run arquivo.dart</code></td><td>O padrão deste guia: um arquivo na pasta do terminal</td></tr>
+<tr><td><code>dart arquivo.dart</code></td><td>O mesmo, mais curto</td></tr>
+<tr><td><code>dart run pasta/arquivo.dart</code></td><td>O arquivo está em outra pasta</td></tr>
+<tr><td><code>dart run</code> (sem arquivo)</td><td>Só dentro de um <strong>projeto</strong> com <code>pubspec.yaml</code> (aula <a href="dart-create.html">Criando um Projeto</a>)</td></tr>
+<tr><td>Botão Rodar das caixas "Experimente"</td><td>Sem instalar nada, no navegador</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. O código de saída: <code>echo $?</code></h2>
+<p>Todo programa, ao terminar, devolve ao terminal um número escondido: o <strong>código de saída</strong>. <code>0</code> quer dizer "deu tudo certo"; qualquer outro número quer dizer "algo deu errado". O terminal guarda o código do último comando em <code>$?</code>, e o <code>echo $?</code> o mostra:</p>
+
+<pre class="term">$ dart run ola.dart
+Olá, Ana!
+$ echo $?
+0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>Quando o <code>dart run</code> devolve</th></tr>
+<tr><td><code>0</code></td><td>O programa rodou até o fim sem problemas</td></tr>
+<tr><td><code>254</code></td><td>Erro de compilação: o arquivo nem chegou a rodar</td></tr>
+<tr><td><code>255</code></td><td>O programa parou por uma exceção não tratada, ou o <code>dart</code> não achou o que rodar</td></tr>
+</table>
+</div>
+
+<p>Você vai ver o 254 e o 255 nos exemplos de erro de cada aula (os primeiros estão em <a href="introducao.html">O que é Dart</a>). Um programa também pode escolher o próprio código com <code>exit(N)</code>, assunto da aula <a href="argumentos.html">Argumentos da Linha de Comando</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>As mensagens do <code>dart</code> saem em inglês. Abaixo, cada uma explicada.</p>
+
+<div class="cenario">
+<strong>Nome do arquivo diferente do que está no disco</strong>
+<pre class="term">$ dart run olá.dart
+Could not find file `olá.dart`
+$ echo $?
+255
+$ dart run Ola.dart
+Could not find file `Ola.dart`
+</pre>
+<p>"Não encontrei o arquivo". O arquivo se chama <code>ola.dart</code>, sem acento e com <code>o</code> minúsculo. Para o Linux e o macOS, <code>olá.dart</code>, <code>Ola.dart</code> e <code>ola.dart</code> são três nomes diferentes. Os acentos graves <code>`</code> em volta do nome são só o jeito de o <code>dart</code> destacá-lo. <strong>Como consertar:</strong> digite o nome exatamente como está; o <code>ls</code> mostra os arquivos da pasta. Dica: digite <code>dart run ol</code> e aperte <kbd>Tab</kbd>: o terminal completa o nome sozinho.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo está em outra pasta</strong>
+<pre class="term">$ dart run padaria.dart
+Could not find file `padaria.dart`
+</pre>
+<p>A mesma mensagem, outra causa: o nome está certo, mas o terminal está na pasta errada (seção 4). <strong>Como consertar:</strong> <code>dart run programas/padaria.dart</code>, ou <code>cd programas</code> antes.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>.dart</code> (ou o nome inteiro)</strong>
+<pre class="term">$ dart run ola
+Found no `pubspec.yaml` file in `/home/ana` or parent directories
+$ dart run
+Found no `pubspec.yaml` file in `/home/ana` or parent directories
+$ echo $?
+255
+</pre>
+<p>"Não encontrei um arquivo <code>pubspec.yaml</code> em <code>/home/ana</code> nem nas pastas acima". Esta assusta, mas é simples: sem um nome terminado em <code>.dart</code>, o <code>dart run</code> acha que você quer rodar um <strong>projeto</strong> Dart (ou um pacote chamado <code>ola</code>), e todo projeto tem um arquivo <code>pubspec.yaml</code> com a sua descrição. Como a pasta pessoal da Ana não é um projeto, ele não achou. Projetos e o <code>pubspec.yaml</code> têm aulas próprias: <a href="dart-create.html">Criando um Projeto</a> e <a href="pubspec.html">O pubspec.yaml</a>. <strong>Como consertar:</strong> escreva o nome completo, <code>dart run ola.dart</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Rodou e saiu a versão antiga</strong>
+<p>Não aparece mensagem de erro nenhuma: você mudou o código, rodou e a saída é a de antes. O arquivo não foi salvo (no VS Code, uma bolinha branca na aba do arquivo avisa que há mudanças não salvas). <strong>Como consertar:</strong> <kbd>Ctrl</kbd>+<kbd>S</kbd> e rode de novo.</p>
+</div>
+
+<div class="trydart" data-goal="outre:^Padaria do Bairro\nPão francês saindo às 7h\nBolo de fubá saindo às 9h\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> este é o <code>padaria.dart</code> da Ana. Acrescente uma terceira linha que mostre <code>Bolo de fubá saindo às 9h</code> e rode de novo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  print('Pão francês saindo às 7h');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  print('Pão francês saindo às 7h');
+  print('Bolo de fubá saindo às 9h');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart run arquivo.dart</code></td><td>Confere, compila e roda o arquivo</td></tr>
+<tr><td><code>dart arquivo.dart</code></td><td>O mesmo, sem o <code>run</code></td></tr>
+<tr><td><code>dart run pasta/arquivo.dart</code></td><td>Roda um arquivo de outra pasta</td></tr>
+<tr><td><code>pwd</code></td><td>Mostra a pasta em que o terminal está</td></tr>
+<tr><td><code>ls</code> / <code>ls pasta</code></td><td>Lista os arquivos da pasta</td></tr>
+<tr><td><code>cd pasta</code> / <code>cd ..</code></td><td>Entra numa pasta / volta uma pasta</td></tr>
+<tr><td><code>cat arquivo.dart</code></td><td>Mostra o conteúdo do arquivo</td></tr>
+<tr><td><code>echo $?</code></td><td>Mostra o código de saída do último comando</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Could not find file `x.dart`</code></td><td>Nome diferente (acento, maiúscula) ou o terminal está em outra pasta</td></tr>
+<tr><td><code>Found no `pubspec.yaml` file in …</code></td><td>Faltou o <code>.dart</code> no nome, ou faltou o nome do arquivo</td></tr>
+<tr><td>Saiu a versão antiga, sem erro</td><td>O arquivo não foi salvo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Complete para rodar o arquivo <code>compras.dart</code>:</p>
+<div class="ex-code">dart <input data-answer="run" aria-label="ferramenta"> compras.dart</div>
+</div>
+
+<div class="exercise">
+<h3>2. Outra pasta</h3>
+<p>O arquivo <code>notas.dart</code> está dentro da pasta <code>escola</code>, e o terminal está na pasta pessoal. Complete:</p>
+<div class="ex-code">dart run <input data-answer="escola/notas.dart" aria-label="caminho"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Deu certo?</h3>
+<p>Qual número o <code>echo $?</code> mostra depois de um programa que rodou até o fim sem problemas?</p>
+<div class="ex-code">Saída: <input data-answer="0" aria-label="código de saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana digitou <code>dart run compras</code> e recebeu <code>Found no `pubspec.yaml` file</code>. O que faltou?</p>
+<label><input type="radio" name="q4"> Instalar o Dart</label>
+<label><input type="radio" name="q4"> Criar um projeto</label>
+<label><input type="radio" name="q4"> O <code>.dart</code> no fim do nome do arquivo</label>
+<label><input type="radio" name="q4"> Salvar o arquivo</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. A Ana mudou o texto do <code>print</code>, rodou e saiu o texto antigo, sem erro. O que é mais provável?</p>
+<label><input type="radio" name="q5"> O Dart guardou a versão antiga na memória</label>
+<label><input type="radio" name="q5"> Ela não salvou o arquivo antes de rodar</label>
+<label><input type="radio" name="q5"> O terminal está na pasta errada</label>
+</div>
+
+<h3>Missão final: a placa da lojinha</h3>
+
+<div class="trydart" data-goal="outre:^Lojinha da Ana\nAberta de segunda a sábado\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça o programa mostrar exatamente <code>Lojinha da Ana</code> e, embaixo, <code>Aberta de segunda a sábado</code>. Rode, confira, ajuste e rode de novo até ficar igual.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Lojinha');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Lojinha da Ana');
+  print('Aberta de segunda a sábado');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O ciclo: escrever → salvar → <code>dart run arquivo.dart</code> → ler a saída → voltar.</li>
+  <li>O <code>dart</code> procura o arquivo na pasta em que o terminal está; para outra pasta, use o caminho (<code>pasta/arquivo.dart</code>) ou <code>cd pasta</code>.</li>
+  <li><code>dart arquivo.dart</code> é um atalho para <code>dart run arquivo.dart</code>.</li>
+  <li>Cada <code>dart run</code> lê o arquivo como está salvo naquele momento.</li>
+  <li>Código de saída (<code>echo $?</code>): <code>0</code> deu certo; <code>254</code> erro de compilação; <code>255</code> exceção ou arquivo não encontrado.</li>
+  <li><code>Could not find file</code> = nome ou pasta errados; <code>Found no `pubspec.yaml` file</code> = faltou o <code>.dart</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
