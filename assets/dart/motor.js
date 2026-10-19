@@ -590,7 +590,7 @@
       if (this.isOp(":", 1) && !PALAVRAS_RESERVADAS.has(ini.v)) { this.next(); this.next(); var st = this.parseStmt(); return this.no("Label", ini, { nome: ini.v, corpo: st }); }
       switch (ini.v) {
         case "if": return this.parseIf();
-        case "while": { this.next(); if (!this.isOp("(")) { var tw = this.peek(); throw new ErroDart("Expected to find '('.", tw.p, Math.max(1, tw.e - tw.p)); } this.expect("("); var c = this.parseExpr(); this.expect(")"); var b = this.parseStmt(); return this.no("While", ini, { cond: c, corpo: b }); }
+        case "while": { this.next(); if (!this.isOp("(")) this.semParen(); this.expect("("); var c = this.parseExpr(); this.expect(")"); var b = this.parseStmt(); return this.no("While", ini, { cond: c, corpo: b }); }
         case "do": { this.next(); var b2 = this.parseStmt(); this.expect("while"); this.expect("("); var c2 = this.parseExpr(); this.expect(")"); this.expect(";"); return this.no("DoWhile", ini, { cond: c2, corpo: b2 }); }
         case "for": return this.parseFor(false);
         case "await": if (this.is("for", 1)) { this.next(); return this.parseFor(true); } break;
@@ -671,8 +671,14 @@
     if (!semPontoVirgula) this.expect(";");
     return this.no("VarDecl", ini, { tipo: tipo, vars: vars, final: final, constante: constante, late: late });
   };
+  P.semParen = function () {
+    var tw = this.peek(), d = this.desc(tw);
+    var e = new ErroDart("Expected to find '('.", tw.p, Math.max(1, tw.e - tw.p));
+    if (tw.t === "id") e.mais = [new ErroDart("Expected an identifier, but got '" + d + "'.", tw.p, Math.max(1, tw.e - tw.p), "Try inserting an identifier before '" + d + "'.")];
+    throw e;
+  };
   P.parseIf = function () {
-    var ini = this.next(); this.expect("(");
+    var ini = this.next(); if (!this.isOp("(")) this.semParen(); this.expect("(");
     var c = this.parseExpr(), caso = null;
     if (this.is("case")) { this.next(); caso = this.parsePattern(); if (this.is("when")) { this.next(); caso = { k: "PGuard", p: caso, guarda: this.parseExpr() }; } }
     this.expect(")");
@@ -2967,7 +2973,7 @@
         });
       }
     } catch (e) {
-      if (e instanceof ErroDart) { ERROS_LEX.forEach(function (x) { x.lex = true; }); var todos = ERROS_LEX.slice().concat(errosRec, ERROS_PARSE); todos.push(e); var vistosT = {}; todos = todos.filter(function (x) { var k = x.pos + x.msg; if (vistosT[k]) return false; vistosT[k] = 1; return true; }); todos.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || (a.lex && b.lex ? a.seq - b.seq : a.pos - b.pos); }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
+      if (e instanceof ErroDart) { ERROS_LEX.forEach(function (x) { x.lex = true; }); var todos = ERROS_LEX.slice().concat(errosRec, ERROS_PARSE); todos.push(e); if (e.mais) e.mais.forEach(function (x) { todos.push(x); }); var vistosT = {}; todos = todos.filter(function (x) { var k = x.pos + x.msg; if (vistosT[k]) return false; vistosT[k] = 1; return true; }); todos.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || (a.lex && b.lex ? a.seq - b.seq : a.pos - b.pos); }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
       throw e;
     }
     var g = new Gerador(prog, combinado, arq);
