@@ -165,7 +165,7 @@ g9.dart:5:13: Error: The argument type 'String' can't be assigned to the paramet
 </div>
 
 <div class="trydart" data-goal="src:&lt;int&gt;\[\];;semerro;;out:Soma: 24">
-<p class="try-task"><strong>Missão:</strong> este programa morre no meio por causa do <code>'oito'</code>. Troque o <code>[]</code> por <code>&lt;int&gt;[]</code> e rode: agora o Dart aponta o problema antes de rodar. Conserte a linha apontada (a nota é <code>8</code>) até aparecer <code>Soma: 24</code>.</p>
+<p class="try-task"><strong>Missão:</strong> este programa morre no meio por causa do <code>'oito'</code>. Troque o <code>[]</code> por <code>&lt;int&gt;[]</code> e rode: agora o Dart aponta o problema antes de rodar. Conserte a linha apontada (a nota é <code>8</code>) até aparecer <code>Soma: 24</code>. (No lab e no seu computador, com o <code>&lt;int&gt;[]</code>, o Dart recusa o <code>notas.add('oito')</code> antes de rodar, como no <code>g9.dart</code> acima. O editor do guia ainda não confere o tipo dentro do <code>add</code> de uma lista genérica: nele, o programa continua parando com a exceção. Conserte a linha 5 do mesmo jeito.)</p>
 <pre class="script" data-file="main.dart">void main() {
   final notas = [];
   notas.add(7);
