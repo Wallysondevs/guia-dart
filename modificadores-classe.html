@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart sealed, final, base e interface — quem pode herdar | Guia Dart</title>
+<meta name="description" content="Os modificadores de classe do Dart 3 para quem nunca programou: o que é uma biblioteca (cada arquivo), sealed com switch que confere todos os casos, final class que ninguém estende nem implementa, interface class, base class, a tabela do que cada um permite, e os erros reais do Dart 3.13 (can't be extended outside of its library, must be 'base', 'final' or 'sealed', switch incompleto).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">sealed, final, base e interface</span></h1>
+
+<p class="intro">Nas aulas anteriores, qualquer classe podia ser estendida (<a href="heranca.html">extends</a>) e implementada (<a href="interfaces.html">implements</a>) por qualquer outra. Às vezes, quem escreve uma classe quer <strong>pôr regras</strong>: "a conta bancária ninguém estende, para não driblar a conferência do depósito"; "as formas de pagamento são estas quatro e pronto". Para isso, o Dart 3.0 trouxe os <strong>modificadores de classe</strong>, palavras que vão antes de <code>class</code>: <code>sealed</code>, <code>final</code>, <code>base</code> e <code>interface</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma <strong>biblioteca</strong> no Dart (spoiler: cada arquivo) e por que as regras valem "fora da biblioteca".</li>
+  <li><code>sealed</code>: uma família fechada de subclasses, e o <code>switch</code> que confere se você tratou todas.</li>
+  <li><code>final</code>: ninguém de fora estende nem implementa.</li>
+  <li><code>interface</code>: de fora, só implementa; <code>base</code>: de fora, só estende.</li>
+  <li>A tabela do que cada modificador permite, e os erros reais de cada regra quebrada.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Os modificadores existem desde o <span class="versao">Dart 3.0</span>. Esta aula usa dois arquivos por programa e o <code>import</code> (o assunto completo está em <a href="imports.html">import, export e Bibliotecas</a>).</p>
+
+<hr>
+
+<h2>A ideia: as regras valem para quem é de fora</h2>
+<p>Pense na cozinha da padaria. Lá dentro, a equipe mexe em tudo: abre o forno, muda a receita. Para quem é de fora, há regras na porta: "clientes não entram", "fornecedores só até a despensa". As regras não são para a equipe; são para <strong>os de fora</strong>.</p>
+<p>No Dart, a "cozinha" é a <strong>biblioteca</strong>: <strong>cada arquivo <code>.dart</code> é uma biblioteca</strong>. Quem está no mesmo arquivo da classe pode tudo; os modificadores restringem o que <strong>outros arquivos</strong> (que fazem <code>import</code>) podem fazer com ela. É a mesma ideia da <a href="privado.html">privacidade com <code>_</code></a>, que também vale por arquivo.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modificador</th><th>De outro arquivo, pode criar objeto?</th><th>Pode <code>extends</code>?</th><th>Pode <code>implements</code>?</th></tr>
+<tr><td>(nenhum) <code>class</code></td><td>Sim</td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>abstract class</code></td><td>Não</td><td>Sim</td><td>Sim</td></tr>
+<tr><td><code>base class</code></td><td>Sim</td><td>Sim</td><td><strong>Não</strong></td></tr>
+<tr><td><code>interface class</code></td><td>Sim</td><td><strong>Não</strong></td><td>Sim</td></tr>
+<tr><td><code>final class</code></td><td>Sim</td><td><strong>Não</strong></td><td><strong>Não</strong></td></tr>
+<tr><td><code>sealed class</code></td><td>Não</td><td><strong>Não</strong></td><td><strong>Não</strong></td></tr>
+</table>
+</div>
+<p>Dá para combinar <code>abstract</code> com <code>base</code>, <code>interface</code> ou <code>final</code> (por exemplo, <code>abstract interface class</code>, que é a "interface pura" de outras linguagens). O <code>sealed</code> já é abstrato por natureza. E o <code>mixin class</code> você viu em <a href="mixins.html">Mixins</a>.</p>
+
+<hr>
+
+<h2>1. <code>sealed</code>: uma família fechada</h2>
+<p>Na lojinha, as formas de pagamento são Pix, cartão e dinheiro. Cada uma tem dados <strong>diferentes</strong>: o Pix tem a chave, o cartão tem as parcelas, o dinheiro tem quanto o cliente entregou. A Ana quer que o Dart saiba que <strong>só existem essas três</strong>. Esse é o trabalho do <code>sealed</code> ("selado", "lacrado"). Primeiro, o arquivo da biblioteca:</p>
+
+<pre class="file" data-file="pagamentos.dart">sealed class Pagamento {
+  final double valor;
+
+  Pagamento(this.valor);
+}
+
+class Pix extends Pagamento {
+  final String chave;
+
+  Pix(super.valor, this.chave);
+}
+
+class Cartao extends Pagamento {
+  final int parcelas;
+
+  Cartao(super.valor, this.parcelas);
+}
+
+class Dinheiro extends Pagamento {
+  final double recebido;
+
+  Dinheiro(super.valor, this.recebido);
+}
+</pre>
+
+<p>Agora o programa, em outro arquivo, que usa a família:</p>
+
+<pre class="file" data-file="caixa.dart">import 'pagamentos.dart';
+
+String resumo(Pagamento p) {
+  return switch (p) {
+    Pix pix =&gt; 'Pix de R\$ ${pix.valor} para ${pix.chave}',
+    Cartao c =&gt; 'Cartão: R\$ ${c.valor} em ${c.parcelas}x',
+    Dinheiro d =&gt; 'Dinheiro: troco de R\$ ${d.recebido - d.valor}',
+  };
+}
+
+void main() {
+  final pagamentos = [
+    Pix(25.0, 'ana@lojinha'),
+    Cartao(120.0, 3),
+    Dinheiro(17.5, 20.0),
+  ];
+  for (final p in pagamentos) {
+    print(resumo(p));
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>sealed class Pagamento</dt><dd>A mãe da família. Ela é automaticamente <strong>abstrata</strong> (não dá para criar um <code>Pagamento</code> puro) e só pode ter filhas <strong>dentro do mesmo arquivo</strong>.</dd>
+  <dt>class Pix extends Pagamento</dt><dd>As filhas, no mesmo arquivo. Elas são classes comuns: podem ser criadas, e até estendidas por outros arquivos. Só a mãe é lacrada.</dd>
+  <dt>import 'pagamentos.dart';</dt><dd>O <code>caixa.dart</code> traz para si as classes do outro arquivo (que está na mesma pasta).</dd>
+  <dt>switch (p) { Pix pix =&gt; …, … }</dt><dd>Uma expressão <code>switch</code> (veja <a href="switch.html">switch</a>). <code>Pix pix</code> é um padrão que quer dizer "se <code>p</code> for um Pix, chame-o de <code>pix</code> neste caso", e então <code>pix.chave</code> funciona (veja <a href="patterns.html">Patterns</a>).</dd>
+  <dt>(sem <code>_</code> no fim)</dt><dd>Como a família é lacrada, o Dart sabe que só existem Pix, Cartao e Dinheiro, e que os três casos cobrem tudo.</dd>
+</dl>
+
+<pre class="term">$ dart run caixa.dart
+Pix de R$ 25.0 para ana@lojinha
+Cartão: R$ 120.0 em 3x
+Dinheiro: troco de R$ 2.5
+</pre>
+
+<p>É o mesmo poder do <code>switch</code> com <a href="enums.html">enums</a>, mas com a vantagem de que cada opção tem os <strong>seus próprios</strong> dados. Se a Ana acrescentar <code>Boleto</code> à família, todo <code>switch</code> que esqueceu o boleto para de compilar e aponta a falta. Experimente:</p>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> apague a linha do <code>Dinheiro</code> no <code>switch</code> e rode: o Dart diz qual caso faltou. (Repare nas duas abas: o programa em <code>main.dart</code> e a família em <code>pagamentos.dart</code>.)</p>
+<pre class="script" data-file="main.dart">import 'pagamentos.dart';
+
+String resumo(Pagamento p) {
+  return switch (p) {
+    Pix pix =&gt; 'Pix de R\$ ${pix.valor} para ${pix.chave}',
+    Cartao c =&gt; 'Cartão: R\$ ${c.valor} em ${c.parcelas}x',
+    Dinheiro d =&gt; 'Dinheiro: troco de R\$ ${d.recebido - d.valor}',
+  };
+}
+
+void main() {
+  final pagamentos = [
+    Pix(25.0, 'ana@lojinha'),
+    Cartao(120.0, 3),
+    Dinheiro(17.5, 20.0),
+  ];
+  for (final p in pagamentos) {
+    print(resumo(p));
+  }
+}
+</pre>
+<pre class="script" data-file="pagamentos.dart">sealed class Pagamento {
+  final double valor;
+
+  Pagamento(this.valor);
+}
+
+class Pix extends Pagamento {
+  final String chave;
+
+  Pix(super.valor, this.chave);
+}
+
+class Cartao extends Pagamento {
+  final int parcelas;
+
+  Cartao(super.valor, this.parcelas);
+}
+
+class Dinheiro extends Pagamento {
+  final double recebido;
+
+  Dinheiro(super.valor, this.recebido);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>final</code>: ninguém de fora mexe</h2>
+<p>A conta da lojinha recusa depósito negativo. Se outro arquivo pudesse estender a conta e sobrescrever o <code>depositar</code>, a conferência seria driblada. Com <code>final class</code>, de fora ninguém estende nem implementa:</p>
+
+<pre class="file" data-file="banco.dart">final class Conta {
+  double saldo = 0;
+
+  void depositar(double valor) {
+    if (valor &lt;= 0) {
+      print('Depósito recusado: R\$ $valor');
+      return;
+    }
+    saldo += valor;
+  }
+}
+
+interface class Impressora {
+  void imprimir(String texto) =&gt; print('[impressora] $texto');
+}
+
+base class Funcionario {
+  final String nome;
+
+  Funcionario(this.nome);
+
+  String cracha() =&gt; 'Funcionário: $nome';
+}
+
+final class Poupanca extends Conta {}
+</pre>
+
+<pre class="file" data-file="final_ok.dart">import 'banco.dart';
+
+void main() {
+  final c = Conta();
+  c.depositar(50);
+  c.depositar(-10);
+  print('Saldo: R\$ ${c.saldo}');
+  final p = Poupanca();
+  p.depositar(30);
+  print('Poupança: R\$ ${p.saldo}');
+}
+</pre>
+
+<pre class="term">$ dart run final_ok.dart
+Depósito recusado: R$ -10.0
+Saldo: R$ 50.0
+Poupança: R$ 30.0
+</pre>
+
+<ul>
+  <li>De fora, <strong>usar</strong> a conta é normal: criar, depositar, ler o saldo. O <code>final</code> só proíbe estender e implementar.</li>
+  <li>Dentro do <code>banco.dart</code>, a <code>Poupanca</code> estendeu a <code>Conta</code>: na "cozinha" pode. Mas repare que ela também é <code>final class</code>. Se não fosse, o Dart reclamaria (veja <a href="#errado">Quando dá errado</a>): a filha de uma classe <code>final</code> tem de ser <code>final</code>, <code>base</code> ou <code>sealed</code>, para a porta não ficar aberta pelos fundos.</li>
+</ul>
+
+<div class="warning">
+<strong>Não confunda com a variável <code>final</code></strong>
+<p><code>final preco = 10;</code> (veja <a href="final-const.html">final e const</a>) é uma variável que não muda de valor. <code>final class Conta</code> é uma classe que ninguém de fora estende nem implementa. A palavra é a mesma; os assuntos são diferentes.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>interface</code> e <code>base</code>: meio aberto</h2>
+
+<h3><code>interface class</code>: de fora, só <code>implements</code></h3>
+<p>A <code>Impressora</code> do <code>banco.dart</code> é uma <code>interface class</code>. Outro arquivo pode criar impressoras e pode <strong>implementar</strong> a interface (por exemplo, uma impressora de teste), mas não pode herdar o código dela:</p>
+
+<pre class="file" data-file="interface_ok.dart">import 'banco.dart';
+
+class ImpressoraDeTeste implements Impressora {
+  @override
+  void imprimir(String texto) =&gt; print('[teste] $texto');
+}
+
+void main() {
+  Impressora().imprimir('Cupom 001');
+  ImpressoraDeTeste().imprimir('Cupom 002');
+}
+</pre>
+
+<pre class="term">$ dart run interface_ok.dart
+[impressora] Cupom 001
+[teste] Cupom 002
+</pre>
+
+<h3><code>base class</code>: de fora, só <code>extends</code></h3>
+<p>O <code>Funcionario</code> é uma <code>base class</code>: outro arquivo pode estender (e aproveitar o código), mas não implementar. A garantia é que todo "funcionário" passou de verdade pelo construtor e pelo código da mãe. E a filha tem de repetir um dos modificadores (<code>base</code>, <code>final</code> ou <code>sealed</code>):</p>
+
+<pre class="file" data-file="base_ok.dart">import 'banco.dart';
+
+base class Caixa extends Funcionario {
+  Caixa(super.nome);
+
+  @override
+  String cracha() =&gt; '${super.cracha()} (caixa)';
+}
+
+void main() {
+  print(Caixa('Bia').cracha());
+}
+</pre>
+
+<pre class="term">$ dart run base_ok.dart
+Funcionário: Bia (caixa)
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer: qual escolher</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma classe comum, sem regras especiais (o caso mais comum em programas pequenos)</td><td><code>class</code></td></tr>
+<tr><td>Uma família fechada de tipos, cada um com dados próprios, tratada com <code>switch</code></td><td><code>sealed class</code></td></tr>
+<tr><td>Opções fixas sem dados diferentes entre si</td><td><code>enum</code> (aula <a href="enums.html">Enums</a>)</td></tr>
+<tr><td>A classe tem regras internas que ninguém pode driblar</td><td><code>final class</code></td></tr>
+<tr><td>Uma lista de métodos para os outros implementarem</td><td><code>interface class</code> ou <code>abstract interface class</code></td></tr>
+<tr><td>Outros podem herdar o código, mas ninguém pode "fingir" ser a classe</td><td><code>base class</code></td></tr>
+<tr><td>Código pronto para várias classes</td><td><code>mixin</code> / <code>mixin class</code> (aula <a href="mixins.html">Mixins</a>)</td></tr>
+</table>
+</div>
+<p>Em programas de um arquivo só, como a maioria deste guia, os modificadores quase não fazem diferença (tudo é "cozinha"), exceto o <code>sealed</code>, cujo <code>switch</code> completo vale em qualquer lugar. Eles brilham em <strong>pacotes</strong> usados por outras pessoas (aula <a href="pacotes.html">Pacotes do pub.dev</a>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>switch</code> sobre a classe <code>sealed</code> esqueceu uma filha</strong>
+<pre class="file" data-file="erro_sealed_switch.dart">import 'pagamentos.dart';
+
+String resumo(Pagamento p) {
+  return switch (p) {
+    Pix pix =&gt; 'Pix de R\$ ${pix.valor} para ${pix.chave}',
+    Cartao c =&gt; 'Cartão: R\$ ${c.valor} em ${c.parcelas}x',
+  };
+}
+
+void main() {
+  print(resumo(Pix(25.0, 'ana@lojinha')));
+}
+</pre>
+<pre class="term">$ dart run erro_sealed_switch.dart
+erro_sealed_switch.dart:4:18: Error: The type 'Pagamento' is not exhaustively matched by the switch cases since it doesn't match 'Dinheiro()'.
+ - 'Pagamento' is from 'pagamentos.dart'.
+Try adding a wildcard pattern or cases that match 'Dinheiro()'.
+  return switch (p) {
+                 ^
+</pre>
+<p>Linha por linha: erro de compilação (código 254) na linha 4, coluna 18. "O tipo <code>Pagamento</code> não é coberto por completo pelos casos do switch, porque eles não pegam <code>Dinheiro()</code>." O <code>Dinheiro()</code> com parênteses é a forma do Dart escrever "qualquer objeto Dinheiro" (um padrão de objeto). A segunda linha lembra que <code>Pagamento</code> vem do <code>pagamentos.dart</code>. <strong>Como consertar:</strong> acrescente o caso <code>Dinheiro d =&gt; …</code>. Sem o <code>sealed</code> (com <code>abstract class</code>), o Dart exigiria um <code>_</code>, porque qualquer arquivo poderia inventar uma forma de pagamento nova (no lab, saiu <code>… since it doesn't match 'Pagamento()'.</code>, mesmo com os três casos).</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou estender a classe <code>sealed</code> em outro arquivo</strong>
+<pre class="file" data-file="erro_sealed_fora.dart">import 'pagamentos.dart';
+
+class Boleto extends Pagamento {
+  Boleto(super.valor);
+}
+
+void main() {
+  print(Boleto(50.0).valor);
+}
+</pre>
+<pre class="term">$ dart run erro_sealed_fora.dart
+erro_sealed_fora.dart:3:22: Error: The class 'Pagamento' can't be extended, implemented, or mixed in outside of its library because it's a sealed class.
+class Boleto extends Pagamento {
+                     ^
+</pre>
+<p>"A classe <code>Pagamento</code> não pode ser estendida, implementada ou misturada (mixin) fora da sua biblioteca, porque é uma classe <code>sealed</code>." A família está lacrada: um boleto só entra se for escrito <strong>dentro</strong> do <code>pagamentos.dart</code> (é a missão final). E criar <code>Pagamento(10.0)</code> direto dá <code>Error: The class 'Pagamento' is abstract and can't be instantiated.</code>, a mesma mensagem das <a href="abstract.html">classes abstratas</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Estendeu ou implementou uma <code>final class</code> de outro arquivo</strong>
+<pre class="file" data-file="erro_final_extends.dart">import 'banco.dart';
+
+class ContaEspecial extends Conta {
+  @override
+  void depositar(double valor) {
+    saldo += valor;
+  }
+}
+
+void main() {
+  final c = ContaEspecial();
+  c.depositar(-500);
+  print(c.saldo);
+}
+</pre>
+<pre class="term">$ dart run erro_final_extends.dart
+erro_final_extends.dart:3:29: Error: The class 'Conta' can't be extended outside of its library because it's a final class.
+class ContaEspecial extends Conta {
+                            ^
+</pre>
+<p>"A classe <code>Conta</code> não pode ser estendida fora da sua biblioteca, porque é uma classe <code>final</code>." Era exatamente o drible que a Ana queria impedir: uma conta que aceita depósito de −500. Com <code>implements</code> sai a mesma ideia, com a palavra trocada: <code>Error: The class 'Conta' can't be implemented outside of its library because it's a final class.</code> (testado no lab com uma <code>ContaFalsa implements Conta</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Estendeu uma <code>interface class</code> e implementou uma <code>base class</code></strong>
+<pre class="term">$ dart run erro_interface_extends.dart
+erro_interface_extends.dart:3:34: Error: The class 'Impressora' can't be extended outside of its library because it's an interface class.
+class ImpressoraColorida extends Impressora {}
+                                 ^
+$ dart run erro_base_implements.dart
+erro_base_implements.dart:3:29: Error: The class 'Funcionario' can't be implemented outside of its library because it's a base class.
+final class Robo implements Funcionario {
+                            ^
+</pre>
+<p>As duas são o espelho uma da outra. A <code>interface class</code> diz "de fora, só <code>implements</code>"; o <code>extends</code> foi recusado. A <code>base class</code> diz "de fora, só <code>extends</code>"; o <code>implements</code> foi recusado. Em todas essas mensagens, o padrão é o mesmo: <em>can't be extended / implemented outside of its library because it's a(n) … class</em>. Leia a última palavra: ela diz qual modificador está barrando.</p>
+</div>
+
+<div class="cenario">
+<strong>A filha de uma classe <code>base</code> (ou <code>final</code>) sem modificador</strong>
+<pre class="file" data-file="erro_base_semmod.dart">import 'banco.dart';
+
+class Caixa extends Funcionario {
+  Caixa(super.nome);
+}
+
+void main() {
+  print(Caixa('Bia').cracha());
+}
+</pre>
+<pre class="term">$ dart run erro_base_semmod.dart
+erro_base_semmod.dart:3:7: Error: The type 'Caixa' must be 'base', 'final' or 'sealed' because the supertype 'Funcionario' is 'base'.
+Try adding 'base', 'final', or 'sealed' to the type.
+class Caixa extends Funcionario {
+      ^
+</pre>
+<p>"O tipo <code>Caixa</code> tem de ser <code>base</code>, <code>final</code> ou <code>sealed</code>, porque o supertipo <code>Funcionario</code> é <code>base</code>." Sem isso, um terceiro arquivo poderia implementar a <code>Caixa</code> e, por tabela, fingir ser um funcionário. <strong>Como consertar:</strong> <code>base class Caixa extends Funcionario</code>. Isso vale <strong>até no mesmo arquivo</strong>: quando a Ana escreveu, no <code>banco.dart</code>, <code>class Poupanca extends Conta {}</code> sem modificador, todo programa que importava o banco parou com <code>banco.dart:25:7: Error: The type 'Poupanca' must be 'base', 'final' or 'sealed' because the supertype 'Conta' is 'final'.</code> Repare que o erro apontou o <strong>outro</strong> arquivo, <code>banco.dart</code>: quando o problema está numa biblioteca importada, a mensagem começa com o nome dela.</p>
+</div>
+
+<div class="cenario">
+<strong>Tratou todo pagamento como Pix com <code>as</code> (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_cast.dart">import 'pagamentos.dart';
+
+void main() {
+  final List&lt;Pagamento&gt; pagamentos = [Pix(25.0, 'ana@lojinha'), Cartao(120.0, 3)];
+  for (final p in pagamentos) {
+    final pix = p as Pix;
+    print('Chave: ${pix.chave}');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_cast.dart
+Chave: ana@lojinha
+Unhandled exception:
+type 'Cartao' is not a subtype of type 'Pix' in type cast
+#0      main (file:///home/ana/erro_cast.dart:6:19)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Os modificadores são conferidos na compilação; o <code>as</code> só é conferido rodando. O Pix passou; o cartão, não: "o tipo <code>Cartao</code> não é um subtipo de <code>Pix</code>". Código de saída 255, linha 6 do seu arquivo (<code>#0 main</code>). <strong>Como consertar:</strong> é exatamente para isso que serve o <code>switch</code> da seção 1: cada caso só roda com o tipo certo, e o Dart confere se nenhum ficou de fora.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz (para outros arquivos)</th></tr>
+<tr><td><code>sealed class P { … }</code></td><td>Abstrata; filhas só no mesmo arquivo; <code>switch</code> sem <code>_</code> confere todas</td></tr>
+<tr><td><code>final class C { … }</code></td><td>Pode usar; não pode estender nem implementar</td></tr>
+<tr><td><code>interface class I { … }</code></td><td>Pode usar e implementar; não pode estender</td></tr>
+<tr><td><code>base class B { … }</code></td><td>Pode usar e estender (a filha repete <code>base</code>/<code>final</code>/<code>sealed</code>); não pode implementar</td></tr>
+<tr><td><code>abstract interface class I { … }</code></td><td>Interface pura: só implementar</td></tr>
+<tr><td><code>mixin class M { … }</code></td><td>Classe que também serve de mixin</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>can't be extended, implemented, or mixed in outside of its library because it's a sealed class.</code></td><td>Filha de <code>sealed</code> em outro arquivo</td></tr>
+<tr><td><code>can't be extended outside of its library because it's a final class.</code> (ou <code>interface class</code>)</td><td><code>extends</code> proibido</td></tr>
+<tr><td><code>can't be implemented outside of its library because it's a final class.</code> (ou <code>base class</code>)</td><td><code>implements</code> proibido</td></tr>
+<tr><td><code>must be 'base', 'final' or 'sealed' because the supertype 'X' is 'base'.</code> (ou <code>'final'</code>)</td><td>A filha não repetiu um modificador</td></tr>
+<tr><td><code>is not exhaustively matched by the switch cases since it doesn't match 'X()'.</code></td><td><code>switch</code> sobre <code>sealed</code> sem um dos casos</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual modificador?</h3>
+<p>Que palavra faz o <code>switch</code> conferir se todas as subclasses foram tratadas?</p>
+<div class="ex-code"><input data-answer="sealed" aria-label="modificador"> class Pagamento {}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Para o Dart, o que é uma biblioteca?</h3>
+<div class="ex-code">Cada <input data-answer="arquivo|arquivo .dart" aria-label="o que é uma biblioteca"> .dart.</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. De outro arquivo, o que se pode fazer com uma <code>interface class Impressora</code>?</p>
+<label><input type="radio" name="q3"> Só estender</label>
+<label><input type="radio" name="q3"> Nada</label>
+<label><input type="radio" name="q3"> Criar objetos e implementar, mas não estender</label>
+<label><input type="radio" name="q3"> Estender e implementar</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. No mesmo arquivo de <code>final class Conta</code>, a Ana escreveu <code>class Poupanca extends Conta {}</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Erro: a <code>Poupanca</code> tem de ser <code>base</code>, <code>final</code> ou <code>sealed</code></label>
+<label><input type="radio" name="q4"> Funciona: no mesmo arquivo tudo é permitido, sem condições</label>
+<label><input type="radio" name="q4"> Exceção durante a execução</label>
+<label><input type="radio" name="q4"> Erro: classes <code>final</code> nunca têm filhas</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual a diferença entre <code>sealed class Pagamento</code> e <code>enum Pagamento</code>?</p>
+<label><input type="radio" name="q5"> Nenhuma</label>
+<label><input type="radio" name="q5"> Com <code>sealed</code>, cada subclasse pode ter campos diferentes (chave, parcelas) e vários objetos; no enum, as opções são valores fixos com os mesmos campos</label>
+<label><input type="radio" name="q5"> Só o enum funciona com <code>switch</code></label>
+<label><input type="radio" name="q5"> Só a <code>sealed</code> funciona com <code>switch</code></label>
+</div>
+
+<h3>Missão final: o boleto entra na família</h3>
+
+<div class="trydart" data-goal="out:Boleto: R$ 80.0, vence em 3 dias;;src:class\s+Boleto\s+extends\s+Pagamento">
+<p class="try-task"><strong>Missão:</strong> o <code>main</code> já tem um <code>Boleto(80.0, 3)</code>, mas a classe não existe. Na aba <code>pagamentos.dart</code>, crie <code>class Boleto extends Pagamento</code> com um campo <code>final int dias</code>. Depois rode: o Dart vai reclamar do <code>switch</code> no <code>main.dart</code>. Acrescente o caso que mostra <code>Boleto: R$ 80.0, vence em 3 dias</code>.</p>
+<pre class="script" data-file="main.dart">import 'pagamentos.dart';
+
+String resumo(Pagamento p) {
+  return switch (p) {
+    Pix pix =&gt; 'Pix de R\$ ${pix.valor} para ${pix.chave}',
+    Cartao c =&gt; 'Cartão: R\$ ${c.valor} em ${c.parcelas}x',
+  };
+}
+
+void main() {
+  final pagamentos = [
+    Pix(25.0, 'ana@lojinha'),
+    Cartao(120.0, 3),
+    Boleto(80.0, 3),
+  ];
+  for (final p in pagamentos) {
+    print(resumo(p));
+  }
+}
+</pre>
+<pre class="script" data-file="pagamentos.dart">sealed class Pagamento {
+  final double valor;
+
+  Pagamento(this.valor);
+}
+
+class Pix extends Pagamento {
+  final String chave;
+
+  Pix(super.valor, this.chave);
+}
+
+class Cartao extends Pagamento {
+  final int parcelas;
+
+  Cartao(super.valor, this.parcelas);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'pagamentos.dart';
+
+String resumo(Pagamento p) {
+  return switch (p) {
+    Pix pix =&gt; 'Pix de R\$ ${pix.valor} para ${pix.chave}',
+    Cartao c =&gt; 'Cartão: R\$ ${c.valor} em ${c.parcelas}x',
+    Boleto b =&gt; 'Boleto: R\$ ${b.valor}, vence em ${b.dias} dias',
+  };
+}
+
+void main() {
+  final pagamentos = [
+    Pix(25.0, 'ana@lojinha'),
+    Cartao(120.0, 3),
+    Boleto(80.0, 3),
+  ];
+  for (final p in pagamentos) {
+    print(resumo(p));
+  }
+}
+</pre>
+<pre class="solucao" data-file="pagamentos.dart">sealed class Pagamento {
+  final double valor;
+
+  Pagamento(this.valor);
+}
+
+class Pix extends Pagamento {
+  final String chave;
+
+  Pix(super.valor, this.chave);
+}
+
+class Cartao extends Pagamento {
+  final int parcelas;
+
+  Cartao(super.valor, this.parcelas);
+}
+
+class Boleto extends Pagamento {
+  final int dias;
+
+  Boleto(super.valor, this.dias);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou as três linhas, terminando em <code>Boleto: R$ 80.0, vence em 3 dias</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Cada arquivo <code>.dart</code> é uma biblioteca. Os modificadores de classe (Dart 3.0+) restringem o que <strong>outros arquivos</strong> podem fazer.</li>
+  <li><code>sealed</code>: família fechada, filhas só no mesmo arquivo, e o <code>switch</code> sem <code>_</code> confere se todas foram tratadas.</li>
+  <li><code>final</code>: de fora, ninguém estende nem implementa. <code>interface</code>: de fora, só implementa. <code>base</code>: de fora, só estende.</li>
+  <li>A filha de uma classe <code>base</code> ou <code>final</code> tem de ser <code>base</code>, <code>final</code> ou <code>sealed</code>, mesmo no mesmo arquivo.</li>
+  <li>Nas mensagens <em>can't be extended/implemented outside of its library because it's a … class</em>, a última palavra diz qual modificador barrou.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
