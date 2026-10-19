@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Parâmetros Opcionais e Valores Padrão — quando o argumento pode faltar | Guia Dart</title>
+<meta name="description" content="Parâmetros opcionais no Dart para quem nunca programou: posicionais opcionais entre colchetes [ ], valores padrão com =, nomeados opcionais com padrão (o pedido de café), o null que fura o padrão, valores padrão que precisam ser const e os erros reais do Dart 3 (ordem, [ ] e { } juntos, required com padrão, dois-pontos antigos).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Parâmetros Opcionais e Valores Padrão</span></h1>
+
+<p class="intro">Na padaria, quem pede "um café" ganha um café médio, puro, com uma colher de açúcar. Ninguém precisa dizer tudo isso: existe um <strong>padrão</strong>, e o cliente só fala o que quer diferente ("um café <strong>com leite</strong>"). Funções também podem ser assim: alguns parâmetros são <strong>opcionais</strong> e, se ficarem de fora, usam um <strong>valor padrão</strong>. Nesta aula você vê os dois jeitos de fazer isso no Dart: posicionais opcionais, entre colchetes <code>[ ]</code>, e nomeados opcionais, entre chaves <code>{ }</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Posicionais opcionais: <code>[String? apelido]</code>, que podem ficar de fora da chamada.</li>
+  <li>Valores padrão com <code>=</code>: <code>[int vezes = 2]</code> e <code>{double taxa = 10}</code>.</li>
+  <li>Nomeados opcionais com padrão, o jeito mais usado (e o do Flutter).</li>
+  <li>Uma pegadinha: passar <code>null</code> de propósito "fura" o valor padrão.</li>
+  <li>As regras: opcionais vêm por último, <code>[ ]</code> e <code>{ }</code> não se misturam, o padrão tem de ser constante.</li>
+  <li>Os erros reais de cada regra.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: "o de sempre"</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O cliente diz</th><th>O que ele recebe</th><th>No Dart</th></tr>
+<tr><td>"Um café."</td><td>Médio, puro, 1 colher de açúcar (tudo padrão)</td><td><code>pedirCafe()</code></td></tr>
+<tr><td>"Um café com leite."</td><td>Médio, <strong>com leite</strong>, 1 colher</td><td><code>pedirCafe(comLeite: true)</code></td></tr>
+<tr><td>"Um café grande, sem açúcar."</td><td><strong>Grande</strong>, puro, <strong>0</strong> colher</td><td><code>pedirCafe(tamanho: 'grande', acucar: 0)</code></td></tr>
+</table>
+</div>
+<p>O cardápio (a declaração da função) diz qual é o padrão de cada coisa. O cliente (a chamada) só fala o que muda.</p>
+
+<hr>
+
+<h2>1. Posicional opcional: <code>[ ]</code></h2>
+<p>Na aula <a href="parametros.html">Parâmetros Posicionais</a>, a Bia não tinha apelido e a Ana teve de escrever <code>saudar('Bia', null)</code>. Pondo o parâmetro entre <strong>colchetes</strong>, ele vira opcional e pode simplesmente ficar de fora:</p>
+
+<pre class="file" data-file="saudar.dart">void saudar(String nome, [String? apelido]) {
+  if (apelido == null) {
+    print('Olá, $nome!');
+  } else {
+    print('Olá, $nome ($apelido)!');
+  }
+}
+
+void main() {
+  saudar('Ana', 'Aninha');
+  saudar('Bia');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String nome</dt><dd>Posicional comum: obrigatório.</dd>
+  <dt>[String? apelido]</dt><dd>Os <strong>colchetes</strong> tornam o parâmetro opcional. Se não for passado, ele vale <code>null</code>; por isso o tipo tem de aceitar <code>null</code> (<code>String?</code>).</dd>
+  <dt>saudar('Bia')</dt><dd>Chamada com um argumento só: <code>apelido</code> fica <code>null</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run saudar.dart
+Olá, Ana (Aninha)!
+Olá, Bia!
+</pre>
+
+<hr>
+
+<h2>2. Valor padrão: <code>= valor</code></h2>
+<p>Em vez de <code>null</code>, o parâmetro opcional pode ter um valor "de sempre", escrito com <code>=</code> na declaração. Aí o tipo não precisa de <code>?</code>, porque o parâmetro nunca fica vazio:</p>
+
+<pre class="file" data-file="padrao.dart">String repetir(String texto, [int vezes = 2]) {
+  return texto * vezes;
+}
+
+void main() {
+  print(repetir('ha'));
+  print(repetir('ha', 5));
+  print(repetir('-', 20));
+}
+</pre>
+
+<pre class="term">$ dart run padrao.dart
+haha
+hahahahaha
+--------------------
+</pre>
+
+<dl class="anatomy">
+  <dt>[int vezes = 2]</dt><dd>Opcional, com padrão <code>2</code>. Lê-se: "<code>vezes</code>, que vale 2 se ninguém disser outra coisa".</dd>
+  <dt>repetir('ha')</dt><dd>Sem o segundo argumento: <code>vezes</code> usa o padrão, 2.</dd>
+  <dt>repetir('ha', 5)</dt><dd>Com o argumento, o padrão é ignorado: <code>vezes</code> vale 5.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Olá, cliente!;;out:Olá, Ana!;;src:\[\s*String\s+\w+\s*=">
+<p class="try-task"><strong>Missão:</strong> a segunda chamada não compila, porque falta o nome. Torne o parâmetro <code>nome</code> opcional, com o padrão <code>'cliente'</code>: <code>[String nome = 'cliente']</code>.</p>
+<pre class="script" data-file="main.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+  saudar();
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void saudar([String nome = 'cliente']) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+  saudar();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Nomeados opcionais com padrão (o pedido de café)</h2>
+<p>Os posicionais opcionais têm um limite: para passar o 3º, você é obrigado a passar o 2º. Com <strong>nomeados</strong> (veja <a href="parametros-nomeados.html">Parâmetros Nomeados</a>), cada opcional é independente. Por isso eles são a escolha mais comum quando há vários opcionais:</p>
+
+<pre class="file" data-file="cafe.dart">void pedirCafe({String tamanho = 'médio', bool comLeite = false, int acucar = 1}) {
+  final leite = comLeite ? 'com leite' : 'puro';
+  print('Café $tamanho, $leite, $acucar colher(es) de açúcar');
+}
+
+void main() {
+  pedirCafe();
+  pedirCafe(comLeite: true);
+  pedirCafe(tamanho: 'grande', acucar: 0);
+}
+</pre>
+
+<pre class="term">$ dart run cafe.dart
+Café médio, puro, 1 colher(es) de açúcar
+Café médio, com leite, 1 colher(es) de açúcar
+Café grande, puro, 0 colher(es) de açúcar
+</pre>
+
+<p>Cada chamada diz só o que muda. A terceira mudou o tamanho e o açúcar e deixou o leite no padrão; com posicionais opcionais, isso seria impossível sem escrever o leite também.</p>
+
+<p>Também dá para ter um posicional obrigatório e nomeados opcionais, como na conta do restaurante, com taxa de serviço de 10% "de sempre":</p>
+
+<pre class="file" data-file="nomeado.dart">double totalComTaxa(double valor, {double taxa = 10, bool arredondar = false}) {
+  final total = valor + valor * taxa / 100;
+  if (arredondar) {
+    return total.roundToDouble();
+  }
+  return total;
+}
+
+void main() {
+  print(totalComTaxa(84.50));
+  print(totalComTaxa(84.50, taxa: 0));
+  print(totalComTaxa(84.50, arredondar: true));
+  print(totalComTaxa(84.50, arredondar: true, taxa: 15));
+}
+</pre>
+
+<pre class="term">$ dart run nomeado.dart
+92.95
+84.5
+93.0
+97.0
+</pre>
+
+<p><code>84.50</code> com 10% dá <code>92.95</code>; sem taxa, <code>84.5</code>; arredondado, <code>93.0</code> (<code>roundToDouble</code> arredonda para o inteiro mais próximo, mantendo o tipo <code>double</code>); com 15% e arredondado, <code>97.0</code>.</p>
+
+<div class="tip">
+<strong>Dica do Effective Dart: <code>bool</code> opcional? Nomeado.</strong>
+<p>Compare <code>totalComTaxa(84.50, true)</code> com <code>totalComTaxa(84.50, arredondar: true)</code>. No primeiro, ninguém sabe o que é o <code>true</code>. Um <code>bool</code> solto numa chamada quase sempre deveria ser um parâmetro nomeado.</p>
+</div>
+
+<div class="trydart" data-goal="out:Café grande, com leite, 2 colher(es) de açúcar;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana quer um café <strong>grande, com leite e 2 colheres de açúcar</strong>. Acrescente a chamada no <code>main</code>, passando só os valores que mudam.</p>
+<pre class="script" data-file="main.dart">void pedirCafe({String tamanho = 'médio', bool comLeite = false, int acucar = 1}) {
+  final leite = comLeite ? 'com leite' : 'puro';
+  print('Café $tamanho, $leite, $acucar colher(es) de açúcar');
+}
+
+void main() {
+  pedirCafe();
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void pedirCafe({String tamanho = 'médio', bool comLeite = false, int acucar = 1}) {
+  final leite = comLeite ? 'com leite' : 'puro';
+  print('Café $tamanho, $leite, $acucar colher(es) de açúcar');
+}
+
+void main() {
+  pedirCafe();
+  pedirCafe(tamanho: 'grande', comLeite: true, acucar: 2);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. A pegadinha: <code>null</code> de propósito fura o padrão</h2>
+<p>O valor padrão só é usado quando o argumento <strong>não é passado</strong>. Se o tipo aceita <code>null</code> e você passa <code>null</code> de propósito, o parâmetro vale <code>null</code>, não o padrão:</p>
+
+<pre class="file" data-file="nulo_padrao.dart">void saudar([String? apelido = 'amigo']) {
+  print('Olá, $apelido!');
+}
+
+void main() {
+  saudar();
+  saudar('Aninha');
+  saudar(null);
+}
+</pre>
+
+<pre class="term">$ dart run nulo_padrao.dart
+Olá, amigo!
+Olá, Aninha!
+Olá, null!
+</pre>
+
+<p>Na terceira chamada, o argumento <strong>foi passado</strong>: era <code>null</code>. Isso acontece quando você repassa uma variável que, por acaso, está <code>null</code> (algo lido do teclado, por exemplo). <strong>Como evitar:</strong> se existe um padrão, não use <code>?</code> no tipo (<code>[String apelido = 'amigo']</code>): aí o Dart <strong>proíbe</strong> passar <code>null</code>, e quem chama tem de resolver antes (<code>saudar(digitado ?? 'amigo')</code>). Com <code>int</code> sem <code>?</code>, por exemplo, a tentativa dá <code>Error: The argument type 'Null' can't be assigned to the parameter type 'int'.</code></p>
+
+<hr>
+
+<h2>5. As regras do jogo</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Regra</th><th>Certo</th><th>Errado</th></tr>
+<tr><td>Os opcionais vêm <strong>depois</strong> dos obrigatórios</td><td><code>(String nome, [String? apelido])</code></td><td><code>([String? apelido], String nome)</code></td></tr>
+<tr><td>Numa função, ou <code>[ ]</code> ou <code>{ }</code>, nunca os dois</td><td><code>(String nome, {int idade = 0})</code></td><td><code>(String nome, [String? a], {int idade = 0})</code></td></tr>
+<tr><td>Opcional sem padrão tem de aceitar <code>null</code></td><td><code>[int? vezes]</code> ou <code>[int vezes = 2]</code></td><td><code>[int vezes]</code></td></tr>
+<tr><td>O padrão tem de ser uma <strong>constante</strong> (valor escrito, <code>const</code>)</td><td><code>{int acucar = 1}</code>, <code>{List&lt;String&gt; extras = const []}</code></td><td><code>{DateTime quando = DateTime.now()}</code></td></tr>
+<tr><td><code>required</code> e padrão não combinam</td><td><code>{required String tamanho}</code> ou <code>{String tamanho = 'médio'}</code></td><td><code>{required String tamanho = 'médio'}</code></td></tr>
+<tr><td>Padrão se escreve com <code>=</code></td><td><code>{String tamanho = 'médio'}</code></td><td><code>{String tamanho: 'médio'}</code> (forma antiga)</td></tr>
+</table>
+</div>
+<p>Cada linha "errada" tem a sua mensagem real em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A função <code>repetir</code> com 2 como padrão, de três jeitos:</p>
+
+<pre class="file" data-file="formas.dart">// 1) posicional opcional com padrão
+String repetir1(String texto, [int vezes = 2]) =&gt; texto * vezes;
+
+// 2) nomeado opcional com padrão
+String repetir2(String texto, {int vezes = 2}) =&gt; texto * vezes;
+
+// 3) opcional anulável, e o padrão resolvido dentro da função
+String repetir3(String texto, [int? vezes]) {
+  return texto * (vezes ?? 2);
+}
+
+void main() {
+  print(repetir1('ha', 3));
+  print(repetir2('ha', vezes: 3));
+  print(repetir3('ha', 3));
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+hahaha
+hahaha
+hahaha
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um único opcional, de sentido óbvio</td><td><code>[int vezes = 2]</code></td></tr>
+<tr><td>Vários opcionais, ou um <code>bool</code></td><td>Nomeados com padrão: <code>{bool comLeite = false}</code></td></tr>
+<tr><td>"Não informado" precisa ser diferente de qualquer valor</td><td>Anulável sem padrão: <code>{String? observacao}</code></td></tr>
+<tr><td>O padrão não é constante (a data de hoje, uma lista nova)</td><td>Anulável + <code>??</code> dentro da função: <code>final data = quando ?? DateTime.now();</code></td></tr>
+</table>
+</div>
+<p>(O <code>=&gt;</code> das duas primeiras funções é o atalho de uma linha da próxima aula: <a href="arrow.html">Funções de Uma Linha</a>.)</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Opcional antes do obrigatório</strong>
+<pre class="file" data-file="err_ordem.dart">void saudar([String? apelido], String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+}
+</pre>
+<pre class="term">$ dart run err_ordem.dart
+err_ordem.dart:1:30: Error: Expected ')' before this.
+void saudar([String? apelido], String nome) {
+                             ^
+err_ordem.dart:2:16: Error: Undefined name 'nome'.
+  print('Olá, $nome!');
+               ^^^^
+</pre>
+<dl class="anatomy">
+  <dt>Expected ')' before this.</dt><dd>"Era esperado <code>)</code> antes disto", apontando a vírgula depois do <code>]</code>. Para o Dart, o grupo de opcionais é o <strong>último</strong> item da lista de parâmetros: depois dele, só pode vir o <code>)</code>.</dd>
+  <dt>Undefined name 'nome'.</dt><dd>Consequência do primeiro erro: o Dart parou de ler os parâmetros e não viu o <code>nome</code>. Conserte o primeiro e este some.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>void saudar(String nome, [String? apelido])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>[ ]</code> e <code>{ }</code> na mesma função</strong>
+<pre class="file" data-file="err_mistura.dart">void saudar(String nome, [String? apelido], {int idade = 0}) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+}
+</pre>
+<pre class="term">$ dart run err_mistura.dart
+err_mistura.dart:1:43: Error: Expected ')' before this.
+void saudar(String nome, [String? apelido], {int idade = 0}) {
+                                          ^
+</pre>
+<p>A mesma mensagem: depois do <code>]</code>, só o <code>)</code>. Uma função tem <strong>ou</strong> posicionais opcionais <strong>ou</strong> nomeados. <strong>Como consertar:</strong> passe o apelido para dentro das chaves: <code>(String nome, {String? apelido, int idade = 0})</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Opcional sem padrão e sem <code>?</code></strong>
+<pre class="file" data-file="err_semvalor.dart">String repetir(String texto, [int vezes]) {
+  return texto * vezes;
+}
+
+void main() {
+  print(repetir('ha'));
+}
+</pre>
+<pre class="term">$ dart run err_semvalor.dart
+err_semvalor.dart:1:35: Error: The parameter 'vezes' can't have a value of 'null' because of its type 'int', but the implicit default value is 'null'.
+Try adding either an explicit non-'null' default value or the 'required' modifier.
+String repetir(String texto, [int vezes]) {
+                                  ^^^^^
+</pre>
+<p>A mesma mensagem que você viu com os nomeados: se ninguém passar <code>vezes</code>, ele valeria <code>null</code>, e <code>int</code> não aceita. <strong>Como consertar:</strong> dê um padrão (<code>[int vezes = 2]</code>) ou aceite <code>null</code> (<code>[int? vezes]</code>) e trate dentro.</p>
+</div>
+
+<div class="cenario">
+<strong>Padrão que não é constante</strong>
+<pre class="file" data-file="err_const.dart">void registrar(String texto, {DateTime quando = DateTime.now()}) {
+  print('$quando: $texto');
+}
+
+void main() {
+  registrar('abriu a padaria');
+}
+</pre>
+<pre class="term">$ dart run err_const.dart
+err_const.dart:1:58: Error: Constant expression expected.
+Try inserting 'const'.
+void registrar(String texto, {DateTime quando = DateTime.now()}) {
+                                                         ^^^
+err_const.dart:1:58: Error: Cannot invoke a non-'const' constructor where a const expression is expected.
+Try using a constructor or factory that is 'const'.
+void registrar(String texto, {DateTime quando = DateTime.now()}) {
+                                                         ^^^
+</pre>
+<p>"Era esperada uma expressão constante." O valor padrão é decidido quando o programa é <strong>compilado</strong>, não quando a função é chamada; a hora atual só existe rodando (veja <a href="final-const.html">final e const</a>). <strong>Como consertar:</strong> use um parâmetro anulável e resolva dentro: <code>{DateTime? quando}</code> e <code>final momento = quando ?? DateTime.now();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>required</code> com valor padrão</strong>
+<pre class="file" data-file="err_required.dart">void pedirCafe({required String tamanho = 'médio'}) {
+  print('Café $tamanho');
+}
+
+void main() {
+  pedirCafe();
+}
+</pre>
+<pre class="term">$ dart run err_required.dart
+err_required.dart:1:33: Error: Named parameter 'tamanho' is required and can't have a default value.
+void pedirCafe({required String tamanho = 'médio'}) {
+                                ^^^^^^^
+err_required.dart:6:12: Error: Required named parameter 'tamanho' must be provided.
+  pedirCafe();
+           ^
+err_required.dart:1:6: Context: Found this candidate, but the arguments don't match.
+void pedirCafe({required String tamanho = 'médio'}) {
+     ^^^^^^^^^
+</pre>
+<p>"O parâmetro nomeado <code>tamanho</code> é obrigatório e não pode ter valor padrão." Se é obrigatório, o padrão nunca seria usado. <strong>Como consertar:</strong> escolha um: <code>{required String tamanho}</code> (quem chama sempre diz) ou <code>{String tamanho = 'médio'}</code> (tem o de sempre).</p>
+</div>
+
+<div class="cenario">
+<strong>Dois-pontos no lugar do <code>=</code> (código antigo)</strong>
+<pre class="file" data-file="err_igual.dart">void pedirCafe({String tamanho: 'médio'}) {
+  print('Café $tamanho');
+}
+
+void main() {
+  pedirCafe();
+}
+</pre>
+<pre class="term">$ dart run err_igual.dart
+err_igual.dart:1:31: Error: Using a colon as a separator before a default value is no longer supported.
+Try replacing the colon with an equal sign.
+void pedirCafe({String tamanho: 'médio'}) {
+                              ^
+</pre>
+<p>"Usar dois-pontos antes do valor padrão não é mais aceito. Troque por um sinal de igual." Versões antigas do Dart aceitavam <code>:</code>; você ainda vai encontrar isso em exemplos velhos da internet. Repare na diferença: na <strong>declaração</strong>, o padrão vem depois de <code>=</code>; na <strong>chamada</strong>, o valor vem depois de <code>:</code> (<code>pedirCafe(tamanho: 'grande')</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um nomeado opcional sem o nome</strong>
+<pre class="term">$ dart run err_semnome.dart
+err_semnome.dart:6:21: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print(totalComTaxa(84.50, 15));
+                    ^
+err_semnome.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double totalComTaxa(double valor, {double taxa = 10}) {
+       ^^^^^^^^^^^^
+</pre>
+<p>A <code>taxa</code> é nomeada; o <code>15</code> sem nome foi contado como um segundo posicional, que não existe. <strong>Como consertar:</strong> <code>totalComTaxa(84.50, taxa: 15)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Chamadas válidas</th></tr>
+<tr><td><code>f(String a, [String? b])</code></td><td><code>f('x')</code> (b = null) · <code>f('x', 'y')</code></td></tr>
+<tr><td><code>f(String a, [int n = 2])</code></td><td><code>f('x')</code> (n = 2) · <code>f('x', 5)</code></td></tr>
+<tr><td><code>f({int n = 2, bool b = false})</code></td><td><code>f()</code> · <code>f(b: true)</code> · <code>f(n: 5, b: true)</code></td></tr>
+<tr><td><code>f({String? obs})</code></td><td><code>f()</code> (obs = null) · <code>f(obs: 'sem açúcar')</code></td></tr>
+<tr><td><code>f(String a, {required int n, bool b = false})</code></td><td><code>f('x', n: 1)</code> · <code>f('x', n: 1, b: true)</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Expected ')' before this.</code> logo depois de <code>]</code></td><td>Parâmetro depois dos opcionais, ou <code>[ ]</code> e <code>{ }</code> juntos</td></tr>
+<tr><td><code>The parameter '…' can't have a value of 'null'…</code></td><td>Opcional sem padrão e sem <code>?</code></td></tr>
+<tr><td><code>Constant expression expected.</code></td><td>Valor padrão que não é constante (<code>DateTime.now()</code>)</td></tr>
+<tr><td><code>Named parameter '…' is required and can't have a default value.</code></td><td><code>required</code> junto com <code>=</code></td></tr>
+<tr><td><code>Using a colon as a separator before a default value is no longer supported.</code></td><td>Padrão escrito com <code>:</code> (sintaxe antiga)</td></tr>
+<tr><td>Apareceu <code>null</code> em vez do padrão</td><td>Alguém passou <code>null</code> de propósito para um parâmetro anulável</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para <code>vezes</code> ser um posicional opcional com padrão 3:</p>
+<div class="ex-code">String repetir(String texto, <input data-answer="[" aria-label="símbolo que abre">int vezes <input data-answer="=" aria-label="símbolo do padrão"> 3]) =&gt; texto * vezes;</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com <code>String repetir(String texto, [int vezes = 2]) =&gt; texto * vezes;</code>, o que <code>print(repetir('ab'));</code> mostra?</p>
+<div class="ex-code"><input data-answer="abab" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>void pedirCafe({String tamanho = 'médio', bool comLeite = false})</code>, qual chamada pede um café <strong>médio com leite</strong>?</p>
+<label><input type="radio" name="q3"> <code>pedirCafe('médio', true)</code></label>
+<label><input type="radio" name="q3"> <code>pedirCafe(true)</code></label>
+<label><input type="radio" name="q3"> <code>pedirCafe(comLeite: true)</code></label>
+<label><input type="radio" name="q3"> <code>pedirCafe(comLeite = true)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>void saudar([String? apelido = 'amigo'])</code>. O que <code>saudar(null)</code> mostra, se a função faz <code>print('Olá, $apelido!')</code>?</p>
+<label><input type="radio" name="q4"> <code>Olá, amigo!</code></label>
+<label><input type="radio" name="q4"> <code>Olá, null!</code>: o argumento foi passado, então o padrão não é usado</label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>Olá, !</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual declaração compila?</p>
+<label><input type="radio" name="q5"> <code>void f([int a], int b)</code></label>
+<label><input type="radio" name="q5"> <code>void f({required int n = 1})</code></label>
+<label><input type="radio" name="q5"> <code>void f(int a, [int? b], {int c = 0})</code></label>
+<label><input type="radio" name="q5"> <code>void f(int a, {int c = 0, String? d})</code></label>
+</div>
+
+<h3>Missão final: a etiqueta com moeda</h3>
+
+<div class="trydart" data-goal="out:Leite: R$ 5.49;;out:Chocolate: US$ 3.20;;src:\{\s*String\s+moeda\s*=">
+<p class="try-task"><strong>Missão:</strong> a padaria vende um chocolate importado, com preço em dólar. Acrescente à função um parâmetro nomeado opcional <code>String moeda = 'R\$'</code> e use-o no lugar do <code>R\$</code> fixo. A segunda chamada deve passar <code>moeda: 'US\$'</code>. A saída deve ter <code>Leite: R$ 5.49</code> e <code>Chocolate: US$ 3.20</code>.</p>
+<pre class="script" data-file="main.dart">void etiqueta(String produto, double preco) {
+  print('$produto: R\$ ${preco.toStringAsFixed(2)}');
+}
+
+void main() {
+  etiqueta('Leite', 5.49);
+  etiqueta('Chocolate', 3.2);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void etiqueta(String produto, double preco, {String moeda = 'R\$'}) {
+  print('$produto: $moeda ${preco.toStringAsFixed(2)}');
+}
+
+void main() {
+  etiqueta('Leite', 5.49);
+  etiqueta('Chocolate', 3.2, moeda: 'US\$');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Parâmetros entre <code>[ ]</code> são <strong>posicionais opcionais</strong>; os nomeados entre <code>{ }</code> sem <code>required</code> também são opcionais.</li>
+  <li>Um opcional precisa de um <strong>valor padrão</strong> (<code>= 2</code>) ou de um tipo anulável (<code>int?</code>, que vale <code>null</code> se faltar).</li>
+  <li>O padrão só vale quando o argumento <strong>não é passado</strong>; passar <code>null</code> de propósito fura o padrão.</li>
+  <li>Opcionais vêm por último; <code>[ ]</code> e <code>{ }</code> não se misturam; o padrão tem de ser constante; <code>required</code> e padrão não combinam.</li>
+  <li>Vários opcionais, ou um <code>bool</code>: prefira nomeados com padrão, como no <code>pedirCafe</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
