@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Palavras Reservadas — as palavras-chave do Dart 3 e quais podem virar nome | Guia Dart</title>
+<meta name="description" content="Referência rápida das palavras-chave do Dart 3: as 33 reservadas (if, class, var, final, null…), os identificadores embutidos (abstract, required, late, get, set…) e as palavras de contexto (async, await, yield, on, sealed, when…), com tradução, para que serve, a aula de cada uma e os erros reais do Dart 3.13 quando se usa uma delas como nome.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Palavras Reservadas</span></h1>
+
+<p class="intro">Esta é a página de consulta das <strong>palavras-chave</strong> (em inglês, <em>keywords</em>) do Dart: as palavras que fazem parte da própria linguagem, como <code>if</code>, <code>class</code> e <code>return</code>. O Dart as divide em três grupos, e a diferença importa na hora de escolher nomes: algumas <strong>nunca</strong> podem ser nome de variável; outras só não podem ser nome de classe; e outras podem ser usadas à vontade.</p>
+
+<div class="note">
+<strong>Como ler esta página</strong>
+<ul>
+  <li>A lista e a classificação vêm da página oficial <em>Keywords</em> (dart.dev/language/keywords).</li>
+  <li>Os resultados e as mensagens de erro foram colhidos no computador da Ana, com o Dart SDK 3.13.5.</li>
+  <li>O Dart diferencia maiúsculas de minúsculas: <code>class</code> é reservada; <code>Class</code> é um nome comum (conferido no lab: <code>var Class = 2;</code> compila).</li>
+</ul>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Grupo</th><th>Pode ser nome de variável?</th><th>Pode ser nome de classe/tipo?</th><th>Exemplos</th></tr>
+<tr><td><a href="#reservadas">Reservadas</a></td><td>Não</td><td>Não</td><td><code>class</code>, <code>if</code>, <code>var</code>, <code>null</code></td></tr>
+<tr><td><a href="#embutidos">Identificadores embutidos</a></td><td>Sim</td><td>Não</td><td><code>abstract</code>, <code>required</code>, <code>late</code></td></tr>
+<tr><td><a href="#contexto">Palavras de contexto</a></td><td>Sim (com uma exceção: <code>await</code> e <code>yield</code>)</td><td>Sim</td><td><code>async</code>, <code>on</code>, <code>sealed</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="reservadas">As 33 palavras reservadas</h2>
+
+<p>Para ter os resultados da tabela, a Ana escreveu um programa que usa todas elas. Cada linha da saída começa com o nome da palavra testada:</p>
+
+<pre class="file" data-file="palavras.dart">enum Cor { verde, azul }
+
+class Animal {
+  final String nome;
+  Animal(this.nome);
+  String som() =&gt; '...';
+}
+
+mixin Nadador {
+  String nadar() =&gt; 'nadando';
+}
+
+class Pato extends Animal with Nadador {
+  Pato() : super('Pato');
+  @override
+  String som() =&gt; 'quack';
+  String quemSou() =&gt; this.nome;
+}
+
+int dobro(int n) {
+  return n * 2;
+}
+
+void main() {
+  // break
+  for (var i = 1; i &lt;= 10; i++) {
+    if (i &gt; 3) break;
+    print('break: $i');
+  }
+  // continue
+  for (var i = 1; i &lt;= 4; i++) {
+    if (i.isEven) continue;
+    print('continue: $i');
+  }
+  // switch case default
+  final nota = 'B';
+  switch (nota) {
+    case 'A':
+      print('switch: ótimo');
+    case 'B':
+      print('switch: bom');
+    default:
+      print('switch: outro');
+  }
+  // do while
+  var n = 0;
+  do {
+    n++;
+  } while (n &lt; 3);
+  print('do-while: $n');
+  // if else
+  if (2 &gt; 3) {
+    print('maior');
+  } else {
+    print('else: não é maior');
+  }
+  // for in
+  for (final fruta in ['maçã', 'uva']) {
+    print('for-in: $fruta');
+  }
+  // try catch finally throw
+  try {
+    throw FormatException('nota inválida');
+  } catch (e) {
+    print('catch: $e');
+  } finally {
+    print('finally: sempre roda');
+  }
+  // rethrow
+  try {
+    try {
+      int.parse('dez');
+    } catch (e) {
+      print('rethrow: repassando');
+      rethrow;
+    }
+  } on FormatException {
+    print('rethrow: pego lá fora');
+  }
+  // is, true, false, null
+  Object x = 42;
+  print('is: ${x is int} ${x is String}');
+  print('true/false: ${true &amp;&amp; false}');
+  String? apelido;
+  print('null: $apelido ${apelido == null}');
+  // var final const
+  var idade = 30;
+  idade++;
+  final nome = 'Ana';
+  const pi = 3.14;
+  print('var/final/const: $idade $nome $pi');
+  // class extends with super this new
+  final p = Pato();
+  print('classe: ${p.som()} ${p.nadar()} ${p.quemSou()}');
+  final p2 = new Pato();
+  print('new: ${p2.nome}');
+  // enum
+  print('enum: ${Cor.azul} ${Cor.values.length}');
+  // return void
+  print('return: ${dobro(21)}');
+  // assert
+  assert(1 + 1 == 2);
+  print('assert: passou');
+  // in
+  print('in: ${[1, 2].contains(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run palavras.dart
+break: 1
+break: 2
+break: 3
+continue: 1
+continue: 3
+switch: bom
+do-while: 3
+else: não é maior
+for-in: maçã
+for-in: uva
+catch: FormatException: nota inválida
+finally: sempre roda
+rethrow: repassando
+rethrow: pego lá fora
+is: true false
+true/false: false
+null: null true
+var/final/const: 31 Ana 3.14
+classe: quack nadando Pato
+new: Pato
+enum: Cor.azul 2
+return: 42
+assert: passou
+in: true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Quer dizer</th><th>Para que serve</th><th>No programa acima</th><th>Aula</th></tr>
+<tr><td><code>assert</code></td><td>"afirmar"</td><td>Confere uma condição durante o desenvolvimento. <strong>Só vale com <code>--enable-asserts</code></strong> (veja abaixo).</td><td><code>assert: passou</code></td><td><a href="assert.html">assert</a></td></tr>
+<tr><td><code>break</code></td><td>"quebrar"</td><td>Sai do laço na hora.</td><td>parou no 3</td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>case</code></td><td>"caso"</td><td>Um caminho do <code>switch</code>.</td><td><code>switch: bom</code></td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>catch</code></td><td>"pegar"</td><td>Pega a exceção lançada dentro do <code>try</code>.</td><td><code>catch: FormatException: nota inválida</code></td><td><a href="excecoes.html">Exceções</a></td></tr>
+<tr><td><code>class</code></td><td>"classe"</td><td>Cria uma classe.</td><td><code>class Animal</code></td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>const</code></td><td>"constante"</td><td>Valor fixo, conhecido já na compilação.</td><td><code>3.14</code></td><td><a href="final-const.html">final e const</a></td></tr>
+<tr><td><code>continue</code></td><td>"continuar"</td><td>Pula para a próxima volta do laço.</td><td>só os ímpares: 1 e 3</td><td><a href="break-continue.html">break e continue</a></td></tr>
+<tr><td><code>default</code></td><td>"padrão"</td><td>O caminho do <code>switch</code> quando nenhum <code>case</code> combina.</td><td>(não precisou)</td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>do</code></td><td>"faça"</td><td>Laço que roda pelo menos uma vez: <code>do { … } while (…);</code></td><td><code>do-while: 3</code></td><td><a href="while.html">while e do-while</a></td></tr>
+<tr><td><code>else</code></td><td>"senão"</td><td>O caminho do <code>if</code> quando a condição é falsa.</td><td><code>else: não é maior</code></td><td><a href="if-else.html">if e else</a></td></tr>
+<tr><td><code>enum</code></td><td>"enumeração"</td><td>Um tipo com uma lista fixa de valores.</td><td><code>Cor.azul</code>, 2 valores</td><td><a href="enums.html">Enums</a></td></tr>
+<tr><td><code>extends</code></td><td>"estende"</td><td>Herança: a classe nova ganha tudo da outra.</td><td><code>Pato extends Animal</code></td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>false</code></td><td>"falso"</td><td>Um dos dois valores <code>bool</code>.</td><td><code>true &amp;&amp; false</code> deu <code>false</code></td><td><a href="bool.html">Booleanos</a></td></tr>
+<tr><td><code>final</code></td><td>"final"</td><td>Variável que recebe valor uma vez só. Também é modificador de classe (<code>final class</code>).</td><td><code>Ana</code></td><td><a href="final-const.html">final e const</a>, <a href="modificadores-classe.html">Modificadores</a></td></tr>
+<tr><td><code>finally</code></td><td>"finalmente"</td><td>Bloco que roda no fim do <code>try</code>, com ou sem exceção.</td><td><code>finally: sempre roda</code></td><td><a href="excecoes.html">Exceções</a></td></tr>
+<tr><td><code>for</code></td><td>"para"</td><td>Laço que conta ou que percorre.</td><td><code>break</code>, <code>continue</code>, <code>for-in</code></td><td><a href="for.html">for</a></td></tr>
+<tr><td><code>if</code></td><td>"se"</td><td>Executa um bloco só se a condição for verdadeira.</td><td>vários</td><td><a href="if-else.html">if e else</a></td></tr>
+<tr><td><code>in</code></td><td>"em"</td><td>No <code>for-in</code>: "para cada fruta <strong>em</strong> …".</td><td><code>for-in: maçã</code>, <code>uva</code></td><td><a href="for-in.html">for-in</a></td></tr>
+<tr><td><code>is</code></td><td>"é"</td><td>Pergunta o tipo: <code>x is int</code>. Também <code>is!</code> ("não é").</td><td><code>is: true false</code></td><td><a href="operadores-tipo.html">is, is! e as</a></td></tr>
+<tr><td><code>new</code></td><td>"novo"</td><td>Criava objetos nas versões antigas. Hoje é opcional e o estilo recomendado é <strong>não</strong> usar.</td><td><code>new Pato()</code> ainda funciona</td><td><a href="construtores.html">Construtores</a></td></tr>
+<tr><td><code>null</code></td><td>"nulo"</td><td>"Nenhum valor".</td><td><code>null: null true</code></td><td><a href="null-safety.html">Null Safety</a></td></tr>
+<tr><td><code>rethrow</code></td><td>"lançar de novo"</td><td>Dentro de um <code>catch</code>, repassa a mesma exceção para quem chamou.</td><td><code>repassando</code>, depois <code>pego lá fora</code></td><td><a href="throw.html">throw</a></td></tr>
+<tr><td><code>return</code></td><td>"devolver"</td><td>Termina a função e devolve um valor.</td><td><code>return: 42</code></td><td><a href="funcoes.html">Funções</a></td></tr>
+<tr><td><code>super</code></td><td>"acima"</td><td>A classe de cima: o construtor dela (<code>super('Pato')</code>) ou os métodos dela.</td><td>o nome <code>Pato</code> veio pelo <code>super</code></td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>switch</code></td><td>"chave/desvio"</td><td>Escolhe um caminho pelo valor; também existe como expressão.</td><td><code>switch: bom</code></td><td><a href="switch.html">switch</a></td></tr>
+<tr><td><code>this</code></td><td>"este"</td><td>O próprio objeto. Quase sempre dá para omitir (<code>nome</code> no lugar de <code>this.nome</code>).</td><td><code>this.nome</code> deu <code>Pato</code></td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>throw</code></td><td>"lançar"</td><td>Lança uma exceção.</td><td>a <code>FormatException</code></td><td><a href="throw.html">throw</a></td></tr>
+<tr><td><code>true</code></td><td>"verdadeiro"</td><td>O outro valor <code>bool</code>.</td><td><code>is: true</code></td><td><a href="bool.html">Booleanos</a></td></tr>
+<tr><td><code>try</code></td><td>"tentar"</td><td>Bloco onde uma exceção pode acontecer.</td><td>dois <code>try</code></td><td><a href="excecoes.html">Exceções</a></td></tr>
+<tr><td><code>var</code></td><td>"variável"</td><td>Cria uma variável; o tipo é deduzido do valor.</td><td><code>idade++</code> deu 31</td><td><a href="variaveis.html">Variáveis</a></td></tr>
+<tr><td><code>void</code></td><td>"vazio"</td><td>"Esta função não devolve nada."</td><td><code>void main()</code></td><td><a href="funcoes.html">Funções</a></td></tr>
+<tr><td><code>while</code></td><td>"enquanto"</td><td>Laço que roda enquanto a condição for verdadeira.</td><td><code>do-while: 3</code></td><td><a href="while.html">while e do-while</a></td></tr>
+<tr><td><code>with</code></td><td>"com"</td><td>Acrescenta um mixin à classe.</td><td><code>nadando</code></td><td><a href="mixins.html">Mixins</a></td></tr>
+</table>
+</div>
+
+<div class="cenario">
+<strong>Usando uma reservada como nome</strong>
+<pre class="file" data-file="turma.dart">void main() {
+  var class = 'Turma A';
+  print(class);
+}
+</pre>
+<pre class="term">$ dart run turma.dart
+turma.dart:2:7: Error: 'class' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  var class = 'Turma A';
+      ^^^^^
+turma.dart:3:9: Error: 'class' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  print(class);
+        ^^^^^
+$ echo $?
+254
+</pre>
+<p>"<code>class</code> não pode ser usado como identificador porque é uma palavra-chave. Tente renomear para um identificador que não seja palavra-chave." <strong>Identificador</strong> é o nome que você dá a uma variável, função ou classe. O Dart avisa nas <strong>duas</strong> linhas em que a palavra aparece. Com <code>final new = 1;</code>, a mensagem é a mesma, trocando <code>'class'</code> por <code>'new'</code>. Troque por <code>turma</code>, <code>classe</code> ou <code>Class</code> (com maiúscula funciona, mas foge da convenção <code>lowerCamelCase</code>).</p>
+</div>
+
+<div class="warning">
+<strong><code>assert</code> desligado por padrão</strong>
+<pre class="file" data-file="estoque.dart">void main() {
+  final estoque = -1;
+  assert(estoque &gt;= 0, 'estoque negativo');
+  print('chegou ao fim');
+}
+</pre>
+<pre class="term">$ dart run estoque.dart
+chegou ao fim
+$ dart run --enable-asserts estoque.dart
+Unhandled exception:
+'file:///home/ana/estoque.dart': Failed assertion: line 3 pos 10: 'estoque &gt;= 0': estoque negativo
+#0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+#1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+#2      main (file:///home/ana/estoque.dart:3:10)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Sem a opção, o <code>assert</code> é ignorado e o programa segue. Com <code>--enable-asserts</code>, a afirmação falsa vira exceção: "falha de afirmação: linha 3, posição 10: <code>'estoque &gt;= 0'</code>: estoque negativo". Detalhes em <a href="assert.html">assert</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="embutidos">Identificadores embutidos</h2>
+<p>Estas palavras têm sentido especial em certos lugares, mas foram deixadas livres como nome de variável e de função, para não quebrar programas antigos. Elas <strong>não</strong> podem ser nome de classe, de tipo, de extensão nem prefixo de <code>import</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Para que serve</th><th>Aula</th></tr>
+<tr><td><code>abstract</code></td><td>Classe que não pode ser instanciada; método sem corpo.</td><td><a href="abstract.html">Classes Abstratas</a></td></tr>
+<tr><td><code>as</code></td><td>Conversão de tipo (<code>x as String</code>) e prefixo de import (<code>import … as p;</code>).</td><td><a href="operadores-tipo.html">is, is! e as</a></td></tr>
+<tr><td><code>covariant</code></td><td>Deixa um método sobrescrito aceitar um parâmetro de tipo mais específico.</td><td><a href="override.html">@override</a></td></tr>
+<tr><td><code>deferred</code></td><td>Import carregado só quando for usado (comum na web).</td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>dynamic</code></td><td>"Qualquer tipo, sem conferência na compilação".</td><td><a href="dynamic-object.html">dynamic e Object</a></td></tr>
+<tr><td><code>export</code></td><td>Reexporta uma biblioteca.</td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>extension</code></td><td>Acrescenta métodos a um tipo que já existe.</td><td><a href="extension.html">Extensões</a></td></tr>
+<tr><td><code>external</code></td><td>Função cujo corpo está fora do Dart (outra linguagem).</td><td>—</td></tr>
+<tr><td><code>factory</code></td><td>Construtor que pode devolver um objeto já existente ou de outra classe.</td><td><a href="construtores-nomeados.html">factory</a></td></tr>
+<tr><td><code>Function</code></td><td>O tipo das funções.</td><td><a href="funcoes-valores.html">Funções como Valores</a></td></tr>
+<tr><td><code>get</code>, <code>set</code></td><td>Getters e setters.</td><td><a href="getters-setters.html">get e set</a></td></tr>
+<tr><td><code>implements</code></td><td>A classe cumpre a interface de outra.</td><td><a href="interfaces.html">Interfaces</a></td></tr>
+<tr><td><code>import</code></td><td>Traz uma biblioteca.</td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>interface</code></td><td>Modificador de classe <span class="versao">Dart 3.0</span>.</td><td><a href="modificadores-classe.html">Modificadores</a></td></tr>
+<tr><td><code>late</code></td><td>Variável que recebe valor depois.</td><td><a href="late.html">late</a></td></tr>
+<tr><td><code>library</code>, <code>part</code></td><td>Organizam uma biblioteca em vários arquivos.</td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>mixin</code></td><td>Cria um mixin.</td><td><a href="mixins.html">Mixins</a></td></tr>
+<tr><td><code>operator</code></td><td>Define um operador numa classe (<code>operator ==</code>).</td><td><a href="tostring-igualdade.html">toString, == e hashCode</a></td></tr>
+<tr><td><code>required</code></td><td>Parâmetro nomeado obrigatório.</td><td><a href="parametros-nomeados.html">Parâmetros Nomeados</a></td></tr>
+<tr><td><code>static</code></td><td>Membro da classe, não do objeto.</td><td><a href="static.html">static</a></td></tr>
+<tr><td><code>type</code></td><td>Em <code>extension type</code>.</td><td>—</td></tr>
+<tr><td><code>typedef</code></td><td>Dá um nome novo a um tipo.</td><td><a href="funcoes-valores.html">Funções como Valores</a></td></tr>
+</table>
+</div>
+
+<div class="cenario">
+<strong>Variável pode; classe não</strong>
+<pre class="file" data-file="nomes.dart">void main() {
+  var abstract = 1;
+  var async = 2;
+  var required = 3;
+  var get = 4;
+  var on = 5;
+  var sealed = 6;
+  print('$abstract $async $required $get $on $sealed');
+}
+</pre>
+<pre class="term">$ dart run nomes.dart
+1 2 3 4 5 6
+</pre>
+<p>Compilou e rodou. Mas uma <strong>classe</strong> chamada <code>required</code>:</p>
+<pre class="file" data-file="classe.dart">class required {}
+
+void main() {
+  print('oi');
+}
+</pre>
+<pre class="term">$ dart run classe.dart
+classe.dart:1:7: Error: Can't use 'required' as a name here.
+class required {}
+      ^^^^^^^^
+</pre>
+<p>"Não dá para usar <code>required</code> como nome aqui." Poder não quer dizer que deva: um <code>var get = 4;</code> confunde quem lê. Escolha nomes que digam o que a variável guarda.</p>
+</div>
+
+<hr>
+
+<h2 id="contexto">Palavras de contexto</h2>
+<p>Estas só têm sentido especial em certos lugares, e fora deles são nomes comuns, inclusive de classe: <code>async</code>, <code>base</code>, <code>hide</code>, <code>of</code>, <code>on</code>, <code>sealed</code>, <code>show</code>, <code>sync</code> e <code>when</code>. Duas delas, <code>await</code> e <code>yield</code>, têm uma restrição: não podem ser nome <strong>dentro</strong> de uma função <code>async</code>, <code>async*</code> ou <code>sync*</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Palavra</th><th>Onde tem sentido especial</th><th>Aula</th></tr>
+<tr><td><code>async</code>, <code>await</code></td><td>Funções assíncronas: <code>Future&lt;void&gt; main() async</code> e <code>await</code> espera um <code>Future</code>.</td><td><a href="async-await.html">async e await</a></td></tr>
+<tr><td><code>sync</code>, <code>yield</code></td><td>Geradores: <code>sync*</code>, <code>async*</code> e <code>yield</code> entrega um valor.</td><td><a href="async-star.html">Geradores</a></td></tr>
+<tr><td><code>on</code></td><td><code>on FormatException catch (e)</code>; também <code>mixin … on …</code> e <code>extension … on …</code>.</td><td><a href="excecoes.html">Exceções</a></td></tr>
+<tr><td><code>show</code>, <code>hide</code></td><td>Import de só uma parte de uma biblioteca: <code>import 'dart:math' show pi;</code></td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>of</code></td><td><code>part of</code>.</td><td><a href="imports.html">import e export</a></td></tr>
+<tr><td><code>base</code>, <code>sealed</code></td><td>Modificadores de classe <span class="versao">Dart 3.0</span>.</td><td><a href="modificadores-classe.html">Modificadores</a></td></tr>
+<tr><td><code>when</code></td><td>Condição extra num <code>case</code>: <code>case int n when n &gt; 0:</code> <span class="versao">Dart 3.0</span>.</td><td><a href="patterns.html">Patterns</a></td></tr>
+</table>
+</div>
+
+<div class="cenario">
+<strong><code>await</code> como nome numa função <code>async</code></strong>
+<pre class="file" data-file="espera.dart">Future&lt;void&gt; main() async {
+  var await = 1;
+  print(await);
+}
+</pre>
+<pre class="term">$ dart run espera.dart
+espera.dart:2:7: Error: 'await' can't be used as an identifier in 'async', 'async*', or 'sync*' methods.
+  var await = 1;
+      ^^^^^
+espera.dart:3:14: Error: Expected an identifier, but got ')'.
+Try inserting an identifier before ')'.
+  print(await);
+             ^
+</pre>
+<p>"<code>await</code> não pode ser identificador em métodos <code>async</code>, <code>async*</code> ou <code>sync*</code>." O segundo erro é consequência do primeiro: na linha 3, o Dart leu <code>await</code> como a palavra "espere" e esperava alguma coisa para esperar antes do <code>)</code>. Sem o <code>async</code> (num <code>void main()</code> comum), <code>var await = 1; var yield = 2; print(await + yield);</code> compila e mostra <code>3</code>, conferido no lab.</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-goal="outre:^Turma A\s*$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa não compila porque usa uma palavra reservada como nome. Rode, leia o erro e troque <code>class</code> por <code>turma</code> nas duas linhas.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var class = 'Turma A';
+  print(class);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var turma = 'Turma A';
+  print(turma);
+}
+</pre>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Livre:</strong> teste outras palavras como nome de variável: <code>late</code>, <code>show</code>, <code>if</code>, <code>this</code>. Quais compilam?</p>
+<pre class="script" data-file="main.dart">void main() {
+  var late = 'pode?';
+  print(late);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>33 reservadas</strong> nunca são nome: <code>assert break case catch class const continue default do else enum extends false final finally for if in is new null rethrow return super switch this throw true try var void while with</code>. O erro: <code>'class' can't be used as an identifier because it's a keyword.</code></li>
+  <li><strong>Identificadores embutidos</strong> (<code>abstract</code>, <code>required</code>, <code>late</code>, <code>get</code>…) podem ser nome de variável, mas não de classe: <code>Can't use 'required' as a name here.</code></li>
+  <li><strong>Palavras de contexto</strong> (<code>async</code>, <code>on</code>, <code>sealed</code>, <code>when</code>…) são livres; <code>await</code> e <code>yield</code> só não podem ser nome dentro de funções <code>async</code>/<code>async*</code>/<code>sync*</code>.</li>
+  <li>Maiúsculas importam: <code>Class</code> é um nome comum.</li>
+  <li><code>assert</code> só funciona com <code>dart run --enable-asserts</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
