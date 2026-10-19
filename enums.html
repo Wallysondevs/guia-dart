@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Enums — uma lista fechada de opções | Guia Dart</title>
+<meta name="description" content="Enums no Dart para quem nunca programou: enum Tamanho { pequeno, medio, grande }, name, index, values e byName, switch que confere se cobriu todas as opções, enums melhorados com campos, construtor const, getters e métodos (Dart 2.17), e os erros reais do Dart 3.13 (switch incompleto, valor que não existe, campo que não é final, byName com nome errado).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Enums</span></h1>
+
+<p class="intro">O açaí da lojinha vem em três tamanhos: pequeno, médio e grande. Não existe "médio e meio", nem "gigante". Se o programa guardasse o tamanho num texto (<code>'medio'</code>), nada impediria alguém de digitar <code>'médio'</code>, <code>'Medio'</code> ou <code>'mdeio'</code>, e o erro só apareceria quando o cliente fosse cobrado errado. Para uma <strong>lista fechada de opções</strong>, o Dart tem o <code>enum</code> (de <em>enumeration</em>, "enumeração", "lista numerada").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar um enum e usar os seus valores: <code>Tamanho.medio</code>.</li>
+  <li>O que são <code>name</code>, <code>index</code>, <code>values</code> e <code>byName</code>.</li>
+  <li>Como o <code>switch</code> confere se você tratou <strong>todas</strong> as opções.</li>
+  <li>Como fazer um <strong>enum melhorado</strong>: cada opção com os seus dados (mililitros, preço), construtor <code>const</code>, getters e métodos.</li>
+  <li>Os erros reais: <code>switch</code> incompleto, opção que não existe, campo que não é <code>final</code>, tentar criar um enum, e o <code>byName</code> com nome errado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o cardápio com botões</h2>
+<p>Pense na maquininha de pedidos do açaí. Em vez de um campo onde o cliente escreve o tamanho, ela tem <strong>três botões</strong>: P, M e G. O cliente não consegue pedir um tamanho que não existe, porque não há botão para ele. E quem programou a maquininha sabe exatamente quais casos tratar: três, nem mais, nem menos.</p>
+<p>O enum é esse conjunto de botões: um <strong>tipo novo</strong> cujos valores possíveis são só os que você listou.</p>
+
+<hr>
+
+<h2>1. O primeiro enum</h2>
+
+<pre class="file" data-file="tamanho.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  final pedido = Tamanho.medio;
+  print(pedido);
+  print(pedido.name);
+  print(pedido.index);
+  print(pedido == Tamanho.medio);
+  print(pedido == Tamanho.grande);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>enum Tamanho { … }</dt><dd>Cria o tipo <code>Tamanho</code>. Como classes, enums têm nome em <code>UpperCamelCase</code> e ficam fora do <code>main</code>.</dd>
+  <dt>pequeno, medio, grande</dt><dd>Os valores possíveis, separados por vírgula, em <code>lowerCamelCase</code> e sem acento (são nomes de código, como variáveis).</dd>
+  <dt>Tamanho.medio</dt><dd>Um valor do enum: o nome do tipo, um ponto, o nome da opção. A variável <code>pedido</code> é do tipo <code>Tamanho</code>.</dd>
+  <dt>pedido.name</dt><dd>O nome da opção, como texto: <code>'medio'</code>.</dd>
+  <dt>pedido.index</dt><dd>A posição na lista, <strong>começando do 0</strong>: pequeno é 0, medio é 1, grande é 2.</dd>
+  <dt>pedido == Tamanho.medio</dt><dd>Valores de enum se comparam com <code>==</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run tamanho.dart
+Tamanho.medio
+medio
+1
+true
+false
+</pre>
+
+<p>Repare na diferença entre a primeira e a segunda linha: <code>print(pedido)</code> mostra <code>Tamanho.medio</code> (o tipo junto); <code>pedido.name</code> mostra só <code>medio</code>. Para mostrar ao cliente, use o <code>name</code> (ou um texto próprio, como na seção 4).</p>
+
+<hr>
+
+<h2>2. Todas as opções: <code>values</code> e <code>byName</code></h2>
+
+<pre class="file" data-file="values.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  print(Tamanho.values);
+  print('Temos ${Tamanho.values.length} tamanhos:');
+  for (final t in Tamanho.values) {
+    print('${t.index} - ${t.name}');
+  }
+  final digitado = 'grande';
+  final escolhido = Tamanho.values.byName(digitado);
+  print('Você escolheu: $escolhido');
+}
+</pre>
+
+<pre class="term">$ dart run values.dart
+[Tamanho.pequeno, Tamanho.medio, Tamanho.grande]
+Temos 3 tamanhos:
+0 - pequeno
+1 - medio
+2 - grande
+Você escolheu: Tamanho.grande
+</pre>
+
+<dl class="anatomy">
+  <dt>Tamanho.values</dt><dd>Uma <a href="list.html">lista</a> com todas as opções, na ordem em que foram declaradas. Serve para montar um menu, percorrer com <code>for-in</code>, contar com <code>.length</code>.</dd>
+  <dt>Tamanho.values.byName('grande')</dt><dd>O caminho de volta: do <strong>texto</strong> para a opção. Útil quando o tamanho vem do teclado ou de um arquivo. Se o texto não for o nome de nenhuma opção, dá exceção (veja <a href="#errado">Quando dá errado</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>3. Enum e <code>switch</code>: o Dart confere se faltou algum caso</h2>
+<p>O melhor amigo do enum é o <code>switch</code> (veja <a href="switch.html">switch e Expressões switch</a>). Como o Dart conhece <strong>todas</strong> as opções, ele confere se você tratou cada uma:</p>
+
+<pre class="file" data-file="switch_enum.dart">enum Tamanho { pequeno, medio, grande }
+
+double preco(Tamanho t) {
+  return switch (t) {
+    Tamanho.pequeno =&gt; 5.0,
+    Tamanho.medio =&gt; 7.0,
+    Tamanho.grande =&gt; 9.5,
+  };
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('Açaí ${t.name}: R\$ ${preco(t).toStringAsFixed(2)}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run switch_enum.dart
+Açaí pequeno: R$ 5.00
+Açaí medio: R$ 7.00
+Açaí grande: R$ 9.50
+</pre>
+
+<p>Não há <code>default</code> nem <code>_</code> no fim, e não precisa: os três casos cobrem tudo. Se um dia a Ana acrescentar <code>gigante</code> ao enum, este <code>switch</code> para de compilar e aponta exatamente o que falta (a mensagem está em <a href="#errado">Quando dá errado</a>). Por isso, com enums, <strong>evite o <code>_</code></strong>: ele engoliria a opção nova sem avisar.</p>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> acrescente <code>gigante</code> ao enum (<code>{ pequeno, medio, grande, gigante }</code>) e rode. Leia o erro e acrescente o caso que falta no <code>switch</code>, com preço 12.0.</p>
+<pre class="script" data-file="main.dart">enum Tamanho { pequeno, medio, grande }
+
+double preco(Tamanho t) {
+  return switch (t) {
+    Tamanho.pequeno =&gt; 5.0,
+    Tamanho.medio =&gt; 7.0,
+    Tamanho.grande =&gt; 9.5,
+  };
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('Açaí ${t.name}: R\$ ${preco(t).toStringAsFixed(2)}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Enums melhorados: cada opção com os seus dados <span class="versao">Dart 2.17</span></h2>
+<p>Na seção 3, o preço de cada tamanho morava num <code>switch</code>, longe do enum. Se a Ana quisesse também os mililitros, seria outro <code>switch</code>. Desde o Dart 2.17, um enum pode ter <strong>campos, construtor, getters e métodos</strong>, como uma classe. Os dados de cada opção ficam junto dela:</p>
+
+<pre class="file" data-file="melhorado.dart">enum Tamanho {
+  pequeno(300, 5.0),
+  medio(500, 7.0),
+  grande(700, 9.5);
+
+  const Tamanho(this.ml, this.preco);
+
+  final int ml;
+  final double preco;
+
+  String get rotulo =&gt; '${name.toUpperCase()} ($ml ml)';
+
+  double precoPorLitro() =&gt; preco / ml * 1000;
+}
+
+void main() {
+  for (final t in Tamanho.values) {
+    print('${t.rotulo}: R\$ ${t.preco.toStringAsFixed(2)}'
+        ' - R\$ ${t.precoPorLitro().toStringAsFixed(2)} o litro');
+  }
+  print(Tamanho.grande.ml);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>pequeno(300, 5.0),</dt><dd>Cada opção agora tem parênteses com os seus dados, que vão para o construtor: 300 ml e R$ 5,00.</dd>
+  <dt>grande(700, 9.5);</dt><dd>Depois da <strong>última</strong> opção vem <strong>ponto e vírgula</strong>, não vírgula: é ele que separa a lista de opções do resto (construtor, campos, métodos).</dd>
+  <dt>const Tamanho(this.ml, this.preco);</dt><dd>O construtor. Ele é <code>const</code> porque as opções de um enum são constantes, criadas uma vez só (veja <a href="final-const.html">final e const</a>). Ninguém chama esse construtor de fora: só as opções lá de cima.</dd>
+  <dt>final int ml; final double preco;</dt><dd>Os campos. Têm de ser <code>final</code>: o médio tem 500 ml para sempre.</dd>
+  <dt>String get rotulo</dt><dd>Um getter (veja <a href="getters-setters.html">get e set</a>) que usa o <code>name</code> de cada opção.</dd>
+  <dt>double precoPorLitro()</dt><dd>Um método, como os de uma classe.</dd>
+</dl>
+
+<pre class="term">$ dart run melhorado.dart
+PEQUENO (300 ml): R$ 5.00 - R$ 16.67 o litro
+MEDIO (500 ml): R$ 7.00 - R$ 14.00 o litro
+GRANDE (700 ml): R$ 9.50 - R$ 13.57 o litro
+700
+</pre>
+
+<p>Agora o preço, os mililitros e o rótulo de cada tamanho estão num lugar só. Para mudar o preço do médio, a Ana mexe numa linha. E a conta mostrou uma coisa que ela suspeitava: o grande sai mais barato por litro.</p>
+
+<h3>Outro exemplo: as etapas de um pedido</h3>
+
+<pre class="file" data-file="status.dart">enum StatusPedido {
+  recebido('Recebemos o seu pedido'),
+  preparando('Estamos preparando'),
+  saiu('Saiu para entrega'),
+  entregue('Entregue. Bom apetite!');
+
+  const StatusPedido(this.mensagem);
+
+  final String mensagem;
+
+  bool get terminou =&gt; this == StatusPedido.entregue;
+}
+
+void main() {
+  var status = StatusPedido.recebido;
+  print('${status.name}: ${status.mensagem}');
+  status = StatusPedido.saiu;
+  print('${status.name}: ${status.mensagem}');
+  print('Terminou? ${status.terminou}');
+  print('Terminou? ${StatusPedido.entregue.terminou}');
+}
+</pre>
+
+<pre class="term">$ dart run status.dart
+recebido: Recebemos o seu pedido
+saiu: Saiu para entrega
+Terminou? false
+Terminou? true
+</pre>
+
+<p>A variável <code>status</code> é <code>var</code> e pode mudar de etapa; o que não muda são as etapas em si e as suas mensagens. Dentro do enum, <code>this</code> é a opção atual: <code>this == StatusPedido.entregue</code> pergunta "eu sou a etapa entregue?".</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Antes de existirem enums, era comum guardar opções como texto (<code>'medio'</code>) ou número (<code>1</code> = médio). Compare:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Texto <code>'medio'</code></th><th>Número <code>1</code></th><th><code>Tamanho.medio</code></th></tr>
+<tr><td>Erro de digitação</td><td>Passa calado (<code>'mdeio'</code>)</td><td>Passa calado (<code>7</code>)</td><td>Erro de compilação</td></tr>
+<tr><td>O <code>switch</code> avisa se faltou caso</td><td>Não</td><td>Não</td><td>Sim</td></tr>
+<tr><td>Dados junto (ml, preço)</td><td>Não</td><td>Não</td><td>Sim, com enum melhorado</td></tr>
+<tr><td>Ler do teclado ou arquivo</td><td>Direto</td><td>Com <code>int.parse</code></td><td>Com <code>values.byName</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma lista fechada de opções, sem dados</td><td><code>enum Tamanho { pequeno, medio, grande }</code></td></tr>
+<tr><td>Cada opção tem dados fixos (preço, ml, mensagem)</td><td>Enum melhorado, com campos <code>final</code> e construtor <code>const</code></td></tr>
+<tr><td>Comportamento diferente para cada opção</td><td><code>switch</code> sem <code>_</code>, ou um getter/método no enum</td></tr>
+<tr><td>As opções têm dados <strong>diferentes</strong> entre si (o Pix tem chave, o cartão tem número)</td><td>Classes com <code>sealed</code> (aula <a href="modificadores-classe.html">sealed, final, base e interface</a>)</td></tr>
+<tr><td>A lista de opções muda enquanto o programa roda (produtos cadastrados)</td><td>Não é enum: use uma <a href="list.html">List</a> ou um <a href="map.html">Map</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>switch</code> esqueceu uma opção</strong>
+<pre class="file" data-file="erro_naoexaustivo.dart">enum Tamanho { pequeno, medio, grande }
+
+double preco(Tamanho t) {
+  return switch (t) {
+    Tamanho.pequeno =&gt; 5.0,
+    Tamanho.medio =&gt; 7.0,
+  };
+}
+
+void main() {
+  print(preco(Tamanho.medio));
+}
+</pre>
+<pre class="term">$ dart run erro_naoexaustivo.dart
+erro_naoexaustivo.dart:4:18: Error: The type 'Tamanho' is not exhaustively matched by the switch cases since it doesn't match 'Tamanho.grande'.
+ - 'Tamanho' is from 'erro_naoexaustivo.dart'.
+Try adding a wildcard pattern or cases that match 'Tamanho.grande'.
+  return switch (t) {
+                 ^
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro_naoexaustivo.dart:4:18: Error:</code> erro de compilação (código 254) na linha 4, coluna 18, onde está o <code>t</code> do <code>switch</code>.</li>
+  <li>"O tipo <code>Tamanho</code> não é coberto <strong>por completo</strong> pelos casos do switch, porque eles não pegam <code>Tamanho.grande</code>." <em>Exhaustive</em> = "exaustivo", "que esgota todas as possibilidades". O Dart diz até <strong>qual</strong> opção faltou.</li>
+  <li><code>- 'Tamanho' is from …</code>: de que arquivo vem o tipo.</li>
+  <li>"Acrescente um padrão curinga (o <code>_</code>) ou casos que peguem <code>Tamanho.grande</code>." Prefira a segunda sugestão.</li>
+</ul>
+<p>Repare que o programa nem precisava do grande (o <code>main</code> só pede o médio), e mesmo assim o Dart recusou. É de propósito: o erro aparece <strong>antes</strong> de algum cliente pedir um açaí grande. <strong>Como consertar:</strong> <code>Tamanho.grande =&gt; 9.5,</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou uma opção que não existe</strong>
+<pre class="file" data-file="erro_naoexiste.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  final pedido = Tamanho.gigante;
+  print(pedido);
+}
+</pre>
+<pre class="term">$ dart run erro_naoexiste.dart
+erro_naoexiste.dart:4:26: Error: Member not found: 'gigante'.
+  final pedido = Tamanho.gigante;
+                         ^^^^^^^
+</pre>
+<p>"Membro não encontrado: <code>gigante</code>." É a maquininha sem o botão: o pedido impossível nem chega a ser feito. Com texto (<code>'gigante'</code>), o programa teria rodado. <strong>Como consertar:</strong> use uma das opções que existem, ou acrescente <code>gigante</code> ao enum (e aos <code>switch</code>, que o Dart vai apontar).</p>
+</div>
+
+<div class="cenario">
+<strong>Campo de enum que não é <code>final</code></strong>
+<pre class="file" data-file="erro_var.dart">enum Tamanho {
+  pequeno(300),
+  medio(500),
+  grande(700);
+
+  const Tamanho(this.ml);
+
+  int ml;
+}
+
+void main() {
+  Tamanho.medio.ml = 550;
+  print(Tamanho.medio.ml);
+}
+</pre>
+<pre class="term">$ dart run erro_var.dart
+erro_var.dart:6:9: Error: Enum constructors are constant so all fields must be final.
+  const Tamanho(this.ml);
+        ^
+erro_var.dart:8:7: Context: Field isn't final, but constructor is 'const'.
+  int ml;
+      ^
+</pre>
+<p>"Construtores de enum são constantes, então todos os campos têm de ser <code>final</code>." E o <code>Context:</code> aponta o culpado: "o campo não é <code>final</code>, mas o construtor é <code>const</code>". A Ana queria aumentar o médio para 550 ml no meio do programa, mas as opções de um enum não mudam. <strong>Como consertar:</strong> <code>final int ml;</code>, e mude o valor na declaração: <code>medio(550)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou criar um valor novo do enum</strong>
+<pre class="file" data-file="erro_criar.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  final t = Tamanho();
+  print(t);
+}
+</pre>
+<pre class="term">$ dart run erro_criar.dart
+erro_criar.dart:4:13: Error: Enums can't be instantiated.
+  final t = Tamanho();
+            ^^^^^^^
+</pre>
+<p>"Enums não podem ser instanciados." Os únicos valores são os da lista; não dá para fabricar outro. <strong>Como consertar:</strong> <code>final t = Tamanho.pequeno;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>byName</code> com um nome que não existe (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_byname.dart">enum Tamanho { pequeno, medio, grande }
+
+void main() {
+  final pedidos = ['medio', 'grande', 'gg'];
+  for (final p in pedidos) {
+    final t = Tamanho.values.byName(p);
+    print('Pedido: ${t.name}');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_byname.dart
+Pedido: medio
+Pedido: grande
+Unhandled exception:
+Invalid argument (name): No enum value with that name: "gg"
+#0      EnumByName.byName (dart:core/enum.dart:180:5)
+#1      main (file:///home/ana/erro_byname.dart:6:30)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Os textos vêm de fora (um arquivo de pedidos), então o compilador não tem como conferir. Os dois primeiros deram certo; o terceiro, <code>"gg"</code>, não:</p>
+<ul>
+  <li><code>Unhandled exception:</code> exceção não tratada, código de saída 255.</li>
+  <li><code>Invalid argument (name): No enum value with that name: "gg"</code>: "argumento inválido (o parâmetro <code>name</code>): não há valor do enum com esse nome". Esse tipo de exceção se chama <code>ArgumentError</code>.</li>
+  <li><code>#0 EnumByName.byName (dart:core/…)</code> é o <code>byName</code>, dentro da biblioteca do Dart. <code>#1 main</code>, linha 6, coluna 30, é a linha do seu código que o chamou.</li>
+</ul>
+<p><strong>Como consertar:</strong> confira antes, procurando entre os nomes: <code>Tamanho.values.where((t) =&gt; t.name == p).firstOrNull</code> devolve a opção ou <code>null</code> (veja <a href="iterables.html">map, where, reduce e Outros</a>); ou trate a exceção com <code>try</code>/<code>catch</code> (aula <a href="excecoes.html">Exceções</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>enum Tamanho { pequeno, medio, grande }</code></td><td>Declara um enum simples</td></tr>
+<tr><td><code>Tamanho.medio</code></td><td>Um valor do enum (<code>print</code> mostra <code>Tamanho.medio</code>)</td></tr>
+<tr><td><code>t.name</code></td><td>O nome da opção, como texto: <code>medio</code></td></tr>
+<tr><td><code>t.index</code></td><td>A posição, a partir de 0</td></tr>
+<tr><td><code>Tamanho.values</code></td><td>A lista de todas as opções, na ordem declarada</td></tr>
+<tr><td><code>Tamanho.values.byName('medio')</code></td><td>Do texto para a opção; exceção se o nome não existir</td></tr>
+<tr><td><code>switch (t) { Tamanho.pequeno =&gt; …, … }</code></td><td>O Dart confere se todas as opções foram tratadas</td></tr>
+<tr><td><code>pequeno(300, 5.0), …, grande(700, 9.5);</code></td><td>Opções com dados (enum melhorado <span class="versao">Dart 2.17</span>); <code>;</code> depois da última</td></tr>
+<tr><td><code>const Tamanho(this.ml, this.preco);</code></td><td>Construtor do enum melhorado</td></tr>
+<tr><td><code>final int ml;</code></td><td>Campos do enum: sempre <code>final</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The type 'X' is not exhaustively matched by the switch cases since it doesn't match 'X.opcao'.</code></td><td>Faltou um caso no <code>switch</code></td></tr>
+<tr><td><code>Member not found: 'opcao'.</code></td><td>Opção com nome errado ou que não existe</td></tr>
+<tr><td><code>Enum constructors are constant so all fields must be final.</code></td><td>Campo do enum sem <code>final</code></td></tr>
+<tr><td><code>Enums can't be instantiated.</code></td><td>Tentou criar <code>Tamanho()</code></td></tr>
+<tr><td><code>Invalid argument (name): No enum value with that name: "x"</code></td><td><code>byName</code> com um texto que não é nome de opção (durante a execução)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual o índice?</h3>
+<p>Em <code>enum Dia { seg, ter, qua, qui, sex }</code>, quanto vale <code>Dia.qui.index</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="índice" size="3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>O que <code>print(Tamanho.grande.name)</code> mostra?</p>
+<div class="ex-code"><input data-answer="grande" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete o enum melhorado</h3>
+<div class="ex-code">enum Cor {<br>&nbsp;&nbsp;vermelho('#FF0000'),<br>&nbsp;&nbsp;azul('#0000FF')<input data-answer=";" aria-label="o que vem depois da última opção" size="2"><br><br>&nbsp;&nbsp;<input data-answer="const" aria-label="palavra antes do construtor"> Cor(this.hex);<br>&nbsp;&nbsp;<input data-answer="final" aria-label="palavra antes do campo"> String hex;<br>}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que é melhor não usar <code>_</code> num <code>switch</code> sobre enum?</p>
+<label><input type="radio" name="q4"> O <code>_</code> não funciona com enums</label>
+<label><input type="radio" name="q4"> Se uma opção nova for acrescentada, o <code>_</code> a engole e o Dart não avisa que faltou tratá-la</label>
+<label><input type="radio" name="q4"> O <code>_</code> deixa o programa mais lento</label>
+<label><input type="radio" name="q4"> O <code>_</code> só serve para números</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>Tamanho.values.byName('Grande')</code> (com G maiúsculo), sendo a opção <code>grande</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Devolve <code>Tamanho.grande</code></label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+<label><input type="radio" name="q5"> Devolve <code>null</code></label>
+<label><input type="radio" name="q5"> Exceção durante a execução: não há opção com esse nome exato</label>
+</div>
+
+<h3>Missão final: as coberturas do açaí</h3>
+
+<div class="trydart" data-goal="out:granola: R$ 1.50;;out:leiteNinho: R$ 3.00;;out:morango: R$ 2.50;;src:const\s+Cobertura\(">
+<p class="try-task"><strong>Missão:</strong> o <code>main</code> usa <code>c.preco</code>, mas o enum ainda não tem preço, e o programa não compila. Transforme <code>Cobertura</code> num enum melhorado: granola custa 1.5, leite Ninho 3.0 e morango 2.5. (Lembre: o <code>;</code> depois da última opção, o construtor <code>const</code> e o campo <code>final</code>.)</p>
+<pre class="script" data-file="main.dart">enum Cobertura { granola, leiteNinho, morango }
+
+void main() {
+  for (final c in Cobertura.values) {
+    print('${c.name}: R\$ ${c.preco.toStringAsFixed(2)}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">enum Cobertura {
+  granola(1.5),
+  leiteNinho(3.0),
+  morango(2.5);
+
+  const Cobertura(this.preco);
+
+  final double preco;
+}
+
+void main() {
+  for (final c in Cobertura.values) {
+    print('${c.name}: R\$ ${c.preco.toStringAsFixed(2)}');
+  }
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial parou com <code>Error: The getter 'preco' isn't defined for the type 'Cobertura'.</code>, e a solução mostrou <code>granola: R$ 1.50</code>, <code>leiteNinho: R$ 3.00</code> e <code>morango: R$ 2.50</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>enum</code> cria um tipo com uma lista fechada de valores: <code>Tamanho.pequeno</code>, <code>Tamanho.medio</code>, <code>Tamanho.grande</code>. Erros de digitação viram erros de compilação.</li>
+  <li>Cada valor tem <code>name</code> (o texto) e <code>index</code> (a posição, a partir de 0); <code>Tamanho.values</code> lista todos; <code>values.byName('medio')</code> faz o caminho de volta e dá exceção com nome errado.</li>
+  <li>Num <code>switch</code> sem <code>_</code>, o Dart exige um caso para cada opção e diz qual faltou.</li>
+  <li>Enum melhorado (Dart 2.17+): opções com dados entre parênteses, <code>;</code> depois da última, construtor <code>const</code>, campos <code>final</code>, getters e métodos.</li>
+  <li>Enums não são instanciados (<code>Tamanho()</code> é erro) e os seus campos não mudam.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
