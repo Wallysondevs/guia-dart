@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart assert — conferências que só valem durante o desenvolvimento | Guia Dart</title>
+<meta name="description" content="O assert do Dart para quem nunca programou: assert(condição, mensagem), por que dart run ignora o assert e dart run --enable-asserts não, o Failed assertion explicado linha por linha, assert no construtor, AssertionError, assert × throw e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">assert</span></h1>
+
+<p class="intro">Quem escreve um programa faz várias suposições: "a porcentagem de desconto sempre vai de 0 a 100", "o estoque nunca fica negativo", "o cliente sempre paga pelo menos o preço". O <code>assert</code> (em inglês, "afirmar, garantir") escreve essas suposições no próprio código: se uma delas for falsa, o programa para e avisa onde. Ele tem uma particularidade que pega muita gente de surpresa: <strong>com o <code>dart run</code> normal, o <code>assert</code> não faz nada</strong>. Ele só vale quando você liga a opção <code>--enable-asserts</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever <code>assert(condição)</code> e <code>assert(condição, 'mensagem')</code>.</li>
+  <li>A diferença real entre <code>dart run</code> (o <code>assert</code> é ignorado) e <code>dart run --enable-asserts</code> (ele confere).</li>
+  <li>Como ler a mensagem <code>Failed assertion: line 2 pos 10: …</code>.</li>
+  <li>Como usar o <code>assert</code> no construtor de uma classe.</li>
+  <li>Quando usar <code>assert</code> e quando usar <code>throw</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), uma vez com <code>dart run arquivo.dart</code> e outra com <code>dart run --enable-asserts arquivo.dart</code>, para você ver a diferença.</p>
+
+<hr>
+
+<h2>A ideia: a conferência do caixa no treinamento</h2>
+<p>Na primeira semana de trabalho na padaria, a gerente fica ao lado da Ana conferindo cada troco: "o troco nunca pode ser negativo; se for, alguma coisa está errada". Depois do treinamento, a gerente vai embora e a Ana trabalha sozinha: as conferências não acontecem mais, e o atendimento fica mais rápido.</p>
+<p>O <code>assert</code> é essa gerente:</p>
+<ul>
+  <li>Enquanto você <strong>desenvolve e testa</strong> o programa, liga as conferências (<code>--enable-asserts</code>): qualquer suposição falsa para o programa na hora, apontando a linha.</li>
+  <li>Quando o programa está <strong>pronto</strong>, roda sem elas: o <code>assert</code> some, e não gasta nem um instante.</li>
+</ul>
+<p>Por isso o <code>assert</code> serve para pegar <strong>enganos de quem programa</strong>, não para validar o que a pessoa digita (para isso existe o <code>throw</code>; veja <a href="#formas">Formas diferentes</a>).</p>
+
+<hr>
+
+<h2>1. O primeiro <code>assert</code></h2>
+
+<pre class="file" data-file="desconto.dart">double aplicarDesconto(double preco, double porcentagem) {
+  assert(porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100);
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(aplicarDesconto(50, 10));
+  print(aplicarDesconto(50, 150));
+  print('Fim');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>assert( … );</dt><dd>A conferência. Entre os parênteses vai uma <strong>condição</strong> (algo que dá <code>true</code> ou <code>false</code>, como no <a href="if-else.html">if</a>): a suposição que tem de ser verdadeira.</dd>
+  <dt>porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100</dt><dd>"A porcentagem está entre 0 e 100". Um desconto de 150% faria o preço ficar negativo: não faz sentido.</dd>
+  <dt>aplicarDesconto(50, 150)</dt><dd>Um engano de propósito: quem chamou a função passou 150.</dd>
+</dl>
+
+<h3>Rodando do jeito normal: o <code>assert</code> é ignorado</h3>
+<pre class="term">$ dart run desconto.dart
+45.0
+-25.0
+Fim
+$ echo $?
+0
+</pre>
+<p>O desconto de 150% passou sem nenhum aviso, e o preço virou <code>-25.0</code>. O programa terminou "bem" (código 0). Com o <code>dart run</code> simples, a linha do <code>assert</code> é pulada inteira.</p>
+
+<h3>Rodando com <code>--enable-asserts</code>: o <code>assert</code> confere</h3>
+<pre class="term">$ dart run --enable-asserts desconto.dart
+45.0
+Unhandled exception:
+'file:///home/ana/desconto.dart': Failed assertion: line 2 pos 10: 'porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100': is not true.
+#0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+#1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+#2      aplicarDesconto (file:///home/ana/desconto.dart:2:10)
+#3      main (file:///home/ana/desconto.dart:8:9)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<p>O mesmo arquivo, sem mudar nada. Linha por linha:</p>
+<dl class="anatomy">
+  <dt>--enable-asserts</dt><dd>"Ligue os asserts". Uma opção do comando <code>dart run</code>; vem <strong>antes</strong> do nome do arquivo.</dd>
+  <dt>45.0</dt><dd>O primeiro desconto (10%) passou na conferência.</dd>
+  <dt>Unhandled exception:</dt><dd>O <code>assert</code> falso lançou uma exceção, e ninguém a pegou (veja <a href="excecoes.html">Exceções</a>).</dd>
+  <dt>'file:///home/ana/desconto.dart': Failed assertion:</dt><dd>"Afirmação que falhou", no arquivo <code>desconto.dart</code>.</dd>
+  <dt>line 2 pos 10:</dt><dd>Na linha 2, coluna 10: onde começa a condição.</dd>
+  <dt>'porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100': is not true.</dt><dd>A condição copiada do seu código, e o veredito: "não é verdadeira".</dd>
+  <dt>#0, #1 _AssertionError…</dt><dd>Código interno do Dart que lança o erro: pode pular.</dd>
+  <dt>#2 aplicarDesconto (…:2:10) e #3 main (…:8:9)</dt><dd>O assert falhou dentro da <code>aplicarDesconto</code>, que foi chamada pelo <code>main</code> na <strong>linha 8</strong>: é lá que está o engano (o 150).</dd>
+  <dt>255</dt><dd>O código de saída de exceção não tratada. O <code>Fim</code> não apareceu.</dd>
+</dl>
+
+<div class="warning">
+<strong>A posição da opção importa</strong>
+<p>Escrita <strong>depois</strong> do nome do arquivo, a opção não liga nada: ela vira um argumento para o seu programa (veja <a href="argumentos.html">Argumentos da Linha de Comando</a>). Com a versão do programa que tem mensagem (seção 2):</p>
+<pre class="term">$ dart run desconto2.dart --enable-asserts
+45.0
+-25.0
+</pre>
+<p>O desconto de 150% passou de novo. O certo é <code>dart run --enable-asserts desconto2.dart</code>. Também funciona sem o <code>run</code>: <code>dart --enable-asserts desconto2.dart</code>.</p>
+</div>
+
+<hr>
+
+<h2>2. Uma mensagem para o <code>assert</code></h2>
+<p>O <code>assert</code> aceita um segundo valor, separado por vírgula: a mensagem que aparece quando a conferência falha. Ela pode ter <a href="interpolacao.html">interpolação</a>, para mostrar o valor que veio:</p>
+
+<pre class="file" data-file="desconto2.dart">double aplicarDesconto(double preco, double porcentagem) {
+  assert(porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100,
+      'porcentagem tem de ser de 0 a 100, veio $porcentagem');
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(aplicarDesconto(50, 10));
+  print(aplicarDesconto(50, 150));
+}
+</pre>
+
+<pre class="term">$ dart run --enable-asserts desconto2.dart
+45.0
+Unhandled exception:
+'file:///home/ana/desconto2.dart': Failed assertion: line 2 pos 10: 'porcentagem &gt;= 0 &amp;&amp; porcentagem &lt;= 100': porcentagem tem de ser de 0 a 100, veio 150.0
+#0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+#1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+#2      aplicarDesconto (file:///home/ana/desconto2.dart:2:10)
+#3      main (file:///home/ana/desconto2.dart:9:9)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>No lugar do <code>is not true.</code> veio a sua mensagem, com o valor que causou o problema (<code>150.0</code>, como <code>double</code>).</p>
+
+<div class="trydart" data-goal="src:assert\(pago &gt;= preco,;;semerro;;out:Troco: 8">
+<p class="try-task"><strong>Missão:</strong> acrescente uma mensagem ao <code>assert</code> da função <code>calcularTroco</code>: depois de <code>pago &gt;= preco</code>, ponha uma vírgula e o texto <code>'pagou $pago, mas custa $preco'</code>. O programa continua mostrando <code>Troco: 8</code>.</p>
+<pre class="script" data-file="main.dart">int calcularTroco(int pago, int preco) {
+  assert(pago &gt;= preco);
+  return pago - preco;
+}
+
+void main() {
+  print('Troco: ${calcularTroco(20, 12)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int calcularTroco(int pago, int preco) {
+  assert(pago &gt;= preco, 'pagou $pago, mas custa $preco');
+  return pago - preco;
+}
+
+void main() {
+  print('Troco: ${calcularTroco(20, 12)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>assert</code> no construtor</h2>
+<p>Um lugar clássico para o <code>assert</code> é o construtor de uma classe: ele confere os valores <strong>antes</strong> de o objeto existir. Vai na <strong>lista de inicialização</strong>, depois dos dois-pontos (veja <a href="construtores.html">Construtores</a>):</p>
+
+<pre class="file" data-file="ponto.dart">class Produto {
+  final String nome;
+  final int estoque;
+
+  Produto(this.nome, this.estoque)
+      : assert(nome.isNotEmpty, 'nome vazio'),
+        assert(estoque &gt;= 0, 'estoque negativo: $estoque');
+}
+
+void main() {
+  final p = Produto('pão', 30);
+  print('${p.nome}: ${p.estoque}');
+  final q = Produto('bolo', -2);
+  print('${q.nome}: ${q.estoque}');
+}
+</pre>
+
+<pre class="term">$ dart run ponto.dart
+pão: 30
+bolo: -2
+$ dart run --enable-asserts ponto.dart
+pão: 30
+Unhandled exception:
+'file:///home/ana/ponto.dart': Failed assertion: line 7 pos 16: 'estoque &gt;= 0': estoque negativo: -2
+#0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+#1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+#2      new Produto (file:///home/ana/ponto.dart:7:16)
+#3      main (file:///home/ana/ponto.dart:13:13)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>De novo os dois mundos: sem a opção, nasceu um bolo com estoque <code>-2</code>; com a opção, o construtor (<code>new Produto</code>, no stack trace) recusou na linha 7, e o <code>#3 main (…:13:13)</code> mostra quem tentou criar o bolo errado. Vários <code>assert</code> separados por vírgula são conferidos em ordem.</p>
+
+<hr>
+
+<h2>4. Mais dois detalhes</h2>
+
+<h3>O <code>assert</code> lança um <code>AssertionError</code></h3>
+<pre class="file" data-file="pega.dart">void main() {
+  try {
+    assert(1 + 1 == 3, 'a conta está errada');
+    print('passou');
+  } on AssertionError catch (e) {
+    print('Tipo: ${e.runtimeType}');
+    print('Mensagem: ${e.message}');
+  }
+}
+</pre>
+<pre class="term">$ dart run pega.dart
+passou
+$ dart run --enable-asserts pega.dart
+Tipo: _AssertionError
+Mensagem: a conta está errada
+</pre>
+<p>Dá para pegar com <code>on AssertionError</code>, mas quase nunca se faz isso: é um <code>Error</code>, sinal de engano no código, e o certo é consertar o código (veja a dica sobre <code>Exception</code> e <code>Error</code> em <a href="excecoes.html">Exceções</a>). E repare na primeira execução: sem a opção, até <code>1 + 1 == 3</code> "passou".</p>
+
+<h3>O que está dentro do <code>assert</code> nem roda</h3>
+<pre class="file" data-file="lado.dart">var contador = 0;
+
+bool contar() {
+  contador++;
+  return true;
+}
+
+void main() {
+  assert(contar());
+  print('contador = $contador');
+}
+</pre>
+<pre class="term">$ dart run lado.dart
+contador = 0
+$ dart run --enable-asserts lado.dart
+contador = 1
+</pre>
+<p>Sem a opção, a função <code>contar()</code> nem foi chamada. Por isso, <strong>nunca</strong> coloque dentro de um <code>assert</code> algo que o programa precisa que aconteça (somar, salvar, ler): só conferências.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A conferência do troco pode ser escrita com <code>assert</code> ou com <code>throw</code> (veja <a href="throw.html">throw</a>):</p>
+
+<pre class="file" data-file="troco.dart">int calcularTroco(int pago, int preco) {
+  assert(pago &gt;= preco, 'pagou $pago, mas custa $preco');
+  return pago - preco;
+}
+
+void main() {
+  print('Troco: ${calcularTroco(20, 12)}');
+  print('Troco: ${calcularTroco(10, 12)}');
+}
+</pre>
+<pre class="term">$ dart run troco.dart
+Troco: 8
+Troco: -2
+$ dart run --enable-asserts troco.dart
+Troco: 8
+Unhandled exception:
+'file:///home/ana/troco.dart': Failed assertion: line 2 pos 10: 'pago &gt;= preco': pagou 10, mas custa 12
+#0      _AssertionError._doThrowNew (dart:core-patch/errors_patch.dart:67:4)
+#1      _AssertionError._throwNew (dart:core-patch/errors_patch.dart:49:5)
+#2      calcularTroco (file:///home/ana/troco.dart:2:10)
+#3      main (file:///home/ana/troco.dart:8:19)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Com <code>if (pago &lt; preco) throw ArgumentError('…');</code> no lugar do <code>assert</code>, a recusa aconteceria <strong>sempre</strong>, com ou sem a opção. Qual escolher?</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma suposição do <strong>seu</strong> código, que só falha se você errou (a função interna que nunca deveria receber 150%)</td><td><code>assert</code>: confere enquanto você desenvolve, some no programa pronto</td></tr>
+<tr><td>Um valor que vem de fora: o que a pessoa digitou, um arquivo, a internet</td><td><code>throw</code> (ou <code>int.tryParse</code> e <code>if</code>): tem de conferir <strong>sempre</strong></td></tr>
+<tr><td>Uma função que outras pessoas vão usar (uma biblioteca)</td><td><code>throw ArgumentError</code>: quem chama vê a recusa mesmo sem <code>--enable-asserts</code></td></tr>
+<tr><td>Conferir os valores ao criar um objeto, durante o desenvolvimento</td><td><code>assert</code> na lista de inicialização do construtor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O <code>assert</code> "não funciona"</strong>
+<p>O erro mais comum nem tem mensagem: você escreve o <code>assert</code>, passa um valor errado de propósito, e nada acontece. É o que você viu na seção 1: com <code>dart run arquivo.dart</code>, os <code>assert</code> são ignorados. <strong>Como consertar:</strong> rode com <code>dart run --enable-asserts arquivo.dart</code> (a opção antes do nome do arquivo).</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses</strong>
+<pre class="file" data-file="a1.dart">void main() {
+  final nota = 11;
+  assert nota &lt;= 10;
+  print(nota);
+}
+</pre>
+<pre class="term">$ dart run a1.dart
+a1.dart:3:10: Error: Expected '(' before this.
+  assert nota &lt;= 10;
+         ^^^^
+a1.dart:3:3: Error: Expected ';' after this.
+  assert nota &lt;= 10;
+  ^^^^^^
+</pre>
+<p>"Era esperado <code>(</code> antes disto", apontando o <code>nota</code>. A segunda mensagem é consequência da primeira. Diferente do <code>assert</code> falso, este é um erro de <strong>compilação</strong>: aparece com ou sem <code>--enable-asserts</code>, e nada roda. <strong>Como consertar:</strong> <code>assert(nota &lt;= 10);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A condição não é <code>bool</code></strong>
+<pre class="file" data-file="a2.dart">void main() {
+  final nome = 'Ana';
+  assert(nome, 'nome vazio');
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run a2.dart
+a2.dart:3:10: Error: A value of type 'String' can't be assigned to a variable of type 'bool'.
+  assert(nome, 'nome vazio');
+         ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser usado onde se espera <code>bool</code>". O primeiro valor do <code>assert</code> tem de ser <code>true</code> ou <code>false</code>; um texto não serve (o Dart não tem "texto vazio é falso", como outras linguagens). <strong>Como consertar:</strong> escreva a pergunta inteira: <code>assert(nome.isNotEmpty, 'nome vazio');</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>assert(condição);</code></td><td>Com asserts ligados: se a condição for falsa, lança <code>AssertionError</code> (<code>… is not true.</code>)</td></tr>
+<tr><td><code>assert(condição, 'mensagem');</code></td><td>Idem, com a sua mensagem</td></tr>
+<tr><td><code>Construtor(…) : assert(…), assert(…);</code></td><td>Confere os valores ao criar o objeto</td></tr>
+<tr><td><code>dart run arquivo.dart</code></td><td>Os <code>assert</code> são <strong>ignorados</strong> (nem a condição roda)</td></tr>
+<tr><td><code>dart run --enable-asserts arquivo.dart</code></td><td>Os <code>assert</code> conferem</td></tr>
+<tr><td><code>dart --enable-asserts arquivo.dart</code></td><td>O mesmo, sem o <code>run</code></td></tr>
+<tr><td><code>dart run arquivo.dart --enable-asserts</code></td><td>Não liga nada: a opção vira argumento do programa</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A opção</h3>
+<p>Complete o comando para os <code>assert</code> conferirem:</p>
+<div class="ex-code">$ dart run <input data-answer="--enable-asserts" aria-label="opção"> troco.dart</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o <code>assert</code></h3>
+<div class="ex-code"><input data-answer="assert" aria-label="palavra-chave">(quantidade &gt;= 0, 'quantidade negativa');</div>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">3. O que <code>dart run desconto.dart</code> faz com um <code>assert(porcentagem &lt;= 100)</code> quando a porcentagem é 150?</p>
+<label><input type="radio" name="q3"> Nada: o <code>assert</code> é ignorado e o programa segue</label>
+<label><input type="radio" name="q3"> Para com <code>Failed assertion</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Troca a porcentagem por 100</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Para validar a idade que a pessoa digitou no teclado, o melhor é:</p>
+<label><input type="radio" name="q4"> <code>assert(idade &gt;= 0)</code></label>
+<label><input type="radio" name="q4"> Nenhuma conferência</label>
+<label><input type="radio" name="q4"> <code>if (idade &lt; 0) throw …</code> (ou um <code>if</code> que pergunte de novo): tem de valer sempre</label>
+<label><input type="radio" name="q4"> <code>assert(idade)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Na mensagem <code>Failed assertion: line 7 pos 16: 'estoque &gt;= 0': estoque negativo: -2</code>, o que é <code>estoque negativo: -2</code>?</p>
+<label><input type="radio" name="q5"> Uma mensagem automática do Dart</label>
+<label><input type="radio" name="q5"> A mensagem escrita no segundo valor do <code>assert</code></label>
+<label><input type="radio" name="q5"> O nome do arquivo</label>
+<label><input type="radio" name="q5"> O stack trace</label>
+</div>
+
+<h3>Missão final: o troco errado</h3>
+
+<div class="trydart" data-goal="out:Troco: 3;;semerro;;src:assert\(">
+<p class="try-task"><strong>Missão:</strong> a cliente pagou <strong>15</strong> reais por uma compra de 12, mas alguém digitou 10 no código, e o troco saiu negativo. Rodando com <code>--enable-asserts</code>, o <code>assert</code> pararia o programa na hora; sem a opção, o <code>-2</code> passa calado. Conserte o engano na chamada (não apague o <code>assert</code>) até aparecer <code>Troco: 3</code>.</p>
+<pre class="script" data-file="main.dart">int calcularTroco(int pago, int preco) {
+  assert(pago &gt;= preco, 'pagou $pago, mas custa $preco');
+  return pago - preco;
+}
+
+void main() {
+  print('Troco: ${calcularTroco(20, 12)}');
+  print('Troco: ${calcularTroco(10, 12)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int calcularTroco(int pago, int preco) {
+  assert(pago &gt;= preco, 'pagou $pago, mas custa $preco');
+  return pago - preco;
+}
+
+void main() {
+  print('Troco: ${calcularTroco(20, 12)}');
+  print('Troco: ${calcularTroco(15, 12)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>assert(condição, 'mensagem')</code> escreve uma suposição no código; se ela for falsa, lança <code>AssertionError</code> com <code>Failed assertion: line L pos C: 'condição': mensagem</code>.</li>
+  <li>Com <code>dart run arquivo.dart</code>, os <code>assert</code> são <strong>ignorados</strong>, e nem a condição roda. Só valem com <code>dart run --enable-asserts arquivo.dart</code> (a opção antes do arquivo).</li>
+  <li>Use <code>assert</code> para enganos de programação, enquanto desenvolve; use <code>throw</code> para o que vem de fora e tem de ser conferido sempre.</li>
+  <li>No construtor, o <code>assert</code> vai na lista de inicialização, depois dos dois-pontos.</li>
+  <li>Nunca ponha dentro do <code>assert</code> algo que o programa precisa que aconteça.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
