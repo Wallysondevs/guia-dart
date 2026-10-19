@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart StringBuffer — montando textos peça por peça | Guia Dart</title>
+<meta name="description" content="O StringBuffer do Dart para quem nunca programou: montar um texto peça por peça com write, writeln e writeAll, toString, length, isEmpty e clear, o cupom da padaria, por que += num laço grande é lento (medido no lab) e os erros reais do Dart 3 (StringBuffer não é String, operador + e argumentos a mais).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Montando Textos (StringBuffer)</span></h1>
+
+<p class="intro">Muitas vezes o texto que o programa vai mostrar não existe pronto: ele é <strong>montado aos poucos</strong>. O cupom da padaria ganha uma linha por item; uma lista de compras ganha um nome por volta do laço. Dá para fazer isso com <code>texto += '…'</code>, mas o Dart tem uma ferramenta feita para esse trabalho: o <code>StringBuffer</code> (em inglês, <em>buffer</em> é uma "área de rascunho", um lugar onde as coisas se acumulam antes de serem usadas).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Criar um <code>StringBuffer</code> e escrever nele com <code>write</code>, <code>writeln</code> e <code>writeAll</code>.</li>
+  <li>Transformar o rascunho em <code>String</code> com <code>toString()</code>, e quando o <code>print</code> faz isso sozinho.</li>
+  <li><code>length</code>, <code>isEmpty</code> e <code>clear()</code>.</li>
+  <li>Montar textos dentro de laços: o cupom e a tabuada.</li>
+  <li>Por que <code>+=</code> num laço muito grande é lento, com a medição real do lab.</li>
+  <li>Os erros reais: tratar o <code>StringBuffer</code> como se fosse uma <code>String</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o bloquinho do garçom</h2>
+<p>O garçom não escreve a conta final de uma vez. Ele tem um <strong>bloquinho</strong>: a cada pedido, anota mais uma linha. No fim, destaca a folha e entrega. Com <code>texto += '…'</code>, seria como passar a limpo uma folha <strong>nova inteira</strong> a cada pedido, copiando tudo o que já estava escrito, só para acrescentar uma linha. Para 3 pedidos, tanto faz. Para 200 mil, o garçom passaria o dia copiando.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No bloquinho</th><th>No Dart</th></tr>
+<tr><td>Pegar um bloquinho em branco</td><td><code>final cupom = StringBuffer();</code></td></tr>
+<tr><td>Anotar algo na mesma linha</td><td><code>cupom.write('Pão');</code></td></tr>
+<tr><td>Anotar e pular para a linha de baixo</td><td><code>cupom.writeln('Pão');</code></td></tr>
+<tr><td>Destacar a folha pronta</td><td><code>cupom.toString()</code></td></tr>
+<tr><td>Apagar tudo e recomeçar</td><td><code>cupom.clear();</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. O primeiro <code>StringBuffer</code></h2>
+
+<pre class="file" data-file="primeiro.dart">void main() {
+  final texto = StringBuffer();
+  texto.write('Pão');
+  texto.write(', ');
+  texto.write('leite');
+  texto.write(' e ');
+  texto.write('café');
+  print(texto.toString());
+  print(texto.length);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final texto = StringBuffer();</dt><dd>Cria um rascunho vazio. Os parênteses são obrigatórios: é assim que se cria um objeto de uma classe (veja <a href="classes.html">Classes</a>). A variável é <code>final</code> porque ela vai apontar <strong>sempre para o mesmo</strong> rascunho; quem muda é o conteúdo dele.</dd>
+  <dt>texto.write('Pão');</dt><dd>"Escreva": acrescenta <code>Pão</code> no fim do que já existe, sem pular linha.</dd>
+  <dt>texto.toString()</dt><dd>"Para texto": devolve tudo o que foi escrito, como uma <code>String</code> de verdade.</dd>
+  <dt>texto.length → 17</dt><dd>Quantos caracteres já foram escritos, como no <code>length</code> de uma <code>String</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run primeiro.dart
+Pão, leite e café
+17
+</pre>
+
+<hr>
+
+<h2>2. <code>writeln</code>: uma linha por vez (o cupom)</h2>
+<p><code>writeln</code> (<em>write line</em>, "escreva a linha") acrescenta o texto e uma <strong>quebra de linha</strong> no fim. O cupom da padaria:</p>
+
+<pre class="file" data-file="cupom.dart">void main() {
+  final cupom = StringBuffer();
+  cupom.writeln('PADARIA DO BAIRRO');
+  cupom.writeln('-' * 20);
+  cupom.writeln('Pão francês  R\$ 0,75');
+  cupom.writeln('Leite        R\$ 5,49');
+  cupom.writeln('-' * 20);
+  cupom.write('Obrigado!');
+  print(cupom);
+}
+</pre>
+
+<pre class="term">$ dart run cupom.dart
+PADARIA DO BAIRRO
+--------------------
+Pão francês  R$ 0,75
+Leite        R$ 5,49
+--------------------
+Obrigado!
+</pre>
+
+<ul>
+  <li><code>'-' * 20</code> repete o tracinho 20 vezes (veja <a href="strings-metodos.html">Métodos de String</a>).</li>
+  <li>A última linha usa <code>write</code>, sem quebra: assim o cupom não termina com uma linha vazia sobrando (o <code>print</code> já pula uma linha no fim).</li>
+  <li><code>print(cupom)</code>, sem o <code>.toString()</code>: o <code>print</code> chama o <code>toString()</code> sozinho, para qualquer objeto. Já para guardar o texto numa variável <code>String</code>, o <code>toString()</code> é obrigatório (veja <a href="#errado">Quando dá errado</a>).</li>
+</ul>
+
+<hr>
+
+<h2>3. Montar dentro de um laço</h2>
+<p>O lugar natural do <code>StringBuffer</code> é dentro de um laço (veja <a href="for.html">for</a>). Uma linha com os números de 1 a 5, separados por traço:</p>
+
+<pre class="file" data-file="laco.dart">void main() {
+  final linha = StringBuffer();
+  for (var i = 1; i &lt;= 5; i++) {
+    linha.write(i);
+    if (i &lt; 5) linha.write(' - ');
+  }
+  print(linha);
+}
+</pre>
+
+<pre class="term">$ dart run laco.dart
+1 - 2 - 3 - 4 - 5
+</pre>
+
+<p>O <code>write</code> aceita qualquer valor, não só textos: o <code>i</code> é um <code>int</code>, e o <code>StringBuffer</code> o transforma em texto. O <code>if (i &lt; 5)</code> evita um <code>' - '</code> sobrando depois do último número.</p>
+
+<p>E a tabuada do 7, guardada numa <code>String</code> para usar depois:</p>
+
+<pre class="file" data-file="tabuada.dart">void main() {
+  final tabuada = StringBuffer();
+  for (var i = 1; i &lt;= 5; i++) {
+    tabuada.writeln('7 x $i = ${7 * i}');
+  }
+  final texto = tabuada.toString();
+  print(texto.trim());
+  print('O texto tem ${texto.length} caracteres.');
+}
+</pre>
+
+<pre class="term">$ dart run tabuada.dart
+7 x 1 = 7
+7 x 2 = 14
+7 x 3 = 21
+7 x 4 = 28
+7 x 5 = 35
+O texto tem 54 caracteres.
+</pre>
+
+<p>Depois do <code>toString()</code>, <code>texto</code> é uma <code>String</code> comum, e todos os métodos de texto funcionam nela. O <code>trim()</code> tirou a quebra de linha que o último <code>writeln</code> deixou no fim.</p>
+
+<div class="trydart" data-goal="out:9 x 10 = 90;;src:StringBuffer">
+<p class="try-task"><strong>Missão:</strong> mude o programa para montar a tabuada do <strong>9</strong>, de 1 a <strong>10</strong>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final tabuada = StringBuffer();
+  for (var i = 1; i &lt;= 5; i++) {
+    tabuada.writeln('7 x $i = ${7 * i}');
+  }
+  print(tabuada.toString().trim());
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final tabuada = StringBuffer();
+  for (var i = 1; i &lt;= 10; i++) {
+    tabuada.writeln('9 x $i = ${9 * i}');
+  }
+  print(tabuada.toString().trim());
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. <code>writeAll</code>, valor inicial e <code>clear</code></h2>
+
+<pre class="file" data-file="writeall.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  final texto = StringBuffer('Lista: ');
+  texto.writeAll(compras, ', ');
+  print(texto);
+  texto.clear();
+  print('Depois do clear: [${texto.toString()}] ${texto.isEmpty}');
+}
+</pre>
+
+<pre class="term">$ dart run writeall.dart
+Lista: arroz, feijão, café
+Depois do clear: [] true
+</pre>
+
+<dl class="anatomy">
+  <dt>StringBuffer('Lista: ')</dt><dd>Um rascunho que já começa com um texto.</dd>
+  <dt>writeAll(compras, ', ')</dt><dd>"Escreva todos": escreve cada item da lista, com <code>', '</code> entre eles (o separador é opcional). Faz num comando só o que o laço da seção 3 fazia.</dd>
+  <dt>clear()</dt><dd>"Limpar": apaga tudo. O rascunho fica vazio, e o <code>isEmpty</code> passa a dar <code>true</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>5. Por que não só <code>+=</code>?</h2>
+<p>Lembra da aula <a href="strings-metodos.html">Métodos de String</a>: uma <code>String</code> <strong>nunca muda</strong>. Então <code>texto += 'x'</code> não acrescenta nada no texto antigo: ele cria um texto <strong>novo</strong>, copiando o antigo inteiro e mais o <code>x</code>. Num laço, a cópia fica maior a cada volta. O <code>StringBuffer</code> só acumula as peças e junta tudo uma vez, no <code>toString()</code>. A Ana mediu os dois jeitos montando um texto de 200 mil letras, com um cronômetro (<code>Stopwatch</code>):</p>
+
+<pre class="file" data-file="tempo.dart">void main() {
+  const n = 200000;
+  final relogio = Stopwatch()..start();
+  var texto = '';
+  for (var i = 0; i &lt; n; i++) {
+    texto += 'x';
+  }
+  print('Com +=: ${relogio.elapsedMilliseconds} ms (${texto.length} letras)');
+
+  relogio.reset();
+  final buffer = StringBuffer();
+  for (var i = 0; i &lt; n; i++) {
+    buffer.write('x');
+  }
+  final texto2 = buffer.toString();
+  print('Com StringBuffer: ${relogio.elapsedMilliseconds} ms (${texto2.length} letras)');
+}
+</pre>
+
+<pre class="term">$ dart run tempo.dart
+Com +=: 2876 ms (200000 letras)
+Com StringBuffer: 9 ms (200000 letras)
+$ dart run tempo.dart
+Com +=: 2870 ms (200000 letras)
+Com StringBuffer: 8 ms (200000 letras)
+</pre>
+
+<p>Quase <strong>3 segundos</strong> contra menos de <strong>10 milésimos</strong>: o mesmo texto, cerca de 300 vezes mais rápido. Os números mudam de um computador para outro (e de uma execução para outra), mas a diferença enorme se repete. (<code>ms</code> = milissegundos; o <code>..start()</code> liga o cronômetro logo ao criá-lo.)</p>
+
+<div class="tip">
+<strong>Então nunca usar <code>+=</code> em textos?</strong>
+<p>Não é isso. Para juntar algumas peças, <code>+=</code> e a interpolação (<code>'Olá, $nome!'</code>) são ótimos e mais simples. O <code>StringBuffer</code> vale a pena quando o texto é montado <strong>num laço</strong>, principalmente se o laço pode ser grande (um relatório, um arquivo, uma lista com milhares de itens).</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A linha <code>arroz, feijão, café</code> pode sair de quatro jeitos:</p>
+
+<pre class="file" data-file="formas.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+
+  // 1) += num laço
+  var a = '';
+  for (final item in compras) {
+    if (a.isNotEmpty) a += ', ';
+    a += item;
+  }
+
+  // 2) StringBuffer + write
+  final b = StringBuffer();
+  for (final item in compras) {
+    if (b.isNotEmpty) b.write(', ');
+    b.write(item);
+  }
+
+  // 3) StringBuffer + writeAll
+  final c = StringBuffer()..writeAll(compras, ', ');
+
+  // 4) join da lista
+  final d = compras.join(', ');
+
+  print(a);
+  print(b);
+  print(c);
+  print(d);
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+arroz, feijão, café
+arroz, feijão, café
+arroz, feijão, café
+arroz, feijão, café
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Juntar os itens de uma lista com um separador</td><td><code>lista.join(', ')</code>: uma linha, sem laço</td></tr>
+<tr><td>Montar um texto em várias etapas, com <code>if</code>s e laços no meio (cupom, relatório)</td><td><code>StringBuffer</code> com <code>write</code>/<code>writeln</code></td></tr>
+<tr><td>Juntar duas ou três peças</td><td>Interpolação: <code>'$nome mora em $cidade'</code></td></tr>
+<tr><td>Acrescentar pouca coisa, poucas vezes</td><td><code>+=</code> serve</td></tr>
+</table>
+</div>
+<p>O <code>..</code> do jeito 3 é a <strong>cascata</strong>: "crie o <code>StringBuffer</code> e, nele, chame <code>writeAll</code>", devolvendo o próprio buffer. Ele aparece de novo em <a href="classes.html">Classes</a>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Guardou o <code>StringBuffer</code> numa <code>String</code></strong>
+<pre class="file" data-file="err1.dart">void main() {
+  final cupom = StringBuffer();
+  cupom.write('Pão');
+  String texto = cupom;
+  print(texto);
+}
+</pre>
+<pre class="term">$ dart run err1.dart
+err1.dart:4:18: Error: A value of type 'StringBuffer' can't be assigned to a variable of type 'String'.
+ - 'StringBuffer' is from 'dart:core'.
+  String texto = cupom;
+                 ^
+</pre>
+<dl class="anatomy">
+  <dt>A value of type 'StringBuffer' can't be assigned to a variable of type 'String'.</dt><dd>"Um valor do tipo <code>StringBuffer</code> não pode ser guardado numa variável do tipo <code>String</code>." O rascunho não é o texto: é o bloquinho.</dd>
+  <dt>- 'StringBuffer' is from 'dart:core'.</dt><dd>Um lembrete de onde vem o tipo citado: da biblioteca principal do Dart (<code>dart:core</code>), que todo programa já tem.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>String texto = cupom.toString();</code> (ou <code>final texto = cupom.toString();</code>).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>+</code> ou um método de <code>String</code> no <code>StringBuffer</code></strong>
+<pre class="file" data-file="err2.dart">void main() {
+  final cupom = StringBuffer();
+  cupom + 'Pão';
+  print(cupom);
+}
+</pre>
+<pre class="term">$ dart run err2.dart
+err2.dart:3:9: Error: The operator '+' isn't defined for the type 'StringBuffer'.
+ - 'StringBuffer' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '+' operator.
+  cupom + 'Pão';
+        ^
+</pre>
+<p>"O operador <code>+</code> não existe para <code>StringBuffer</code>": para acrescentar, é <code>cupom.write('Pão')</code>. Com os métodos de texto acontece o mesmo; <code>cupom.toUpperCase()</code> dá <code>Error: The method 'toUpperCase' isn't defined for the type 'StringBuffer'.</code> <strong>Como consertar:</strong> converta primeiro, <code>cupom.toString().toUpperCase()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou vários textos para o <code>write</code>/<code>writeln</code></strong>
+<pre class="file" data-file="err4.dart">void main() {
+  final cupom = StringBuffer();
+  cupom.writeln('Pão', 'Leite');
+  print(cupom);
+}
+</pre>
+<pre class="term">$ dart run err4.dart
+err4.dart:3:16: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  cupom.writeln('Pão', 'Leite');
+               ^
+</pre>
+<p>"Argumentos demais: 1 permitido, 2 encontrados." O <code>write</code> e o <code>writeln</code> recebem <strong>um</strong> valor. <strong>Como consertar:</strong> um <code>writeln</code> por linha, ou <code>cupom.writeAll(['Pão', 'Leite'], '\n')</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>As palavras saíram grudadas</strong>
+<pre class="term">$ dart run err5.dart
+PãoLeite
+</pre>
+<p>Dois <code>write</code> seguidos (<code>cupom.write('Pão'); cupom.write('Leite');</code>) não põem nada entre os textos. O Dart não acusa erro: ele escreveu exatamente o que você mandou. <strong>Como consertar:</strong> use <code>writeln</code> (uma linha cada), escreva o separador (<code>cupom.write(', ')</code>) ou use <code>writeAll(lista, ', ')</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:arroz, feijão, café;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa não compila. Leia o erro e conserte, para mostrar <code>arroz, feijão, café</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  final texto = StringBuffer();
+  texto.writeAll(compras, ', ');
+  String resultado = texto;
+  print(resultado);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  final texto = StringBuffer();
+  texto.writeAll(compras, ', ');
+  String resultado = texto.toString();
+  print(resultado);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>StringBuffer()</code> / <code>StringBuffer('início')</code></td><td>Cria um rascunho vazio / começando com um texto</td></tr>
+<tr><td><code>b.write(valor)</code></td><td>Acrescenta o valor (qualquer tipo), sem quebra de linha</td></tr>
+<tr><td><code>b.writeln(valor)</code></td><td>Acrescenta o valor e uma quebra de linha (<code>b.writeln()</code> só a quebra)</td></tr>
+<tr><td><code>b.writeAll(lista, sep)</code></td><td>Acrescenta todos os itens, com o separador entre eles</td></tr>
+<tr><td><code>b.toString()</code></td><td>Devolve o texto montado, como <code>String</code></td></tr>
+<tr><td><code>b.length</code> / <code>b.isEmpty</code> / <code>b.isNotEmpty</code></td><td>Tamanho e "está vazio?"</td></tr>
+<tr><td><code>b.clear()</code></td><td>Apaga tudo</td></tr>
+<tr><td><code>print(b)</code></td><td>Mostra o texto (o <code>print</code> chama o <code>toString()</code>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'StringBuffer' can't be assigned to a variable of type 'String'.</code></td><td>Faltou o <code>.toString()</code></td></tr>
+<tr><td><code>The operator '+' isn't defined for the type 'StringBuffer'.</code></td><td>Use <code>write</code> em vez de <code>+</code></td></tr>
+<tr><td><code>The method '…' isn't defined for the type 'StringBuffer'.</code></td><td>Método de <code>String</code>: converta antes com <code>toString()</code></td></tr>
+<tr><td><code>Too many positional arguments: 1 allowed…</code></td><td><code>write</code>/<code>writeln</code> recebem um valor só</td></tr>
+<tr><td>Palavras grudadas</td><td>Faltou o separador entre os <code>write</code></td></tr>
+<tr><td>Programa lento montando texto num laço grande</td><td><code>+=</code> numa <code>String</code>: troque por <code>StringBuffer</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para montar <code>Oi, Ana</code> e guardar numa <code>String</code>:</p>
+<div class="ex-code">final b = <input data-answer="StringBuffer" aria-label="classe">();<br>b.<input data-answer="write" aria-label="método">('Oi, ');<br>b.write('Ana');<br>final texto = b.<input data-answer="toString" aria-label="método de conversão">();</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">2. Qual a diferença entre <code>write</code> e <code>writeln</code>?</p>
+<label><input type="radio" name="q2"> <code>writeln</code> mostra na tela; <code>write</code> não</label>
+<label><input type="radio" name="q2"> <code>writeln</code> acrescenta também uma quebra de linha no fim</label>
+<label><input type="radio" name="q2"> <code>write</code> aceita só textos; <code>writeln</code>, qualquer valor</label>
+<label><input type="radio" name="q2"> Nenhuma</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que <code>texto += 'x'</code> num laço de 200 mil voltas é lento?</p>
+<label><input type="radio" name="q3"> Porque o <code>+=</code> não funciona com textos</label>
+<label><input type="radio" name="q3"> Porque o Dart verifica a ortografia de cada texto</label>
+<label><input type="radio" name="q3"> Porque a <code>String</code> não muda: cada <code>+=</code> cria um texto novo, copiando tudo o que já havia</label>
+<label><input type="radio" name="q3"> Porque o <code>for</code> é lento</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que <code>print(b)</code> mostra, se <code>b</code> é um <code>StringBuffer</code> com <code>Pão</code> escrito?</p>
+<label><input type="radio" name="q4"> <code>Pão</code>: o <code>print</code> chama o <code>toString()</code> sozinho</label>
+<label><input type="radio" name="q4"> <code>Instance of 'StringBuffer'</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação</label>
+<label><input type="radio" name="q4"> Nada</label>
+</div>
+
+<h3>Missão final: a lista numerada</h3>
+
+<div class="trydart" data-goal="outre:^1\. arroz\n2\. feijão\n3\. café\n?$;;src:StringBuffer">
+<p class="try-task"><strong>Missão:</strong> monte, com um <code>StringBuffer</code> e um laço, a lista numerada de compras, uma por linha: <code>1. arroz</code>, <code>2. feijão</code>, <code>3. café</code>. Dica: <code>for (var i = 0; i &lt; compras.length; i++)</code> e <code>writeln('${i + 1}. ${compras[i]}')</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  final lista = StringBuffer();
+  // monte a lista aqui
+  print(lista.toString().trim());
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  final lista = StringBuffer();
+  for (var i = 0; i &lt; compras.length; i++) {
+    lista.writeln('${i + 1}. ${compras[i]}');
+  }
+  print(lista.toString().trim());
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>StringBuffer</code> é um rascunho para montar textos aos poucos: <code>write</code> (sem quebra), <code>writeln</code> (com quebra), <code>writeAll</code> (uma lista com separador).</li>
+  <li>No fim, <code>toString()</code> devolve a <code>String</code> pronta. O <code>print</code> faz isso sozinho; uma variável <code>String</code>, não.</li>
+  <li>O <code>StringBuffer</code> não é uma <code>String</code>: nada de <code>+</code> nem de métodos de texto nele.</li>
+  <li>Num laço grande, <code>+=</code> é lento (no lab, quase 3 s contra 9 ms para 200 mil letras), porque cada <code>+=</code> copia o texto inteiro.</li>
+  <li>Para só juntar uma lista, <code>lista.join(', ')</code> é o mais curto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
