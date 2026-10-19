@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart List — listas de valores, posições e tamanho | Guia Dart</title>
+<meta name="description" content="Listas (List) no Dart para quem nunca programou: criar com colchetes, List&lt;String&gt;, posições começando do 0, length, first e last, trocar um item, add, lista vazia, percorrer com for-in e com índice, final × const, List.filled e List.generate, listas dentro de listas e os erros reais do Dart 3 (RangeError, Bad state: No element, Cannot add to an unmodifiable list).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Listas (List)</span></h1>
+
+<p class="intro">Até agora, cada variável guardava <strong>um</strong> valor: um nome, um preço, uma nota. Mas a lista de compras da Ana tem 10 itens, a turma tem 30 notas, o estoque tem 50 produtos. Criar 30 variáveis (<code>nota1</code>, <code>nota2</code>…) seria um pesadelo. Para guardar <strong>vários valores em ordem</strong>, numa variável só, o Dart tem a <strong>lista</strong>, o tipo <code>List</code>. É a coleção mais usada da linguagem.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar uma lista com colchetes <code>[ ]</code> e qual é o tipo dela (<code>List&lt;String&gt;</code>).</li>
+  <li>Que as posições começam do <strong>0</strong>, e como ler e trocar um item: <code>compras[0]</code>.</li>
+  <li><code>length</code> (tamanho), <code>first</code> e <code>last</code>, <code>isEmpty</code>, e como acrescentar com <code>add</code>.</li>
+  <li>Como criar uma lista vazia do jeito certo: <code>&lt;int&gt;[]</code>.</li>
+  <li>Como percorrer a lista com <code>for-in</code> e com o índice.</li>
+  <li>A diferença entre <code>final</code> e <code>const</code> numa lista, e o que <code>b = a</code> faz.</li>
+  <li>Os erros reais: <code>RangeError</code>, <code>Bad state: No element</code>, o tipo errado e a lista que não aceita mudanças.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a fileira de armários</h2>
+<p>Imagine uma fileira de armários numerados no vestiário da escola. Cada armário guarda uma coisa, e você encontra qualquer uma pelo <strong>número</strong> do armário. Uma lista é isso:</p>
+<ul>
+  <li>os armários ficam <strong>em ordem</strong>, um ao lado do outro;</li>
+  <li>cada um tem um número, chamado <strong>índice</strong> (ou posição);</li>
+  <li>no Dart, a numeração começa do <strong>0</strong>, e não do 1 (como no prédio em que o térreo é o andar 0);</li>
+  <li>dá para trocar o conteúdo de um armário e acrescentar armários no fim da fileira.</li>
+</ul>
+
+<hr>
+
+<h2>1. Criando uma lista e lendo os itens</h2>
+
+<pre class="file" data-file="compras.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  print(compras);
+  print(compras[0]);
+  print(compras[2]);
+  print(compras.length);
+  print(compras.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run compras.dart
+[arroz, feijão, café]
+arroz
+café
+3
+List&lt;String&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>['arroz', 'feijão', 'café']</dt><dd>Uma <strong>lista literal</strong>: os itens entre colchetes, separados por vírgula. A ordem em que você escreve é a ordem em que eles ficam.</dd>
+  <dt>print(compras)</dt><dd>Mostra a lista inteira, entre colchetes. Repare que o <code>print</code> não mostra as aspas dos textos.</dd>
+  <dt>compras[0]</dt><dd>O item da posição 0: o <strong>primeiro</strong>. Os colchetes depois do nome da variável querem dizer "o item da posição…".</dd>
+  <dt>compras[2]</dt><dd>O item da posição 2: o <strong>terceiro</strong> (posições 0, 1, 2).</dd>
+  <dt>compras.length</dt><dd>O tamanho (<em>length</em> = "comprimento"): quantos itens a lista tem. Com 3 itens, as posições vão de 0 a 2: a última posição é sempre <code>length - 1</code>.</dd>
+  <dt>List&lt;String&gt;</dt><dd>O tipo da variável: "lista de <code>String</code>". O que vai entre <code>&lt; &gt;</code> é o tipo dos itens. O Dart descobriu sozinho, olhando os itens. (Esses sinais <code>&lt; &gt;</code> se chamam <strong>genéricos</strong>; veja <a href="genericos.html">Genéricos</a>.)</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Posição (índice)</th><th>0</th><th>1</th><th>2</th></tr>
+<tr><td>Item</td><td><code>'arroz'</code></td><td><code>'feijão'</code></td><td><code>'café'</code></td></tr>
+<tr><td>Como ler</td><td><code>compras[0]</code></td><td><code>compras[1]</code></td><td><code>compras[2]</code></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:feijão;;src:compras\[1\]">
+<p class="try-task"><strong>Missão:</strong> o programa mostra o primeiro item. Faça-o mostrar <code>feijão</code>, usando o índice certo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  print(compras[0]);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  print(compras[1]);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Trocando e acrescentando itens</h2>
+
+<pre class="file" data-file="mudar.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  compras[1] = 'lentilha';
+  compras.add('açúcar');
+  print(compras);
+  print('Itens: ${compras.length}');
+  print('Primeiro: ${compras.first}, último: ${compras.last}');
+}
+</pre>
+
+<pre class="term">$ dart run mudar.dart
+[arroz, lentilha, café, açúcar]
+Itens: 4
+Primeiro: arroz, último: açúcar
+</pre>
+
+<dl class="anatomy">
+  <dt>compras[1] = 'lentilha';</dt><dd>Troca o conteúdo da posição 1. O <code>feijão</code> some, e a <code>lentilha</code> fica no lugar dele.</dd>
+  <dt>compras.add('açúcar');</dt><dd><code>add</code> = "acrescentar": põe um item novo <strong>no fim</strong> da lista. A lista cresce, e o <code>length</code> passa de 3 para 4.</dd>
+  <dt>compras.first / compras.last</dt><dd>O primeiro e o último item. O mesmo que <code>compras[0]</code> e <code>compras[compras.length - 1]</code>, só que mais fácil de ler.</dd>
+</dl>
+
+<div class="note">
+<strong>Mas a lista não era <code>final</code>?</strong>
+<p>Era, e continua sendo. O <code>final</code> quer dizer que a <strong>variável</strong> <code>compras</code> vai apontar sempre para a <strong>mesma lista</strong> (a mesma fileira de armários). O <strong>conteúdo</strong> dos armários pode mudar à vontade. O que não pode é trocar a fileira inteira: <code>compras = ['pão'];</code> dá erro (veja <a href="#errado">Quando dá errado</a>). Para uma lista que nunca muda, nem por dentro, use <code>const</code> (seção 5).</p>
+</div>
+
+<p>Há muitos outros métodos para mexer na lista (inserir no meio, remover, procurar, ordenar…). Eles têm uma aula só para eles: <a href="list-metodos.html">Métodos de Lista</a>.</p>
+
+<hr>
+
+<h2>3. O tipo dos itens e a lista vazia</h2>
+
+<pre class="file" data-file="tipos.dart">void main() {
+  List&lt;double&gt; precos = [4.5, 12.9, 3.25];
+  final notas = &lt;int&gt;[];
+  print(notas);
+  print(notas.isEmpty);
+  notas.add(8);
+  notas.add(10);
+  print(notas);
+  print(notas.isNotEmpty);
+  final misturada = [1, 'dois', 3.0];
+  print(misturada.runtimeType);
+  print(precos.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run tipos.dart
+[]
+true
+[8, 10]
+true
+List&lt;Object&gt;
+List&lt;double&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>List&lt;double&gt; precos = […]</dt><dd>O tipo escrito por extenso. Funciona igual a <code>final precos = […]</code>; escreva quando ajudar a ler.</dd>
+  <dt>&lt;int&gt;[]</dt><dd>Uma lista <strong>vazia</strong> de inteiros. Como não há itens para o Dart olhar, você diz o tipo antes dos colchetes. <code>[]</code> mostra uma lista vazia.</dd>
+  <dt>isEmpty / isNotEmpty</dt><dd>"Está vazia?" e "não está vazia?", sempre <code>true</code> ou <code>false</code>. Mais claros que <code>length == 0</code>.</dd>
+  <dt>List&lt;Object&gt;</dt><dd>Misturando número e texto, o Dart escolhe o tipo que serve para todos: <code>Object</code> ("qualquer objeto"; veja <a href="dynamic-object.html">dynamic e Object</a>). Funciona, mas quase nunca é uma boa ideia: o Dart deixa de ajudar a conferir os itens.</dd>
+</dl>
+
+<div class="warning">
+<strong>Cuidado com o <code>[]</code> sem tipo</strong>
+<p><code>final precos = [];</code> cria uma <code>List&lt;dynamic&gt;</code>: uma lista que aceita <strong>qualquer coisa</strong> e em que o Dart não confere nada. Prefira sempre <code>&lt;double&gt;[]</code>. O último erro de <a href="#errado">Quando dá errado</a> mostra o que pode acontecer.</p>
+</div>
+
+<hr>
+
+<h2>4. Percorrendo a lista</h2>
+<p>Para fazer algo com cada item, use um laço. O <code>for-in</code> ("para cada item em") entrega um item por volta (veja <a href="for-in.html">for-in</a>); o <code>for</code> com contador entrega a posição (veja <a href="for.html">for</a>):</p>
+
+<pre class="file" data-file="percorrer.dart">void main() {
+  final notas = [8.5, 6.0, 9.5, 7.0];
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma = soma + nota;
+  }
+  print('Média: ${soma / notas.length}');
+  for (var i = 0; i &lt; notas.length; i++) {
+    print('Aluno ${i + 1}: ${notas[i]}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run percorrer.dart
+Média: 7.75
+Aluno 1: 8.5
+Aluno 2: 6.0
+Aluno 3: 9.5
+Aluno 4: 7.0
+</pre>
+
+<p>No segundo laço, a condição é <code>i &lt; notas.length</code> (<strong>menor</strong>, não menor ou igual): com 4 notas, <code>i</code> vai de 0 a 3, exatamente as posições que existem. O <code>i + 1</code> só serve para mostrar "Aluno 1" em vez de "Aluno 0".</p>
+
+<div class="trydart" data-goal="out:Total: R$ 20.65;;src:for\s*\(">
+<p class="try-task"><strong>Missão:</strong> some os preços da lista com um <code>for-in</code> e mostre o total. Deve aparecer <code>Total: R$ 20.65</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [4.5, 12.9, 3.25];
+  var total = 0.0;
+  // some os preços aqui
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [4.5, 12.9, 3.25];
+  var total = 0.0;
+  for (final preco in precos) {
+    total = total + preco;
+  }
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Lista que não muda: <code>const</code></h2>
+<p>Os dias úteis da semana nunca mudam. Para uma lista assim, use <code>const</code> (veja <a href="final-const.html">final e const</a>): ela fica <strong>congelada</strong>, por dentro e por fora.</p>
+
+<pre class="file" data-file="constlist.dart">void main() {
+  const diasUteis = ['seg', 'ter', 'qua', 'qui', 'sex'];
+  print(diasUteis);
+  diasUteis.add('sáb');
+}
+</pre>
+
+<pre class="term">$ dart run constlist.dart
+[seg, ter, qua, qui, sex]
+Unhandled exception:
+Unsupported operation: Cannot add to an unmodifiable list
+#0      UnmodifiableListMixin.add (dart:_internal/list.dart:112:5)
+#1      main (file:///home/ana/constlist.dart:4:13)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>"Operação não suportada: não dá para acrescentar a uma lista que não pode ser modificada." Repare que o programa <strong>compilou e rodou</strong> (a lista foi mostrada): o Dart só percebe na hora do <code>add</code>, linha 4 (a <code>#1 main</code>). Isso é bom quando é de propósito: ninguém consegue estragar a lista dos dias úteis sem querer.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Trocar a lista inteira (<code>x = […]</code>)</th><th>Mudar os itens (<code>add</code>, <code>x[0] = …</code>)</th></tr>
+<tr><td><code>var x = […]</code></td><td>Pode</td><td>Pode</td></tr>
+<tr><td><code>final x = […]</code></td><td>Não (erro de compilação)</td><td>Pode</td></tr>
+<tr><td><code>const x = […]</code></td><td>Não (erro de compilação)</td><td>Não (exceção ao rodar)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. Duas variáveis, a mesma lista</h2>
+
+<pre class="file" data-file="igual.dart">void main() {
+  final a = [1, 2, 3];
+  final b = a;
+  b.add(4);
+  print(a);
+  final c = [1, 2, 3, 4];
+  print(a == c);
+  print(a == b);
+}
+</pre>
+
+<pre class="term">$ dart run igual.dart
+[1, 2, 3, 4]
+false
+true
+</pre>
+
+<p>Surpresa: o <code>add</code> foi feito em <code>b</code>, e a lista <code>a</code> também ganhou o <code>4</code>. É que <code>final b = a;</code> <strong>não copia</strong> a lista: as duas variáveis passam a apontar para a <strong>mesma</strong> fileira de armários. E o <code>==</code> entre listas pergunta "é a mesma lista?", e não "têm os mesmos itens?": <code>a</code> e <code>c</code> têm os mesmos itens, mas são listas diferentes, então dá <code>false</code>. (Para copiar, use <code>[...a]</code> ou <code>List.of(a)</code>; veja <a href="spread.html">Espalhando Coleções</a>.)</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de criar uma lista</h2>
+
+<pre class="file" data-file="gerar.dart">void main() {
+  final zeros = List.filled(4, 0);
+  print(zeros);
+  final tabuada = List.generate(5, (i) =&gt; (i + 1) * 3);
+  print(tabuada);
+  final turma = [
+    ['Ana', 'Bia'],
+    ['Caio', 'Davi', 'Edu'],
+  ];
+  print(turma[1][2]);
+  print(turma.length);
+}
+</pre>
+
+<pre class="term">$ dart run gerar.dart
+[0, 0, 0, 0]
+[3, 6, 9, 12, 15]
+Edu
+2
+</pre>
+
+<ul>
+  <li><code>List.filled(4, 0)</code>: 4 posições, todas com 0. Atenção: essa lista tem <strong>tamanho fixo</strong> (o <code>add</code> dá <code>Unsupported operation: Cannot add to a fixed-length list</code>), a não ser que você peça <code>List.filled(4, 0, growable: true)</code>.</li>
+  <li><code>List.generate(5, (i) =&gt; …)</code>: 5 itens, cada um calculado por uma função anônima que recebe a posição (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>).</li>
+  <li>Uma lista pode ter <strong>listas dentro</strong>: <code>turma[1]</code> é a segunda turma, e <code>turma[1][2]</code> é o terceiro aluno dela. A vírgula depois do último item (<code>],</code>) é a "vírgula do fim" recomendada pelo estilo do Dart em listas longas: o <code>dart format</code> põe um item por linha.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Você já sabe os itens</td><td>Literal: <code>['arroz', 'feijão']</code></td></tr>
+<tr><td>Vai acrescentar depois</td><td>Vazia com tipo: <code>&lt;String&gt;[]</code></td></tr>
+<tr><td>N posições com o mesmo valor inicial</td><td><code>List.filled(n, valor)</code></td></tr>
+<tr><td>N itens calculados pela posição</td><td><code>List.generate(n, (i) =&gt; …)</code></td></tr>
+<tr><td>Itens que nunca mudam</td><td><code>const [ … ]</code></td></tr>
+<tr><td>Itens que dependem de uma condição ou de outro laço</td><td><code>if</code> e <code>for</code> dentro da lista (aula <a href="collection-if-for.html">if e for Dentro de Coleções</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Posição que não existe: <code>RangeError</code></strong>
+<pre class="file" data-file="err_indice.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  print(compras[3]);
+}
+</pre>
+<pre class="term">$ dart run err_indice.dart
+Unhandled exception:
+RangeError (length): Invalid value: Not in inclusive range 0..2: 3
+#0      List.[] (dart:core-patch/growable_array.dart)
+#1      main (file:///home/ana/err_indice.dart:3:16)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>RangeError (length)</dt><dd>"Erro de intervalo", por causa do tamanho da lista.</dd>
+  <dt>Invalid value: Not in inclusive range 0..2: 3</dt><dd>"Valor inválido: não está no intervalo de 0 a 2 (incluindo os dois): 3." As posições válidas são 0, 1 e 2, e você pediu a 3.</dd>
+  <dt>#0 List.[]</dt><dd>O erro aconteceu no <code>[ ]</code> da lista.</dd>
+  <dt>#1 main (…err_indice.dart:3:16)</dt><dd>A linha 3 do seu código, coluna 16 (o <code>[</code>).</dd>
+</dl>
+<p>É o erro mais comum com listas: esquecer que a contagem começa do 0. Uma lista de 3 itens não tem posição 3. <strong>Como consertar:</strong> o último item é <code>compras[compras.length - 1]</code>, ou simplesmente <code>compras.last</code>. Nos laços, use <code>i &lt; lista.length</code>, nunca <code>&lt;=</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Primeiro item de uma lista vazia: <code>Bad state: No element</code></strong>
+<pre class="file" data-file="err_vazia.dart">void main() {
+  final compras = &lt;String&gt;[];
+  print(compras.first);
+}
+</pre>
+<pre class="term">$ dart run err_vazia.dart
+Unhandled exception:
+Bad state: No element
+#0      List.first (dart:core-patch/growable_array.dart:352:5)
+#1      main (file:///home/ana/err_vazia.dart:3:17)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Estado ruim: nenhum elemento." Uma lista vazia não tem primeiro nem último. <strong>Como consertar:</strong> confira antes: <code>if (compras.isNotEmpty) print(compras.first);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Item do tipo errado</strong>
+<pre class="file" data-file="err_tipo.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  compras.add(5);
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:3:15: Error: The argument type 'int' can't be assigned to the parameter type 'String'.
+  compras.add(5);
+              ^
+</pre>
+<p>"O tipo do argumento, <code>int</code>, não pode ser atribuído ao tipo do parâmetro, <code>String</code>." A lista é <code>List&lt;String&gt;</code> e só aceita textos. O Dart pega isso <strong>antes</strong> de rodar (código de saída 254). <strong>Como consertar:</strong> <code>compras.add('5 ovos');</code>, ou, se a lista é de números, crie-a como lista de números.</p>
+</div>
+
+<div class="cenario">
+<strong>Trocar a lista inteira de uma variável <code>final</code></strong>
+<pre class="file" data-file="err_final.dart">void main() {
+  final compras = ['arroz'];
+  compras = ['pão'];
+}
+</pre>
+<pre class="term">$ dart run err_final.dart
+err_final.dart:3:3: Error: Can't assign to the final variable 'compras'.
+  compras = ['pão'];
+  ^^^^^^^
+</pre>
+<p>"Não dá para atribuir à variável final <code>compras</code>." <strong>Como consertar:</strong> se você quer mudar o conteúdo, mude os itens (<code>compras[0] = 'pão';</code>, ou <code>compras.clear()</code> e depois <code>add</code>). Se precisa mesmo trocar a lista inteira, use <code>var</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A lista sem tipo aceitou um texto, e a conta quebrou</strong>
+<pre class="file" data-file="err_dynamic.dart">void main() {
+  final precos = [];
+  precos.add(4.5);
+  precos.add('doze');
+  var total = 0.0;
+  for (final p in precos) {
+    total = total + p;
+  }
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_dynamic.dart
+Unhandled exception:
+type 'String' is not a subtype of type 'num'
+#0      main (file:///home/ana/err_dynamic.dart:7:21)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"O tipo <code>String</code> não é um subtipo do tipo <code>num</code>": na linha 7, o Dart tentou somar <code>'doze'</code> a um número. O <code>[]</code> sem tipo virou <code>List&lt;dynamic&gt;</code> e aceitou o texto calado; o erro só apareceu lá na frente, rodando. <strong>Como consertar:</strong> <code>final precos = &lt;double&gt;[];</code>. Aí o <code>precos.add('doze')</code> vira erro de compilação, apontado na linha certa, antes de rodar.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>['a', 'b', 'c']</code></td><td>Cria uma lista (<code>List&lt;String&gt;</code>)</td></tr>
+<tr><td><code>&lt;int&gt;[]</code></td><td>Cria uma lista vazia de <code>int</code></td></tr>
+<tr><td><code>lista[0]</code></td><td>O primeiro item (posições começam do 0)</td></tr>
+<tr><td><code>lista[i] = valor</code></td><td>Troca o item da posição <code>i</code></td></tr>
+<tr><td><code>lista.length</code></td><td>Quantos itens há; a última posição é <code>length - 1</code></td></tr>
+<tr><td><code>lista.first</code> / <code>lista.last</code></td><td>Primeiro / último item</td></tr>
+<tr><td><code>lista.isEmpty</code> / <code>isNotEmpty</code></td><td>Está vazia? / Tem itens?</td></tr>
+<tr><td><code>lista.add(valor)</code></td><td>Acrescenta no fim</td></tr>
+<tr><td><code>for (final x in lista)</code></td><td>Percorre os itens</td></tr>
+<tr><td><code>List.filled(n, v)</code> / <code>List.generate(n, f)</code></td><td>Cria com <code>n</code> itens iguais / calculados</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>RangeError (length): … Not in inclusive range 0..N</code></td><td>Posição que não existe (esqueceu que começa do 0)</td></tr>
+<tr><td><code>Bad state: No element</code></td><td><code>first</code>/<code>last</code> de uma lista vazia</td></tr>
+<tr><td><code>The argument type 'int' can't be assigned to the parameter type 'String'</code></td><td>Item de tipo diferente do da lista</td></tr>
+<tr><td><code>Unsupported operation: Cannot add to an unmodifiable list</code></td><td>Lista <code>const</code></td></tr>
+<tr><td><code>Unsupported operation: Cannot add to a fixed-length list</code></td><td>Lista de tamanho fixo (<code>List.filled</code> sem <code>growable: true</code>)</td></tr>
+<tr><td><code>Can't assign to the final variable</code></td><td>Tentou trocar a lista inteira de uma variável <code>final</code></td></tr>
+<tr><td><code>type 'String' is not a subtype of type 'num'</code></td><td>Lista sem tipo (<code>dynamic</code>) com um item errado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual posição?</h3>
+<p>Em <code>final cores = ['azul', 'verde', 'rosa', 'preto'];</code>, qual índice mostra <code>rosa</code>?</p>
+<div class="ex-code">print(cores[<input data-answer="2" aria-label="índice">]);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Lista vazia com tipo</h3>
+<p>Complete para criar uma lista vazia de <code>double</code>:</p>
+<div class="ex-code">final precos = &lt;<input data-answer="double" aria-label="tipo">&gt;[];</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Uma lista tem 5 itens. Qual é o índice do último?</p>
+<label><input type="radio" name="q3"> 5</label>
+<label><input type="radio" name="q3"> 1</label>
+<label><input type="radio" name="q3"> 4</label>
+<label><input type="radio" name="q3"> 6</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>final a = [1, 2]; final b = a; b.add(3); print(a);</code> mostra:</p>
+<label><input type="radio" name="q4"> <code>[1, 2]</code></label>
+<label><input type="radio" name="q4"> <code>[1, 2, 3]</code></label>
+<label><input type="radio" name="q4"> Erro: <code>a</code> é <code>final</code></label>
+<label><input type="radio" name="q4"> <code>[3]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Com <code>final compras = ['pão'];</code>, qual destas linhas dá <strong>erro</strong>?</p>
+<label><input type="radio" name="q5"> <code>compras = ['leite'];</code></label>
+<label><input type="radio" name="q5"> <code>compras.add('leite');</code></label>
+<label><input type="radio" name="q5"> <code>compras[0] = 'leite';</code></label>
+<label><input type="radio" name="q5"> <code>print(compras.length);</code></label>
+</div>
+
+<h3>Missão final: a maior nota</h3>
+
+<div class="trydart" data-goal="out:Maior nota: 9.5;;src:for\s*\(">
+<p class="try-task"><strong>Missão:</strong> descubra a maior nota da turma com um laço. Comece com <code>maior = notas.first</code> e, para cada nota, se ela for maior que <code>maior</code>, guarde-a em <code>maior</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [7.5, 9.5, 6.0, 8.0];
+  var maior = notas.first;
+  // percorra as notas aqui
+  print('Maior nota: $maior');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [7.5, 9.5, 6.0, 8.0];
+  var maior = notas.first;
+  for (final nota in notas) {
+    if (nota &gt; maior) {
+      maior = nota;
+    }
+  }
+  print('Maior nota: $maior');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <code>List</code> guarda vários valores em ordem: <code>['arroz', 'feijão']</code>, do tipo <code>List&lt;String&gt;</code>.</li>
+  <li>As posições começam do 0: <code>lista[0]</code> é o primeiro; o último é <code>lista[lista.length - 1]</code> ou <code>lista.last</code>.</li>
+  <li><code>lista[i] = valor</code> troca um item; <code>add</code> acrescenta no fim; <code>isEmpty</code> diz se está vazia.</li>
+  <li>Lista vazia sempre com tipo: <code>&lt;int&gt;[]</code>. Sem tipo, ela vira <code>List&lt;dynamic&gt;</code> e aceita qualquer coisa.</li>
+  <li><code>final</code> impede trocar a lista inteira, mas deixa mudar os itens; <code>const</code> congela tudo.</li>
+  <li><code>b = a</code> não copia: as duas variáveis apontam para a mesma lista.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
