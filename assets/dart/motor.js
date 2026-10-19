@@ -35,7 +35,7 @@
         else if (c === "/" && src[i + 1] === "*") {
           var prof = 1, ini = i; i += 2;
           while (i < n && prof) { if (src[i] === "/" && src[i + 1] === "*") { prof++; i += 2; } else if (src[i] === "*" && src[i + 1] === "/") { prof--; i += 2; } else i++; }
-          if (prof) err("Comment starting with '/*' must end with '*/'.", ini, 2);
+          if (prof) lexErros.push(new ErroDart("Comment starting with '/*' must end with '*/'.", ini, 1));
         } else break;
       }
       if (i >= n) {
@@ -113,6 +113,7 @@
             i = resto.fim + 1;
             continue;
           }
+          if (!/[A-Za-z_{]/.test(src[i + 1] || "")) lexErros.push(new ErroDart("A '$' has special meaning inside a string, and must be followed by an identifier or an expression in curly braces ({}).", i + 1, 1, "Try adding a backslash (\\) to escape the '$'."));
           if (/[A-Za-z_]/.test(src[i + 1] || "")) {
             var a = i + 1, b = a; while (b < n && /[A-Za-z0-9_]/.test(src[b])) b++;
             partes.push(buf); buf = "";
@@ -552,7 +553,7 @@
       if (this.isOp(":", 1) && !PALAVRAS_RESERVADAS.has(ini.v)) { this.next(); this.next(); var st = this.parseStmt(); return this.no("Label", ini, { nome: ini.v, corpo: st }); }
       switch (ini.v) {
         case "if": return this.parseIf();
-        case "while": { this.next(); this.expect("("); var c = this.parseExpr(); this.expect(")"); var b = this.parseStmt(); return this.no("While", ini, { cond: c, corpo: b }); }
+        case "while": { this.next(); if (!this.isOp("(")) { var tw = this.peek(); throw new ErroDart("Expected to find '('.", tw.p, Math.max(1, tw.e - tw.p)); } this.expect("("); var c = this.parseExpr(); this.expect(")"); var b = this.parseStmt(); return this.no("While", ini, { cond: c, corpo: b }); }
         case "do": { this.next(); var b2 = this.parseStmt(); this.expect("while"); this.expect("("); var c2 = this.parseExpr(); this.expect(")"); this.expect(";"); return this.no("DoWhile", ini, { cond: c2, corpo: b2 }); }
         case "for": return this.parseFor(false);
         case "await": if (this.is("for", 1)) { this.next(); return this.parseFor(true); } break;
@@ -626,6 +627,7 @@
     var vars = [];
     do {
       var nt = this.ident(), init = null;
+      if (!semPontoVirgula && !this.isOp("=") && !this.isOp(";") && !this.isOp(",") && !this.peek().nl && this.peek().t !== "eof") throw new ErroDart("Expected ';' after this.", nt.p, nt.e - nt.p);
       if (this.accept("=")) init = this.parseExpr();
       vars.push({ nome: nt.v, p: nt.p, e: nt.e, init: init });
     } while (!semPontoVirgula && this.accept(","));
@@ -686,7 +688,7 @@
     while (this.is("on") || this.is("catch")) {
       var c = { tipo: null, e: null, st: null, p: this.peek().p };
       if (this.accept("on")) c.tipo = this.parseType();
-      if (this.accept("catch")) { this.expect("("); c.e = this.ident().v; if (this.accept(",")) c.st = this.ident().v; this.expect(")"); }
+      if (this.accept("catch")) { if (!this.isOp("(")) { var tc = this.peek(); throw new ErroDart("'catch' must be followed by '(identifier)' or '(identifier, identifier)'.", tc.p, Math.max(1, tc.e - tc.p), "No types are needed, the first is given by 'on', the second is always 'StackTrace'."); } this.expect("("); c.e = this.ident().v; if (this.accept(",")) c.st = this.ident().v; this.expect(")"); }
       c.corpo = this.parseBlock();
       catches.push(c);
     }
@@ -1664,7 +1666,8 @@
   }
   G.checarRetorno = function (d) {
     var r = d.ret;
-    if (!r || !d.corpo || d.gerador || r.k !== "T" || r.nul) return;
+    if (!r || !d.corpo || d.gerador || (r.k !== "T" && r.k !== "TRec") || r.nul) return;
+    if (r.k === "TRec") { if (terminaSempre(d.corpo) || (d.corpo.corpo.length === 1 && d.corpo.corpo[0].k === "Return" && d.corpo.corpo[0].seta)) return; this.erro("A non-null value must be returned since the return type '" + this.tipoTexto(r) + "' doesn't allow null.", d.pNome !== undefined && d.k !== "LocalFun" ? d.pNome : d.p, 1); return; }
     if (d.corpo.corpo.length === 1 && d.corpo.corpo[0].k === "Return" && d.corpo.corpo[0].seta) return;
     var nome = r.nome;
     if (d.async) { if (nome !== "Future" || !r.args.length) return; var a = r.args[0]; if (a.k !== "T" || a.nul) return; nome = a.nome; if (["void", "dynamic", "Null", "Object?"].indexOf(nome) >= 0) return; }
@@ -1731,7 +1734,7 @@
           if (!v.init && !s.late && s.final) info.finalSemValor = true;
           if (s.constante && v.init) self.checarConst(v.init, esc);
           var init = v.init ? self.exprT(v.init, esc, s.tipo) : (s.late ? "$R.LATE" : "null");
-          if (esc.vars[v.nome] && esc.vars[v.nome].k === "local" && !esc.vars[v.nome].param) self.erro("'" + v.nome + "' is already declared in this scope.", v.p, v.nome.length);
+          if (esc.vars[v.nome] && esc.vars[v.nome].k === "local" && !esc.vars[v.nome].param) self.erro("'" + v.nome + "' is already declared in this scope.", v.p, v.nome.length, null, esc.vars[v.nome].p !== undefined ? { msg: "Previous declaration of '" + v.nome + "'.", pos: esc.vars[v.nome].p, len: v.nome.length } : null);
           esc.def(v.nome, info);
           if (s.tipo && v.init) self.checarAtrib(s.tipo, v.init, esc);
           return kw + " " + jsNome(v.nome) + " = " + init + ";";
@@ -2039,6 +2042,8 @@
         if (an === "String" && e.op === "*") return T("String");
         if (["+", "-", "*", "%"].indexOf(e.op) >= 0) {
           if (an === "int" && bn === "int") return T("int");
+          if (an === "int" && bn === "dynamic") return T("num");
+          if (an === "double" && bn === "dynamic") return T("double");
           if ((an === "double" && (bn === "int" || bn === "double" || bn === "num")) || (bn === "double" && (an === "int" || an === "num"))) return T("double");
           if ((an === "num" || bn === "num") && an && bn) return T("num");
         }
@@ -2179,6 +2184,7 @@
   };
   G.tipoElemento = function (t) {
     if (t && t.k === "T" && (t.nome === "List" || t.nome === "Set" || t.nome === "Iterable") && t.args.length === 1) return t.args[0];
+    if (t && t.k === "T" && (t.nome === "List" || t.nome === "Set" || t.nome === "Iterable") && t.args.length === 0 && t.p !== undefined) return T("dynamic");
     return null;
   };
   // erros de compilação mais comuns: atribuir um tipo errado
@@ -2287,7 +2293,7 @@
       return { no: x, msg: "Not a constant expression." };
     }
     var r = ruim(e);
-    if (r) this.erro(r.msg, r.no.p, r.extra ? Math.max(1, (r.no.e || r.no.p + 1) - r.no.p) : 1, r.extra || null);
+    if (r) this.erro(r.msg, r.no.p, Math.max(1, (r.no.e || r.no.p + 1) - r.no.p), r.extra || null);
   };
   G.checarBool = function (cond, esc) {
     var t = this.tipoDe(cond, esc);
@@ -2559,7 +2565,9 @@
       else if ((ta.nome === "int" || ta.nome === "double" || ta.nome === "num") && tb.nome === "String" && ["+", "-", "*", "/"].indexOf(e.op) >= 0)
         this.erro("A value of type 'String' can't be assigned to a variable of type 'num'.", e.b.p, 1);
     }
-    if (ta && ta.k === "T" && ta.nul && ["+", "-", "*", "/", "<", ">", "<=", ">=", "~/", "%"].indexOf(e.op) >= 0 && ta.nome !== "dynamic") {
+    if (ta && ta.k === "T" && ta.nome === "Object" && ["+", "-", "*", "/", "<", ">", "<=", ">=", "~/", "%"].indexOf(e.op) >= 0) {
+      this.erro("The operator '" + e.op + "' isn't defined for the type '" + this.tipoTexto(ta) + "'.", e.pOp, e.op.length, " - 'Object' is from 'dart:core'.\nTry correcting the operator to an existing operator, or defining a '" + e.op + "' operator.");
+    } else if (ta && ta.k === "T" && ta.nul && ["+", "-", "*", "/", "<", ">", "<=", ">=", "~/", "%"].indexOf(e.op) >= 0 && ta.nome !== "dynamic") {
       this.erro("Operator '" + e.op + "' cannot be called on '" + this.tipoTexto(ta) + "' because it is potentially null.", e.pOp, e.op.length);
     }
     return "$R." + OPS_JS[e.op] + "(" + a + ", " + b + ", " + (e.op === "~/" || e.op === "%" ? e.pOp : offsetDe(e.b)) + ")";
@@ -2600,7 +2608,7 @@
     var g = e.alvo;
     if (g.nulo) return;
     var t = this.tipoDe(g.alvo, esc);
-    if (t && t.k === "T" && t.nul && t.nome !== "dynamic" && t.nome !== "Null" && g.nome !== "toString") {
+    if (t && t.k === "T" && t.nul && t.nome !== "dynamic" && t.nome !== "Null" && t.nome !== "Object" && g.nome !== "toString") {
       this.erro("Method '" + g.nome + "' cannot be called on '" + this.tipoTexto(t) + "' because it is potentially null.", g.pNome, g.nome.length, "Try calling using ?. instead.");
       return true;
     }
@@ -2914,7 +2922,7 @@
         });
       }
     } catch (e) {
-      if (e instanceof ErroDart) { var todos = ERROS_LEX.slice().concat(errosRec); todos.push(e); todos.sort(function (a, b) { return a.pos - b.pos; }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
+      if (e instanceof ErroDart) { ERROS_LEX.forEach(function (x) { x.lex = true; }); var todos = ERROS_LEX.slice().concat(errosRec); todos.push(e); todos.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || a.pos - b.pos; }); return { erros: todos.map(erroFmt).join(""), n: todos.length }; }
       throw e;
     }
     var g = new Gerador(prog, combinado, arq);
@@ -2934,7 +2942,7 @@
       var fase = function (x) {
         if (x.lex) return 0;
         if (x.fase !== undefined) return x.fase;
-        if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Not a constant expression|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
+        if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Not a constant expression|'.*' is already declared|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
         return 2;
       };
       var posOrd = function (x) { return x.ordemPos !== undefined && x.ordemPos !== null ? x.ordemPos : x.pos; };

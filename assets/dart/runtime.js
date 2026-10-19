@@ -1254,7 +1254,7 @@
       if (/^[+-]?(\d+\.?\d*([eE][+-]?\d+)?|\.\d+([eE][+-]?\d+)?|Infinity|NaN)$/.test(t)) return Number(t);
       if (/^[+-]?0x[0-9a-f]+$/i.test(t)) return Number(BigInt(t.replace(/^[+-]/, ""))) * (t[0] === "-" ? -1 : 1);
       if (tentar) return null;
-      throw new Lancado(erroFormato("Invalid double", s), ["double.parse (dart:core-patch/double_patch.dart:111:7)"]);
+      throw new Lancado(erroFormato("Invalid double", s, "\n" + s), ["double.parse (dart:core-patch/double_patch.dart:111:7)"]);
     }
 
     /* ---------- dart:convert ---------- */
