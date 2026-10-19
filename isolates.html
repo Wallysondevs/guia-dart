@@ -98,8 +98,10 @@ sys	0m0,106s
 <p><code>real</code> é o tempo de relógio: 0,371 segundo no computador da Ana (no seu, vai dar outro número). Cem milhões de voltas é pouco para um computador. Na próxima seção, a conta fica bem maior.</p>
 
 <div class="trydart" data-goal="out:Resultado: 500500;;src:somarAte\(1000\)">
-<p class="try-task"><strong>Missão:</strong> no editor do guia não existe <code>Isolate</code> (veja o aviso abaixo), então aqui a conta roda direto no <code>main</code>, e a linha com <code>Isolate.run</code> ficou num comentário. Faça a conta somar de 1 até <strong>1000</strong> (o resultado tem de ser 500500).</p>
-<pre class="script" data-file="main.dart">int somarAte(int limite) {
+<p class="try-task"><strong>Missão:</strong> o programa pede ao isolate a soma de 1 até 10. Troque o pedido para somar de 1 até <strong>1000</strong> (o resultado tem de ser 500500).</p>
+<pre class="script" data-file="main.dart">import 'dart:isolate';
+
+int somarAte(int limite) {
   var soma = 0;
   for (var i = 1; i &lt;= limite; i++) {
     soma += i;
@@ -108,12 +110,13 @@ sys	0m0,106s
 }
 
 Future&lt;void&gt; main() async {
-  // No seu computador: final resultado = await Isolate.run(() =&gt; somarAte(10));
-  final resultado = somarAte(10);
+  final resultado = await Isolate.run(() =&gt; somarAte(10));
   print('Resultado: $resultado');
 }
 </pre>
-<pre class="solucao" data-file="main.dart">int somarAte(int limite) {
+<pre class="solucao" data-file="main.dart">import 'dart:isolate';
+
+int somarAte(int limite) {
   var soma = 0;
   for (var i = 1; i &lt;= limite; i++) {
     soma += i;
@@ -122,16 +125,15 @@ Future&lt;void&gt; main() async {
 }
 
 Future&lt;void&gt; main() async {
-  // No seu computador: final resultado = await Isolate.run(() =&gt; somarAte(1000));
-  final resultado = somarAte(1000);
+  final resultado = await Isolate.run(() =&gt; somarAte(1000));
   print('Resultado: $resultado');
 }
 </pre>
 </div>
 
 <div class="warning">
-<strong>O editor do guia não tem isolates</strong>
-<p>O editor desta página roda o programa dentro do navegador, num trabalhador só, e não tem a biblioteca <code>dart:isolate</code>: um programa com <code>Isolate.run</code> termina nele com <code>NoSuchMethodError</code>. Os exemplos com isolates desta aula são para o terminal do seu computador (todas as saídas mostradas vieram de lá). As caixas "Experimente" praticam a parte que vale dentro e fora do editor: escrever a conta como uma função que recebe tudo por parâmetro e <strong>devolve</strong> o resultado, que é o formato que o <code>Isolate.run</code> exige.</p>
+<strong>No editor do guia, o isolate é de mentira</strong>
+<p>O editor desta página roda o programa dentro do navegador, num trabalhador só. Ele aceita o <code>Isolate.run</code> e devolve o resultado certo, mas roda a função <strong>no mesmo lugar</strong> do <code>main</code>: não há outro núcleo trabalhando nem cozinha separada. Por isso, no editor, o programa travado da seção 2 continua travado, as duas contas da seção 4 não ficam mais rápidas, a lista da seção 3 <strong>muda</strong> (não há cópia) e o <code>Isolate.spawn</code> com portas da seção 5 não existe. Esses exemplos são para o terminal do seu computador (todas as saídas mostradas vieram de lá). As caixas "Experimente" praticam a parte que vale dentro e fora do editor: escrever a conta como uma função que recebe tudo por parâmetro e <strong>devolve</strong> o resultado, que é o formato que o <code>Isolate.run</code> exige.</p>
 </div>
 
 <hr>
