@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Sintaxe — instruções, ponto e vírgula e blocos | Guia Dart</title>
+<meta name="description" content="As regras de escrita do Dart para quem nunca programou: o que é uma instrução, por que o ponto e vírgula é obrigatório, os blocos com chaves, espaços, quebras de linha e recuo, maiúsculas e minúsculas, o dart format que arruma o código, e os erros reais Expected ';' after this e Expected a declaration explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Instruções, ; e Blocos</span></h1>
+
+<p class="intro">Toda língua tem gramática. Em português, a frase termina com ponto e o parágrafo agrupa frases sobre o mesmo assunto. O Dart também tem a sua gramática, que os programadores chamam de <strong>sintaxe</strong>: as regras de como o código tem de ser escrito. Esta aula mostra as três peças básicas, que aparecem em todo programa: a <strong>instrução</strong>, o <strong>ponto e vírgula</strong> que a termina e o <strong>bloco</strong> de chaves que agrupa instruções.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma instrução e em que ordem o Dart executa as instruções.</li>
+  <li>Por que o <code>;</code> é obrigatório no fim de cada instrução, e onde ele <strong>não</strong> vai.</li>
+  <li>O que é um bloco <code>{ }</code> e por que o recuo ajuda a enxergá-lo.</li>
+  <li>Que espaços e quebras de linha (quase) não importam para o Dart, mas importam muito para quem lê.</li>
+  <li>A arrumar o código automaticamente com <code>dart format</code>.</li>
+  <li>A ler os erros reais <code>Expected ';' after this.</code> e <code>Expected a declaration</code>.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>sx</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: frases e parágrafos</h2>
+<p>Num bilhete para a padaria, a Ana escreve: "Quero dez pães. Separe um bolo de fubá. Pago na sexta." São três frases, cada uma com o seu ponto final, e o bilhete inteiro trata de um assunto só. No Dart é igual:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No bilhete</th><th>No Dart</th></tr>
+<tr><td>Uma frase: um pedido completo</td><td>Uma <strong>instrução</strong>: uma ordem completa, como <code>print('Bom dia!')</code></td></tr>
+<tr><td>O ponto final</td><td>O <strong>ponto e vírgula</strong> <code>;</code></td></tr>
+<tr><td>O bilhete, que junta as frases de um assunto</td><td>O <strong>bloco</strong> <code>{ … }</code>, que junta instruções</td></tr>
+<tr><td>Ler de cima para baixo</td><td>O Dart executa as instruções de cima para baixo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Instruções, uma depois da outra</h2>
+<p>Uma <strong>instrução</strong> (em inglês, <em>statement</em>) é uma ordem completa para o computador. Até aqui, você conhece uma: chamar o <code>print</code>. O Dart executa as instruções do <code>main</code> uma por vez, na ordem em que estão escritas:</p>
+
+<pre class="file" data-file="instrucoes.dart">void main() {
+  print('Lista de compras');
+  print('- pão');
+  print('- leite');
+}
+</pre>
+
+<pre class="term">$ dart run instrucoes.dart
+Lista de compras
+- pão
+- leite
+</pre>
+
+<dl class="anatomy">
+  <dt>print('Lista de compras');</dt><dd>A primeira instrução. Só quando ela termina o Dart passa para a próxima.</dd>
+  <dt>;</dt><dd>O fim da instrução. É o <code>;</code>, e não a quebra de linha, que diz ao Dart "esta ordem acabou".</dd>
+</dl>
+
+<hr>
+
+<h2>2. O ponto e vírgula: obrigatório</h2>
+<p>Algumas linguagens (como Python ou JavaScript) deixam o fim da linha fazer o papel do ponto final. <strong>O Dart, não</strong>: ele ignora as quebras de linha e só sabe onde uma instrução termina porque você pôs o <code>;</code>. Por isso, duas instruções podem até ficar na mesma linha:</p>
+
+<pre class="file" data-file="mesma_linha.dart">void main() {
+  print('Bom dia!'); print('Padaria aberta.');
+}
+</pre>
+
+<pre class="term">$ dart run mesma_linha.dart
+Bom dia!
+Padaria aberta.
+</pre>
+
+<p>E uma instrução só pode se espalhar por várias linhas. O Dart continua lendo até achar o <code>;</code>:</p>
+
+<pre class="file" data-file="quebrada.dart">void main() {
+  print(
+    'Pão francês saindo às 7h',
+  );
+  print(2 +
+      3);
+}
+</pre>
+
+<pre class="term">$ dart run quebrada.dart
+Pão francês saindo às 7h
+5
+</pre>
+
+<p>São duas instruções, em cinco linhas. Repare na vírgula depois do texto, no primeiro <code>print</code>: o Dart aceita essa <strong>vírgula final</strong> (em inglês, <em>trailing comma</em>) dentro dos parênteses, e ela vai ser útil quando houver vários valores (aula <a href="list.html">Listas</a>). Não confunda: a vírgula fica <strong>dentro</strong> dos parênteses; o fim da instrução continua sendo o <code>;</code>.</p>
+
+<h3>Onde o <code>;</code> <strong>não</strong> vai</h3>
+<p>Depois de uma chave que fecha um bloco não vai <code>;</code>: o bloco já tem fim marcado (a <code>}</code>). E também não vai entre o <code>main()</code> e a <code>{</code>: ali ainda não terminou nada, o corpo da função está começando. O cenário "Ponto e vírgula depois de <code>main()</code>", mais abaixo, mostra o que acontece.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Lugar</th><th>Leva <code>;</code>?</th><th>Exemplo</th></tr>
+<tr><td>Fim de uma instrução</td><td><strong>Sim</strong></td><td><code>print('oi');</code></td></tr>
+<tr><td>Depois de <code>void main()</code></td><td>Não</td><td><code>void main() {</code></td></tr>
+<tr><td>Depois da <code>}</code> que fecha o <code>main</code></td><td>Não</td><td><code>}</code></td></tr>
+<tr><td>Dentro dos parênteses, separando valores</td><td>Não (vírgula)</td><td><code>print(</code> … <code>,</code> <code>)</code></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="outre:^Pão: 10\nBolo: 1\nPago na sexta\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o bilhete da Ana não roda: faltam dois <code>;</code>. Rode, leia a mensagem (ela diz a linha), ponha os <code>;</code> que faltam e rode de novo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Pão: 10')
+  print('Bolo: 1');
+  print('Pago na sexta')
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Pão: 10');
+  print('Bolo: 1');
+  print('Pago na sexta');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Blocos: as chaves <code>{ }</code></h2>
+<p>Um <strong>bloco</strong> é um grupo de instruções entre chaves. O corpo do <code>main</code> é um bloco: a <code>{</code> abre, a <code>}</code> fecha, e tudo o que está entre elas pertence ao <code>main</code>. Mais adiante, os blocos vão aparecer em todo lugar: no <code>if</code> ("se isto, faça este bloco"), nos laços ("repita este bloco"), nas funções e nas classes.</p>
+
+<p>Um bloco pode até ficar solto dentro de outro. Não é comum, mas mostra que as chaves só agrupam; as instruções continuam rodando na ordem:</p>
+
+<pre class="file" data-file="bloco.dart">void main() {
+  print('Antes do bloco');
+  {
+    print('Dentro do bloco');
+  }
+  print('Depois do bloco');
+}
+</pre>
+
+<pre class="term">$ dart run bloco.dart
+Antes do bloco
+Dentro do bloco
+Depois do bloco
+</pre>
+
+<dl class="anatomy">
+  <dt>{ (linha 1)</dt><dd>Abre o bloco do <code>main</code>.</dd>
+  <dt>{ (linha 3)</dt><dd>Abre um bloco <strong>dentro</strong> do primeiro. Ele tem mais dois espaços de recuo, para você ver de longe que está "mais para dentro".</dd>
+  <dt>} (linha 5)</dt><dd>Fecha o bloco de dentro. Toda <code>{</code> precisa da sua <code>}</code>, e a última que abriu é a primeira que fecha, como caixas dentro de caixas.</dd>
+  <dt>} (linha 7)</dt><dd>Fecha o <code>main</code>. Sem <code>;</code> depois.</dd>
+</dl>
+
+<p>Para que serve um bloco solto? Para guardar coisas que só valem lá dentro, assunto da aula <a href="closures.html">Closures</a> (escopo). Por enquanto, o importante é: <strong>chave abriu, chave fecha</strong>.</p>
+
+<hr>
+
+<h2>4. Espaços, quebras de linha e recuo</h2>
+<p>Para o Dart, espaços e quebras de linha entre as peças do código não fazem diferença. Este programa está horrível, mas funciona:</p>
+
+<pre class="file" data-file="baguncado.dart">void main(){print('Bom dia!');
+        print('Padaria aberta.');
+print(   2+3   )  ;}
+</pre>
+
+<pre class="term">$ dart run baguncado.dart
+Bom dia!
+Padaria aberta.
+5
+</pre>
+
+<p>O Dart não se importa, mas <strong>você</strong> e quem ler o código depois, sim. Por isso todo programador Dart segue as mesmas regras de arrumação:</p>
+<ul>
+  <li>uma instrução por linha;</li>
+  <li><strong>dois espaços</strong> de recuo para cada nível de bloco (nada de TAB);</li>
+  <li>a <code>{</code> no fim da linha que abre o bloco, a <code>}</code> sozinha na sua linha, alinhada com o começo daquela linha;</li>
+  <li>espaço em volta das contas: <code>2 + 3</code>.</li>
+</ul>
+
+<h3>O <code>dart format</code> arruma para você</h3>
+<p>Você não precisa arrumar à mão. O Dart SDK traz o <code>dart format</code>, que reescreve o arquivo no estilo oficial. A Ana fez uma cópia do programa bagunçado e passou o formatador nela:</p>
+
+<pre class="term">$ cp baguncado.dart arrumado.dart
+$ dart format arrumado.dart
+Formatted arrumado.dart
+Formatted 1 file (1 changed) in 0.00 seconds.
+$ cat arrumado.dart
+void main() {
+  print('Bom dia!');
+  print('Padaria aberta.');
+  print(2 + 3);
+}
+$ dart run arrumado.dart
+Bom dia!
+Padaria aberta.
+5
+</pre>
+
+<dl class="anatomy">
+  <dt>Formatted arrumado.dart</dt><dd>"Formatei <code>arrumado.dart</code>": o arquivo foi reescrito.</dd>
+  <dt>Formatted 1 file (1 changed) in 0.00 seconds.</dt><dd>"Formatei 1 arquivo (1 mudou) em 0,00 segundo." Se o arquivo já estivesse arrumado, apareceria <code>0 changed</code>.</dd>
+</dl>
+
+<p>O programa faz exatamente o mesmo; só ficou legível. No VS Code com a extensão Dart, o mesmo formatador roda quando você salva (se a opção "Format On Save" estiver ligada). Mais em <a href="analise.html">Análise e Formatação</a>.</p>
+
+<div class="warning">
+<strong>O <code>dart format</code> só arruma código que compila</strong>
+<p>Ele não conserta erros: se faltar um <code>;</code> ou uma chave, ele avisa e não mexe no arquivo. Com o <code>falta.dart</code> do cenário mais abaixo (copiado para <code>f2.dart</code>):</p>
+<pre class="term">$ dart format f2.dart
+Could not format because the source could not be parsed:
+
+line 2, column 19 of f2.dart: Expected to find ';'.
+  ╷
+2 │   print('Bom dia!')
+  │                   ^
+  ╵
+Formatted no files in 0.00 seconds.
+</pre>
+<p>"Não consegui formatar porque o código não pôde ser lido: linha 2, coluna 19, esperava encontrar <code>;</code>. Nenhum arquivo formatado." Primeiro faça o programa rodar, depois formate.</p>
+</div>
+
+<h3>Uma coisa que importa sempre: maiúsculas e minúsculas</h3>
+<p>Espaços quase nunca importam, mas a diferença entre maiúscula e minúscula importa <strong>sempre</strong>: <code>print</code> existe, <code>Print</code> não (você viu o erro em <a href="primeiro-programa.html">Seu Primeiro Programa</a>). E espaço no <strong>meio</strong> de uma palavra também quebra o código: <code>pr int</code> são duas palavras para o Dart.</p>
+
+<hr>
+
+<h2>Formas de escrever a mesma coisa: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Funciona?</th><th>Use?</th></tr>
+<tr><td>Uma instrução por linha, recuo de 2 espaços</td><td>Sim</td><td><strong>Sempre</strong>: é o estilo oficial</td></tr>
+<tr><td>Duas instruções na mesma linha</td><td>Sim</td><td>Não: fica difícil de ler (o <code>dart format</code> separa)</td></tr>
+<tr><td>Uma instrução longa em várias linhas</td><td>Sim</td><td>Sim, quando ela não cabe numa linha; deixe o <code>dart format</code> decidir onde quebrar</td></tr>
+<tr><td>Tudo grudado, sem espaços</td><td>Sim</td><td>Nunca</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Faltou o <code>;</code></strong>
+<pre class="file" data-file="falta.dart">void main() {
+  print('Bom dia!')
+  print('Padaria aberta.');
+}
+</pre>
+<pre class="term">$ dart run falta.dart
+falta.dart:2:19: Error: Expected ';' after this.
+  print('Bom dia!')
+                  ^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>falta.dart:2:19:</dt><dd>Linha 2, coluna 19: a coluna do <code>)</code>, o último caractere da instrução.</dd>
+  <dt>Expected ';' after this.</dt><dd>"Esperava <code>;</code> depois disto". O "isto" é o que o <code>^</code> aponta: o <code>)</code>. O <code>;</code> tem de ir logo depois dele.</dd>
+</dl>
+<p>Repare: o Dart aponta a linha <strong>certa</strong>, a 2, mesmo tendo percebido o problema só quando chegou ao <code>print</code> da linha 3. E, como todo erro de compilação, nada rodou, nem o <code>Bom dia!</code>. <strong>Como consertar:</strong> <code>print('Bom dia!');</code>.</p>
+<p>A última instrução do bloco também precisa do <code>;</code>, mesmo com a <code>}</code> logo embaixo:</p>
+<pre class="term">$ dart run falta_fim.dart
+falta_fim.dart:3:26: Error: Expected ';' after this.
+  print('Padaria aberta.')
+                         ^
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Vírgula (ou dois-pontos) no lugar do <code>;</code></strong>
+<pre class="file" data-file="virgula.dart">void main() {
+  print('Bom dia!'),
+  print('Padaria aberta.');
+}
+</pre>
+<pre class="term">$ dart run virgula.dart
+virgula.dart:2:19: Error: Expected ';' after this.
+  print('Bom dia!'),
+                  ^
+virgula.dart:2:20: Error: Expected an identifier, but got ','.
+Try inserting an identifier before ','.
+  print('Bom dia!'),
+                   ^
+virgula.dart:2:20: Error: Unexpected token ';'.
+  print('Bom dia!'),
+                   ^
+</pre>
+<p>Três mensagens para um erro só. A primeira é a que importa: "esperava <code>;</code> depois disto". As outras são o Dart tentando entender a vírgula que sobrou: "esperava um nome (<em>identifier</em>), mas achou <code>,</code>" e "símbolo inesperado". Regra de ouro: <strong>conserte a primeira mensagem e rode de novo</strong>; muitas vezes as outras somem junto. Com dois-pontos (<code>print('Bom dia!'):</code>) saem as mesmas três mensagens, com <code>':'</code> no lugar de <code>','</code>. <strong>Como consertar:</strong> troque por <code>;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>;</code> repetido: não dá erro</strong>
+<pre class="file" data-file="dois_pontos.dart">void main() {
+  print('Bom dia!');;
+  print('Padaria aberta.');
+}
+</pre>
+<pre class="term">$ dart run dois_pontos.dart
+Bom dia!
+Padaria aberta.
+</pre>
+<p>O <code>;</code> sozinho é uma "instrução vazia": não faz nada, e o Dart aceita. Não estraga o programa, mas é sujeira, e nenhuma ferramenta reclama: o <code>dart analyze</code> (aula <a href="analise.html">Análise e Formatação</a>) não acha problema, e o <code>dart format</code> só deixa a sujeira mais visível, numa linha sozinha:</p>
+<pre class="term">$ cp dois_pontos.dart dp.dart
+$ dart format dp.dart
+Formatted dp.dart
+Formatted 1 file (1 changed) in 0.00 seconds.
+$ cat dp.dart
+void main() {
+  print('Bom dia!');
+  ;
+  print('Padaria aberta.');
+}
+$ dart analyze dp.dart
+Analyzing dp.dart...
+No issues found!
+</pre>
+<p><strong>Como consertar:</strong> apague o <code>;</code> que sobrou.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto e vírgula depois de <code>main()</code></strong>
+<pre class="file" data-file="ponto_main.dart">void main(); {
+  print('Bom dia!');
+}
+</pre>
+<pre class="term">$ dart run ponto_main.dart
+ponto_main.dart:1:12: Error: Expected a function body or '=&gt;'.
+Try adding {}.
+void main(); {
+           ^
+ponto_main.dart:1:14: Error: Expected a declaration, but got '{'.
+void main(); {
+             ^
+</pre>
+<p>"Esperava o corpo da função ou <code>=&gt;</code>. Tente acrescentar <code>{}</code>". Para o Dart, o <code>;</code> encerrou o <code>main</code> antes de ele ter corpo. Depois, a <code>{</code> ficou sobrando fora de qualquer função: "esperava uma <strong>declaração</strong>, mas achou <code>{</code>" (uma declaração é a criação de uma função, variável ou classe: a única coisa que pode ficar fora do <code>main</code>). O <code>=&gt;</code> é outro jeito de escrever o corpo de funções curtas (aula <a href="arrow.html">Funções de Uma Linha</a>). <strong>Como consertar:</strong> <code>void main() {</code>, sem <code>;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chave a mais</strong>
+<pre class="file" data-file="chave_a_mais.dart">void main() {
+  print('Bom dia!');
+}
+}
+</pre>
+<pre class="term">$ dart run chave_a_mais.dart
+chave_a_mais.dart:4:1: Error: Expected a declaration, but got '}'.
+}
+^
+</pre>
+<p>A <code>}</code> da linha 3 já fechou o <code>main</code>. A da linha 4 sobrou, fora de tudo, onde o Dart esperava uma declaração. A chave que <strong>falta</strong> dá outra mensagem, <code>Can't find '}' to match '{'.</code> (aula <a href="primeiro-programa.html">Seu Primeiro Programa</a>). O recuo certo ajuda a achar os dois casos de olho: cada <code>}</code> fica alinhada com a linha que abriu a sua <code>{</code>. <strong>Como consertar:</strong> apague a chave que sobrou.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça</th><th>Regra</th></tr>
+<tr><td>Instrução</td><td>Uma ordem completa; o Dart executa de cima para baixo</td></tr>
+<tr><td><code>;</code></td><td>Obrigatório no fim de cada instrução, inclusive a última do bloco</td></tr>
+<tr><td><code>{ }</code></td><td>Bloco: agrupa instruções; toda <code>{</code> tem a sua <code>}</code>; sem <code>;</code> depois da <code>}</code></td></tr>
+<tr><td>Espaços e quebras de linha</td><td>Não mudam o programa; servem para a leitura</td></tr>
+<tr><td>Recuo</td><td>2 espaços por nível de bloco</td></tr>
+<tr><td>Maiúsculas</td><td>Importam sempre: <code>print</code> ≠ <code>Print</code></td></tr>
+<tr><td><code>dart format arquivo.dart</code></td><td>Reescreve o arquivo no estilo oficial</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Expected ';' after this.</code></td><td>Faltou o <code>;</code> (ou há <code>,</code>/<code>:</code> no lugar dele)</td></tr>
+<tr><td><code>Expected a declaration, but got '}'.</code></td><td>Chave a mais</td></tr>
+<tr><td><code>Expected a function body or '=&gt;'.</code></td><td><code>;</code> entre o <code>main()</code> e a <code>{</code></td></tr>
+<tr><td><code>Can't find '}' to match '{'.</code></td><td>Chave que não fecha</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O ponto final do Dart</h3>
+<p>Que símbolo termina cada instrução no Dart?</p>
+<div class="ex-code">print('oi')<input data-answer=";" aria-label="símbolo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O formatador</h3>
+<p>Complete o comando que arruma o arquivo <code>compras.dart</code> no estilo oficial:</p>
+<div class="ex-code">dart <input data-answer="format" aria-label="ferramenta"> compras.dart</div>
+</div>
+
+<div class="exercise">
+<h3>3. Recuo</h3>
+<p>Quantos espaços de recuo o estilo oficial do Dart usa para cada nível de bloco?</p>
+<div class="ex-code">Espaços: <input data-answer="2|dois" aria-label="número de espaços"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Quantas instruções tem o código <code>print('a'); print('b');</code>?</p>
+<label><input type="radio" name="q4"> Uma, porque está numa linha só</label>
+<label><input type="radio" name="q4"> Duas: cada <code>;</code> termina uma</label>
+<label><input type="radio" name="q4"> Nenhuma: dá erro por estar na mesma linha</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual destas linhas está escrita certo?</p>
+<label><input type="radio" name="q5"> <code>void main(); {</code></label>
+<label><input type="radio" name="q5"> <code>print('oi'),</code></label>
+<label><input type="radio" name="q5"> <code>void main() {</code></label>
+<label><input type="radio" name="q5"> <code>}; </code> (fechando o <code>main</code>)</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. O Dart mostrou três mensagens de erro de uma vez. Por onde começar?</p>
+<label><input type="radio" name="q6"> Pela primeira: consertar e rodar de novo</label>
+<label><input type="radio" name="q6"> Pela última, que é a mais recente</label>
+<label><input type="radio" name="q6"> Por qualquer uma: tanto faz</label>
+</div>
+
+<h3>Missão final: o bilhete arrumado</h3>
+
+<div class="trydart" data-goal="outre:^Bilhete para a padaria\nQuero 10 pães\nSepare um bolo de fubá\n$;;semerro;;src:^  print\('Quero 10 pães'\);$">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo tem dois erros (um <code>;</code> trocado e uma chave a mais) e está bagunçado. Faça-o rodar e deixe-o arrumado: <strong>uma instrução por linha</strong>, com dois espaços de recuo.</p>
+<pre class="script" data-file="main.dart">void main() {
+print('Bilhete para a padaria'); print('Quero 10 pães'),
+      print('Separe um bolo de fubá');
+}
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Bilhete para a padaria');
+  print('Quero 10 pães');
+  print('Separe um bolo de fubá');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>instrução</strong> é uma ordem completa; o Dart executa as instruções de cima para baixo.</li>
+  <li>O <code>;</code> termina cada instrução e é <strong>obrigatório</strong>, inclusive na última do bloco. Quebra de linha não termina nada.</li>
+  <li>Sem <code>;</code> entre <code>main()</code> e <code>{</code>, nem depois da <code>}</code>.</li>
+  <li>Um <strong>bloco</strong> <code>{ }</code> agrupa instruções; toda chave que abre tem a sua que fecha.</li>
+  <li>Espaços e quebras de linha não mudam o programa, mas o estilo oficial pede uma instrução por linha e 2 espaços de recuo. O <code>dart format</code> arruma sozinho.</li>
+  <li>Erros: <code>Expected ';' after this.</code> (faltou <code>;</code>), <code>Expected a declaration</code> (chave ou algo sobrando fora do <code>main</code>). Conserte sempre a primeira mensagem.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
