@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart bool — verdadeiro ou falso | Guia Dart</title>
+<meta name="description" content="O tipo bool do Dart para quem nunca programou: true e false, perguntas que respondem bool (>=, ==, isEmpty), bool no if, !, &amp;&amp; e || em uma olhada, nomes como temEstoque, bool.parse, e os erros reais do Dart 3 (if com número, 'true' entre aspas, True com maiúscula, bool.parse('sim')).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">bool</span></h1>
+
+<p class="intro">A padaria está aberta? Tem pão de queijo? A Ana é maior de idade? Essas perguntas só têm duas respostas: <strong>sim</strong> ou <strong>não</strong>. Para guardar respostas assim, o Dart tem o tipo <code>bool</code> (de <strong>booleano</strong>, em homenagem ao matemático George Boole), que só aceita dois valores: <code>true</code> ("verdadeiro") e <code>false</code> ("falso"). É o tipo que decide o caminho do programa em todo <code>if</code> e todo laço.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar variáveis <code>bool</code> com <code>true</code> e <code>false</code>.</li>
+  <li>Que comparações (<code>&gt;=</code>, <code>==</code>) e propriedades como <code>isEmpty</code> <strong>respondem</strong> um <code>bool</code>.</li>
+  <li>Como o <code>bool</code> decide um <code>if</code>, e o <code>!</code>, o <code>&amp;&amp;</code> e o <code>||</code> numa primeira olhada.</li>
+  <li>Como dar bons nomes a variáveis <code>bool</code>.</li>
+  <li>Como transformar o texto <code>'true'</code> em <code>bool</code> com <code>bool.parse</code>.</li>
+  <li>Os erros reais: o Dart <strong>não</strong> aceita número nem texto no lugar de <code>bool</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o interruptor de luz</h2>
+<p>Um interruptor só tem duas posições: <strong>ligado</strong> ou <strong>desligado</strong>. Não existe "meio ligado". Uma variável <code>bool</code> é um interruptor: ou ela vale <code>true</code>, ou vale <code>false</code>. Parece pouco, mas é com interruptores assim que o programa decide tudo: "se a padaria está aberta, mostre o cardápio; senão, mostre o horário".</p>
+
+<hr>
+
+<h2>1. Criando variáveis <code>bool</code></h2>
+
+<pre class="file" data-file="padaria.dart">void main() {
+  bool aberta = true;
+  bool temSonho = false;
+  print(aberta);
+  print(temSonho);
+  print('A padaria está aberta? $aberta');
+  print(aberta.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run padaria.dart
+true
+false
+A padaria está aberta? true
+bool
+</pre>
+
+<dl class="anatomy">
+  <dt>bool aberta = true;</dt><dd>Uma variável do tipo <code>bool</code> com o valor <code>true</code>. Repare: <strong>sem aspas</strong>. <code>true</code> é uma palavra do Dart, não um texto.</dd>
+  <dt>bool temSonho = false;</dt><dd>O outro valor possível. <code>true</code> e <code>false</code> se escrevem sempre em <strong>minúsculas</strong>.</dd>
+  <dt>'… aberta? $aberta'</dt><dd>Na <a href="interpolacao.html">interpolação</a>, o <code>bool</code> aparece como a palavra <code>true</code> ou <code>false</code>.</dd>
+  <dt>aberta.runtimeType</dt><dd>Confirma o tipo: <code>bool</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>2. Perguntas que respondem <code>bool</code></h2>
+<p>Quase nunca se escreve <code>true</code> ou <code>false</code> à mão. O mais comum é o <code>bool</code> ser a <strong>resposta de uma pergunta</strong>:</p>
+
+<pre class="file" data-file="perguntas.dart">void main() {
+  var idade = 17;
+  var estoque = 0;
+  var nome = 'Ana';
+  bool maiorDeIdade = idade &gt;= 18;
+  bool acabou = estoque == 0;
+  print(maiorDeIdade);
+  print(acabou);
+  print(nome.isEmpty);
+  print(nome.startsWith('A'));
+  print(10.isEven);
+}
+</pre>
+
+<pre class="term">$ dart run perguntas.dart
+false
+true
+false
+true
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 18</dt><dd>"A idade é maior ou igual a 18?" Com 17, a resposta é <code>false</code>, e ela fica guardada em <code>maiorDeIdade</code>.</dd>
+  <dt>estoque == 0</dt><dd>"O estoque é igual a zero?" Atenção aos <strong>dois</strong> sinais de igual: <code>==</code> pergunta; <code>=</code> guarda. Deu <code>true</code>. Todas as comparações estão em <a href="operadores-comparacao.html">Comparação</a>.</dd>
+  <dt>nome.isEmpty</dt><dd>"O texto está vazio?" Propriedades que começam com <code>is</code> ("é") costumam responder <code>bool</code>.</dd>
+  <dt>nome.startsWith('A')</dt><dd>"O texto começa com A?" Métodos também podem responder <code>bool</code>.</dd>
+  <dt>10.isEven</dt><dd>"10 é par?" (veja <a href="int-double.html">int e double</a>).</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Pode comprar? true;;src:&gt;=">
+<p class="try-task"><strong>Missão:</strong> a Ana tem R$ 20,00 e o bolo custa R$ 12,50. Troque o <code>false</code> por uma <strong>pergunta</strong>: "o saldo é maior ou igual ao preço?" (<code>saldo &gt;= preco</code>). Depois mude o preço para <code>25.0</code> e veja a resposta mudar sozinha.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var saldo = 20.0;
+  var preco = 12.5;
+  bool podeComprar = false;
+  print('Pode comprar? $podeComprar');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var saldo = 20.0;
+  var preco = 12.5;
+  bool podeComprar = saldo &gt;= preco;
+  print('Pode comprar? $podeComprar');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. O <code>bool</code> decide o caminho</h2>
+<p>O lugar onde o <code>bool</code> trabalha de verdade é o <code>if</code> ("se"). Entre os parênteses do <code>if</code> vai sempre um <code>bool</code>:</p>
+
+<pre class="file" data-file="decisao.dart">void main() {
+  var aberta = true;
+  if (aberta) {
+    print('Pode entrar!');
+  } else {
+    print('Volte amanhã.');
+  }
+  aberta = false;
+  if (aberta) {
+    print('Pode entrar!');
+  } else {
+    print('Volte amanhã.');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run decisao.dart
+Pode entrar!
+Volte amanhã.
+</pre>
+
+<p>O mesmo <code>if</code>, duas respostas diferentes: com <code>aberta</code> valendo <code>true</code>, roda o primeiro bloco; com <code>false</code>, roda o bloco do <code>else</code> ("senão"). Repare que se escreve <code>if (aberta)</code>, e não <code>if (aberta == true)</code>: a variável já é a resposta. O <code>if</code> tem aula própria: <a href="if-else.html">if e else</a>.</p>
+
+<h3>Combinando respostas: <code>!</code>, <code>&amp;&amp;</code> e <code>||</code></h3>
+
+<pre class="file" data-file="combinar.dart">void main() {
+  var aberta = true;
+  var temPao = false;
+  print(!aberta);
+  print(aberta &amp;&amp; temPao);
+  print(aberta || temPao);
+  var vaiComprar = aberta &amp;&amp; !temPao;
+  print(vaiComprar);
+}
+</pre>
+
+<pre class="term">$ dart run combinar.dart
+false
+false
+true
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Lê-se</th><th>Dá <code>true</code> quando…</th></tr>
+<tr><td><code>!aberta</code></td><td>"não aberta"</td><td>inverte: <code>true</code> vira <code>false</code> e vice-versa</td></tr>
+<tr><td><code>aberta &amp;&amp; temPao</code></td><td>"aberta <strong>e</strong> tem pão"</td><td>as <strong>duas</strong> são <code>true</code></td></tr>
+<tr><td><code>aberta || temPao</code></td><td>"aberta <strong>ou</strong> tem pão"</td><td><strong>pelo menos uma</strong> é <code>true</code></td></tr>
+</table>
+</div>
+<p>Os detalhes (e as tabelas completas) estão em <a href="operadores-logicos.html">Operadores Lógicos</a>.</p>
+
+<hr>
+
+<h2>4. Bons nomes para <code>bool</code></h2>
+<p>Uma variável <code>bool</code> deve ler como uma <strong>pergunta de sim ou não</strong>. Assim o <code>if</code> fica parecendo uma frase em português:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Bom nome</th><th>Por quê</th><th>Evite</th></tr>
+<tr><td><code>aberta</code>, <code>ativo</code></td><td>Um estado: <code>if (aberta)</code> = "se aberta"</td><td><code>status</code> (status de quê? sim ou não?)</td></tr>
+<tr><td><code>temEstoque</code>, <code>temDesconto</code></td><td>"tem …?"</td><td><code>estoque</code> (parece um número)</td></tr>
+<tr><td><code>podeComprar</code>, <code>podeEntrar</code></td><td>"pode …?"</td><td><code>comprar</code> (parece uma ação, uma função)</td></tr>
+<tr><td><code>maiorDeIdade</code>, <code>estaPago</code></td><td>"é / está …?"</td><td><code>naoPago</code> (negações confundem: <code>!naoPago</code>)</td></tr>
+</table>
+</div>
+<p>O Effective Dart, o guia de estilo oficial, recomenda o mesmo: nomes que soam como afirmação (<code>isEmpty</code>, <code>hasElements</code>, <code>canClose</code>) e, de preferência, na forma positiva.</p>
+
+<hr>
+
+<h2>5. De texto para <code>bool</code>, e de volta</h2>
+<p>Às vezes a resposta chega como <strong>texto</strong>: <code>'true'</code>, lido de um arquivo ou do teclado. Texto e <code>bool</code> são tipos diferentes, e é preciso converter:</p>
+
+<pre class="file" data-file="texto_bool.dart">void main() {
+  print(true.toString());
+  print(bool.parse('true'));
+  print(bool.parse('TRUE', caseSensitive: false));
+  print(bool.tryParse('sim'));
+  print('true' == true);
+}
+</pre>
+
+<pre class="term">$ dart run texto_bool.dart
+true
+true
+true
+null
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>true.toString()</dt><dd>De <code>bool</code> para texto: o texto <code>'true'</code>.</dd>
+  <dt>bool.parse('true') <span class="versao">Dart 3.0</span></dt><dd>"Analisar": de texto para <code>bool</code>. Só aceita <code>'true'</code> e <code>'false'</code>. Com outro texto, o programa para com uma exceção (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>caseSensitive: false</dt><dd>"Sem diferenciar maiúsculas": assim <code>'TRUE'</code> e <code>'True'</code> também valem.</dd>
+  <dt>bool.tryParse('sim')</dt><dd>"Tentar analisar": se o texto não for <code>true</code>/<code>false</code>, em vez de parar o programa, devolve <code>null</code> ("nada"). O <code>null</code> é assunto de <a href="null-safety.html">Null Safety</a>.</dd>
+  <dt>'true' == true</dt><dd>O texto <code>'true'</code> e o valor <code>true</code> <strong>não</strong> são iguais: <code>false</code>. Tipos diferentes nunca são iguais no <code>==</code>.</dd>
+</dl>
+<p>Mais conversões em <a href="conversao.html">Conversão de Tipos</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<pre class="file" data-file="formas.dart">// guardar a resposta de uma pergunta
+bool acabou = estoque == 0;      // direto (preferido)
+bool acabou2;
+if (estoque == 0) {              // com if: mais longo, mesmo resultado
+  acabou2 = true;
+} else {
+  acabou2 = false;
+}
+
+// usar no if
+if (acabou) { … }                // preferido
+if (acabou == true) { … }        // funciona, mas é redundante
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Guardar a resposta de uma comparação</td><td><code>bool x = a &gt;= b;</code> (sem <code>if</code>)</td></tr>
+<tr><td>Testar uma variável <code>bool</code></td><td><code>if (x)</code> e <code>if (!x)</code>, sem <code>== true</code></td></tr>
+<tr><td>Texto que com certeza é <code>'true'</code>/<code>'false'</code></td><td><code>bool.parse</code></td></tr>
+<tr><td>Texto que pode vir errado (digitado pela pessoa)</td><td><code>bool.tryParse</code>, e trate o <code>null</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>Em muitas linguagens (JavaScript, Python, C), número e texto valem como "verdadeiro" ou "falso" num <code>if</code>: <code>0</code> é falso, <code>5</code> é verdadeiro. <strong>No Dart, não</strong>: só um <code>bool</code> serve. É de propósito, para evitar enganos.</p>
+
+<div class="cenario">
+<strong>Número no lugar de <code>bool</code> no <code>if</code></strong>
+<pre class="file" data-file="err_if.dart">void main() {
+  var estoque = 5;
+  if (estoque) {
+    print('Tem produto');
+  }
+}
+</pre>
+<pre class="term">$ dart run err_if.dart
+err_if.dart:3:7: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  if (estoque) {
+      ^
+</pre>
+<dl class="anatomy">
+  <dt>err_if.dart:3:7:</dt><dd>Linha 3, coluna 7: o <code>estoque</code> dentro do <code>if</code>.</dd>
+  <dt>A value of type 'int' can't be assigned to a variable of type 'bool'.</dt><dd>"Um valor do tipo <code>int</code> não pode ser atribuído a uma variável do tipo <code>bool</code>." O <code>if</code> espera um <code>bool</code> entre os parênteses, e recebeu um número.</dd>
+</dl>
+<p><strong>Como consertar:</strong> escreva a pergunta inteira: <code>if (estoque &gt; 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>true</code> entre aspas</strong>
+<pre class="file" data-file="err_texto.dart">void main() {
+  bool aberta = 'true';
+  print(aberta);
+}
+</pre>
+<pre class="term">$ dart run err_texto.dart
+err_texto.dart:2:17: Error: A value of type 'String' can't be assigned to a variable of type 'bool'.
+  bool aberta = 'true';
+                ^
+</pre>
+<p>Com aspas, <code>'true'</code> é um <strong>texto</strong> de 4 letras, não o valor verdadeiro. <strong>Como consertar:</strong> <code>bool aberta = true;</code>, sem aspas. (Com <code>bool ligado = 1;</code> sai a mesma mensagem, com <code>'int'</code> no lugar de <code>'String'</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>True</code> com maiúscula</strong>
+<pre class="file" data-file="err_maiuscula.dart">void main() {
+  bool aberta = True;
+  print(aberta);
+}
+</pre>
+<pre class="term">$ dart run err_maiuscula.dart
+err_maiuscula.dart:2:17: Error: Undefined name 'True'.
+  bool aberta = True;
+                ^^^^
+</pre>
+<p>"Nome não definido: <code>True</code>." Quem vem do Python escreve <code>True</code>; no Dart é tudo minúsculo, e o Dart diferencia maiúsculas de minúsculas. Para ele, <code>True</code> seria o nome de alguma variável, e ela não existe. <strong>Como consertar:</strong> <code>true</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>bool.parse</code> com um texto que não é <code>true</code>/<code>false</code></strong>
+<pre class="file" data-file="err_parse.dart">void main() {
+  var resposta = 'sim';
+  bool aceita = bool.parse(resposta);
+  print(aceita);
+}
+</pre>
+<pre class="term">$ dart run err_parse.dart
+Unhandled exception:
+FormatException: Invalid boolean
+sim
+#0      bool.parse (dart:core-patch/bool_patch.dart:33:16)
+#1      main (file:///home/ana/err_parse.dart:3:22)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Este compilou e parou <strong>durante a execução</strong>:</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": o programa parou no meio, e o código de saída é 255.</dd>
+  <dt>FormatException: Invalid boolean</dt><dd>"Erro de formato: booleano inválido."</dd>
+  <dt>sim</dt><dd>Na linha de baixo, o texto que causou o problema.</dd>
+  <dt>#1 main (file:///home/ana/err_parse.dart:3:22)</dt><dd>No seu código: linha 3, coluna 22, o <code>parse</code>. A linha <code>#0</code> é dentro do Dart.</dd>
+</dl>
+<p><strong>Como consertar:</strong> se o texto pode vir diferente, compare você mesmo (<code>bool aceita = resposta == 'sim';</code>) ou use <code>bool.tryParse</code> e trate o <code>null</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Tem produto;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila: o <code>if</code> recebeu um número. Troque a condição por uma pergunta que responde <code>bool</code> ("o estoque é maior que zero?") para aparecer <code>Tem produto</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var estoque = 5;
+  if (estoque) {
+    print('Tem produto');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var estoque = 5;
+  if (estoque &gt; 0) {
+    print('Tem produto');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>bool x = true;</code> / <code>false</code></td><td>Os dois únicos valores, sem aspas, em minúsculas</td></tr>
+<tr><td><code>a == b</code>, <code>a != b</code>, <code>a &gt; b</code>, <code>a &gt;= b</code>…</td><td>Comparações: respondem <code>bool</code></td></tr>
+<tr><td><code>texto.isEmpty</code>, <code>n.isEven</code></td><td>Propriedades que respondem <code>bool</code></td></tr>
+<tr><td><code>!x</code>, <code>a &amp;&amp; b</code>, <code>a || b</code></td><td>Não, e, ou</td></tr>
+<tr><td><code>if (x) { … }</code></td><td>Roda o bloco se <code>x</code> for <code>true</code></td></tr>
+<tr><td><code>bool.parse('true')</code></td><td>Texto → <code>bool</code> (exceção se for outro texto)</td></tr>
+<tr><td><code>bool.tryParse(t)</code></td><td>Texto → <code>bool</code>, ou <code>null</code></td></tr>
+<tr><td><code>x.toString()</code></td><td><code>bool</code> → texto</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td>Número no <code>if</code> (ou numa variável <code>bool</code>): escreva a comparação</td></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'bool'.</code></td><td><code>'true'</code> com aspas</td></tr>
+<tr><td><code>Undefined name 'True'.</code></td><td><code>True</code>/<code>False</code> com maiúscula</td></tr>
+<tr><td><code>FormatException: Invalid boolean</code></td><td><code>bool.parse</code> recebeu algo diferente de <code>'true'</code>/<code>'false'</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para criar uma variável que diz que a loja <strong>não</strong> tem desconto hoje:</p>
+<div class="ex-code"><input data-answer="bool" aria-label="tipo"> temDesconto = <input data-answer="false" aria-label="valor">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual a resposta?</h3>
+<p>Com <code>var idade = 18;</code>, o que mostra <code>print(idade &gt;= 18);</code>?</p>
+<div class="ex-code">Mostra <input data-answer="true" aria-label="resposta"></div>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">3. Qual linha <strong>compila</strong> no Dart?</p>
+<label><input type="radio" name="q3"> <code>bool ok = 'false';</code></label>
+<label><input type="radio" name="q3"> <code>bool ok = 0;</code></label>
+<label><input type="radio" name="q3"> <code>bool ok = False;</code></label>
+<label><input type="radio" name="q3"> <code>bool ok = 3 &gt; 5;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Com <code>var nome = '';</code>, o que acontece em <code>if (nome) { print('tem nome'); }</code>?</p>
+<label><input type="radio" name="q4"> Não mostra nada, porque o texto está vazio</label>
+<label><input type="radio" name="q4"> Não compila: o <code>if</code> só aceita <code>bool</code></label>
+<label><input type="radio" name="q4"> Mostra <code>tem nome</code></label>
+<label><input type="radio" name="q4"> Para com uma exceção</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual é o melhor nome para uma variável <code>bool</code> que diz se o pedido já foi pago?</p>
+<label><input type="radio" name="q5"> <code>pagamento</code></label>
+<label><input type="radio" name="q5"> <code>naoEstaPendente</code></label>
+<label><input type="radio" name="q5"> <code>estaPago</code></label>
+<label><input type="radio" name="q5"> <code>pagar</code></label>
+</div>
+
+<h3>Missão final: a entrada do cinema</h3>
+
+<div class="trydart" data-goal="out:Maior de idade: false;;out:Pode entrar: true;;src:&amp;&amp;|\|\|">
+<p class="try-task"><strong>Missão:</strong> a Bia tem 16 anos e está acompanhada. Crie <code>maiorDeIdade</code> com a pergunta <code>idade &gt;= 18</code>, e <code>podeEntrar</code>: ela pode entrar se for maior de idade <strong>ou</strong> estiver acompanhada (<code>||</code>). A saída deve ser <code>Maior de idade: false</code> e <code>Pode entrar: true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var idade = 16;
+  bool acompanhada = true;
+  // crie maiorDeIdade e podeEntrar aqui
+  print('Maior de idade: ');
+  print('Pode entrar: ');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var idade = 16;
+  bool acompanhada = true;
+  bool maiorDeIdade = idade &gt;= 18;
+  bool podeEntrar = maiorDeIdade || acompanhada;
+  print('Maior de idade: $maiorDeIdade');
+  print('Pode entrar: $podeEntrar');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run cinema.dart
+Maior de idade: false
+Pode entrar: true
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>bool</code> guarda só <code>true</code> ou <code>false</code>: sem aspas e em minúsculas.</li>
+  <li>Comparações (<code>==</code>, <code>&gt;=</code>…) e propriedades como <code>isEmpty</code> respondem <code>bool</code>; guarde a resposta direto: <code>bool acabou = estoque == 0;</code>.</li>
+  <li>O <code>if</code> só aceita <code>bool</code>. Número e texto não valem como verdadeiro/falso no Dart: escreva a comparação.</li>
+  <li><code>!</code>, <code>&amp;&amp;</code> e <code>||</code> combinam respostas (aula <a href="operadores-logicos.html">Operadores Lógicos</a>).</li>
+  <li>Dê nomes que soam como pergunta de sim ou não: <code>aberta</code>, <code>temEstoque</code>, <code>podeComprar</code>.</li>
+  <li><code>bool.parse</code> transforma <code>'true'</code>/<code>'false'</code> em <code>bool</code> (outro texto: <code>FormatException</code>); <code>bool.tryParse</code> devolve <code>null</code> em vez de parar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
