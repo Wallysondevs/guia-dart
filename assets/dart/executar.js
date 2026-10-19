@@ -11,6 +11,11 @@
   var Motor = raiz.DartMotor || (typeof require === "function" ? require("./motor.js") : null);
   var RT = raiz.DartRuntime || (typeof require === "function" ? require("./runtime.js") : null);
   var LIMITE = 2000000;
+  var aoRejeitar = null;
+  // um Future que falhou sem ninguém esperar por ele: o Dart para o programa (Unhandled exception)
+  function rejeicao(e) { if (aoRejeitar) aoRejeitar(e && e.reason !== undefined ? e.reason : e); }
+  if (typeof process === "object" && process.on) process.on("unhandledRejection", function (r) { rejeicao({ reason: r }); });
+  else if (typeof self === "object" && self.addEventListener) self.addEventListener("unhandledrejection", function (ev) { ev.preventDefault(); rejeicao(ev); });
 
   /* req: { arquivos: [{nome, codigo}], args: [], stdin: texto|null, conferir: [nomes] }
      io:  { saida(t, s), eco(s), pedirLinha() → Promise<string|null>, limite(), setTimeout, clearTimeout, agora() }
@@ -76,6 +81,7 @@
           aoSinal: function (s) { fim(s); },
         };
         R = RT.criarRuntime(ctx);
+        aoRejeitar = function (e) { if (!acabou) { if (e instanceof R.Lancado) e.assincrono = true; fim(e); } };
         var prog;
         try {
           prog = new Function("$R", comp.js)(R);

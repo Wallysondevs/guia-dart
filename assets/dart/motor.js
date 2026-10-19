@@ -131,6 +131,7 @@
      2. Parser
      =================================================================== */
   var TPARAMS_VISTOS = new Set();
+  var CONST_SDK = new Set(["Duration", "Object", "MapEntry", "Symbol", "JsonEncoder", "JsonEncoder.withIndent", "JsonDecoder", "Exception", "Error", "StateError", "FormatException", "ArgumentError", "UnsupportedError", "UnimplementedError", "Deprecated", "LineSplitter", "Point", "RangeError", "Utf8Codec", "Utf8Encoder", "Utf8Decoder", "Base64Codec"]);
   var ERROS_LEX = [];
   var MODIFICADORES_CLASSE = new Set(["abstract", "base", "final", "interface", "sealed", "mixin"]);
 
@@ -1074,6 +1075,7 @@
   P.parseCollectionEl = function () {
     var t = this.peek();
     if (this.isOp("...") || this.isOp("...?")) { this.next(); return { k: "Spread", valor: this.parseExpr(), nulo: t.v === "...?", p: t.p }; }
+    if (this.isOp("?")) { this.next(); var vn = this.parseExpr(); if (this.isOp(":")) { this.next(); return { k: "Par", chave: vn, valor: this.parseExpr(), p: t.p, chaveNula: true }; } return { k: "NulEl", valor: vn, p: t.p }; }
     if (this.is("if")) {
       this.next(); this.expect("("); var c = this.parseExpr(), caso = null;
       if (this.is("case")) { this.next(); caso = this.parsePattern(); if (this.is("when")) { this.next(); caso = { k: "PGuard", p: caso, guarda: this.parseExpr() }; } }
@@ -1175,6 +1177,27 @@
     var im = (this.imports || []).filter(function (x) { return x.prefixo === n; })[0];
     return im || null;
   };
+  var SEM_CONTEXTO = new Set(["int", "double", "num", "String", "bool", "Null", "dynamic", "void", "Never", "Function"]);
+  var BIB_TIPO = { Future: "dart:async", Stream: "dart:async", FutureOr: "dart:async", Completer: "dart:async", Timer: "dart:async", StreamController: "dart:async", File: "dart:io", Directory: "dart:io", Random: "dart:math", Point: "dart:math" };
+  G.contexto = function (tipos) {
+    var self = this, vistos = {}, linhas = [];
+    (function vis(t) {
+      if (!t) return;
+      if (t.k === "TFun") { vis(t.ret); return; }
+      if (t.k === "TRec") { t.pos.forEach(vis); return; }
+      if (t.k !== "T") return;
+      var n = t.nome;
+      if (!vistos[n] && !SEM_CONTEXTO.has(n) && !self.tparams.has(n)) {
+        vistos[n] = 1;
+        var c = self.classes[n];
+        if (c) linhas.push(" - '" + n + "' is from '" + (c.arq === self.arqPrincipal || !c.arq ? self.arqPrincipal || "main.dart" : "package:" + "" + c.arq).replace("package:", "") + "'.");
+        else if (TIPOS_NATIVOS.has(n) || GLOBAIS.has(n)) linhas.push(" - '" + n + "' is from '" + (BIB_TIPO[n] || BIBLIOTECA_DE[n] || "dart:core") + "'.");
+      }
+      (t.args || []).forEach(vis);
+    })({ k: "TRec", pos: tipos, nomeados: [] });
+    return linhas.join("\n");
+  };
+  G.comCtx = function (tipos, extra) { var c = this.contexto(tipos); return c ? c + (extra ? "\n" + extra : "") : (extra || null); };
   G.erro = function (msg, p, len, extra) { this.erros.push(new ErroDart(msg, p, len, extra)); };
   G.temp = function () { return "$t" + (++this.tmp); };
 
@@ -1193,10 +1216,25 @@
   G.gerar = function () {
     var self = this, out = [];
     // 1º passo: coleta nomes de topo e classes
+    this.porArq = {};
+    var idxArq = {}, nArq = 0;
+    this.prog.forEach(function (d) {
+      if (d.k !== "Function" && d.k !== "TopVar") return;
+      var a = d.arq || "main.dart";
+      if (!(a in idxArq)) idxArq[a] = nArq++;
+      var suf = idxArq[a] ? "$" + idxArq[a] : "";
+      var reg = function (nome, info) {
+        (self.porArq[a] = self.porArq[a] || {})[nome] = info;
+        var ant = self.topo[nome];
+        if (ant && ant.arq !== a && (ant.k === "fun" || ant.k === "var" || ant.ambiguo)) { var amb = { k: "ambiguo", ambiguo: true, arqs: (ant.arqs || [ant.arq]).concat([a]) }; self.topo[nome] = amb; }
+        else self.topo[nome] = info;
+      };
+      if (d.k === "Function") reg(d.nome, { k: "fun", js: jsNome(d.nome) + suf, decl: d, arq: a });
+      else d.vars.forEach(function (v) { v.js = jsNome(v.nome) + suf; reg(v.nome, { k: "var", js: v.js, tipo: d.tipo || (v.init ? self.tipoDe(v.init, new Escopo(null)) : null), final: d.final || d.constante, constante: d.constante, arq: a }); });
+    });
     this.prog.forEach(function (d) {
       if (d.k === "Class" || d.k === "Enum" || d.k === "ExtType") { self.classes[d.nome] = d; self.topo[d.nome] = { k: "classe", js: "C_" + d.nome }; }
-      else if (d.k === "Function") self.topo[d.nome] = { k: "fun", js: jsNome(d.nome), decl: d };
-      else if (d.k === "TopVar") d.vars.forEach(function (v) { self.topo[v.nome] = { k: "var", js: jsNome(v.nome), tipo: d.tipo || (v.init ? self.tipoDe(v.init, new Escopo(null)) : null), final: d.final || d.constante, constante: d.constante }; });
+      else if (d.k === "Function" || d.k === "TopVar") { /* já registrado */ }
       else if (d.k === "Typedef") self.topo[d.nome] = { k: "typedef", tipo: d.tipo };
       else if (d.k === "Extension") self.extensoes.push(d);
     });
@@ -1220,16 +1258,16 @@
     this.prog.forEach(function (d) {
       if (d.k === "TopVar") {
         d.vars.forEach(function (v) {
-          var js = jsNome(v.nome);
+          var js = v.js || jsNome(v.nome);
           if (v.init) out.push("let " + js + "; $R.lazy(() => " + js + ", (x) => " + js + " = x, () => " + self.coagir(self.expr(v.init, esc), d.tipo, v.init) + ");");
           else out.push("let " + js + " = null;");
         });
       }
     });
     this.prog.forEach(function (d) {
-      if (d.k === "Function") out.push(self.genFuncao(d, esc, "function " + jsNome(d.nome), d.nome));
+      if (d.k === "Function") out.push(self.genFuncao(d, esc, "function " + self.porArq[d.arq || "main.dart"][d.nome].js, d.nome));
     });
-    var main = this.topo.main;
+    var main = (this.porArq[this.prog.length && this.arqPrincipal || "main.dart"] || {}).main || this.topo.main;
     if (!main || main.k !== "fun") this.erro("Undefined name 'main'.", 0, 0, "semMain");
     var ps = main && main.decl ? main.decl.params.pos.length : 0;
     var temps = []; for (var ti = 1; ti <= this.tmp; ti++) temps.push("$t" + ti);
@@ -1296,6 +1334,11 @@
   };
   // converte int → double quando o destino é double (o Dart faz isso com literais)
   G.exprT = function (e, esc, tipo) {
+    if (tipo && e && tipo.k === "T" && !e.targs && tipo.args && tipo.args.length) {
+      if (e.k === "ListLit" && (tipo.nome === "List" || tipo.nome === "Iterable") && tipo.args.length === 1) e.targsCtx = tipo.args;
+      if (e.k === "SetLit" && tipo.nome === "Set" && tipo.args.length === 1) e.targsCtx = tipo.args;
+      if (e.k === "MapLit" && tipo.nome === "Map" && tipo.args.length === 2) e.targsCtx = tipo.args;
+    }
     // gera a expressão sabendo o tipo esperado (o Dart converte 3 → 3.0 e passa o tipo às funções anônimas)
     if (tipo && e && e.k === "Lambda" && tipo.k === "TFun") e.retEsperado = tipo.ret;
     if (tipo && e && e.k === "Cond") { this.marcarEsperado(e.a, tipo); this.marcarEsperado(e.b, tipo); }
@@ -1494,7 +1537,32 @@
     var m = this.membrosDe(e.classe.nome); var f = m && m.inst[n];
     return f ? f.tipo : null;
   };
+  function terminaSempre(b) {
+    if (!b) return false;
+    switch (b.k) {
+      case "Return": case "Rethrow": return true;
+      case "ExprStmt": return b.expr.k === "Throw" || (b.expr.k === "Call" && b.expr.alvo.k === "Ident" && b.expr.alvo.nome === "exit");
+      case "Block": return b.corpo.some(terminaSempre);
+      case "If": return !!b.senao && terminaSempre(b.entao) && terminaSempre(b.senao);
+      case "While": return b.cond.k === "Bool" && b.cond.v === true;
+      case "DoWhile": return terminaSempre(b.corpo) || (b.cond.k === "Bool" && b.cond.v === true);
+      case "For": return !b.cond;
+      case "Switch": case "Try": case "Label": return true; // não confere (evita falso erro)
+    }
+    return false;
+  }
+  G.checarRetorno = function (d) {
+    var r = d.ret;
+    if (!r || !d.corpo || d.gerador || r.k !== "T" || r.nul) return;
+    if (d.corpo.corpo.length === 1 && d.corpo.corpo[0].k === "Return" && d.corpo.corpo[0].seta) return;
+    var nome = r.nome;
+    if (d.async) { if (nome !== "Future" || !r.args.length) return; var a = r.args[0]; if (a.k !== "T" || a.nul) return; nome = a.nome; if (["void", "dynamic", "Null", "Object?"].indexOf(nome) >= 0) return; }
+    if (["void", "dynamic", "Null", "FutureOr", "Never"].indexOf(nome) >= 0 || this.tparams.has(nome)) return;
+    if (terminaSempre(d.corpo)) return;
+    this.erro("A non-null value must be returned since the return type '" + this.tipoTexto(r) + "' doesn't allow null.", r.p !== undefined ? r.p : d.p, 1, this.contexto([r]) || null);
+  };
   G.genFuncao = function (d, esc, cabeca, nomeFrame, metodo, estatico) {
+    if (d.k !== "Getter" && d.k !== "Setter") this.checarRetorno(d);
     var fesc = new Escopo(esc, "funcao");
     fesc.ehMetodo = !!metodo && !estatico; fesc.ehEstatico = !!estatico; fesc.nomeFun = nomeFrame; fesc.ret = d.ret; fesc.async = d.async; fesc.gerador = d.gerador;
     var ps = this.paramsJs(d.params, fesc);
@@ -1543,6 +1611,8 @@
         return s.vars.map(function (v) {
           var tipo = s.tipo || (v.init ? self.tipoDe(v.init, esc) : null);
           var info = { k: "local", js: jsNome(v.nome), tipo: tipo, final: s.final, declTipo: s.tipo, late: s.late, p: v.p, constante: s.constante };
+          if (!v.init && !s.late && s.tipo && s.tipo.k === "T" && !s.tipo.nul && s.tipo.nome !== "dynamic" && s.tipo.nome !== "Null" && !(s.tipo.nome === "void")) info.naoAtribuida = true;
+          if (!v.init && !s.late && s.final) info.finalSemValor = true;
           if (s.constante && v.init) self.checarConst(v.init, esc);
           var init = v.init ? self.exprT(v.init, esc, s.tipo) : (s.late ? "$R.LATE" : "null");
           if (esc.vars[v.nome] && esc.vars[v.nome].k === "local" && !esc.vars[v.nome].param) self.erro("'" + v.nome + "' is already declared in this scope.", v.p, v.nome.length);
@@ -1573,6 +1643,7 @@
         this.checarBool(s.cond, esc);
         var pv = this.promCond(s.cond, true), pf = this.promCond(s.cond, false);
         var codIf = "if ($R.cond(" + this.expr(s.cond, esc) + ")) " + this.stmtBloco(s.entao, filho(esc, pv)) + (s.senao ? " else " + this.stmtBloco(s.senao, filho(esc, pf)) : "");
+        if (s.senao) { var ae = this.atribuidas(s.entao), as2 = this.atribuidas(s.senao); var amb2 = ae.filter(function (x) { return as2.indexOf(x) >= 0 || sai(s.senao); }); if (sai(s.entao)) amb2 = as2; if (amb2.length) { esc.atrib = esc.atrib || {}; amb2.forEach(function (x) { esc.atrib[x] = true; }); } }
         if (sai(s.entao)) esc.promover(pf);
         else if (s.senao && sai(s.senao)) esc.promover(pv);
         return codIf;
@@ -1943,6 +2014,17 @@
     if (c.k === "Is" && c.valor.k === "Ident" && (!c.neg) === v) r[c.valor.nome] = c.tipo;
     return r;
   };
+  G.atribuidas = function (s) {
+    var r = [];
+    (function vis(x) {
+      if (!x || typeof x !== "object") return;
+      if (Array.isArray(x)) { x.forEach(vis); return; }
+      if (x.k === "Assign" && x.op === "=" && x.alvo.k === "Ident") r.push(x.alvo.nome);
+      if (x.k === "Lambda" || x.k === "LocalFun") return;
+      for (var k in x) if (k !== "p" && k !== "e" && x[k] && typeof x[k] === "object") vis(x[k]);
+    })(s);
+    return r;
+  };
   function sai(s) {
     if (!s) return false;
     switch (s.k) {
@@ -1977,6 +2059,7 @@
   var SUBTIPOS = { int: ["num", "Object", "Comparable", "dynamic"], double: ["num", "Object", "Comparable", "dynamic"], num: ["Object", "Comparable", "dynamic"], String: ["Object", "Comparable", "Pattern", "dynamic"], bool: ["Object", "dynamic"], Null: ["dynamic"] };
   G.atribuivel = function (de, para) {
     if (!de || !para || de.k !== "T" || para.k !== "T") return true;
+    if (this.tparams.has(para.nome) || this.tparams.has(de.nome)) return true;
     var tp = this.topo[para.nome]; if (tp && tp.k === "typedef") return true;
     if (para.nome === "dynamic" || para.nome === "Object" && (!de.nul || para.nul)) return true;
     if (de.nome === "Null") return para.nul || para.nome === "dynamic" || para.nome === "Null" || para.nome === "void";
@@ -1999,7 +2082,7 @@
     if (valor.k === "ListLit" && !valor.targs || valor.k === "MapLit" && !valor.targs || valor.k === "SetLit") return;
     if (!this.atribuivel(de, tipo)) {
       var ini = valor.p;
-      this.erro("A value of type '" + this.tipoTexto(de) + "' can't be " + (ehRetorno ? "returned from " + ehRetorno : "assigned to a variable of type '" + this.tipoTexto(tipo) + "'") + ".", ini, 1);
+      this.erro("A value of type '" + this.tipoTexto(de) + "' can't be " + (ehRetorno ? "returned from " + ehRetorno : "assigned to a variable of type '" + this.tipoTexto(tipo) + "'") + ".", ini, 1, this.comCtx([de, tipo]));
     }
   };
   G.checarConst = function (e, esc) {
@@ -2035,12 +2118,14 @@
             var c = self.classes[a.alvo.nome];
             var ct = c && c.membros.filter(function (d) { return d.k === "Ctor" && d.nome === a.nome; })[0];
             if (ct && ct.constante) return null;
+            if (CONST_SDK.has(a.alvo.nome + "." + a.nome)) return null;
             if (c || GLOBAIS.has(a.alvo.nome)) return { no: { p: a.pNome, e: a.pNome + a.nome.length }, msg: "Cannot invoke a non-'const' constructor where a const expression is expected.", extra: "Try using a constructor or factory that is 'const'." };
           }
           if (a.k === "Ident" && !esc.achar(a.nome)) {
             var c2 = self.classes[a.nome];
             var ct2 = c2 && c2.membros.filter(function (d) { return d.k === "Ctor" && d.nome === ""; })[0];
             if (ct2 && ct2.constante) return null;
+            if (CONST_SDK.has(a.nome)) return null;
             if (c2 || (GLOBAIS.has(a.nome) && /^[A-Z]/.test(a.nome))) return { no: { p: a.p, e: a.p + a.nome.length }, msg: "Cannot invoke a non-'const' constructor where a const expression is expected.", extra: "Try using a constructor or factory that is 'const'." };
           }
           return { no: x, msg: "Methods can't be invoked in constant expressions." };
@@ -2097,10 +2182,23 @@
   G.thisJs = function (esc) {
     return "this";
   };
+  G.atribuidaAntes = function (n, esc) { var e = esc; while (e) { if (e.atrib && e.atrib[n]) return true; if (n in e.vars) return false; e = e.pai; } return false; };
+  G.topoDe = function (n, no) {
+    if (no && no.viaPrefixo && no.viaPrefixo.uri) { var pa = this.porArq[no.viaPrefixo.uri.replace(/^\.\//, "")]; if (pa && pa[n]) return pa[n]; }
+    var tp = this.topo[n];
+    if (tp && tp.ambiguo) {
+      var a = no && this.arqDe ? this.arqDe(no.p) : null;
+      if (a && this.porArq[a] && this.porArq[a][n]) return this.porArq[a][n];
+      if (!no || !no.jaAvisado) { this.erro("'" + n + "' is imported from both '" + tp.arqs[0] + "' and '" + tp.arqs[1] + "'.", no ? no.p : 0, n.length); if (no) no.jaAvisado = true; }
+      return { k: "fun", js: "null", decl: null, erro: true };
+    }
+    return tp;
+  };
   G.ident = function (e, esc, chamada) {
     var n = e.nome;
     var i = esc.achar(n);
     if (i) {
+      if (i.naoAtribuida && !e.alvoDeAtrib && !this.atribuidaAntes(n, esc)) { this.erro("Non-nullable variable '" + n + "' must be assigned before it can be used.", e.p, n.length); i.naoAtribuida = false; }
       if (i.k === "local" || i.k === "localfun") return i.late ? "$R.lateGet(" + i.js + ", " + q(n) + ")" : i.js;
     }
     var mi = this.membroImplicito(n, esc);
@@ -2116,7 +2214,7 @@
       if (mi.info && mi.info.k === "metodo" && !chamada) return "$R.get(this, " + q(n) + ")";
       return "this." + mNome(n);
     }
-    var tp = this.topo[n];
+    var tp = this.topoDe(n, e);
     if (tp) {
       if (tp.k === "classe") return "C_" + n;
       if (tp.k === "typedef") return "$R.tipo(" + this.tipoRt({ k: "T", nome: n, args: [] }) + ")";
@@ -2156,17 +2254,23 @@
       case "Symbol": return "$R.simbolo(" + q(e.nome) + ")";
       case "TypeLit": return "$R.tipo(" + this.tipoRt(e.tipo) + ")";
       case "ListLit": {
-        var tA = e.targs ? this.tipoRt(e.targs[0]) : this.tipoRt(this.tipoElemento(this.tipoDe(e, esc)));
-        if (e.els.some(function (x) { return x.k === "Spread" || x.k === "CIf" || x.k === "CFor" || x.k === "CForIn"; }))
+        var tsL = e.targs || e.targsCtx;
+        if (tsL) e.els.forEach(function (x) { x.tipoEl = tsL[0]; });
+        var tA = tsL ? this.tipoRt(tsL[0]) : this.tipoRt(this.tipoElemento(this.tipoDe(e, esc)));
+        if (e.els.some(function (x) { return x.k === "Spread" || x.k === "CIf" || x.k === "CFor" || x.k === "CForIn" || x.k === "NulEl"; }))
           return (e.targs && e.targs[0].k === "T" && e.targs[0].nome === "double" ? "$R.DL(" : "(") + "$R.lista($R.colecao((l) => {" + e.els.map(function (x) { return self.elemAdd(x, esc, "l"); }).join(" ") + "}), " + tA + (e.constante ? ", true" : "") + "))";
         var lista = "$R.lista([" + e.els.map(function (x) { return self.elemColecao(x, esc, "l"); }).join(", ") + "], " + tA + (e.constante ? ", true" : "") + ")";
         if (e.targs && e.targs[0].k === "T" && e.targs[0].nome === "double") return "$R.DL(" + lista + ")";
         return lista;
       }
       case "SetLit": {
+        var tsS = e.targs || e.targsCtx;
+        if (tsS) e.els.forEach(function (x) { x.tipoEl = tsS[0]; });
         return "$R.conjunto($R.colecao((l) => {" + e.els.map(function (x) { return self.elemAdd(x, esc, "l"); }).join(" ") + "}), " + (e.targs ? this.tipoRt(e.targs[0]) : "null") + (e.constante ? ", true" : "") + ")";
       }
       case "MapLit": {
+        var tsM = e.targs || e.targsCtx;
+        if (tsM) e.els.forEach(function (x) { x.tipoChave = tsM[0]; x.tipoEl = tsM[1]; });
         var tt = e.targs ? "[" + this.tipoRt(e.targs[0]) + ", " + this.tipoRt(e.targs[1]) + "]" : "null";
         return "$R.mapa($R.colecao((l) => {" + e.els.map(function (x) { return self.elemAdd(x, esc, "l", true); }).join(" ") + "}), " + tt + (e.constante ? ", true" : "") + ")";
       }
@@ -2243,9 +2347,10 @@
     }
     throw new Error("expressão não suportada: " + e.k);
   };
-  G.elemColecao = function (x, esc) { return this.expr(x, esc); };
+  G.elemColecao = function (x, esc) { if (x.tipoEl && x.k !== "NulEl" && x.k !== "Spread" && x.k !== "Par") this.checarAtrib(x.tipoEl, x, esc); return x.tipoEl ? this.exprT(x, esc, x.tipoEl) : this.expr(x, esc); };
   G.elemAdd = function (x, esc, l, mapa) {
     var self = this;
+    if (x.tipoEl || x.tipoChave) ["a", "b", "corpo"].forEach(function (k) { if (x[k] && typeof x[k] === "object") { x[k].tipoEl = x[k].tipoEl || x.tipoEl; x[k].tipoChave = x[k].tipoChave || x.tipoChave; } });
     switch (x.k) {
       case "Spread": return "$R.espalhar(" + l + ", " + this.expr(x.valor, esc) + ", " + !!x.nulo + ");";
       case "CIf": {
@@ -2273,9 +2378,10 @@
         var ini = x.init ? this.stmt(x.init, e4) : "";
         return "{ " + ini + " for (; " + (x.cond ? "$R.cond(" + this.expr(x.cond, e4) + ")" : "") + "; " + x.upd.map(function (u) { return self.expr(u, e4); }).join(", ") + ") { " + this.elemAdd(x.corpo, e4, l, mapa) + " } }";
       }
-      case "Par": return l + ".push([" + this.expr(x.chave, esc) + ", " + this.expr(x.valor, esc) + "]);";
+      case "Par": return l + ".push([" + (x.tipoChave ? this.exprT(x.chave, esc, x.tipoChave) : this.expr(x.chave, esc)) + ", " + (x.tipoEl ? this.exprT(x.valor, esc, x.tipoEl) : this.expr(x.valor, esc)) + "]);";
+      case "NulEl": { var tn = this.temp(); return "if ((" + tn + " = " + this.expr(x.valor, esc) + ") != null) " + l + ".push(" + tn + ");"; }
     }
-    return l + ".push(" + this.expr(x, esc) + ");";
+    return l + ".push(" + this.elemColecao(x, esc) + ");";
   };
   var OPS_JS = { "+": "add", "-": "sub", "*": "mul", "/": "div", "%": "mod", "~/": "idiv", "<": "lt", ">": "gt", "<=": "le", ">=": "ge", "&": "and", "|": "or", "^": "xor", "<<": "shl", ">>": "shr", ">>>": "ushr" };
   G.bin = function (e, esc) {
@@ -2342,6 +2448,11 @@
   };
   G.checarMembro = function (e, esc, chamada) {
     var t = this.tipoDe(e.alvo, esc);
+    if (t && t.k === "T" && t.nome === "Object" && !t.nul && ["toString", "hashCode", "runtimeType", "noSuchMethod"].indexOf(e.nome) < 0 && !this.extensoes.some(function (x) { return x.membros.some(function (d) { return d.nome === e.nome; }); })) {
+      if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type 'Object'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
+      else this.erro("The getter '" + e.nome + "' isn't defined for the type 'Object'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
+      return;
+    }
     if (!t || t.k !== "T" || !this.classes[t.nome]) return;
     var m = this.membrosDe(t.nome);
     var c = this.classes[t.nome];
@@ -2355,8 +2466,8 @@
     if (c.impls && c.impls.some(function (i) { return !this.classes[i.nome]; }, this)) return;
     if (c.mixins && c.mixins.some(function (i) { return !this.classes[i.nome]; }, this)) return;
     var tn = this.tipoTexto(t);
-    if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + tn + "'.", e.pNome, e.nome.length, "Try correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
-    else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + tn + "'.", e.pNome, e.nome.length, "Try correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
+    if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + tn + "'.", e.pNome, e.nome.length, this.contexto([t]) + "\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
+    else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + tn + "'.", e.pNome, e.nome.length, this.contexto([t]) + "\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
   };
   G.argsArr = function (a, esc) {
     var self = this;
@@ -2382,7 +2493,8 @@
           if (mi.ext) return "$R.chamar(this, " + q(n) + ", [" + this.argsArr(e.args, esc) + "], " + a.p + ")";
           return "$R.chamar(this, " + q(n) + ", [" + this.argsArr(e.args, esc) + "], " + a.p + ")";
         }
-        var tp = this.topo[n];
+        var tp = this.topoDe(n, a);
+        if (tp && tp.erro) return "null";
         if (tp && tp.k === "classe") {
           var cl = this.classes[n];
           if (cl.abstrata && !cl.membros.some(function (d) { return d.k === "Ctor" && d.fabrica && !d.nome; })) this.erro("The class '" + n + "' is abstract and can't be instantiated.", a.p, n.length);
@@ -2457,7 +2569,7 @@
     if (!de || de.k !== "T") return;
     if (x.k === "Num" && !x.dbl && tipo.nome === "double") return;
     if (x.k === "ListLit" || x.k === "MapLit" || x.k === "SetLit") return;
-    if (!this.atribuivel(de, tipo)) this.erro("The argument type '" + this.tipoTexto(de) + "' can't be assigned to the parameter type '" + this.tipoTexto(tipo) + "'.", x.p, Math.max(1, x.e - x.p));
+    if (!this.atribuivel(de, tipo)) this.erro("The argument type '" + this.tipoTexto(de) + "' can't be assigned to the parameter type '" + this.tipoTexto(tipo) + "'.", x.p, 1, this.comCtx([de, tipo]));
   };
   G.checarArgsCtor = function (cl, nome, e) {
     var k = cl.membros.filter(function (d) { return d.k === "Ctor" && d.nome === nome; })[0];
@@ -2488,6 +2600,8 @@
     var tipoAlvo = null;
     if (alvo.k === "Ident") {
       var info = esc.achar(alvo.nome);
+      alvo.alvoDeAtrib = op === "=";
+      if (op === "=") { esc.atrib = esc.atrib || {}; esc.atrib[alvo.nome] = true; if (info && info.naoAtribuida) { var eT = esc; while (eT && !(alvo.nome in eT.vars)) eT = eT.pai; if (eT === esc) info.naoAtribuida = false; } }
       if (info && info.k === "local") {
         tipoAlvo = info.declTipo || info.tipo;
         if (info.final && !(info.late && op === "=")) this.erro("Can't assign to the final variable '" + alvo.nome + "'.", alvo.p, alvo.nome.length);
@@ -2513,7 +2627,7 @@
     if (alvo.k === "Get" && op === "=") {
       if (alvo.alvo.k === "CascadeAlvo" || alvo.alvo.k !== "Ident" || esc.achar(alvo.alvo.nome) || !this.classes[alvo.alvo.nome]) {
         var tobj = this.tipoDe(alvo.alvo, esc), tcampo = null;
-        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, "Try correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'."); } }
+        if (tobj && tobj.k === "T" && this.classes[tobj.nome]) { var mf = this.membrosDe(tobj.nome).inst[alvo.nome]; if (mf) { tcampo = mf.tipo; if (mf.final) this.erro("The setter '" + alvo.nome + "' isn't defined for the type '" + this.tipoTexto(tobj) + "'.", alvo.pNome, alvo.nome.length, this.contexto([tobj]) + "\nTry correcting the name to the name of an existing setter, or defining a setter or field named '" + alvo.nome + "'."); } }
         if (alvo.alvo.k === "This") { var mi2 = this.membroImplicito(alvo.nome, esc); if (mi2) tcampo = mi2.tipo; }
         this.checarNulo(alvo, esc);
         if (tcampo) this.checarAtrib(tcampo, e.valor, esc);
@@ -2584,6 +2698,7 @@
             return;
           }
           if (d.k === "Import" && d.uri && /^package:/.test(d.uri)) throw new ErroDart("Couldn't resolve the package '" + d.uri.replace(/^package:/, "").split("/")[0] + "' in '" + d.uri + "'.", d.p + 7, d.uri.length + 2);
+          d.arq = f.nome;
           prog.push(d);
         });
       }
@@ -2592,7 +2707,9 @@
       throw e;
     }
     var g = new Gerador(prog, combinado, arq);
+    g.arqDe = function (p) { return fonteDe(p).nome; };
     g.imports = imports;
+    g.arqPrincipal = arq;
     ERROS_LEX.forEach(function (e) { g.erros.push(e); });
     var js;
     try { js = g.gerar(); }
