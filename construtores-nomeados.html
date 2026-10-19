@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Construtores Nomeados e factory — vários jeitos de criar um objeto | Guia Dart</title>
+<meta name="description" content="Construtores nomeados e factory do Dart para quem nunca programou: Produto.brinde('bala'), Temperatura.fahrenheit(50), os que já vêm prontos (List.filled, List.generate, DateTime.utc), redirecionar com : this(…), o construtor factory que monta o objeto a partir de um texto ou devolve um que já existe, e os erros reais do Dart 3.13 (Member not found, this. no factory, FormatException).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Construtores Nomeados</span> e factory</h1>
+
+<p class="intro">Na aula de <a href="construtores.html">Construtores</a>, cada classe tinha <strong>um</strong> jeito de criar objetos: <code>Produto('café', 18.9)</code>. Mas às vezes existem vários jeitos que fazem sentido: um produto normal ou um <strong>brinde</strong> (de graça); uma temperatura em Celsius ou em <strong>Fahrenheit</strong>; um produto escrito à mão ou lido de uma <strong>linha de texto</strong>. Uma classe só pode ter um construtor sem nome, mas pode ter quantos <strong>construtores nomeados</strong> quiser. E, quando criar o objeto exige mais que copiar valores, existe o construtor <strong><code>factory</code></strong> ("fábrica").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um construtor nomeado: <code>Produto.brinde(this.nome) : preco = 0;</code></li>
+  <li>Que você já usou vários sem saber: <code>List.filled</code>, <code>List.generate</code>, <code>DateTime.utc</code>.</li>
+  <li>Como um construtor pode <strong>repassar</strong> o trabalho para outro: <code>: this(nome, 0)</code>.</li>
+  <li>O que é um construtor <code>factory</code> e quando usar: montar o objeto a partir de um texto, ou devolver um objeto que já existe.</li>
+  <li>Os erros reais que o Dart mostra.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: os balcões da padaria</h2>
+<p>Na padaria, um pedido pode chegar de vários jeitos: no <strong>balcão</strong> (o cliente diz o que quer e paga), como <strong>brinde</strong> (a bala que vai de graça para a criança), ou pelo <strong>bilhete</strong> que a vizinha deixa por escrito ("2 pães; 1 leite"). No fim, é sempre um pedido; o que muda é <strong>como</strong> ele começa.</p>
+<p>Os construtores nomeados são esses balcões: cada um tem um nome que diz de onde vem o objeto (<code>Produto.brinde</code>, <code>Produto.deLinha</code>), e todos produzem um <code>Produto</code>.</p>
+
+<hr>
+
+<h2>1. O primeiro construtor nomeado</h2>
+
+<pre class="file" data-file="nomeado.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  Produto.brinde(this.nome) : preco = 0;
+
+  @override
+  String toString() =&gt; '$nome: R\$ $preco';
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  final bala = Produto.brinde('bala');
+  print(cafe);
+  print(bala);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Produto(this.nome, this.preco);</dt><dd>O construtor de sempre, sem nome (veja <a href="construtores.html">Construtores</a>).</dd>
+  <dt>Produto.brinde(…)</dt><dd>Um construtor <strong>nomeado</strong>: o nome da classe, um <strong>ponto</strong> e um nome seu, em <em>lowerCamelCase</em>. O nome conta para quem lê o que esse jeito de criar faz.</dd>
+  <dt>(this.nome)</dt><dd>Recebe só o nome, que vai direto para o campo.</dd>
+  <dt>: preco = 0</dt><dd>A <strong>lista de inicialização</strong> dá o preço: brinde é de graça.</dd>
+  <dt>Produto.brinde('bala')</dt><dd>Para usar, escreva o nome completo, com o ponto.</dd>
+</dl>
+
+<pre class="term">$ dart run nomeado.dart
+café: R$ 18.9
+bala: R$ 0.0
+</pre>
+
+<h3>Vários nomes, um jeito para cada situação</h3>
+<p>Uma temperatura pode chegar em graus Celsius ou em Fahrenheit (os americanos usam esta). A classe guarda sempre em Celsius e oferece três construtores, todos nomeados:</p>
+
+<pre class="file" data-file="temperatura.dart">class Temperatura {
+  final double celsius;
+
+  Temperatura.celsius(this.celsius);
+
+  Temperatura.fahrenheit(double f) : celsius = (f - 32) * 5 / 9;
+
+  Temperatura.congelando() : celsius = 0;
+}
+
+void main() {
+  final hoje = Temperatura.celsius(28);
+  final nyc = Temperatura.fahrenheit(50);
+  final gelo = Temperatura.congelando();
+  print('Hoje: ${hoje.celsius} °C');
+  print('Nova York: ${nyc.celsius} °C');
+  print('Gelo: ${gelo.celsius} °C');
+}
+</pre>
+
+<pre class="term">$ dart run temperatura.dart
+Hoje: 28.0 °C
+Nova York: 10.0 °C
+Gelo: 0.0 °C
+</pre>
+
+<p>Os 50 °F viraram 10 °C pela conta da lista de inicialização. Repare que esta classe <strong>não tem</strong> construtor sem nome: <code>Temperatura(28)</code> dá erro de compilação (no lab: <code>Error: Couldn't find constructor 'Temperatura'.</code>, "não encontrei o construtor <code>Temperatura</code>"). Assim, quem cria uma temperatura é obrigado a dizer a unidade, e ninguém confunde 28 °F com 28 °C.</p>
+
+<div class="trydart" data-goal="out:tampinha: R$ 0.0;;src:Produto\.brinde\s*\(\s*this\.nome\s*\)">
+<p class="try-task"><strong>Missão:</strong> acrescente à classe o construtor nomeado <code>Produto.brinde(this.nome)</code>, com preço 0 na lista de inicialização, para que o <code>main</code> funcione e mostre <code>tampinha: R$ 0.0</code>.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  // escreva o construtor brinde aqui
+}
+
+void main() {
+  final t = Produto.brinde('tampinha');
+  print('${t.nome}: R\$ ${t.preco}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  Produto.brinde(this.nome) : preco = 0;
+}
+
+void main() {
+  final t = Produto.brinde('tampinha');
+  print('${t.nome}: R\$ ${t.preco}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Você já usou vários</h2>
+<p>As classes que vêm com o Dart têm muitos construtores nomeados:</p>
+
+<pre class="file" data-file="prontos.dart">void main() {
+  final zeros = List.filled(3, 0);
+  final quadrados = List.generate(5, (i) =&gt; i * i);
+  final natal = DateTime.utc(2026, 12, 25);
+  final vazio = Map&lt;String, int&gt;.of({'pão': 2});
+  print(zeros);
+  print(quadrados);
+  print(natal);
+  print(vazio);
+}
+</pre>
+
+<pre class="term">$ dart run prontos.dart
+[0, 0, 0]
+[0, 1, 4, 9, 16]
+2026-12-25 00:00:00.000Z
+{pão: 2}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Construtor</th><th>O que cria</th></tr>
+<tr><td><code>List.filled(3, 0)</code></td><td>Uma lista com 3 itens, todos 0 ("preenchida")</td></tr>
+<tr><td><code>List.generate(5, (i) =&gt; i * i)</code></td><td>Uma lista de 5 itens "gerados" por uma função (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>)</td></tr>
+<tr><td><code>DateTime.utc(2026, 12, 25)</code></td><td>Uma data no horário universal (o <code>Z</code> no fim indica isso)</td></tr>
+<tr><td><code>Map&lt;String, int&gt;.of({…})</code></td><td>Um mapa novo, cópia de outro</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Repassar para outro construtor: <code>: this(…)</code></h2>
+<p>Um construtor nomeado pode só <strong>repassar</strong> o trabalho para outro construtor da mesma classe, completando os valores que faltam. Isso evita repetir código:</p>
+
+<pre class="file" data-file="redireciona.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  Produto.brinde(String nome) : this(nome, 0);
+
+  Produto.cafe() : this('café', 18.9);
+
+  @override
+  String toString() =&gt; '$nome: R\$ $preco';
+}
+
+void main() {
+  print(Produto.brinde('bala'));
+  print(Produto.cafe());
+}
+</pre>
+
+<pre class="term">$ dart run redireciona.dart
+bala: R$ 0.0
+café: R$ 18.9
+</pre>
+
+<p><code>: this(nome, 0)</code> quer dizer "crie usando o construtor principal, com este nome e preço 0". Se o construtor principal um dia ganhar uma conferência de preço, os nomeados que repassam para ele ganham junto. Um construtor que repassa não tem corpo nem lista de inicialização própria.</p>
+
+<hr>
+
+<h2>4. O construtor <code>factory</code></h2>
+<p>Um construtor comum <strong>sempre</strong> cria um objeto novo, e só pode preencher campos. Às vezes, criar o objeto exige trabalho antes: separar um texto, converter números, decidir algo. Um construtor marcado com <code>factory</code> funciona como uma <a href="funcoes.html">função</a> comum: roda o código que quiser e, no fim, <strong>devolve</strong> (<code>return</code>) o objeto.</p>
+
+<h3>Montar o objeto a partir de um texto</h3>
+<p>A lista de preços chegou num arquivo, uma linha por produto, no formato <code>nome;preço</code>:</p>
+
+<pre class="file" data-file="factory.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  factory Produto.deLinha(String linha) {
+    final partes = linha.split(';');
+    final nome = partes[0].trim();
+    final preco = double.parse(partes[1]);
+    return Produto(nome, preco);
+  }
+
+  @override
+  String toString() =&gt; '$nome: R\$ $preco';
+}
+
+void main() {
+  final linhas = ['pão;1.0', 'leite; 5.5', 'café;18.9'];
+  for (final l in linhas) {
+    print(Produto.deLinha(l));
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>factory Produto.deLinha(String linha)</dt><dd>A palavra <code>factory</code> antes do construtor. Ele recebe o texto inteiro.</dd>
+  <dt>linha.split(';')</dt><dd>Separa o texto no <code>;</code>: <code>'pão;1.0'</code> vira <code>['pão', '1.0']</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+  <dt>partes[0].trim()</dt><dd>O nome, sem espaços nas pontas.</dd>
+  <dt>double.parse(partes[1])</dt><dd>Converte o texto do preço em número (veja <a href="conversao.html">Conversão de Tipos</a>). O <code>double.parse</code> aceita o espaço de <code>' 5.5'</code>.</dd>
+  <dt>return Produto(nome, preco);</dt><dd>O <code>factory</code> <strong>devolve</strong> o objeto, criado com o construtor principal. Sem esse <code>return</code>, dá erro.</dd>
+</dl>
+
+<pre class="term">$ dart run factory.dart
+pão: R$ 1.0
+leite: R$ 5.5
+café: R$ 18.9
+</pre>
+
+<h3>Devolver um objeto que já existe</h3>
+<p>Como o <code>factory</code> só precisa <strong>devolver</strong> um objeto, ele pode devolver um que já foi criado antes, em vez de um novo. As moedas do programa da Ana: só existe <strong>um</strong> objeto para cada código.</p>
+
+<pre class="file" data-file="cache.dart">class Moeda {
+  final String codigo;
+
+  Moeda._(this.codigo) {
+    print('criando a moeda $codigo');
+  }
+
+  static final _criadas = &lt;String, Moeda&gt;{};
+
+  factory Moeda(String codigo) {
+    return _criadas.putIfAbsent(codigo, () =&gt; Moeda._(codigo));
+  }
+}
+
+void main() {
+  final a = Moeda('BRL');
+  final b = Moeda('BRL');
+  final c = Moeda('USD');
+  print(identical(a, b));
+  print(identical(a, c));
+}
+</pre>
+
+<pre class="term">$ dart run cache.dart
+criando a moeda BRL
+criando a moeda USD
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>Moeda._(this.codigo)</dt><dd>O construtor que cria de verdade. O nome <code>_</code> o deixa <strong>privado</strong>: só este arquivo pode usá-lo (veja <a href="privado.html">Privacidade</a>).</dd>
+  <dt>static final _criadas = &lt;String, Moeda&gt;{};</dt><dd>Um mapa que pertence à <strong>classe</strong>, e não a cada moeda, com as moedas já criadas (veja <a href="static.html">Membros static</a>).</dd>
+  <dt>factory Moeda(String codigo)</dt><dd>O construtor <strong>sem nome</strong> também pode ser <code>factory</code>. Quem usa escreve <code>Moeda('BRL')</code> e nem percebe a diferença.</dd>
+  <dt>_criadas.putIfAbsent(codigo, …)</dt><dd>"Ponha se não estiver lá": se o código já estiver no mapa, devolve a moeda guardada; se não, cria uma com <code>Moeda._</code>, guarda e devolve.</dd>
+  <dt>identical(a, b)</dt><dd>"São o <strong>mesmo</strong> objeto?" Para <code>a</code> e <code>b</code>, sim: a mensagem <code>criando a moeda BRL</code> só apareceu uma vez.</dd>
+</dl>
+
+<div class="tip">
+<strong>Comum × factory</strong>
+<p>Um construtor comum só preenche campos (com <code>this.</code>, a lista de inicialização e o corpo), e sempre resulta num objeto novo. Um <code>factory</code> roda código à vontade e <strong>devolve</strong> um objeto: novo, guardado, ou até de uma subclasse (assunto de <a href="heranca.html">Herança</a>). Em troca, ele não pode usar <code>this</code>, porque não há um objeto "em construção".</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para "criar um produto a partir de uma linha de texto", existem três caminhos: um <code>factory</code> (seção 4), uma função solta fora da classe (como a <code>criar</code> da aula de <a href="classes.html">Classes</a>), ou um método <code>static</code> da classe. O <code>static</code> tem uma vantagem: pode devolver <code>null</code> quando não dá para criar, coisa que um construtor (nem o <code>factory</code>) não pode:</p>
+
+<pre class="file" data-file="factorynull.dart">class Nota {
+  final double valor;
+  Nota._(this.valor);
+
+  static Nota? tentar(String texto) {
+    final v = double.tryParse(texto);
+    if (v == null || v &lt; 0 || v &gt; 10) return null;
+    return Nota._(v);
+  }
+}
+
+void main() {
+  print(Nota.tentar('8.5')?.valor);
+  print(Nota.tentar('11')?.valor);
+  print(Nota.tentar('oito')?.valor);
+}
+</pre>
+
+<pre class="term">$ dart run factorynull.dart
+8.5
+null
+null
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Outro jeito de criar, que só muda alguns valores</td><td>Construtor nomeado com lista de inicialização: <code>Produto.brinde(this.nome) : preco = 0;</code></td></tr>
+<tr><td>Outro jeito que é um caso do principal</td><td>Nomeado que repassa: <code>: this(nome, 0)</code></td></tr>
+<tr><td>Precisa de código antes de criar (separar texto, converter)</td><td><code>factory</code></td></tr>
+<tr><td>Devolver um objeto já existente (um por código)</td><td><code>factory</code> com um mapa guardado</td></tr>
+<tr><td>Pode não dar para criar, e você quer <code>null</code> em vez de erro</td><td>Método <code>static</code> que devolve <code>Classe?</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou um construtor nomeado que não existe</strong>
+<pre class="file" data-file="naoexiste.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+  Produto.brinde(this.nome) : preco = 0;
+}
+
+void main() {
+  final bala = Produto.gratis('bala');
+  print(bala.nome);
+}
+</pre>
+<pre class="term">$ dart run naoexiste.dart
+naoexiste.dart:9:24: Error: Member not found: 'Produto.gratis'.
+  final bala = Produto.gratis('bala');
+                       ^^^^^^
+$ echo $?
+254
+</pre>
+<p>"Membro não encontrado: <code>Produto.gratis</code>." A classe tem <code>Produto.brinde</code>, não <code>Produto.gratis</code>. <strong>Como consertar:</strong> use o nome certo.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>this.</code> num <code>factory</code></strong>
+<pre class="file" data-file="factorythis.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+
+  factory Produto.brinde(this.nome) {
+    return Produto(nome, 0);
+  }
+}
+
+void main() {
+  print(Produto.brinde('bala').nome);
+}
+</pre>
+<pre class="term">$ dart run factorythis.dart
+factorythis.dart:6:26: Error: Field formal parameters can only be used in a constructor.
+Try removing 'this.'.
+  factory Produto.brinde(this.nome) {
+                         ^^^^
+</pre>
+<p>"Parâmetros do tipo <code>this.campo</code> só podem ser usados num construtor." Para o Dart, um <code>factory</code> não é um construtor "de verdade": não existe objeto sendo montado, então não há campo para preencher. <strong>Como consertar:</strong> receba um parâmetro comum (<code>String nome</code>) e passe-o ao construtor que você chamar no <code>return</code>. (Ou, aqui, nem use <code>factory</code>: <code>Produto.brinde(String nome) : this(nome, 0);</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code> no <code>factory</code></strong>
+<pre class="file" data-file="factorysemreturn.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+
+  factory Produto.deLinha(String linha) {
+    final partes = linha.split(';');
+    Produto(partes[0], double.parse(partes[1]));
+  }
+}
+
+void main() {
+  print(Produto.deLinha('pão;1.0').nome);
+}
+</pre>
+<pre class="term">$ dart run factorysemreturn.dart
+factorysemreturn.dart:6:11: Error: A non-null value must be returned since the return type 'Produto' doesn't allow null.
+ - 'Produto' is from 'factorysemreturn.dart'.
+  factory Produto.deLinha(String linha) {
+          ^
+</pre>
+<p>"Um valor que não seja <code>null</code> precisa ser devolvido, já que o tipo de retorno <code>Produto</code> não aceita <code>null</code>." O produto foi criado na linha 8, mas ninguém o devolveu. <strong>Como consertar:</strong> <code>return Produto(…);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A linha de texto veio num formato inesperado</strong>
+<p>O <code>factory</code> roda código de verdade, então pode dar exceção ao rodar. A vizinha escreveu o preço do leite com vírgula:</p>
+<pre class="file" data-file="linharuim.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  factory Produto.deLinha(String linha) {
+    final partes = linha.split(';');
+    final nome = partes[0].trim();
+    final preco = double.parse(partes[1]);
+    return Produto(nome, preco);
+  }
+}
+
+void main() {
+  final linhas = ['pão;1.0', 'leite;5,50'];
+  for (final l in linhas) {
+    final p = Produto.deLinha(l);
+    print('${p.nome}: ${p.preco}');
+  }
+}
+</pre>
+<pre class="term">$ dart run linharuim.dart
+pão: 1.0
+Unhandled exception:
+FormatException: Invalid double
+5,50
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      new Produto.deLinha (file:///home/ana/linharuim.dart:10:26)
+#2      main (file:///home/ana/linharuim.dart:18:23)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>pão: 1.0</dt><dd>A primeira linha deu certo.</dd>
+  <dt>FormatException: Invalid double</dt><dd>"Exceção de formato: <code>double</code> inválido." O <code>double.parse</code> só entende ponto como separador decimal.</dd>
+  <dt>5,50</dt><dd>O texto que ele não conseguiu converter, na linha de baixo.</dd>
+  <dt>#0 double.parse …</dt><dd>Onde o erro nasceu: dentro do <code>double.parse</code>.</dd>
+  <dt>#1 new Produto.deLinha (…linharuim.dart:10:26)</dt><dd>Quem chamou: o seu <code>factory</code>, linha 10.</dd>
+  <dt>#2 main (…linharuim.dart:18:23)</dt><dd>E quem chamou o <code>factory</code>: o <code>main</code>, linha 18.</dd>
+</dl>
+<p>Uma linha sem o <code>;</code> (por exemplo <code>'pão 1.0'</code>) dá outra exceção: <code>RangeError (length): Invalid value: Only valid value is 0: 1</code>, porque o <code>split</code> devolveu uma lista de um item só e o código pediu o <code>partes[1]</code>. <strong>Como consertar:</strong> troque a vírgula antes de converter (<code>partes[1].replaceAll(',', '.')</code>), ou trate o erro (veja <a href="excecoes.html">Exceções</a>), ou use o <code>static</code> que devolve <code>null</code>, da seção anterior.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois construtores sem nome</strong>
+<pre class="file" data-file="repetido.dart">class Produto {
+  final String nome;
+  Produto(this.nome);
+  Produto(String n) : nome = n.trim();
+}
+
+void main() {
+  print(Produto('pão').nome);
+}
+</pre>
+<pre class="term">$ dart run repetido.dart
+repetido.dart:4:3: Error: 'Produto' is already declared in this scope.
+  Produto(String n) : nome = n.trim();
+  ^^^^^^^
+repetido.dart:3:3: Context: Previous declaration of 'Produto'.
+  Produto(this.nome);
+  ^^^^^^^
+repetido.dart:8:9: Error: Can't use 'Produto' because it is declared more than once.
+  print(Produto('pão').nome);
+        ^
+</pre>
+<p>"<code>Produto</code> já foi declarado neste escopo." O Dart não tem "sobrecarga" (vários construtores ou métodos com o mesmo nome e parâmetros diferentes, como em Java). Cada construtor precisa de um nome próprio. <strong>Como consertar:</strong> dê nome ao segundo: <code>Produto.limpo(String n) : nome = n.trim();</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Classe.nome(…)</code></td><td>Construtor nomeado; usa-se <code>Classe.nome(…)</code></td></tr>
+<tr><td><code>Produto.brinde(this.nome) : preco = 0;</code></td><td>Nomeado com lista de inicialização</td></tr>
+<tr><td><code>Produto.brinde(String n) : this(n, 0);</code></td><td>Repassa para o construtor principal</td></tr>
+<tr><td><code>factory Classe.nome(…) { …; return objeto; }</code></td><td>Roda código e devolve um objeto (novo ou já existente)</td></tr>
+<tr><td><code>factory Classe(…)</code></td><td>O construtor sem nome também pode ser <code>factory</code></td></tr>
+<tr><td><code>Classe._(…)</code></td><td>Construtor privado (só o próprio arquivo usa)</td></tr>
+<tr><td><code>List.filled</code>, <code>List.generate</code>, <code>DateTime.utc</code></td><td>Nomeados que já vêm com o Dart</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Member not found: 'Classe.x'.</code></td><td>Construtor nomeado que não existe (nome errado)</td></tr>
+<tr><td><code>Field formal parameters can only be used in a constructor.</code></td><td><code>this.campo</code> num <code>factory</code></td></tr>
+<tr><td><code>A non-null value must be returned…</code> num <code>factory</code></td><td>Faltou o <code>return</code></td></tr>
+<tr><td><code>'Classe' is already declared in this scope.</code></td><td>Dois construtores com o mesmo nome</td></tr>
+<tr><td><code>FormatException</code> / <code>RangeError</code> dentro do <code>factory</code></td><td>O texto de entrada não estava no formato esperado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o construtor nomeado</h3>
+<p>Uma conta "zerada" começa com saldo 0:</p>
+<div class="ex-code">Conta<input data-answer=".zerada" aria-label="nome do construtor">(this.dona) : saldo = 0;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual palavra?</h3>
+<p>Que palavra marca um construtor que roda código e <strong>devolve</strong> o objeto com <code>return</code>?</p>
+<div class="ex-code"><input data-answer="factory" aria-label="palavra-chave"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A classe <code>Temperatura</code> só tem <code>Temperatura.celsius</code> e <code>Temperatura.fahrenheit</code>. O que acontece com <code>Temperatura(28)</code>?</p>
+<label><input type="radio" name="q3"> Cria em Celsius, que é o padrão</label>
+<label><input type="radio" name="q3"> Erro de compilação: não existe construtor sem nome</label>
+<label><input type="radio" name="q3"> Cria com <code>celsius</code> valendo <code>null</code></label>
+<label><input type="radio" name="q3"> Exceção ao rodar</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que um <code>factory</code> pode fazer e um construtor comum <strong>não</strong> pode?</p>
+<label><input type="radio" name="q4"> Receber parâmetros</label>
+<label><input type="radio" name="q4"> Ter um nome</label>
+<label><input type="radio" name="q4"> Usar <code>this.campo</code> nos parâmetros</label>
+<label><input type="radio" name="q4"> Devolver um objeto que já existia</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Para que serve <code>Produto.brinde(String n) : this(n, 0);</code>?</p>
+<label><input type="radio" name="q5"> Cria o brinde repassando para o construtor principal, com preço 0</label>
+<label><input type="radio" name="q5"> Cria dois produtos</label>
+<label><input type="radio" name="q5"> Muda o preço de todos os produtos para 0</label>
+<label><input type="radio" name="q5"> É um erro: <code>this</code> não pode ser chamado</label>
+</div>
+
+<h3>Missão final: o aluno lido do diário</h3>
+
+<div class="trydart" data-goal="out:Ana: 9.5;;out:Bia: 7.0;;src:factory\s+Aluno\.deLinha">
+<p class="try-task"><strong>Missão:</strong> o diário da professora tem linhas no formato <code>nome=nota</code>. Escreva o <code>factory Aluno.deLinha(String linha)</code>: separe a linha no <code>=</code> com <code>split</code>, converta a nota com <code>double.parse</code> e devolva <code>Aluno(nome, nota)</code>.</p>
+<pre class="script" data-file="main.dart">class Aluno {
+  final String nome;
+  final double nota;
+
+  Aluno(this.nome, this.nota);
+
+  // escreva o factory Aluno.deLinha aqui
+}
+
+void main() {
+  final diario = ['Ana=9.5', 'Bia=7'];
+  for (final linha in diario) {
+    final a = Aluno.deLinha(linha);
+    print('${a.nome}: ${a.nota}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Aluno {
+  final String nome;
+  final double nota;
+
+  Aluno(this.nome, this.nota);
+
+  factory Aluno.deLinha(String linha) {
+    final partes = linha.split('=');
+    return Aluno(partes[0], double.parse(partes[1]));
+  }
+}
+
+void main() {
+  final diario = ['Ana=9.5', 'Bia=7'];
+  for (final linha in diario) {
+    final a = Aluno.deLinha(linha);
+    print('${a.nome}: ${a.nota}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma classe tem no máximo um construtor sem nome, mas quantos <strong>nomeados</strong> quiser: <code>Classe.nome(…)</code>. Não existe sobrecarga: cada construtor tem um nome diferente.</li>
+  <li>Construtores nomeados usam <code>this.</code>, lista de inicialização e corpo, como os outros, ou repassam para outro com <code>: this(…)</code>.</li>
+  <li>O <code>factory</code> roda código à vontade e <strong>devolve</strong> um objeto com <code>return</code>: novo, ou um que já existia. Ele não pode usar <code>this</code>.</li>
+  <li>Os nomes contam o que cada jeito de criar faz: <code>Produto.brinde</code>, <code>Temperatura.fahrenheit</code>, <code>List.filled</code>.</li>
+  <li>Próxima aula: <a href="getters-setters.html">get e set</a>, campos "calculados" e campos que conferem o valor antes de aceitar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
