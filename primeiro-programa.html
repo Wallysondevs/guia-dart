@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart main e print — seu primeiro programa | Guia Dart</title>
+<meta name="description" content="O primeiro programa em Dart para quem nunca programou: a função main, o void, as chaves, o print com textos e números, aspas simples e duplas, linha em branco, e os erros reais do Dart 3 (Method not found: 'Print', String starting with ' must end with ', Undefined name, programa sem main) explicados em português, com missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">main e print</span></h1>
+
+<p class="intro">Chegou a hora de escrever o seu primeiro programa e entender <strong>cada pedaço</strong> dele. Todo programa Dart, do menor script ao maior aplicativo Flutter, começa do mesmo jeito: por uma função chamada <code>main</code>. E a primeira coisa que quase todo programa faz é mostrar algo na tela com o <code>print</code>. Nesta aula você aprende os dois, e também a ler as mensagens que o Dart mostra quando um deles está escrito errado.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é a função <code>main</code> e por que todo programa precisa de uma.</li>
+  <li>O que significam o <code>void</code>, os parênteses <code>()</code> e as chaves <code>{ }</code>.</li>
+  <li>A mostrar textos com <code>print</code>, com aspas simples ou duplas, e textos que têm aspas dentro.</li>
+  <li>A mostrar números e o resultado de contas, e por que <code>print(2 + 3)</code> e <code>print('2 + 3')</code> são diferentes.</li>
+  <li>A mostrar várias linhas e uma linha em branco.</li>
+  <li>Os erros reais mais comuns: <code>Print</code> com P maiúsculo, aspas e parênteses sem fechar, texto sem aspas, o programa sem <code>main</code> e o <code>print</code> com dois valores.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code> (aula <a href="executar.html">Rodando um Programa</a>). As caixas "Experimente" fazem o mesmo no navegador (aula <a href="simulador.html">O Editor do Guia</a>).</p>
+
+<hr>
+
+<h2>A ideia: a porta de entrada e o alto-falante</h2>
+<p>Pense numa loja. Ela pode ter muitas salas (estoque, cozinha, escritório), mas o cliente sempre entra pela <strong>porta da frente</strong>. Num programa Dart, a porta da frente é o <code>main</code> (em inglês, "principal"): quando você roda o programa, o Dart procura o <code>main</code> e começa por ele, sempre.</p>
+
+<p>E pense no alto-falante da padaria: "Senha 42, seu pão está pronto!". Quem está no balcão diz o recado, e o alto-falante anuncia exatamente aquilo. O <code>print</code> é o alto-falante do programa: você entrega um valor e ele mostra esse valor na tela, numa linha.</p>
+
+<hr>
+
+<h2>1. O programa mínimo</h2>
+
+<pre class="file" data-file="ola.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+
+<pre class="term">$ dart run ola.dart
+Olá, Ana!
+</pre>
+
+<p>São três linhas, e cada pedaço tem um papel:</p>
+
+<dl class="anatomy">
+  <dt>void</dt><dd>"Vazio". Diz que o <code>main</code> faz o trabalho dele e <strong>não devolve</strong> nenhum resultado no fim. A palavra fica <em>antes</em> do nome; você vai entender o "devolver" na aula <a href="funcoes.html">Funções</a>.</dd>
+  <dt>main</dt><dd>O nome da função. Uma <strong>função</strong> é um bloco de instruções com nome. Esse nome é especial: é por ele que o Dart começa. Tem de ser escrito assim, tudo minúsculo.</dd>
+  <dt>()</dt><dd>Os parênteses vêm logo depois do nome de toda função. Aqui estão vazios: o <code>main</code> não está recebendo nada.</dd>
+  <dt>{ }</dt><dd>As chaves marcam o <strong>corpo</strong> da função: o que está entre a <code>{</code> da primeira linha e a <code>}</code> da última é o que o <code>main</code> faz.</dd>
+  <dt>print('Olá, Ana!');</dt><dd>A <strong>instrução</strong> que o <code>main</code> executa: mostrar o texto. Fica dois espaços para dentro (o <strong>recuo</strong>), para mostrar que está dentro das chaves.</dd>
+</dl>
+
+<p>E dentro do <code>print</code>:</p>
+
+<dl class="anatomy">
+  <dt>print</dt><dd>"Imprimir", do tempo em que a saída do computador ia para uma impressora. Hoje, mostra na tela.</dd>
+  <dt>( … )</dt><dd>Os parênteses <strong>chamam</strong> (usam) a função. O que vai dentro é o que você entrega a ela: o <strong>argumento</strong>.</dd>
+  <dt>'Olá, Ana!'</dt><dd>Um <strong>texto</strong>, que em programação se chama <strong>string</strong> ("cordão": uma fileira de letras). As aspas marcam onde ele começa e termina e <strong>não</strong> aparecem na tela. Dentro delas, acento, espaço e vírgula saem do jeito que estão.</dd>
+  <dt>;</dt><dd>O ponto e vírgula termina a instrução. No Dart ele é obrigatório (aula <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>).</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Padaria do Bairro">
+<p class="try-task"><strong>Missão:</strong> faça o programa mostrar <code>Padaria do Bairro</code>. Mude só o que está entre as aspas.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Várias linhas: um <code>print</code> para cada</h2>
+<p>O <code>main</code> pode ter quantas instruções você quiser. O Dart executa uma de cada vez, <strong>de cima para baixo</strong>, e cada <code>print</code> mostra uma linha:</p>
+
+<pre class="file" data-file="varios.dart">void main() {
+  print('Bom dia!');
+  print('Padaria do Bairro');
+  print('Pão francês saindo às 7h');
+}
+</pre>
+
+<pre class="term">$ dart run varios.dart
+Bom dia!
+Padaria do Bairro
+Pão francês saindo às 7h
+</pre>
+
+<p>Três <code>print</code>, três linhas, na mesma ordem do arquivo. Troque duas linhas de lugar no código e elas trocam de lugar na saída.</p>
+
+<h3>Uma linha em branco</h3>
+<p>Para pular uma linha, mostre um texto <strong>vazio</strong>: duas aspas sem nada entre elas.</p>
+
+<pre class="file" data-file="vazio.dart">void main() {
+  print('Padaria do Bairro');
+  print('');
+  print('Pão francês');
+}
+</pre>
+
+<pre class="term">$ dart run vazio.dart
+Padaria do Bairro
+
+Pão francês
+</pre>
+
+<p>Atenção: <code>print('')</code>, com as aspas, e não <code>print()</code> vazio. O <code>print</code> do Dart sempre precisa de alguma coisa dentro (veja em "Quando dá errado").</p>
+
+<hr>
+
+<h2>3. Aspas simples ou duplas</h2>
+<p>O Dart aceita os dois tipos de aspas: <code>'simples'</code> e <code>"duplas"</code>. A regra é fechar com a mesma que abriu. Quando o texto tem um apóstrofo, como em <em>Padaria D'Ouro</em>, use aspas duplas por fora, ou ponha uma barra invertida antes do apóstrofo (<code>\'</code>), que avisa "esta aspa é uma letra, não o fim do texto":</p>
+
+<pre class="file" data-file="duplas.dart">void main() {
+  print("Olá, Ana!");
+  print('Padaria D\'Ouro');
+  print("Padaria D'Ouro");
+  print('Ela disse: "Que pão cheiroso!"');
+}
+</pre>
+
+<pre class="term">$ dart run duplas.dart
+Olá, Ana!
+Padaria D'Ouro
+Padaria D'Ouro
+Ela disse: "Que pão cheiroso!"
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Como escrever</th></tr>
+<tr><td>Texto comum</td><td><code>'Bom dia'</code> (o padrão do estilo oficial do Dart)</td></tr>
+<tr><td>Texto com apóstrofo</td><td><code>"Padaria D'Ouro"</code> ou <code>'Padaria D\'Ouro'</code></td></tr>
+<tr><td>Texto com aspas duplas dentro</td><td><code>'Ela disse: "oi"'</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Qual aspa usar?</strong>
+<p>O guia de estilo do Dart (<em>Effective Dart</em>) e o verificador de código (aula <a href="analise.html">Análise e Formatação</a>) preferem <strong>aspas simples</strong>, e este guia segue essa regra. Aspas duplas só quando o texto tem apóstrofo. Mais sobre textos em <a href="strings.html">Strings</a>.</p>
+</div>
+
+<hr>
+
+<h2>4. Números e contas: sem aspas</h2>
+<p>O <code>print</code> não mostra só textos. Números se escrevem <strong>sem aspas</strong>, e uma conta dentro do <code>print</code> é <strong>calculada antes</strong> de ser mostrada:</p>
+
+<pre class="file" data-file="numeros.dart">void main() {
+  print(42);
+  print(3.5);
+  print(2 + 3);
+  print('2 + 3');
+  print(10 / 4);
+}
+</pre>
+
+<pre class="term">$ dart run numeros.dart
+42
+3.5
+5
+2 + 3
+2.5
+</pre>
+
+<dl class="anatomy">
+  <dt>print(42)</dt><dd>Um número inteiro, mostrado como está.</dd>
+  <dt>print(3.5)</dt><dd>Número com casas decimais: no programa, o separador é o <strong>ponto</strong>, nunca a vírgula.</dd>
+  <dt>print(2 + 3)</dt><dd>Sem aspas é uma <strong>conta</strong>: o Dart calcula e mostra <code>5</code>.</dd>
+  <dt>print('2 + 3')</dt><dd>Com aspas é um <strong>texto</strong>: sai exatamente <code>2 + 3</code>, sem conta nenhuma.</dd>
+  <dt>print(10 / 4)</dt><dd>A divisão com <code>/</code> dá <code>2.5</code>. As contas têm aula própria: <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:15;;src:print\(\s*[0-9]+\s*\*\s*[0-9]+\s*\)">
+<p class="try-task"><strong>Missão:</strong> a Ana comprou 5 pacotes de pão de queijo a 3 reais cada. Troque o texto por uma <strong>conta</strong> com <code>*</code> (vezes), sem aspas, para o Dart mostrar o total: <code>15</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('5 * 3');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print(5 * 3);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Outras formas de escrever o <code>main</code></h2>
+<p>Você vai encontrar o <code>main</code> escrito de jeitos um pouco diferentes em outros lugares:</p>
+
+<pre class="file" data-file="sem_void.dart">main() {
+  print('Olá, Ana!');
+}
+</pre>
+
+<pre class="term">$ dart run sem_void.dart
+Olá, Ana!
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Funciona?</th><th>Quando usar</th></tr>
+<tr><td><code>void main() { … }</code></td><td>Sim</td><td><strong>Sempre, neste guia.</strong> É o jeito recomendado: deixa claro que não devolve nada.</td></tr>
+<tr><td><code>main() { … }</code></td><td>Sim</td><td>Código antigo. Funciona, mas o verificador de estilo pede o tipo de retorno.</td></tr>
+<tr><td><code>void main(List&lt;String&gt; args) { … }</code></td><td>Sim</td><td>Quando o programa recebe palavras digitadas depois do nome no terminal (aula <a href="argumentos.html">Argumentos da Linha de Comando</a>).</td></tr>
+<tr><td><code>void main() async { … }</code></td><td>Sim</td><td>Programas que esperam coisas demoradas (aula <a href="async-await.html">async e await</a>).</td></tr>
+</table>
+</div>
+
+<p>E um <code>main</code> com o corpo vazio também é um programa válido: ele roda, não mostra nada e termina com código <code>0</code>. É um programa que não faz nada, mas faz certo.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+<p>As mensagens do Dart saem em inglês. Todo erro de compilação tem o mesmo formato: <code>arquivo:linha:coluna: Error: mensagem</code>, depois a linha do código e, embaixo, <code>^</code> apontando o lugar (veja a explicação completa em <a href="introducao.html">O que é Dart</a>). Com qualquer erro de compilação, <strong>nada</strong> do programa roda.</p>
+
+<div class="cenario">
+<strong><code>Print</code> com P maiúsculo</strong>
+<pre class="file" data-file="maiuscula.dart">void main() {
+  Print('Olá, Ana!');
+}
+</pre>
+<pre class="term">$ dart run maiuscula.dart
+maiuscula.dart:2:3: Error: Method not found: 'Print'.
+  Print('Olá, Ana!');
+  ^^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>maiuscula.dart:2:3:</dt><dd>Linha 2, coluna 3 (as colunas 1 e 2 são os espaços do recuo).</dd>
+  <dt>Method not found: 'Print'.</dt><dd>"Método não encontrado: <code>Print</code>". <strong>Método</strong> é outra palavra para função. O Dart procurou uma função chamada <code>Print</code> e não achou.</dd>
+  <dt>^^^^^</dt><dd>Cinco <code>^</code>, um embaixo de cada letra de <code>Print</code>: a palavra inteira é o problema.</dd>
+</dl>
+<p>O Dart diferencia maiúsculas de minúsculas: <code>print</code>, <code>Print</code> e <code>PRINT</code> são três nomes diferentes, e só o primeiro existe. <strong>Como consertar:</strong> <code>print</code>, tudo minúsculo.</p>
+</div>
+
+<div class="cenario">
+<strong>Aspa que não fecha</strong>
+<pre class="file" data-file="aspas.dart">void main() {
+  print('Olá, Ana!);
+}
+</pre>
+<pre class="term">$ dart run aspas.dart
+aspas.dart:2:9: Error: String starting with ' must end with '.
+  print('Olá, Ana!);
+        ^^^^^^^^^^^^
+aspas.dart:2:8: Error: Can't find ')' to match '('.
+  print('Olá, Ana!);
+       ^
+aspas.dart:2:9: Error: Expected ';' after this.
+  print('Olá, Ana!);
+        ^^^^^^^^^^^^
+</pre>
+<p>Um erro só, três mensagens. Leia sempre <strong>a primeira</strong>: "Texto que começa com <code>'</code> tem de terminar com <code>'</code>". O texto abriu na coluna 9 e a linha acabou sem a aspa de fechar; os <code>^</code> sublinham tudo o que o Dart engoliu como texto, inclusive o <code>)</code> e o <code>;</code>. As outras duas mensagens são consequência: como o <code>)</code> e o <code>;</code> viraram parte do texto, faltam um <code>)</code> ("não acho o <code>)</code> que fecha o <code>(</code>") e um <code>;</code> ("esperava <code>;</code> depois disto"). Conserte a primeira e as outras somem. <strong>Como consertar:</strong> <code>print('Olá, Ana!');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Parêntese que não fecha</strong>
+<pre class="file" data-file="parentese.dart">void main() {
+  print('Olá, Ana!';
+}
+</pre>
+<pre class="term">$ dart run parentese.dart
+parentese.dart:2:8: Error: Can't find ')' to match '('.
+  print('Olá, Ana!';
+       ^
+</pre>
+<p>"Não acho o <code>)</code> que combina com o <code>(</code>". O <code>^</code> aponta para o parêntese que <strong>abriu</strong>, na coluna 8. Todo <code>(</code> precisa do seu <code>)</code>. <strong>Como consertar:</strong> <code>print('Olá, Ana!');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chave que não fecha</strong>
+<pre class="file" data-file="chave.dart">void main() {
+  print('Olá, Ana!');
+</pre>
+<pre class="term">$ dart run chave.dart
+chave.dart:1:13: Error: Can't find '}' to match '{'.
+void main() {
+            ^
+</pre>
+<p>A mesma ideia, com as chaves: o <code>{</code> da linha 1 (coluna 13) não tem o <code>}</code> que fecha o corpo do <code>main</code>. <strong>Como consertar:</strong> uma <code>}</code> sozinha na última linha.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto sem aspas</strong>
+<pre class="file" data-file="sem_aspas.dart">void main() {
+  print(Ana);
+}
+</pre>
+<pre class="term">$ dart run sem_aspas.dart
+sem_aspas.dart:2:9: Error: Undefined name 'Ana'.
+  print(Ana);
+        ^^^
+</pre>
+<p>"Nome não definido: <code>Ana</code>". Sem aspas, <code>Ana</code> não é um texto: o Dart entende que é o <strong>nome</strong> de alguma coisa (uma variável, como você vai ver em <a href="variaveis.html">Variáveis</a>), e ninguém criou nada com esse nome. <strong>Como consertar:</strong> <code>print('Ana');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>print()</code> vazio</strong>
+<pre class="file" data-file="print_vazio.dart">void main() {
+  print();
+}
+</pre>
+<pre class="term">$ dart run print_vazio.dart
+print_vazio.dart:2:8: Error: Too few positional arguments: 1 required, 0 given.
+  print();
+       ^
+org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context: Found this candidate, but the arguments don't match.
+void print(Object? object) {
+     ^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>Too few positional arguments: 1 required, 0 given.</dt><dd>"Argumentos de menos: 1 é obrigatório, 0 foram dados". O <code>print</code> exige exatamente <strong>um</strong> valor dentro dos parênteses.</dd>
+  <dt>org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context:</dt><dd>Uma mensagem de <strong>contexto</strong>: o Dart mostra onde o <code>print</code> foi criado, dentro do próprio SDK, para você ver como ele é.</dd>
+  <dt>void print(Object? object)</dt><dd>A "assinatura" do <code>print</code>: ele recebe um valor, chamado <code>object</code>, que pode ser de qualquer tipo (<code>Object?</code>). Você vai entender cada pedaço disso ao longo do guia.</dd>
+</dl>
+<p><strong>Como consertar:</strong> para uma linha em branco, <code>print('');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Dois valores no mesmo <code>print</code></strong>
+<pre class="file" data-file="dois_args.dart">void main() {
+  print('Pães:', 12);
+}
+</pre>
+<pre class="term">$ dart run dois_args.dart
+dois_args.dart:2:8: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print('Pães:', 12);
+       ^
+org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context: Found this candidate, but the arguments don't match.
+void print(Object? object) {
+     ^^^^^
+</pre>
+<p>"Argumentos demais: 1 permitido, mas 2 encontrados. Tente remover os argumentos extras". Em outras linguagens, a vírgula no <code>print</code> separa vários valores; no Dart, não. E juntar com <code>+</code> também não funciona entre texto e número:</p>
+<pre class="file" data-file="mais.dart">void main() {
+  print('Pães: ' + 12);
+}
+</pre>
+<pre class="term">$ dart run mais.dart
+mais.dart:2:20: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  print('Pães: ' + 12);
+                   ^
+</pre>
+<p>"Um valor do tipo <code>int</code> (número inteiro) não pode ser usado onde se espera <code>String</code> (texto)". O <code>+</code> junta texto com texto, mas <code>12</code> é número. <strong>Como consertar:</strong> por enquanto, ponha tudo no texto, <code>print('Pães: 12');</code>. Para misturar texto com valores de verdade, o Dart tem a <strong>interpolação</strong>, <code>'Pães: $quantidade'</code>, que você aprende em <a href="interpolacao.html">Interpolação</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Instrução fora do <code>main</code></strong>
+<pre class="file" data-file="sem_main.dart">print('Olá, Ana!');
+</pre>
+<pre class="term">$ dart run sem_main.dart
+sem_main.dart:1:7: Error: Expected an identifier, but got ''Olá, Ana!''.
+Try inserting an identifier before ''Olá, Ana!''.
+print('Olá, Ana!');
+      ^^^^^^^^^^^
+sem_main.dart:1:19: Error: Expected a function body or '=&gt;'.
+Try adding {}.
+print('Olá, Ana!');
+                  ^
+</pre>
+<p>Em algumas linguagens, uma linha solta no arquivo já é um programa. No Dart, não: fora de uma função, o Dart só aceita <strong>declarações</strong> (criar funções, variáveis, classes). Ele leu <code>print(…)</code> como o começo da criação de uma função chamada <code>print</code>, esperava um nome (<em>identifier</em>) entre os parênteses e achou um texto; depois esperava o corpo da função, <code>{ }</code>. As mensagens confundem, mas a causa é uma só: <strong>instruções vão dentro do <code>main</code></strong>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>main</code> com o nome errado</strong>
+<pre class="file" data-file="mian.dart">void mian() {
+  print('Olá, Ana!');
+}
+</pre>
+<pre class="term">$ dart run mian.dart
+Invoked Dart programs must have a 'main' function defined:
+https://dart.dev/to/main-function
+$ echo $?
+253
+</pre>
+<p>"Programas Dart executados precisam ter uma função <code>main</code> definida", seguido de um link para a documentação. A Ana trocou duas letras: escreveu <code>mian</code>. O arquivo está bem escrito (por isso não há <code>Error:</code> com linha e coluna), mas o Dart não acha a porta de entrada. Repare no código de saída diferente: <code>253</code>. <strong>Como consertar:</strong> <code>void main()</code>.</p>
+</div>
+
+<div class="trydart" data-goal="semerro;;out:Pão saindo às 7h">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>dois</strong> erros na linha 3. Clique em Rodar, leia a <strong>primeira</strong> mensagem, conserte, rode de novo e repita até aparecerem as duas linhas.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  Print('Pão saindo às 7h);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  print('Pão saindo às 7h');
+}
+</pre>
+</div>
+
+<p>Na máquina da Ana, a primeira rodada desse programa mostrou quatro mensagens de uma vez (a aspa, o parêntese, o <code>Print</code> e o <code>;</code>), e nenhuma linha de saída, nem a <code>Padaria do Bairro</code>, que estava certa:</p>
+
+<pre class="term">$ dart run dois.dart
+dois.dart:3:9: Error: String starting with ' must end with '.
+  Print('Pão saindo às 7h);
+        ^^^^^^^^^^^^^^^^^^^
+dois.dart:3:8: Error: Can't find ')' to match '('.
+  Print('Pão saindo às 7h);
+       ^
+dois.dart:3:3: Error: Method not found: 'Print'.
+  Print('Pão saindo às 7h);
+  ^^^^^
+dois.dart:3:9: Error: Expected ';' after this.
+  Print('Pão saindo às 7h);
+        ^^^^^^^^^^^^^^^^^^^
+</pre>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>void main() { … }</code></td><td>O ponto de partida do programa</td></tr>
+<tr><td><code>print('Olá');</code></td><td>Mostra <code>Olá</code> e pula de linha</td></tr>
+<tr><td><code>print("D'Ouro");</code> / <code>print('D\'Ouro');</code></td><td>Texto com apóstrofo</td></tr>
+<tr><td><code>print(42);</code> / <code>print(3.5);</code></td><td>Mostra um número (decimal com ponto)</td></tr>
+<tr><td><code>print(2 + 3);</code></td><td>Mostra <code>5</code></td></tr>
+<tr><td><code>print('2 + 3');</code></td><td>Mostra <code>2 + 3</code></td></tr>
+<tr><td><code>print('');</code></td><td>Linha em branco</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Method not found: 'Print'.</code></td><td>Nome da função escrito errado (maiúscula)</td></tr>
+<tr><td><code>String starting with ' must end with '.</code></td><td>Aspa que não fecha</td></tr>
+<tr><td><code>Can't find ')' to match '('.</code></td><td>Parêntese que não fecha</td></tr>
+<tr><td><code>Can't find '}' to match '{'.</code></td><td>Chave que não fecha</td></tr>
+<tr><td><code>Undefined name 'Ana'.</code></td><td>Texto sem aspas</td></tr>
+<tr><td><code>Too few positional arguments: 1 required, 0 given.</code></td><td><code>print()</code> vazio</td></tr>
+<tr><td><code>Too many positional arguments: 1 allowed, but 2 found.</code></td><td>Dois valores separados por vírgula no <code>print</code></td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'String'.</code></td><td><code>'texto' + número</code></td></tr>
+<tr><td><code>Expected an identifier…</code> / <code>Expected a function body…</code></td><td>Instrução fora do <code>main</code></td></tr>
+<tr><td><code>Invoked Dart programs must have a 'main' function defined</code></td><td>Não há <code>main</code> (ou o nome está errado)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A porta de entrada</h3>
+<p>Complete a primeira linha do programa:</p>
+<div class="ex-code">void <input data-answer="main" aria-label="nome da função">() {</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>O que aparece na tela com <code>print(4 * 5);</code>?</p>
+<div class="ex-code">Saída: <input data-answer="20" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E agora?</h3>
+<p>O que aparece na tela com <code>print('4 * 5');</code>?</p>
+<div class="ex-code">Saída: <input data-answer="4 * 5" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas linhas mostra uma linha em branco sem erro?</p>
+<label><input type="radio" name="q4"> <code>print();</code></label>
+<label><input type="radio" name="q4"> <code>print( );</code></label>
+<label><input type="radio" name="q4"> <code>print('');</code></label>
+<label><input type="radio" name="q4"> <code>print;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual destas linhas mostra <code>Padaria D'Ouro</code> sem erro?</p>
+<label><input type="radio" name="q5"> <code>print('Padaria D'Ouro');</code></label>
+<label><input type="radio" name="q5"> <code>print("Padaria D'Ouro");</code></label>
+<label><input type="radio" name="q5"> <code>print(Padaria D'Ouro);</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Um programa tem um erro de compilação na linha 5. O que acontece com os <code>print</code> das linhas 2 a 4?</p>
+<label><input type="radio" name="q6"> Nenhum roda</label>
+<label><input type="radio" name="q6"> Rodam, e o programa para na linha 5</label>
+<label><input type="radio" name="q6"> Rodam todos, e a linha 5 é pulada</label>
+</div>
+
+<h3>Missão final: o cardápio da padaria</h3>
+
+<div class="trydart" data-goal="outre:^Padaria D'Ouro\n\nPão francês\nPão de queijo\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> monte o cardápio. Ele deve mostrar <code>Padaria D'Ouro</code> (com o apóstrofo), depois <strong>uma linha em branco</strong>, depois <code>Pão francês</code> e, na última linha, <code>Pão de queijo</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Cardápio');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print("Padaria D'Ouro");
+  print('');
+  print('Pão francês');
+  print('Pão de queijo');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Todo programa Dart começa pelo <code>main</code>: <code>void main() { … }</code>. As instruções vão entre as chaves, com dois espaços de recuo.</li>
+  <li><code>print(valor);</code> mostra um valor e pula de linha. Cada <code>print</code> é uma linha da saída, na ordem do código.</li>
+  <li>Textos vão entre aspas (simples, de preferência); as aspas não aparecem. Apóstrofo: aspas duplas por fora ou <code>\'</code>.</li>
+  <li>Números e contas vão sem aspas, e o Dart calcula antes de mostrar. Decimal com ponto.</li>
+  <li>O <code>print</code> recebe <strong>exatamente um</strong> valor: <code>print('')</code> para linha em branco; nada de vírgula separando valores.</li>
+  <li>Maiúsculas importam (<code>Print</code> não existe). Aspa, parêntese ou chave que abre tem de fechar. Instruções só dentro do <code>main</code>.</li>
+  <li>Com erro de compilação, nada roda (código 254). Leia sempre a <strong>primeira</strong> mensagem.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
