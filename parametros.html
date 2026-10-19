@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Parâmetros Posicionais — passando valores para uma função | Guia Dart</title>
+<meta name="description" content="Parâmetros posicionais no Dart para quem nunca programou: parâmetro e argumento, vários parâmetros e a ordem, tipos (int vira double, double não vira int), expressões como argumento, a cópia do valor, parâmetros anuláveis e os erros reais do Dart 3 (argumentos a mais e a menos, tipo errado, String? no lugar de String).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Parâmetros Posicionais</span></h1>
+
+<p class="intro">Na aula <a href="funcoes.html">Funções</a> você criou funções como <code>dobro(int numero)</code>, que recebem um valor para trabalhar. Esses valores de entrada são os <strong>parâmetros</strong>. Nesta aula você aprende a usar quantos quiser, por que a <strong>ordem</strong> importa (daí o nome "posicionais": cada valor vale pela posição em que é passado), como os tipos são conferidos e o que o Dart responde quando a chamada não bate com a declaração.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <strong>parâmetro</strong> (na declaração) e <strong>argumento</strong> (na chamada).</li>
+  <li>Funções com vários parâmetros, e por que a ordem dos argumentos importa.</li>
+  <li>Como o Dart confere os tipos: um <code>int</code> serve onde se pede <code>double</code>, mas não o contrário.</li>
+  <li>Expressões e chamadas de função como argumentos.</li>
+  <li>Que a função recebe uma <strong>cópia</strong> do valor: mudar o parâmetro não muda a variável de quem chamou.</li>
+  <li>Parâmetros que aceitam <code>null</code> (<code>String?</code>).</li>
+  <li>Os erros reais: argumentos a mais, a menos, de tipo errado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário com espaços em branco</h2>
+<p>Pense numa etiqueta de preço impressa com espaços em branco: <em>"Produto: ____ · Preço: ____ · Estoque: ____"</em>. A etiqueta (a função) é sempre a mesma; o que muda é o que você escreve em cada espaço. Os <strong>espaços em branco</strong>, com nome e tipo, são os <strong>parâmetros</strong>. O que você <strong>escreve</strong> neles, numa etiqueta de verdade, são os <strong>argumentos</strong>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nome</th><th>Onde aparece</th><th>Exemplo</th></tr>
+<tr><td><strong>Parâmetro</strong></td><td>Na <strong>declaração</strong> da função: o nome e o tipo do "espaço em branco"</td><td><code>void saudar(String nome)</code></td></tr>
+<tr><td><strong>Argumento</strong></td><td>Na <strong>chamada</strong>: o valor que preenche o espaço</td><td><code>saudar('Ana')</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Um parâmetro</h2>
+
+<pre class="file" data-file="saudar.dart">void saudar(String nome) {
+  print('Bom dia, $nome!');
+}
+
+void main() {
+  saudar('Ana');
+  saudar('Bia');
+  final cliente = 'seu Zé';
+  saudar(cliente);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>(String nome)</dt><dd>O parâmetro: o tipo (<code>String</code>) e o nome (<code>nome</code>). Dentro da função, <code>nome</code> funciona como uma variável que já chega com valor.</dd>
+  <dt>saudar('Ana')</dt><dd>O argumento <code>'Ana'</code> vai para o parâmetro <code>nome</code>. Nesta chamada, é como se a função começasse com <code>nome = 'Ana'</code>.</dd>
+  <dt>saudar(cliente)</dt><dd>O argumento pode ser uma variável. O nome dela (<code>cliente</code>) não precisa ser igual ao do parâmetro (<code>nome</code>): o que passa é o <strong>valor</strong>, <code>'seu Zé'</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run saudar.dart
+Bom dia, Ana!
+Bom dia, Bia!
+Bom dia, seu Zé!
+</pre>
+
+<hr>
+
+<h2>2. Vários parâmetros: a ordem manda</h2>
+<p>Os parâmetros se separam por vírgula. Na chamada, os argumentos vão <strong>na mesma ordem</strong>: o primeiro argumento preenche o primeiro parâmetro, o segundo preenche o segundo, e assim por diante.</p>
+
+<pre class="file" data-file="etiqueta.dart">void etiqueta(String produto, double preco, int estoque) {
+  print('$produto | R\$ ${preco.toStringAsFixed(2)} | $estoque no estoque');
+}
+
+void main() {
+  etiqueta('Pão francês', 0.75, 120);
+  etiqueta('Leite', 5.49, 30);
+}
+</pre>
+
+<pre class="term">$ dart run etiqueta.dart
+Pão francês | R$ 0.75 | 120 no estoque
+Leite | R$ 5.49 | 30 no estoque
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Posição</th><th>Parâmetro</th><th>Argumento (1ª chamada)</th></tr>
+<tr><td>1ª</td><td><code>String produto</code></td><td><code>'Pão francês'</code></td></tr>
+<tr><td>2ª</td><td><code>double preco</code></td><td><code>0.75</code></td></tr>
+<tr><td>3ª</td><td><code>int estoque</code></td><td><code>120</code></td></tr>
+</table>
+</div>
+
+<p>Se a ordem dos argumentos for trocada, o Dart percebe, porque os tipos não batem:</p>
+
+<pre class="file" data-file="troca.dart">void etiqueta(String produto, double preco, int estoque) {
+  print('$produto | R\$ ${preco.toStringAsFixed(2)} | $estoque no estoque');
+}
+
+void main() {
+  etiqueta(0.75, 'Pão francês', 120);
+}
+</pre>
+
+<pre class="term">$ dart run troca.dart
+troca.dart:6:12: Error: The argument type 'double' can't be assigned to the parameter type 'String'.
+  etiqueta(0.75, 'Pão francês', 120);
+           ^
+troca.dart:6:18: Error: The argument type 'String' can't be assigned to the parameter type 'double'.
+  etiqueta(0.75, 'Pão francês', 120);
+                 ^
+</pre>
+
+<p>"O argumento do tipo <code>double</code> não pode ser atribuído ao parâmetro do tipo <code>String</code>", e o contrário para o segundo. Os tipos protegeram a Ana. Mas quando dois parâmetros têm o <strong>mesmo tipo</strong>, o Dart não tem como perceber a troca:</p>
+
+<pre class="file" data-file="troca2.dart">double comDesconto(double preco, double porcentagem) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(200, 10));
+  print(comDesconto(10, 200));
+}
+</pre>
+
+<pre class="term">$ dart run troca2.dart
+180.0
+-10.0
+</pre>
+
+<p>A primeira chamada é "R$ 200 com 10% de desconto": 180. A segunda trocou a ordem: "R$ 10 com 200% de desconto", e o preço ficou <strong>negativo</strong>. Compilou, rodou, e está errado. É por isso que, quando uma função tem vários parâmetros do mesmo tipo, vale usar <strong>parâmetros nomeados</strong>, em que a chamada diz o nome de cada valor: <code>comDesconto(preco: 200, porcentagem: 10)</code>. É o assunto da próxima aula, <a href="parametros-nomeados.html">Parâmetros Nomeados e required</a>.</p>
+
+<div class="trydart" data-goal="out:Café | R$ 4.00 | 15 no estoque;;semerro">
+<p class="try-task"><strong>Missão:</strong> a chamada do café está com os argumentos fora de ordem e não compila. Arrume a ordem para aparecer <code>Café | R$ 4.00 | 15 no estoque</code>.</p>
+<pre class="script" data-file="main.dart">void etiqueta(String produto, double preco, int estoque) {
+  print('$produto | R\$ ${preco.toStringAsFixed(2)} | $estoque no estoque');
+}
+
+void main() {
+  etiqueta('Leite', 5.49, 30);
+  etiqueta(15, 4.0, 'Café');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void etiqueta(String produto, double preco, int estoque) {
+  print('$produto | R\$ ${preco.toStringAsFixed(2)} | $estoque no estoque');
+}
+
+void main() {
+  etiqueta('Leite', 5.49, 30);
+  etiqueta('Café', 4.0, 15);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Os tipos dos argumentos</h2>
+<p>Cada argumento tem de "caber" no tipo do parâmetro. Um caso que ajuda: onde se pede <code>double</code>, um <strong>número inteiro escrito direto</strong> serve (o Dart o lê como <code>double</code>). O contrário não:</p>
+
+<pre class="file" data-file="area.dart">double area(double largura, double altura) {
+  return largura * altura;
+}
+
+void main() {
+  print(area(3, 4));
+  print(area(2.5, 4));
+}
+</pre>
+
+<pre class="term">$ dart run area.dart
+12.0
+10.0
+</pre>
+
+<p>O <code>3</code> e o <code>4</code> viraram <code>3.0</code> e <code>4.0</code>, e o resultado saiu como <code>double</code> (<code>12.0</code>). Já passar <code>7.0</code> para uma função que pede <code>int</code>:</p>
+
+<pre class="term">$ dart run intdouble.dart
+intdouble.dart:11:16: Error: The argument type 'double' can't be assigned to the parameter type 'int'.
+  print(metade(7.0));
+               ^
+</pre>
+
+<p>Um <code>double</code> pode ter casas decimais, e um <code>int</code> não tem onde guardá-las; o Dart não arredonda escondido. <strong>Como consertar:</strong> passe um inteiro (<code>metade(7)</code>), ou converta de propósito: <code>metade(7.9.toInt())</code> ou <code>.round()</code> (veja <a href="conversao.html">Conversão de Tipos</a>).</p>
+
+<div class="note">
+<strong>E se eu não escrever o tipo do parâmetro?</strong>
+<p><code>void saudar(nome)</code> compila: sem tipo, o parâmetro vira <code>dynamic</code>, "qualquer coisa" (veja <a href="dynamic-object.html">dynamic e Object</a>). Só que aí o Dart deixa de conferir, e o erro aparece só <strong>rodando</strong>. No lab, <code>saudar(42)</code> com <code>${nome.length}</code> lá dentro deu:</p>
+<pre class="term">$ dart run semtipo.dart
+Olá, Ana! Seu nome tem 3 letras.
+Unhandled exception:
+NoSuchMethodError: Class 'int' has no instance getter 'length'.
+Receiver: 42
+Tried calling: length
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      saudar (file:///home/ana/semtipo.dart:2:42)
+#2      main (file:///home/ana/semtipo.dart:7:3)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>"A classe <code>int</code> não tem a propriedade <code>length</code>." O stack trace mostra o caminho: o erro aconteceu em <code>saudar</code> (linha 2), que foi chamada pelo <code>main</code> (linha 7). Com <code>String nome</code>, esse erro teria aparecido <strong>antes</strong> de rodar. <strong>Sempre escreva o tipo dos parâmetros.</strong></p>
+</div>
+
+<hr>
+
+<h2>4. Qualquer expressão serve de argumento</h2>
+<p>O argumento não precisa ser um valor pronto: pode ser uma conta, uma variável, ou até o resultado de <strong>outra chamada</strong>. O Dart calcula o argumento primeiro e passa o resultado:</p>
+
+<pre class="file" data-file="expressao.dart">int maior(int a, int b) {
+  if (a &gt; b) return a;
+  return b;
+}
+
+void main() {
+  final x = 7;
+  print(maior(3, 9));
+  print(maior(x * 2, 10));
+  print(maior(maior(4, 8), 6));
+}
+</pre>
+
+<pre class="term">$ dart run expressao.dart
+9
+14
+8
+</pre>
+
+<p>Na terceira linha, o Dart resolve de dentro para fora: <code>maior(4, 8)</code> dá <code>8</code>, e então <code>maior(8, 6)</code> dá <code>8</code>.</p>
+
+<hr>
+
+<h2>5. A função recebe uma cópia</h2>
+<p>O que acontece se a função mudar o valor do parâmetro?</p>
+
+<pre class="file" data-file="copia.dart">void aumentar(int valor) {
+  valor = valor + 10;
+  print('Dentro da função: $valor');
+}
+
+void main() {
+  var saldo = 50;
+  aumentar(saldo);
+  print('Fora da função: $saldo');
+}
+</pre>
+
+<pre class="term">$ dart run copia.dart
+Dentro da função: 60
+Fora da função: 50
+</pre>
+
+<p>O <code>saldo</code> do <code>main</code> continuou 50. A função recebeu o <strong>valor</strong> 50 e guardou no parâmetro <code>valor</code>, que é uma variável <strong>dela</strong>. Mudar <code>valor</code> não mexe em <code>saldo</code>. Para mudar o saldo, a função deve <strong>devolver</strong> o novo valor, e quem chamou guarda:</p>
+
+<pre class="file" data-file="devolve.dart">int aumentar(int valor) {
+  return valor + 10;
+}
+
+void main() {
+  var saldo = 50;
+  saldo = aumentar(saldo);
+  print('Saldo: $saldo');
+}
+</pre>
+
+<pre class="term">$ dart run devolve.dart
+Saldo: 60
+</pre>
+
+<div class="tip">
+<strong>Boa prática: não reatribua parâmetros</strong>
+<p>Escrever <code>valor = …</code> dentro da função confunde quem lê ("é o valor que chegou ou outro?"). Prefira uma variável nova (<code>final novo = valor + 10;</code>) ou um <code>return</code> direto. (Com listas e objetos a história tem um detalhe a mais, que aparece em <a href="list.html">Listas</a>.)</p>
+</div>
+
+<hr>
+
+<h2>6. Parâmetro que aceita <code>null</code></h2>
+<p>Um parâmetro <code>String?</code> aceita um texto <strong>ou</strong> <code>null</code> (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>). Dentro da função, teste antes de usar:</p>
+
+<pre class="file" data-file="anulavel.dart">void saudar(String nome, String? apelido) {
+  if (apelido == null) {
+    print('Olá, $nome!');
+  } else {
+    print('Olá, $nome ($apelido)!');
+  }
+}
+
+void main() {
+  saudar('Ana', 'Aninha');
+  saudar('Bia', null);
+}
+</pre>
+
+<pre class="term">$ dart run anulavel.dart
+Olá, Ana (Aninha)!
+Olá, Bia!
+</pre>
+
+<p>Repare: mesmo podendo ser <code>null</code>, o argumento tem de ser <strong>passado</strong>. <code>saudar('Bia')</code>, sem o segundo, dá <code>Too few positional arguments: 2 required, 1 given.</code> Um parâmetro posicional é sempre obrigatório. Para deixar um parâmetro de fora, ele tem de ser <strong>opcional</strong>: veja <a href="parametros-opcionais.html">Parâmetros Opcionais e Valores Padrão</a>.</p>
+
+<div class="trydart" data-goal="out:Olá, Bia!;;out:Olá, Ana (Aninha)!;;semerro">
+<p class="try-task"><strong>Missão:</strong> a segunda chamada não compila, porque falta um argumento. A Bia não tem apelido: passe <code>null</code> no lugar dele.</p>
+<pre class="script" data-file="main.dart">void saudar(String nome, String? apelido) {
+  if (apelido == null) {
+    print('Olá, $nome!');
+  } else {
+    print('Olá, $nome ($apelido)!');
+  }
+}
+
+void main() {
+  saudar('Ana', 'Aninha');
+  saudar('Bia');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void saudar(String nome, String? apelido) {
+  if (apelido == null) {
+    print('Olá, $nome!');
+  } else {
+    print('Olá, $nome ($apelido)!');
+  }
+}
+
+void main() {
+  saudar('Ana', 'Aninha');
+  saudar('Bia', null);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>O Dart tem três jeitos de declarar parâmetros. Esta aula foi o primeiro; os outros dois são as próximas aulas:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Jeito</th><th>Declaração</th><th>Chamada</th><th>Quando usar</th></tr>
+<tr><td>Posicional (esta aula)</td><td><code>void etiqueta(String produto, double preco)</code></td><td><code>etiqueta('Leite', 5.49)</code></td><td>Poucos parâmetros (1 a 3), de tipos diferentes ou de ordem óbvia (<code>maior(a, b)</code>)</td></tr>
+<tr><td>Nomeado</td><td><code>void etiqueta({required String produto, required double preco})</code></td><td><code>etiqueta(produto: 'Leite', preco: 5.49)</code></td><td>Muitos parâmetros, ou vários do mesmo tipo (<a href="parametros-nomeados.html">Parâmetros Nomeados</a>)</td></tr>
+<tr><td>Posicional opcional</td><td><code>void saudar(String nome, [String? apelido])</code></td><td><code>saudar('Bia')</code></td><td>Um valor que quase sempre é igual ou pode faltar (<a href="parametros-opcionais.html">Parâmetros Opcionais</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Argumentos a mais</strong>
+<pre class="file" data-file="muitos.dart">void saudar(String nome) {
+  print('Bom dia, $nome!');
+}
+
+void main() {
+  saudar('Ana', 'Bia');
+}
+</pre>
+<pre class="term">$ dart run muitos.dart
+muitos.dart:6:9: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  saudar('Ana', 'Bia');
+        ^
+muitos.dart:1:6: Context: Found this candidate, but the arguments don't match.
+void saudar(String nome) {
+     ^^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>Too many positional arguments: 1 allowed, but 2 found.</dt><dd>"Argumentos posicionais demais: 1 permitido, mas 2 encontrados."</dd>
+  <dt>Try removing the extra positional arguments.</dt><dd>"Tente remover os argumentos que sobram."</dd>
+  <dt>Context: Found this candidate, but the arguments don't match.</dt><dd>"Contexto: achei esta função, mas os argumentos não batem." O Dart mostra a <strong>declaração</strong> (linha 1), para você comparar com a chamada (linha 6).</dd>
+</dl>
+<p><strong>Como consertar:</strong> uma chamada por pessoa: <code>saudar('Ana'); saudar('Bia');</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Argumentos a menos</strong>
+<pre class="file" data-file="poucos.dart">void etiqueta(String produto, double preco, int estoque) {
+  print('$produto | R\$ $preco | $estoque');
+}
+
+void main() {
+  etiqueta('Leite', 5.49);
+}
+</pre>
+<pre class="term">$ dart run poucos.dart
+poucos.dart:6:11: Error: Too few positional arguments: 3 required, 2 given.
+  etiqueta('Leite', 5.49);
+          ^
+poucos.dart:1:6: Context: Found this candidate, but the arguments don't match.
+void etiqueta(String produto, double preco, int estoque) {
+     ^^^^^^^^
+</pre>
+<p>"Argumentos de menos: 3 obrigatórios, 2 dados." Olhe a linha do <code>Context</code> e conte os parâmetros: faltou o <code>estoque</code>. <strong>Como consertar:</strong> <code>etiqueta('Leite', 5.49, 30);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tipo do argumento errado</strong>
+<p>A seção 2 mostrou: <code>The argument type 'double' can't be assigned to the parameter type 'String'.</code> Lê-se "o argumento do tipo X não pode ser atribuído ao parâmetro do tipo Y". Quase sempre é ordem trocada, ou um número que chegou como texto (o que vem do teclado é <code>String</code>: converta com <code>int.tryParse</code>, veja <a href="stdin.html">Lendo o Teclado</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Passou um <code>String?</code> onde se pede <code>String</code></strong>
+<pre class="file" data-file="nulo.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  String? digitado;
+  saudar(digitado);
+}
+</pre>
+<pre class="term">$ dart run nulo.dart
+nulo.dart:7:10: Error: The argument type 'String?' can't be assigned to the parameter type 'String'.
+  saudar(digitado);
+         ^
+</pre>
+<p>A variável pode ser <code>null</code>, e o parâmetro não aceita <code>null</code>. Acontece muito com o que vem do <code>stdin.readLineSync()</code>. <strong>Como consertar:</strong> dê um valor de reserva na chamada: <code>saudar(digitado ?? 'visitante')</code>, ou teste <code>if (digitado != null)</code> antes de chamar.</p>
+</div>
+
+<div class="cenario">
+<strong>Ordem trocada com tipos iguais</strong>
+<p>O caso mais perigoso, porque não há mensagem nenhuma: <code>comDesconto(10, 200)</code> no lugar de <code>comDesconto(200, 10)</code> deu <code>-10.0</code> (seção 2). <strong>Como evitar:</strong> confira a declaração antes de chamar; para funções com vários parâmetros do mesmo tipo, use <a href="parametros-nomeados.html">parâmetros nomeados</a>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>void f(String nome)</code></td><td>Declara um parâmetro posicional obrigatório</td></tr>
+<tr><td><code>void f(String a, double b, int c)</code></td><td>Vários parâmetros, separados por vírgula</td></tr>
+<tr><td><code>f('Ana', 5.49, 30)</code></td><td>Argumentos na mesma ordem dos parâmetros</td></tr>
+<tr><td><code>void f(String? apelido)</code></td><td>Parâmetro que aceita <code>null</code> (mas ainda tem de ser passado)</td></tr>
+<tr><td><code>f(x * 2)</code>, <code>f(g(4))</code></td><td>O argumento pode ser qualquer expressão; é calculado antes</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Too many positional arguments: N allowed, but M found.</code></td><td>Argumentos a mais</td></tr>
+<tr><td><code>Too few positional arguments: N required, M given.</code></td><td>Argumentos a menos</td></tr>
+<tr><td><code>The argument type 'X' can't be assigned to the parameter type 'Y'.</code></td><td>Ordem trocada, ou valor do tipo errado</td></tr>
+<tr><td><code>The argument type 'String?' can't be assigned to the parameter type 'String'.</code></td><td>Valor que pode ser <code>null</code>: use <code>??</code> ou teste antes</td></tr>
+<tr><td><code>NoSuchMethodError</code> dentro da função</td><td>Parâmetro sem tipo (<code>dynamic</code>) recebeu o tipo errado</td></tr>
+<tr><td>Resultado absurdo, sem erro</td><td>Dois argumentos do mesmo tipo trocados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Parâmetro ou argumento?</h3>
+<p>Em <code>void saudar(String nome)</code> e <code>saudar('Ana')</code>: <code>nome</code> é o <input data-answer="parâmetro|parametro" aria-label="parâmetro ou argumento"> e <code>'Ana'</code> é o <input data-answer="argumento" aria-label="parâmetro ou argumento">.</p>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com <code>int subtrair(int a, int b) { return a - b; }</code>, o que <code>print(subtrair(3, 10));</code> mostra?</p>
+<div class="ex-code"><input data-answer="-7" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>double area(double largura, double altura)</code>, qual chamada compila?</p>
+<label><input type="radio" name="q3"> <code>area('3', '4')</code></label>
+<label><input type="radio" name="q3"> <code>area(3)</code></label>
+<label><input type="radio" name="q3"> <code>area(3, 4)</code></label>
+<label><input type="radio" name="q3"> <code>area(3, 4, 5)</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. <code>void zerar(int n) { n = 0; }</code> e, no <code>main</code>, <code>var x = 5; zerar(x); print(x);</code>. O que aparece?</p>
+<label><input type="radio" name="q4"> <code>5</code>: a função mudou só a cópia dela</label>
+<label><input type="radio" name="q4"> <code>0</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Uma função tem o parâmetro <code>String? apelido</code>. Dá para chamá-la sem passar o apelido?</p>
+<label><input type="radio" name="q5"> Sim: o <code>?</code> torna o parâmetro opcional</label>
+<label><input type="radio" name="q5"> Não: o <code>?</code> só deixa passar <code>null</code>; o argumento continua obrigatório</label>
+<label><input type="radio" name="q5"> Sim, mas só no <code>main</code></label>
+<label><input type="radio" name="q5"> Não, porque <code>String?</code> não pode ser parâmetro</label>
+</div>
+
+<h3>Missão final: o preço com desconto</h3>
+
+<div class="trydart" data-goal="out:R$ 180.00;;out:R$ 45.00;;src:\bdouble\s+comDesconto\s*\(\s*double\s+\w+\s*,\s*double\s+\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> escreva a função <code>double comDesconto(double preco, double porcentagem)</code>, que devolve o preço menos a porcentagem (<code>preco - preco * porcentagem / 100</code>). O programa deve mostrar <code>R$ 180.00</code> (200 com 10%) e <code>R$ 45.00</code> (50 com 10%).</p>
+<pre class="script" data-file="main.dart">// escreva aqui a função comDesconto
+
+void main() {
+  // descomente as linhas abaixo quando a função existir
+  // print('R\$ ${comDesconto(200, 10).toStringAsFixed(2)}');
+  // print('R\$ ${comDesconto(50, 10).toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double comDesconto(double preco, double porcentagem) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print('R\$ ${comDesconto(200, 10).toStringAsFixed(2)}');
+  print('R\$ ${comDesconto(50, 10).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><strong>Parâmetro</strong> é o espaço em branco da declaração (<code>String nome</code>); <strong>argumento</strong> é o valor da chamada (<code>'Ana'</code>).</li>
+  <li>Parâmetros posicionais são preenchidos <strong>pela ordem</strong>, e todos são obrigatórios: nem a mais, nem a menos.</li>
+  <li>O Dart confere os tipos de cada argumento. Um inteiro escrito direto serve para <code>double</code>; um <code>double</code> não serve para <code>int</code>; um <code>String?</code> não serve para <code>String</code>.</li>
+  <li>Qualquer expressão serve de argumento; ela é calculada antes da chamada.</li>
+  <li>A função recebe uma cópia do valor: mudar o parâmetro não muda a variável de quem chamou. Para devolver algo, use <code>return</code>.</li>
+  <li>Com vários parâmetros do mesmo tipo, a troca de ordem passa sem erro: use <a href="parametros-nomeados.html">parâmetros nomeados</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
