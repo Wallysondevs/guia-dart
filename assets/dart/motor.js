@@ -623,7 +623,7 @@
       if (!semPontoVirgula) this.expect(";");
       return this.no("PatVar", ini, { padrao: pat, valor: valor, final: final });
     }
-    if (!(this.isId() && (this.isOp("=", 1) || this.isOp(";", 1) || this.isOp(",", 1) || this.is("in", 1) || this.isOp(":", 1)))) tipo = this.parseType();
+    if (!(this.isId() && (this.isOp("=", 1) || this.isOp(";", 1) || this.isOp(",", 1) || this.is("in", 1) || this.isOp(":", 1))) && (!this.isId() || this.looksLikeTypeThenName())) tipo = this.parseType();
     var vars = [];
     do {
       var nt = this.ident(), init = null;
