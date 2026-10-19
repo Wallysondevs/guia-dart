@@ -152,7 +152,7 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 
 **Tipos**:
 - `A value of type 'String' can't be assigned to a variable of type 'int'.`, também com elementos de uma lista tipada e argumentos (`The argument type … can't be assigned to the parameter type …`);
-- getter, método ou setter inexistente numa classe sua ou em `Object`, e membro `_privado` usado de outra aba (outra biblioteca) (`The getter 'length' isn't defined for the type 'Object'.`), e atribuir a um campo `final`;
+- getter, método ou setter inexistente numa classe sua, em `Object` e nos tipos do `dart:core` (`The getter 'estrelas' isn't defined for the type 'int'.`, `The method 'somar' isn't defined for the type 'List<int>'.`), e membro `_privado` usado de outra aba (outra biblioteca) (`The getter 'length' isn't defined for the type 'Object'.`), e atribuir a um campo `final`;
 - `Too few/many positional arguments` (com o `Context: Found this candidate…` ou `The class 'X' has a constructor that takes no arguments.`), `Required named parameter 'x' must be provided.`, `No named parameter with the name 'x'.`;
 - uma classe sua onde se espera outra (`A value of type 'Fornecedor' can't be assigned to a variable of type 'Imprimivel'.`), e classes do SDK no lugar de `String`/`int` (`StringBuffer` → `String`).
 
@@ -178,7 +178,7 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 **Ainda não confere** (roda, e pode virar exceção ou rodar "certo" onde o lab recusa; avise se a aula precisar):
 - a análise de fluxo mais fina (promoção de campos privados `final`, atribuição definida dentro de laços);
 - erros de tipos genéricos e de *function types*;
-- `@override` incorreto, modificadores de classe (`base`/`final`/`interface` fora da biblioteca), membros de `int`/`String`/`List` que não existem (no editor viram exceção `NoSuchMethodError` em vez de erro de compilação);
+- `@override` incorreto e modificadores de classe (`base`/`final`/`interface` fora da biblioteca);
 - `late final` atribuído duas vezes (no lab é exceção em tempo de execução; no editor, não);
 - vários erros de sintaxe ao mesmo tempo (o editor mostra o primeiro).
 

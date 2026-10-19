@@ -1385,6 +1385,21 @@
     });
     return m;
   };
+  // os membros dos tipos do dart:core (para o erro "The getter 'x' isn't defined for the type 'int'.")
+  var MEMBROS_OBJ = ["toString", "hashCode", "runtimeType", "noSuchMethod"];
+  var M_NUM = "abs ceil ceilToDouble clamp compareTo floor floorToDouble isFinite isInfinite isNaN isNegative remainder round roundToDouble sign toDouble toInt toString toStringAsExponential toStringAsFixed toStringAsPrecision truncate truncateToDouble".split(" ");
+  var M_ITER = "any cast contains elementAt every expand first firstWhere fold followedBy forEach isEmpty isNotEmpty iterator join last lastWhere length map reduce single singleWhere skip skipWhile take takeWhile toList toSet where whereType firstOrNull lastOrNull singleOrNull indexed nonNulls elementAtOrNull wait".split(" ");
+  var MEMBROS_CORE = {
+    int: M_NUM.concat("bitLength gcd isEven isOdd modInverse modPow toRadixString toSigned toUnsigned".split(" ")),
+    double: M_NUM.slice(),
+    num: M_NUM.slice(),
+    bool: [],
+    String: "allMatches codeUnitAt codeUnits compareTo contains endsWith indexOf isEmpty isNotEmpty lastIndexOf length matchAsPrefix padLeft padRight replaceAll replaceAllMapped replaceFirst replaceFirstMapped replaceRange runes split splitMapJoin startsWith substring toLowerCase toUpperCase trim trimLeft trimRight".split(" "),
+    List: M_ITER.concat("add addAll asMap clear fillRange getRange indexOf indexWhere insert insertAll lastIndexOf lastIndexWhere remove removeAt removeLast removeRange removeWhere replaceRange retainWhere reversed setAll setRange shuffle sort sublist".split(" ")),
+    Set: M_ITER.concat("add addAll clear containsAll difference intersection lookup remove removeAll removeWhere retainAll retainWhere union".split(" ")),
+    Iterable: M_ITER.slice(),
+    Map: "addAll addEntries cast clear containsKey containsValue entries forEach isEmpty isNotEmpty keys length map putIfAbsent remove removeWhere update updateAll values".split(" "),
+  };
   var BASE_MEMBROS = { Exception: ["message", "toString"], Error: ["stackTrace", "toString"], Comparable: ["compareTo"] };
 
   var TIPOS_NATIVOS = new Set(["int", "double", "num", "String", "bool", "List", "Map", "Set", "Object", "Iterable", "Future", "FutureOr", "Stream", "Duration", "DateTime", "StringBuffer", "RegExp", "Exception", "Error", "StateError", "ArgumentError", "RangeError", "FormatException", "UnsupportedError", "UnimplementedError", "TypeError", "NoSuchMethodError", "IntegerDivisionByZeroException", "Comparable", "Function", "Null", "Never", "Record", "MapEntry", "Iterator", "Symbol", "Type", "Runes", "Completer", "Timer", "File", "Directory", "Random", "StreamController", "StreamSubscription", "LinkedHashMap", "HashMap", "SplayTreeMap", "Queue", "HashSet", "LinkedHashSet", "BigInt", "Uri", "StackTrace", "Enum", "Pattern", "Match", "RegExpMatch", "Comparator", "dynamic", "void", "Stopwatch", "IOSink", "Stdin", "Stdout", "Point", "Sink", "TimeoutException", "FileSystemException", "IOException", "Isolate", "JsonEncoder", "JsonDecoder", "Encoding", "Platform", "Process", "ProcessResult", "FileMode", "Object", "Invocation", "Expando", "WeakReference", "Deprecated", "ConcurrentModificationError", "IndexError", "AssertionError", "LateInitializationError", "Sort", "UnmodifiableListView", "ListQueue", "Element", "Widget", "BuildContext", "State", "StatelessWidget", "StatefulWidget", "Text", "MaterialApp", "Scaffold"]);
@@ -2589,6 +2604,15 @@
     if (t && t.k === "T" && t.nome === "Object" && ["toString", "hashCode", "runtimeType", "noSuchMethod"].indexOf(e.nome) < 0 && !this.extensoes.some(function (x) { return x.membros.some(function (d) { return d.nome === e.nome; }); })) {
       if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + (t.nul ? "Object?" : "Object") + "'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
       else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + (t.nul ? "Object?" : "Object") + "'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
+      return;
+    }
+    if (t && t.k === "T" && !t.nul && MEMBROS_CORE[t.nome] && !this.classes[t.nome]) {
+      var lista = MEMBROS_CORE[t.nome];
+      if (lista.indexOf(e.nome) >= 0 || MEMBROS_OBJ.indexOf(e.nome) >= 0) return;
+      if (this.extensoes.some(function (x) { return x.membros.some(function (d) { return d.nome === e.nome || (d.vars && d.vars.some(function (v) { return v.nome === e.nome; })); }); })) return;
+      var tn1 = this.tipoTexto(t), cx1 = this.contexto([t]);
+      if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + tn1 + "'.", e.pNome, e.nome.length, (cx1 ? cx1 + "\n" : "") + "Try correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
+      else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + tn1 + "'.", e.pNome, e.nome.length, (cx1 ? cx1 + "\n" : "") + "Try correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
       return;
     }
     if (!t || t.k !== "T" || !this.classes[t.nome]) return;
