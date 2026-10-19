@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart dynamic e Object — variáveis que aceitam qualquer tipo | Guia Dart</title>
+<meta name="description" content="dynamic e Object no Dart para quem nunca programou: por que var não troca de tipo, Object que aceita qualquer valor mas só deixa usar o básico, o is que libera o resto, dynamic que desliga a conferência do Dart, var sem valor inicial, Object? e os erros reais do Dart 3 (The getter isn't defined for the type 'Object', NoSuchMethodError em tempo de execução).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">dynamic e Object</span></h1>
+
+<p class="intro">Até aqui, toda variável tinha um tipo só: uma <code>String</code> guarda texto, um <code>int</code> guarda inteiro, e o Dart não deixa misturar. Mas às vezes você precisa de uma variável que aceite <strong>qualquer coisa</strong>: uma sacola com pão, um número e um <code>true</code> dentro, ou dados que chegam de fora e você ainda não sabe o que são. Para isso o Dart tem dois tipos: <code>Object</code> e <code>dynamic</code>. Eles parecem iguais, mas têm uma diferença enorme, e esta aula é sobre ela.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que uma variável criada com <code>var</code> não pode trocar de tipo.</li>
+  <li>O tipo <code>Object</code>: aceita qualquer valor, mas só deixa usar o que <strong>todo</strong> valor tem.</li>
+  <li>Como o <code>is</code> libera o resto: <code>if (caixa is String)</code>.</li>
+  <li>O tipo <code>dynamic</code>: aceita qualquer valor e <strong>desliga a conferência</strong> do Dart.</li>
+  <li>A armadilha do <code>var</code> sem valor inicial, e o <code>Object?</code> para aceitar também o <code>null</code>.</li>
+  <li>Os erros reais: o erro de compilação do <code>Object</code> e o <code>NoSuchMethodError</code> do <code>dynamic</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a caixa fechada e a caixa sem etiqueta</h2>
+<p>Na lojinha da Ana chegam caixas. Ela tem dois jeitos de recebê-las:</p>
+<ul>
+  <li><strong><code>Object</code>: a caixa fechada com o aviso "conteúdo variado".</strong> Cabe qualquer coisa. Mas, enquanto a caixa está fechada, a Ana só faz o que dá para fazer com <strong>qualquer</strong> caixa: olhar a etiqueta, pesar. Para usar o conteúdo, ela primeiro <strong>abre e confere</strong>: "é um pacote de café? Então posso passar o café".</li>
+  <li><strong><code>dynamic</code>: o funcionário apressado que não confere nada.</strong> Ele pega a caixa e já sai fazendo: "vou ligar esta TV!". Se for uma TV, ótimo. Se for um pacote de café, o problema só aparece na hora, na frente do cliente.</li>
+</ul>
+<p>O Dart normalmente confere tudo <strong>antes</strong> de rodar o programa (é por isso que erros como "<code>A value of type 'int' can't be assigned…</code>" aparecem sem nada rodar). O <code>Object</code> mantém essa conferência; o <code>dynamic</code> desliga.</p>
+
+<hr>
+
+<h2>1. Lembrete: <code>var</code> escolhe um tipo e fica com ele</h2>
+
+<pre class="file" data-file="err_var.dart">void main() {
+  var etiqueta = 'Pão';
+  etiqueta = 30;
+  print(etiqueta);
+}
+</pre>
+
+<pre class="term">$ dart run err_var.dart
+err_var.dart:3:14: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  etiqueta = 30;
+             ^
+</pre>
+
+<p>O <code>var</code> não quer dizer "qualquer tipo". Ele quer dizer "Dart, descubra o tipo pelo valor inicial". Com <code>'Pão'</code>, o Dart decidiu: <code>etiqueta</code> é <code>String</code>, para sempre. Depois disso, um <code>30</code> não entra (veja <a href="variaveis.html">Variáveis</a>). Para uma variável que aceite tipos diferentes, é preciso dizer isso com todas as letras.</p>
+
+<hr>
+
+<h2>2. <code>Object</code>: aceita tudo, confere tudo</h2>
+<p>Todo valor do Dart (texto, número, <code>bool</code>, lista) é um <code>Object</code> (em inglês, "objeto"). Por isso, uma variável <code>Object</code> aceita qualquer um deles:</p>
+
+<pre class="file" data-file="objeto.dart">void main() {
+  Object caixa = 'Pão';
+  print(caixa);
+  caixa = 30;
+  print(caixa);
+  caixa = 4.5;
+  print(caixa);
+  caixa = true;
+  print(caixa);
+  print(caixa.runtimeType);
+  print(caixa.toString());
+}
+</pre>
+
+<pre class="term">$ dart run objeto.dart
+Pão
+30
+4.5
+true
+bool
+true
+</pre>
+
+<p>Texto, inteiro, <code>double</code>, <code>bool</code>: tudo coube. E dá para fazer com ela o que <strong>todo</strong> objeto sabe fazer: <code>print</code>, <code>toString()</code>, <code>runtimeType</code>, comparar com <code>==</code>. Mas experimente pedir algo que só um texto tem:</p>
+
+<pre class="file" data-file="err_object.dart">void main() {
+  Object caixa = 'Pão';
+  print(caixa.length);
+}
+</pre>
+
+<pre class="term">$ dart run err_object.dart
+err_object.dart:3:15: Error: The getter 'length' isn't defined for the type 'Object'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'length'.
+  print(caixa.length);
+              ^^^^^^
+</pre>
+
+<dl class="anatomy">
+  <dt>err_object.dart:3:15: Error:</dt><dd>Linha 3, coluna 15, erro de <strong>compilação</strong>: nada rodou.</dd>
+  <dt>The getter 'length' isn't defined for the type 'Object'.</dt><dd>"A propriedade <code>length</code> não está definida para o tipo <code>Object</code>." Hoje a caixa tem um texto, mas a variável é <code>Object</code>; amanhã pode ter um número, que não tem <code>length</code>. O Dart olha o <strong>tipo da variável</strong>, não o que está dentro agora.</dd>
+  <dt>- 'Object' is from 'dart:core'.</dt><dd>Uma informação extra: "<code>Object</code> vem da biblioteca <code>dart:core</code>", a biblioteca básica que todo programa já tem.</dd>
+  <dt>Try correcting the name…</dt><dd>A sugestão de sempre ("tente corrigir o nome…"). Aqui o nome está certo; o problema é o tipo.</dd>
+</dl>
+
+<h3>O <code>is</code> abre a caixa</h3>
+<p>Para usar o conteúdo, confira o tipo com <code>is</code> ("é"). Dentro do <code>if</code>, o Dart <strong>já sabe</strong> que é um texto e libera tudo o que o texto tem:</p>
+
+<pre class="file" data-file="promocao.dart">void main() {
+  Object caixa = 'Pão de queijo';
+  if (caixa is String) {
+    print(caixa.length);
+    print(caixa.toUpperCase());
+  }
+  caixa = 7;
+  if (caixa is int) {
+    print(caixa + 1);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run promocao.dart
+13
+PÃO DE QUEIJO
+8
+</pre>
+
+<p>Isso se chama <strong>promoção de tipo</strong> (<em>type promotion</em>): depois do <code>caixa is String</code> dar <code>true</code>, a variável é tratada como <code>String</code> dentro do bloco. O <code>is</code> tem aula própria: <a href="operadores-tipo.html">is, is! e as</a>.</p>
+
+<div class="trydart" data-goal="out:13;;semerro;;src:\bis\s+String">
+<p class="try-task"><strong>Missão:</strong> este programa não compila: <code>Object</code> não tem <code>length</code>. Ponha o <code>print</code> dentro de um <code>if (caixa is String) { … }</code> para ele mostrar <code>13</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  Object caixa = 'Pão de queijo';
+  print(caixa.length);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  Object caixa = 'Pão de queijo';
+  if (caixa is String) {
+    print(caixa.length);
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>dynamic</code>: aceita tudo, não confere nada</h2>
+<p>Com <code>dynamic</code> (em inglês, "dinâmico": o tipo só é visto durante a execução), o Dart deixa você usar <strong>qualquer</strong> propriedade e <strong>qualquer</strong> método, sem conferir:</p>
+
+<pre class="file" data-file="dinamico.dart">void main() {
+  dynamic coisa = 'Pão';
+  print(coisa.length);
+  coisa = 30;
+  print(coisa + 1);
+  coisa = [1, 2, 3];
+  print(coisa.length);
+  print(coisa.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run dinamico.dart
+3
+31
+3
+List&lt;int&gt;
+</pre>
+
+<p>Parece mais prático que o <code>Object</code>: nada de <code>is</code>. O preço aparece quando você erra. Troque o texto por um número e peça o <code>length</code>:</p>
+
+<pre class="file" data-file="err_dynamic.dart">void main() {
+  dynamic coisa = 30;
+  print(coisa.length);
+}
+</pre>
+
+<pre class="term">$ dart run err_dynamic.dart
+Unhandled exception:
+NoSuchMethodError: Class 'int' has no instance getter 'length'.
+Receiver: 30
+Tried calling: length
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/err_dynamic.dart:3:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>Desta vez o programa <strong>compilou e começou a rodar</strong>; o erro apareceu no meio (código de saída 255). Com <code>Object</code>, o mesmo engano foi pego antes de rodar.</dd>
+  <dt>NoSuchMethodError: Class 'int' has no instance getter 'length'.</dt><dd>"Erro de método inexistente: a classe <code>int</code> não tem a propriedade <code>length</code>."</dd>
+  <dt>Receiver: 30</dt><dd>"Receptor": o valor a quem você pediu o <code>length</code>.</dd>
+  <dt>Tried calling: length</dt><dd>"Tentou chamar: <code>length</code>."</dd>
+  <dt>#1 main (file:///home/ana/err_dynamic.dart:3:15)</dt><dd>Onde, no seu código: linha 3, coluna 15.</dd>
+</dl>
+
+<p>Num programa de verdade, esse erro pode ficar escondido por meses, até o dia em que aquela linha roda com o valor errado. É por isso que o guia de estilo oficial (Effective Dart) diz: <strong>evite <code>dynamic</code>, a não ser que você queira mesmo desligar a conferência</strong>.</p>
+
+<hr>
+
+<h2>4. O <code>dynamic</code> escondido: <code>var</code> sem valor</h2>
+<p>Um <code>var</code> <strong>sem</strong> valor inicial não tem de onde descobrir o tipo. Aí ele vira <code>dynamic</code>, sem avisar:</p>
+
+<pre class="file" data-file="var_sem.dart">void main() {
+  var coisa;
+  coisa = 'Pão';
+  coisa = 30;
+  print(coisa);
+  print(coisa.length);
+}
+</pre>
+
+<pre class="term">$ dart run var_sem.dart
+30
+Unhandled exception:
+NoSuchMethodError: Class 'int' has no instance getter 'length'.
+Receiver: 30
+Tried calling: length
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/var_sem.dart:6:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>A variável aceitou texto e depois número (o <code>30</code> apareceu), e o <code>coisa.length</code> passou pela compilação: sinal de <code>dynamic</code>. <strong>Boa prática:</strong> dê sempre um valor inicial ao <code>var</code>, ou escreva o tipo: <code>String coisa;</code>.</p>
+
+<hr>
+
+<h2>5. E o <code>null</code>?</h2>
+<p><code>Object</code> aceita qualquer valor, <strong>menos</strong> o <code>null</code> (o "nada"). Para aceitar o <code>null</code> também, ponha um <code>?</code>: <code>Object?</code>. O <code>dynamic</code> aceita <code>null</code> sem pedir nada:</p>
+
+<pre class="file" data-file="err_null.dart">void main() {
+  Object caixa = null;
+  dynamic coisa = null;
+  print(caixa);
+}
+</pre>
+
+<pre class="term">$ dart run err_null.dart
+err_null.dart:2:18: Error: A value of type 'Null' can't be assigned to a variable of type 'Object'.
+ - 'Object' is from 'dart:core'.
+  Object caixa = null;
+                 ^
+</pre>
+
+<p>"Um valor do tipo <code>Null</code> não pode ser atribuído a uma variável do tipo <code>Object</code>." Repare que só a linha 2 deu erro; a do <code>dynamic</code> passou. Com o <code>?</code>:</p>
+
+<pre class="file" data-file="objnull.dart">void main() {
+  Object? caixa = null;
+  dynamic coisa = null;
+  print(caixa);
+  print(coisa);
+  print(coisa.length);
+}
+</pre>
+
+<pre class="term">$ dart run objnull.dart
+null
+null
+Unhandled exception:
+NoSuchMethodError: The getter 'length' was called on null.
+Receiver: null
+Tried calling: length
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/objnull.dart:6:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>"A propriedade <code>length</code> foi chamada em <code>null</code>": o erro mais famoso da programação, que o Dart só deixou acontecer porque a variável era <code>dynamic</code>. Por que o <code>?</code> e o <code>null</code> importam tanto é o assunto da próxima aula, <a href="null-safety.html">Null Safety</a>.</p>
+
+<hr>
+
+<h2>6. Uma lista de coisas variadas</h2>
+<p>Um uso real do <code>Object</code>: uma lista com valores de tipos diferentes.</p>
+
+<pre class="file" data-file="lista.dart">void main() {
+  List&lt;Object&gt; sacola = ['Pão', 3, 4.5, true];
+  for (var item in sacola) {
+    print('$item é ${item.runtimeType}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+Pão é String
+3 é int
+4.5 é double
+true é bool
+</pre>
+
+<p><code>List&lt;Object&gt;</code> quer dizer "lista de <code>Object</code>" (veja <a href="list.html">Listas</a>), e o <code>for</code> passa por cada item (veja <a href="for-in.html">for-in</a>). Você vai ver o <code>dynamic</code> de novo em <a href="json.html">JSON</a>: dados que chegam de fora, cujo formato o Dart não conhece de antemão.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: qual tipo usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>var x = 'Pão';</code></th><th><code>Object x</code></th><th><code>Object? x</code></th><th><code>dynamic x</code></th></tr>
+<tr><td>Aceita outros tipos depois?</td><td>Não (fica <code>String</code>)</td><td>Sim</td><td>Sim</td><td>Sim</td></tr>
+<tr><td>Aceita <code>null</code>?</td><td>Não</td><td>Não</td><td>Sim</td><td>Sim</td></tr>
+<tr><td>Usar <code>x.length</code> direto</td><td>Sim</td><td>Erro de compilação</td><td>Erro de compilação</td><td>Compila; pode falhar ao rodar</td></tr>
+<tr><td>Quando o tipo está errado</td><td>Erro antes de rodar</td><td>Erro antes de rodar</td><td>Erro antes de rodar</td><td><code>NoSuchMethodError</code> no meio da execução</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Você sabe o tipo (quase sempre)</td><td>O tipo certo (<code>String</code>, <code>int</code>…) ou <code>var</code> com valor inicial</td></tr>
+<tr><td>Precisa aceitar qualquer valor</td><td><code>Object</code> (ou <code>Object?</code>, se o <code>null</code> também vale), com <code>is</code> antes de usar</td></tr>
+<tr><td>Dados de fora, sem formato conhecido (JSON), ou quer desligar a conferência de propósito</td><td><code>dynamic</code>, com cuidado</td></tr>
+<tr><td>Variável sem valor inicial</td><td>Escreva o tipo: <code>String nome;</code>, nunca só <code>var nome;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Pediu ao <code>Object</code> algo que só um tipo tem</strong>
+<p>Você viu na seção 2: <code>The getter 'length' isn't defined for the type 'Object'.</code> Com um método, a mensagem diz <code>The method '…' isn't defined for the type 'Object'.</code>. <strong>Como consertar:</strong> confira com <code>if (caixa is String)</code> antes de usar, ou, se a variável só vai guardar texto, declare-a como <code>String</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome do método digitado errado</strong>
+<p>Com o tipo certo, o Dart pega o erro de digitação antes de rodar:</p>
+<pre class="file" data-file="err_digito2.dart">void main() {
+  String nome = 'ana';
+  print(nome.toUppercase());
+}
+</pre>
+<pre class="term">$ dart run err_digito2.dart
+err_digito2.dart:3:14: Error: The method 'toUppercase' isn't defined for the type 'String'.
+Try correcting the name to the name of an existing method, or defining a method named 'toUppercase'.
+  print(nome.toUppercase());
+             ^^^^^^^^^^^
+</pre>
+<p>Com <code>dynamic</code>, o mesmo erro de digitação passa na compilação e só estoura ao rodar:</p>
+<pre class="file" data-file="err_digito.dart">void main() {
+  dynamic nome = 'ana';
+  print(nome.toUppercase());
+}
+</pre>
+<pre class="term">$ dart run err_digito.dart
+Unhandled exception:
+NoSuchMethodError: Class 'String' has no instance method 'toUppercase'.
+Receiver: "ana"
+Tried calling: toUppercase()
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/err_digito.dart:3:14)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"A classe <code>String</code> não tem o método <code>toUppercase</code>." O nome certo é <code>toUpperCase</code>, com <code>C</code> maiúsculo. <strong>Como consertar:</strong> o nome certo, e um tipo de verdade no lugar do <code>dynamic</code>, para o Dart voltar a conferir.</p>
+</div>
+
+<div class="cenario">
+<strong><code>null</code> num <code>Object</code></strong>
+<p>Seção 5: <code>A value of type 'Null' can't be assigned to a variable of type 'Object'.</code> <strong>Como consertar:</strong> <code>Object?</code>, se o "nada" for um valor válido ali.</p>
+</div>
+
+<div class="cenario">
+<strong><code>var</code> sem valor virou <code>dynamic</code></strong>
+<p>Seção 4: o programa compilou e parou com <code>NoSuchMethodError</code>. <strong>Como consertar:</strong> <code>var coisa = 'Pão';</code> (com valor) ou <code>String coisa;</code> (com tipo).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Object x = …;</code></td><td>Aceita qualquer valor, menos <code>null</code>; só deixa usar o básico (<code>toString</code>, <code>==</code>, <code>runtimeType</code>)</td></tr>
+<tr><td><code>Object? x;</code></td><td>Igual, e aceita <code>null</code></td></tr>
+<tr><td><code>if (x is String) { … }</code></td><td>Confere o tipo; dentro do bloco, <code>x</code> é <code>String</code></td></tr>
+<tr><td><code>dynamic x = …;</code></td><td>Aceita tudo, inclusive <code>null</code>; o Dart não confere nada</td></tr>
+<tr><td><code>var x;</code></td><td>Sem valor inicial: vira <code>dynamic</code> (evite)</td></tr>
+<tr><td><code>x.runtimeType</code></td><td>O tipo do valor que está lá agora</td></tr>
+<tr><td><code>List&lt;Object&gt;</code></td><td>Lista com valores de vários tipos</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The getter/method '…' isn't defined for the type 'Object'.</code></td><td>Usou algo específico numa variável <code>Object</code>: confira com <code>is</code></td></tr>
+<tr><td><code>NoSuchMethodError: Class '…' has no instance getter/method '…'.</code></td><td>Variável <code>dynamic</code> (ou <code>var</code> sem valor) com o tipo errado, ou nome digitado errado</td></tr>
+<tr><td><code>NoSuchMethodError: The getter '…' was called on null.</code></td><td>Variável <code>dynamic</code> valendo <code>null</code></td></tr>
+<tr><td><code>A value of type 'Null' can't be assigned to a variable of type 'Object'.</code></td><td>Use <code>Object?</code></td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'String'.</code></td><td><code>var</code> com valor inicial não troca de tipo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para a variável aceitar qualquer valor, inclusive <code>null</code>, <strong>mantendo</strong> a conferência do Dart:</p>
+<div class="ex-code"><input data-answer="Object?" aria-label="tipo"> recado = null;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o teste de tipo</h3>
+<div class="ex-code">Object x = 'oi';<br>if (x <input data-answer="is" aria-label="operador de tipo"> String) {<br>&nbsp;&nbsp;print(x.length);<br>}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>dynamic d = 5;</code> e depois <code>print(d.length);</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> Não compila</label>
+<label><input type="radio" name="q3"> Compila, e para ao rodar com <code>NoSuchMethodError</code></label>
+<label><input type="radio" name="q3"> Mostra <code>1</code></label>
+<label><input type="radio" name="q3"> Mostra <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual o tipo de <code>coisa</code> em <code>var coisa;</code> (sem valor inicial)?</p>
+<label><input type="radio" name="q4"> <code>Object</code></label>
+<label><input type="radio" name="q4"> <code>Null</code></label>
+<label><input type="radio" name="q4"> <code>dynamic</code></label>
+<label><input type="radio" name="q4"> Não compila</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que o Effective Dart recomenda <code>Object</code> em vez de <code>dynamic</code> para "qualquer valor"?</p>
+<label><input type="radio" name="q5"> Porque com <code>Object</code> os erros de tipo aparecem antes de rodar</label>
+<label><input type="radio" name="q5"> Porque <code>Object</code> aceita mais tipos</label>
+<label><input type="radio" name="q5"> Porque <code>dynamic</code> não aceita números</label>
+<label><input type="radio" name="q5"> Porque <code>Object</code> roda mais rápido</label>
+</div>
+
+<h3>Missão final: só os textos da sacola</h3>
+
+<div class="trydart" data-goal="out:PÃO;;out:LEITE;;semerro;;src:\bis\s+String">
+<p class="try-task"><strong>Missão:</strong> a sacola tem textos e números misturados. O programa não compila, porque <code>Object</code> não tem <code>toUpperCase()</code>. Ponha um <code>if (item is String)</code> em volta do <code>print</code>, para mostrar <strong>só os textos</strong>, em maiúsculas: <code>PÃO</code> e <code>LEITE</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  List&lt;Object&gt; sacola = ['pão', 3, 'leite', 4.5];
+  for (var item in sacola) {
+    print(item.toUpperCase());
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  List&lt;Object&gt; sacola = ['pão', 3, 'leite', 4.5];
+  for (var item in sacola) {
+    if (item is String) {
+      print(item.toUpperCase());
+    }
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run sacola.dart
+PÃO
+LEITE
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>var</code> com valor inicial fixa o tipo; ele não quer dizer "qualquer tipo".</li>
+  <li><code>Object</code> aceita qualquer valor (menos <code>null</code>; para ele, <code>Object?</code>), mas só deixa usar o que todo valor tem. Para o resto, confira com <code>is</code>: dentro do <code>if</code>, o tipo é promovido.</li>
+  <li><code>dynamic</code> aceita tudo e desliga a conferência: o erro de tipo vira <code>NoSuchMethodError</code> no meio da execução.</li>
+  <li><code>var x;</code> sem valor inicial é <code>dynamic</code>: dê um valor ou escreva o tipo.</li>
+  <li>Prefira o tipo certo; depois <code>Object</code>/<code>Object?</code>; e <code>dynamic</code> só quando precisar mesmo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
