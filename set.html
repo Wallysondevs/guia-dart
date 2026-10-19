@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Set — conjuntos sem repetição | Guia Dart</title>
+<meta name="description" content="Conjuntos (Set) no Dart para quem nunca programou: criar com chaves, nada de repetidos, add que devolve true ou false, contains, tirar repetidos de uma lista com toSet, o conjunto vazio &lt;String&gt;{} (e por que {} é um Map), union, intersection e difference, e os erros reais do Dart 3 (o [] que não existe, The method 'add' isn't defined for the type 'Map', o const com repetido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Conjuntos (Set)</span></h1>
+
+<p class="intro">Uma <a href="list.html">lista</a> aceita o mesmo valor quantas vezes você quiser: <code>['Ana', 'Ana', 'Ana']</code> é uma lista válida. Às vezes, porém, repetir não faz sentido: o álbum de figurinhas não precisa da mesma figurinha duas vezes, e a lista de pessoas que visitaram a loja hoje não deveria contar a Ana três vezes. Para isso existe o <strong>conjunto</strong>, o tipo <code>Set</code>: uma coleção em que <strong>cada valor aparece uma vez só</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar um <code>Set</code> com chaves <code>{ }</code> e o que acontece quando você tenta pôr um repetido.</li>
+  <li><code>add</code> (que devolve <code>true</code> ou <code>false</code>), <code>contains</code>, <code>remove</code> e <code>length</code>.</li>
+  <li>Como tirar os repetidos de uma lista com <code>toSet()</code>.</li>
+  <li>Como criar um conjunto vazio, e por que <code>{}</code> sozinho <strong>não</strong> é um conjunto.</li>
+  <li>As operações de conjunto: juntar (<code>union</code>), o que tem em comum (<code>intersection</code>) e a diferença (<code>difference</code>).</li>
+  <li>Os erros reais: o <code>[0]</code> que não existe num <code>Set</code>, o <code>{}</code> que virou <code>Map</code>, o <code>const</code> com repetido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o álbum de figurinhas</h2>
+<p>No álbum da Copa, cada figurinha tem o seu lugar. Quando o Caio tira do pacotinho uma figurinha que ele <strong>já tem</strong>, ela não entra no álbum: vai para o monte das repetidas. O álbum responde rápido a duas perguntas: "essa eu já tenho?" e "quantas eu tenho?". O que o álbum <strong>não</strong> tem é "a figurinha número 3 que eu colei": o que importa é ter ou não ter.</p>
+<p>Um <code>Set</code> é esse álbum: sem repetidos, ótimo para perguntar "tem?", e sem posições numeradas.</p>
+
+<hr>
+
+<h2>1. Criando um conjunto</h2>
+
+<pre class="file" data-file="figurinhas.dart">void main() {
+  final album = {'Pelé', 'Marta', 'Garrincha'};
+  print(album);
+  print(album.length);
+  print(album.runtimeType);
+  final entrou = album.add('Marta');
+  print(entrou);
+  print(album.add('Zico'));
+  print(album);
+  print(album.contains('Pelé'));
+  album.remove('Garrincha');
+  print(album);
+}
+</pre>
+
+<pre class="term">$ dart run figurinhas.dart
+{Pelé, Marta, Garrincha}
+3
+_Set&lt;String&gt;
+false
+true
+{Pelé, Marta, Garrincha, Zico}
+true
+{Pelé, Marta, Zico}
+</pre>
+
+<dl class="anatomy">
+  <dt>{'Pelé', 'Marta', 'Garrincha'}</dt><dd>Um <strong>conjunto literal</strong>: os itens entre <strong>chaves</strong> (a lista usa colchetes). O tipo é <code>Set&lt;String&gt;</code>.</dd>
+  <dt>_Set&lt;String&gt;</dt><dd>O <code>runtimeType</code> mostra o nome da classe <strong>interna</strong> que o Dart usa por baixo (o <code>_</code> na frente quer dizer "privada"; veja <a href="privado.html">Privacidade</a>). Para você, é um <code>Set&lt;String&gt;</code>.</dd>
+  <dt>album.add('Marta') → false</dt><dd>A Marta já estava lá: o <code>add</code> <strong>não</strong> a coloca de novo e devolve <code>false</code> ("não entrou"). Não é erro: é o conjunto fazendo o trabalho dele.</dd>
+  <dt>album.add('Zico') → true</dt><dd>O Zico era novo: entrou, e o <code>add</code> devolve <code>true</code>.</dd>
+  <dt>album.contains('Pelé') → true</dt><dd>"Contém?" É a pergunta em que o <code>Set</code> é craque: mesmo com milhares de itens, ele responde sem precisar olhar um por um (a lista precisa).</dd>
+  <dt>album.remove('Garrincha')</dt><dd>Tira o item (e devolve <code>true</code> se ele estava lá).</dd>
+</dl>
+
+<div class="note">
+<strong>E a ordem?</strong>
+<p>O <code>Set</code> que você cria com chaves (ou com <code>Set()</code>/<code>toSet()</code>) mostra os itens <strong>na ordem em que entraram</strong>, como nas saídas acima. Mas ele não tem posições: não dá para pedir "o item número 2" com colchetes (veja <a href="#errado">Quando dá errado</a>).</p>
+</div>
+
+<div class="trydart" data-goal="out:false;;out:{Pelé, Marta, Zico};;src:\.add\(\s*'Marta'\s*\)">
+<p class="try-task"><strong>Missão:</strong> o Caio tirou do pacotinho a <code>Marta</code> (de novo) e o <code>Zico</code>. Faça os dois <code>add</code> mostrando o que cada um devolve, e mostre o álbum no fim.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final album = {'Pelé', 'Marta'};
+  // tente pôr a Marta e o Zico, mostrando o que o add devolve
+  print(album);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final album = {'Pelé', 'Marta'};
+  print(album.add('Marta'));
+  print(album.add('Zico'));
+  print(album);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Tirando os repetidos de uma lista</h2>
+<p>O caderno de visitas da loja tem um nome por visita. Quantas <strong>pessoas diferentes</strong> vieram?</p>
+
+<pre class="file" data-file="repetidos.dart">void main() {
+  final visitas = ['Ana', 'Bia', 'Ana', 'Caio', 'Bia', 'Ana'];
+  final pessoas = visitas.toSet();
+  print(pessoas);
+  print('${visitas.length} visitas de ${pessoas.length} pessoas');
+  final semRepetir = visitas.toSet().toList();
+  print(semRepetir);
+}
+</pre>
+
+<pre class="term">$ dart run repetidos.dart
+{Ana, Bia, Caio}
+6 visitas de 3 pessoas
+[Ana, Bia, Caio]
+</pre>
+
+<p><code>toSet()</code> cria um conjunto com os itens da lista, e os repetidos somem sozinhos (fica a primeira vez que cada um apareceu). Se você precisa de uma lista de novo (para usar <code>[0]</code> ou <code>sort</code>), <code>toSet().toList()</code>. É o jeito mais curto de "tirar os repetidos" no Dart.</p>
+
+<hr>
+
+<h2>3. O conjunto vazio: cuidado com o <code>{}</code></h2>
+
+<pre class="file" data-file="vazio.dart">void main() {
+  final tags = &lt;String&gt;{};
+  tags.add('promoção');
+  tags.addAll(['pão', 'promoção', 'doce']);
+  print(tags);
+  final oQueE = {};
+  print(oQueE.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run vazio.dart
+{promoção, pão, doce}
+_Map&lt;dynamic, dynamic&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;String&gt;{}</dt><dd>O jeito certo de criar um conjunto vazio: o tipo entre <code>&lt; &gt;</code> antes das chaves.</dd>
+  <dt>addAll([…])</dt><dd>Acrescenta vários de uma vez; o <code>'promoção'</code> repetido foi ignorado.</dd>
+  <dt>{} → _Map&lt;dynamic, dynamic&gt;</dt><dd>A pegadinha: chaves vazias, sem tipo, criam um <strong>mapa</strong> (<code>Map</code>), e não um conjunto. Mapas também usam chaves (veja <a href="map.html">Mapas</a>), e o Dart escolheu que <code>{}</code> é mapa. Com itens dentro (<code>{'a', 'b'}</code>), não há dúvida: é conjunto.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Operações de conjunto: juntar, comum e diferença</h2>
+<p>A Ana e a Bia vão dividir a pizza da festa e anotaram do que cada uma gosta:</p>
+
+<pre class="file" data-file="operacoes.dart">void main() {
+  final ana = {'pizza', 'sorvete', 'pastel', 'açaí'};
+  final bia = {'açaí', 'coxinha', 'pizza'};
+  print(ana.union(bia));
+  print(ana.intersection(bia));
+  print(ana.difference(bia));
+  print(bia.difference(ana));
+  print({'pizza'}.difference(ana).isEmpty);
+  print(ana.containsAll({'pizza', 'açaí'}));
+}
+</pre>
+
+<pre class="term">$ dart run operacoes.dart
+{pizza, sorvete, pastel, açaí, coxinha}
+{pizza, açaí}
+{sorvete, pastel}
+{coxinha}
+true
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operação</th><th>Pergunta</th><th>Resultado</th></tr>
+<tr><td><code>ana.union(bia)</code></td><td>"Tudo o que alguma das duas gosta" (união)</td><td><code>{pizza, sorvete, pastel, açaí, coxinha}</code>: cada coisa uma vez</td></tr>
+<tr><td><code>ana.intersection(bia)</code></td><td>"O que as duas gostam" (interseção)</td><td><code>{pizza, açaí}</code></td></tr>
+<tr><td><code>ana.difference(bia)</code></td><td>"O que a Ana gosta e a Bia não" (diferença)</td><td><code>{sorvete, pastel}</code></td></tr>
+<tr><td><code>bia.difference(ana)</code></td><td>"O que a Bia gosta e a Ana não"</td><td><code>{coxinha}</code>: a ordem importa</td></tr>
+<tr><td><code>ana.containsAll({…})</code></td><td>"A Ana gosta de todos estes?"</td><td><code>true</code></td></tr>
+</table>
+</div>
+
+<p>Nenhuma dessas operações muda <code>ana</code> ou <code>bia</code>: todas criam um conjunto novo.</p>
+
+<div class="trydart" data-goal="out:{açaí};;src:intersection">
+<p class="try-task"><strong>Missão:</strong> o Caio também vai à festa. Descubra o que <strong>os três</strong> gostam: a interseção da interseção. Deve aparecer <code>{açaí}</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final ana = {'pizza', 'sorvete', 'pastel', 'açaí'};
+  final bia = {'açaí', 'coxinha', 'pizza'};
+  final caio = {'açaí', 'pastel', 'coxinha'};
+  print(ana);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final ana = {'pizza', 'sorvete', 'pastel', 'açaí'};
+  final bia = {'açaí', 'coxinha', 'pizza'};
+  final caio = {'açaí', 'pastel', 'coxinha'};
+  print(ana.intersection(bia).intersection(caio));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. Percorrendo um conjunto</h2>
+
+<pre class="file" data-file="percorrer.dart">void main() {
+  final cores = {'azul', 'verde', 'rosa'};
+  for (final cor in cores) {
+    print('Cor: $cor');
+  }
+  print(cores.first);
+  print(cores.elementAt(1));
+}
+</pre>
+
+<pre class="term">$ dart run percorrer.dart
+Cor: azul
+Cor: verde
+Cor: rosa
+azul
+verde
+</pre>
+
+<p>O <code>for-in</code> funciona como na lista (veja <a href="for-in.html">for-in</a>). <code>first</code> e <code>last</code> também existem. Se você precisar mesmo do "segundo item", há o <code>elementAt(1)</code>, mas ele anda pelo conjunto item por item até chegar lá: se você usa muito, o que você queria era uma lista.</p>
+
+<hr>
+
+<h2 id="formas">Lista ou conjunto? Formas de guardar vários valores</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A ordem e as posições importam (ranking, fila, histórico); repetidos são normais</td><td><code>List</code>: <code>['Ana', 'Ana', 'Bia']</code></td></tr>
+<tr><td>Cada valor só pode aparecer uma vez (tags, figurinhas, quem já votou)</td><td><code>Set</code>: <code>{'Ana', 'Bia'}</code></td></tr>
+<tr><td>A pergunta principal é "tem?" e a coleção é grande</td><td><code>Set</code> (o <code>contains</code> é muito mais rápido)</td></tr>
+<tr><td>Comparar dois grupos (em comum, só de um, todos)</td><td><code>Set</code> com <code>intersection</code>, <code>difference</code>, <code>union</code></td></tr>
+<tr><td>Tirar repetidos de uma lista</td><td><code>lista.toSet()</code> (e <code>.toList()</code> se precisar de lista de novo)</td></tr>
+<tr><td>Associar um valor a outro (produto → preço)</td><td><code>Map</code> (aula <a href="map.html">Mapas</a>)</td></tr>
+</table>
+</div>
+
+<p>Para criar um conjunto, há também <code>Set.of(lista)</code> e <code>Set&lt;String&gt;()</code> (vazio), que fazem o mesmo que <code>lista.toSet()</code> e <code>&lt;String&gt;{}</code>. O guia de estilo do Dart prefere as formas literais, com chaves.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>[0]</code> num conjunto</strong>
+<pre class="file" data-file="err_indice.dart">void main() {
+  final cores = {'azul', 'verde', 'rosa'};
+  print(cores[0]);
+}
+</pre>
+<pre class="term">$ dart run err_indice.dart
+err_indice.dart:3:14: Error: The operator '[]' isn't defined for the type 'Set&lt;String&gt;'.
+ - 'Set' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '[]' operator.
+  print(cores[0]);
+             ^
+</pre>
+<dl class="anatomy">
+  <dt>The operator '[]' isn't defined for the type 'Set&lt;String&gt;'.</dt><dd>"O operador <code>[]</code> não está definido para o tipo <code>Set&lt;String&gt;</code>": conjunto não tem posição.</dd>
+  <dt>- 'Set' is from 'dart:core'.</dt><dd>De onde vem o tipo <code>Set</code>: da biblioteca básica do Dart.</dd>
+  <dt>Try correcting the operator …</dt><dd>A sugestão padrão do Dart ("corrija o operador ou defina um <code>[]</code>"). Aqui, o conserto é outro.</dd>
+</dl>
+<p><strong>Como consertar:</strong> use <code>cores.first</code>, <code>cores.elementAt(0)</code>, ou, se precisa de posições, uma lista: <code>cores.toList()[0]</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O <code>{}</code> que virou mapa</strong>
+<pre class="file" data-file="err_chaves.dart">void main() {
+  final tags = {};
+  tags.add('promoção');
+}
+</pre>
+<pre class="term">$ dart run err_chaves.dart
+err_chaves.dart:3:8: Error: The method 'add' isn't defined for the type 'Map&lt;dynamic, dynamic&gt;'.
+ - 'Map' is from 'dart:core'.
+Try correcting the name to the name of an existing method, or defining a method named 'add'.
+  tags.add('promoção');
+       ^^^
+</pre>
+<p>"O método <code>add</code> não está definido para o tipo <code>Map&lt;dynamic, dynamic&gt;</code>." A Ana queria um conjunto, mas <code>{}</code> é um mapa vazio, e mapa não tem <code>add</code>. A mensagem fala de <code>Map</code> em vez de <code>Set</code>: é a pista. <strong>Como consertar:</strong> <code>final tags = &lt;String&gt;{};</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Repetido num conjunto <code>const</code></strong>
+<pre class="file" data-file="err_duplicado.dart">void main() {
+  const vogais = {'a', 'e', 'i', 'o', 'u', 'a'};
+  print(vogais);
+}
+</pre>
+<pre class="term">$ dart run err_duplicado.dart
+err_duplicado.dart:2:18: Error: Constant evaluation error:
+  const vogais = {'a', 'e', 'i', 'o', 'u', 'a'};
+                 ^
+err_duplicado.dart:2:44: Context: The element '"a"' conflicts with another existing element in the set.
+  const vogais = {'a', 'e', 'i', 'o', 'u', 'a'};
+                                           ^
+err_duplicado.dart:2:9: Context: While analyzing:
+  const vogais = {'a', 'e', 'i', 'o', 'u', 'a'};
+        ^
+</pre>
+<dl class="anatomy">
+  <dt>Error: Constant evaluation error:</dt><dd>"Erro ao calcular a constante", com o <code>^</code> no começo do conjunto (coluna 18).</dd>
+  <dt>Context: The element '"a"' conflicts with another existing element in the set.</dt><dd>"O elemento <code>"a"</code> conflita com outro que já está no conjunto", apontando para o segundo <code>'a'</code> (coluna 44).</dd>
+  <dt>Context: While analyzing:</dt><dd>"Enquanto analisava": a variável <code>vogais</code>.</dd>
+</dl>
+<p>Num conjunto comum, o repetido seria simplesmente ignorado. Num <code>const</code>, o Dart entende que você escreveu algo errado (por que pôr o <code>'a'</code> duas vezes?) e avisa antes de rodar. <strong>Como consertar:</strong> tire o repetido.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudar um conjunto <code>const</code></strong>
+<pre class="file" data-file="err_const.dart">void main() {
+  const vogais = {'a', 'e', 'i', 'o', 'u'};
+  vogais.add('y');
+}
+</pre>
+<pre class="term">$ dart run err_const.dart
+Unhandled exception:
+Unsupported operation: Cannot change an unmodifiable set
+#0      _UnmodifiableSetMixin._throwUnmodifiable (dart:_compact_hash:72:5)
+#1      _UnmodifiableSetMixin.add (dart:_compact_hash:76:24)
+#2      main (file:///home/ana/err_const.dart:3:10)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Operação não suportada: não dá para mudar um conjunto que não pode ser modificado." Igual à lista <code>const</code>: compila, e para na hora do <code>add</code> (a linha 3, no <code>#2 main</code>). <strong>Como consertar:</strong> se o conjunto precisa mudar, use <code>final</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>{'a', 'b'}</code></td><td>Cria um <code>Set&lt;String&gt;</code></td></tr>
+<tr><td><code>&lt;String&gt;{}</code></td><td>Conjunto vazio (<code>{}</code> sozinho é um <code>Map</code>)</td></tr>
+<tr><td><code>s.add(x)</code></td><td>Põe <code>x</code>; devolve <code>false</code> se já tinha</td></tr>
+<tr><td><code>s.addAll([…])</code></td><td>Põe vários (repetidos são ignorados)</td></tr>
+<tr><td><code>s.remove(x)</code></td><td>Tira <code>x</code></td></tr>
+<tr><td><code>s.contains(x)</code> / <code>s.containsAll(outro)</code></td><td>Tem <code>x</code>? / Tem todos?</td></tr>
+<tr><td><code>s.length</code>, <code>isEmpty</code>, <code>first</code>, <code>last</code></td><td>Como na lista</td></tr>
+<tr><td><code>lista.toSet()</code></td><td>Tira os repetidos de uma lista</td></tr>
+<tr><td><code>a.union(b)</code> / <code>a.intersection(b)</code> / <code>a.difference(b)</code></td><td>Tudo / em comum / só em <code>a</code></td></tr>
+<tr><td><code>s.toList()</code></td><td>Lista com os mesmos itens</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The operator '[]' isn't defined for the type 'Set…'</code></td><td>Conjunto não tem posição: use <code>first</code>, <code>elementAt</code> ou <code>toList()</code></td></tr>
+<tr><td><code>The method 'add' isn't defined for the type 'Map&lt;dynamic, dynamic&gt;'</code></td><td>Criou com <code>{}</code>: use <code>&lt;Tipo&gt;{}</code></td></tr>
+<tr><td><code>The element … conflicts with another existing element in the set</code></td><td>Item repetido num <code>const</code></td></tr>
+<tr><td><code>Cannot change an unmodifiable set</code></td><td>Tentou mudar um conjunto <code>const</code></td></tr>
+<tr><td>O <code>add</code> "não funcionou"</td><td>O item já estava lá: olhe o <code>false</code> que ele devolveu</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quantos sobram?</h3>
+<p>Qual é o <code>length</code> de <code>{'pão', 'leite', 'pão', 'café', 'leite'}</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="tamanho"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Sem repetidos</h3>
+<p>Complete para criar um conjunto com os números da lista, sem repetidos:</p>
+<div class="ex-code">final unicos = numeros.<input data-answer="toSet()" aria-label="método">;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é o tipo de <code>final x = {};</code>?</p>
+<label><input type="radio" name="q3"> <code>Set&lt;dynamic&gt;</code></label>
+<label><input type="radio" name="q3"> <code>Map&lt;dynamic, dynamic&gt;</code></label>
+<label><input type="radio" name="q3"> <code>List&lt;dynamic&gt;</code></label>
+<label><input type="radio" name="q3"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>{1, 2, 3}.difference({2, 3, 4})</code> dá:</p>
+<label><input type="radio" name="q4"> <code>{1, 4}</code></label>
+<label><input type="radio" name="q4"> <code>{2, 3}</code></label>
+<label><input type="radio" name="q4"> <code>{1}</code></label>
+<label><input type="radio" name="q4"> <code>{4}</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que <code>{'Ana'}.add('Ana')</code> devolve?</p>
+<label><input type="radio" name="q5"> <code>false</code>, e o conjunto continua com uma Ana</label>
+<label><input type="radio" name="q5"> <code>true</code>, e o conjunto fica com duas Anas</label>
+<label><input type="radio" name="q5"> Uma exceção</label>
+<label><input type="radio" name="q5"> Um erro de compilação</label>
+</div>
+
+<h3>Missão final: quem ainda não votou</h3>
+
+<div class="trydart" data-goal="out:{Caio, Edu};;src:difference">
+<p class="try-task"><strong>Missão:</strong> a turma tem 5 alunos. A lista de votos tem nomes repetidos (gente que votou duas vezes!). Transforme os votos num conjunto e descubra quem <strong>ainda não votou</strong>: deve aparecer <code>{Caio, Edu}</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final turma = {'Ana', 'Bia', 'Caio', 'Davi', 'Edu'};
+  final votos = ['Bia', 'Ana', 'Bia', 'Davi', 'Ana'];
+  print(votos);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final turma = {'Ana', 'Bia', 'Caio', 'Davi', 'Edu'};
+  final votos = ['Bia', 'Ana', 'Bia', 'Davi', 'Ana'];
+  final votaram = votos.toSet();
+  print(turma.difference(votaram));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Set</code> guarda valores <strong>sem repetição</strong>: <code>{'Pelé', 'Marta'}</code>. Pôr um repetido não dá erro; o <code>add</code> só devolve <code>false</code>.</li>
+  <li>A especialidade do conjunto é responder rápido a <code>contains</code>, e comparar grupos com <code>union</code>, <code>intersection</code> e <code>difference</code>.</li>
+  <li><code>lista.toSet()</code> tira os repetidos de uma lista.</li>
+  <li>Conjunto vazio: <code>&lt;String&gt;{}</code>. O <code>{}</code> sozinho é um <code>Map</code>.</li>
+  <li>Conjunto não tem posição: nada de <code>[0]</code>; use <code>first</code>, <code>elementAt</code> ou <code>toList()</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
