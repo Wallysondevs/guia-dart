@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Tipos Anuláveis — String?, int? e companhia | Guia Dart</title>
+<meta name="description" content="Tipos anuláveis do Dart para quem nunca programou: String?, int?, o valor null de quem nasce sem valor, T cabe em T? mas não o contrário, a promoção de tipo com != null, == null e return, is, funções que devolvem String?, parâmetros anuláveis, List<String?> e List<String>?, e os erros reais do Dart 3 (método e operador em String?/int?, argumento String?, promoção perdida).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Tipos Anuláveis</span></h1>
+
+<p class="intro">Na aula <a href="null-safety.html">Null Safety</a>, você viu a regra: um tipo sem <code>?</code> nunca é <code>null</code>; um tipo com <code>?</code> pode ser. Esta aula é sobre os tipos <strong>com</strong> <code>?</code>, os <strong>anuláveis</strong> (<em>nullable</em>): como criar, como passar de um lado para o outro, como usar sem o Dart reclamar, e o que cada mensagem de erro está dizendo.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como declarar <code>String?</code>, <code>int?</code>, <code>double?</code>, <code>bool?</code>, e quanto eles valem quando nascem sem valor.</li>
+  <li>Por que um <code>String</code> cabe num <code>String?</code>, mas o contrário não.</li>
+  <li>A <strong>promoção de tipo</strong>: <code>!= null</code>, <code>is</code> e o "sai cedo" com <code>== null</code> e <code>return</code>.</li>
+  <li>Funções que devolvem <code>String?</code> e parâmetros que aceitam <code>null</code>.</li>
+  <li>A diferença entre <code>List&lt;String?&gt;</code> e <code>List&lt;String&gt;?</code>.</li>
+  <li>Os erros reais: método e operador num anulável, argumento anulável e a promoção que se perde.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o campo "opcional" da ficha</h2>
+<p>Na ficha de cadastro da lojinha, alguns campos têm asterisco (<strong>obrigatórios</strong>: nome, CPF) e outros dizem "<strong>opcional</strong>" (apelido, telefone fixo). Quem lê a ficha sabe: o nome sempre vai estar lá; o apelido, <strong>talvez</strong>. Antes de chamar a cliente pelo apelido, você olha se o campo foi preenchido.</p>
+<p>No Dart, o <code>?</code> no fim do tipo é o "opcional" da ficha. <code>String nome</code> é o campo obrigatório. <code>String? apelido</code> é o opcional: o Dart vai exigir que você olhe antes de usar.</p>
+
+<hr>
+
+<h2>1. Declarando tipos anuláveis</h2>
+
+<pre class="file" data-file="declarar.dart">void main() {
+  String? apelido;
+  int? mesa;
+  double? gorjeta;
+  bool? confirmado;
+  print(apelido);
+  print(mesa);
+  print(gorjeta);
+  print(confirmado);
+  mesa = 7;
+  print(mesa);
+}
+</pre>
+
+<pre class="term">$ dart run declarar.dart
+null
+null
+null
+null
+7
+</pre>
+
+<dl class="anatomy">
+  <dt>String? apelido;</dt><dd>Qualquer tipo ganha a versão anulável com um <code>?</code> colado no fim. Sem valor inicial, uma variável anulável <strong>começa valendo <code>null</code></strong>, sem erro nenhum.</dd>
+  <dt>int? mesa; double? gorjeta; bool? confirmado;</dt><dd>O mesmo para números e <code>bool</code>. Um <code>bool?</code> tem <strong>três</strong> respostas possíveis: <code>true</code>, <code>false</code> e <code>null</code> ("ainda não respondeu").</dd>
+  <dt>mesa = 7;</dt><dd>Depois, a gaveta pode receber um valor de verdade.</dd>
+</dl>
+
+<p>Compare com a aula anterior: <code>String nome;</code> (sem <code>?</code>) usada sem valor era erro de compilação (<code>Non-nullable variable 'nome' must be assigned before it can be used.</code>). Com <code>?</code>, o "nada" é um valor permitido, e o Dart o usa como valor inicial.</p>
+
+<hr>
+
+<h2>2. <code>String</code> cabe em <code>String?</code>; o contrário, não</h2>
+
+<pre class="file" data-file="atribuir.dart">void main() {
+  String nome = 'Ana';
+  String? apelido = nome;
+  print(apelido);
+  String? recado;
+  String texto = recado;
+  print(texto);
+}
+</pre>
+
+<pre class="term">$ dart run atribuir.dart
+atribuir.dart:6:18: Error: A value of type 'String?' can't be assigned to a variable of type 'String'.
+  String texto = recado;
+                 ^
+</pre>
+
+<p>A linha 3 passou sem problema: um texto que <strong>com certeza</strong> existe pode ir para uma gaveta "texto ou nada". A linha 6, não: "um valor do tipo <code>String?</code> não pode ser atribuído a uma variável do tipo <code>String</code>". O <code>recado</code> <strong>talvez</strong> esteja vazio, e a gaveta <code>texto</code> não aceita vazio.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>De</th><th>Para</th><th>Pode?</th></tr>
+<tr><td><code>String</code></td><td><code>String?</code></td><td>Sim, sempre</td></tr>
+<tr><td><code>String?</code></td><td><code>String</code></td><td>Só depois de conferir que não é <code>null</code> (seção 3) ou dando um valor padrão (<a href="operadores-null.html">??</a>)</td></tr>
+<tr><td><code>null</code></td><td><code>String?</code></td><td>Sim</td></tr>
+<tr><td><code>null</code></td><td><code>String</code></td><td>Nunca</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. Usando um anulável: a promoção de tipo</h2>
+<p>Num <code>String?</code>, o Dart não deixa chamar <code>length</code>, <code>toUpperCase()</code> nem nada de texto (a seção <a href="#errado">Quando dá errado</a> mostra as mensagens). O jeito é <strong>conferir</strong> primeiro. Depois da conferência, o Dart trata a variável como <code>String</code>: é a <strong>promoção de tipo</strong>.</p>
+
+<h3>Com <code>!= null</code> ou <code>is</code></h3>
+
+<pre class="file" data-file="promover.dart">void main() {
+  String? apelido = 'Aninha';
+  if (apelido != null) {
+    print('${apelido.toUpperCase()} tem ${apelido.length} letras');
+  }
+  if (apelido is String) {
+    print('Também funciona com is');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run promover.dart
+ANINHA tem 6 letras
+Também funciona com is
+</pre>
+
+<p>Dentro de cada <code>if</code>, <code>apelido</code> é um <code>String</code> comum. O <code>!= null</code> é o jeito mais usado; o <code>is String</code> faz o mesmo trabalho (veja <a href="operadores-tipo.html">is, is! e as</a>).</p>
+
+<h3>"Sai cedo": <code>== null</code> e <code>return</code></h3>
+<p>Muitas vezes é mais limpo tratar o caso do <code>null</code> <strong>primeiro</strong> e sair da função. Daí para baixo, o Dart sabe que a variável tem valor:</p>
+
+<pre class="file" data-file="cedo.dart">void mostrarMesa(int? mesa) {
+  if (mesa == null) {
+    print('Pedido para viagem');
+    return;
+  }
+  print('Mesa $mesa (a do lado é a ${mesa + 1})');
+}
+
+void main() {
+  mostrarMesa(7);
+  mostrarMesa(null);
+}
+</pre>
+
+<pre class="term">$ dart run cedo.dart
+Mesa 7 (a do lado é a 8)
+Pedido para viagem
+</pre>
+
+<dl class="anatomy">
+  <dt>void mostrarMesa(int? mesa)</dt><dd>Uma <strong>função</strong> (um bloco de código com nome, que você chama de vários lugares; veja <a href="funcoes.html">Funções</a>) cujo <strong>parâmetro</strong> é <code>int?</code>: ela aceita um número ou <code>null</code>.</dd>
+  <dt>if (mesa == null) { …; return; }</dt><dd>Se não tem mesa, avisa e <strong>sai da função</strong> com <code>return</code> ("retornar").</dd>
+  <dt>mesa + 1</dt><dd>Depois do <code>if</code>, o único jeito de chegar aqui é <code>mesa</code> não ser <code>null</code>. O Dart percebe isso sozinho e libera a conta.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Total: 6 pães;;semerro;;src:!=\s*null|==\s*null">
+<p class="try-task"><strong>Missão:</strong> o <code>int.tryParse</code> devolve <code>int?</code>, e o Dart não deixa fazer conta com ele. Ponha o <code>print</code> dentro de um <code>if (quantidade != null)</code> para mostrar <code>Total: 6 pães</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  int? quantidade = int.tryParse('3');
+  print('Total: ${quantidade * 2} pães');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  int? quantidade = int.tryParse('3');
+  if (quantidade != null) {
+    print('Total: ${quantidade * 2} pães');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Funções que podem não ter resposta</h2>
+<p>Uma função também pode devolver um tipo anulável. É o jeito honesto de dizer "talvez eu não ache":</p>
+
+<pre class="file" data-file="funcao.dart">String? buscarApelido(String nome) {
+  if (nome == 'Ana') {
+    return 'Aninha';
+  }
+  return null;
+}
+
+void main() {
+  String? a = buscarApelido('Ana');
+  String? b = buscarApelido('Bia');
+  print(a);
+  print(b);
+}
+</pre>
+
+<pre class="term">$ dart run funcao.dart
+Aninha
+null
+</pre>
+
+<p>O <code>String?</code> antes do nome da função é o <strong>tipo do resultado</strong>: quem chama já sabe, só de olhar, que precisa tratar o <code>null</code>. É exatamente o que <code>int.tryParse</code> faz. Se a função dissesse só <code>String</code>, o <code>return null;</code> seria erro de compilação.</p>
+
+<hr>
+
+<h2>5. Listas: onde fica o <code>?</code></h2>
+<p>Com listas, a posição do <code>?</code> muda tudo:</p>
+
+<pre class="file" data-file="listas.dart">void main() {
+  List&lt;String?&gt; apelidos = ['Aninha', null, 'Bia'];
+  List&lt;String&gt;? pedidos;
+  print(apelidos);
+  print(apelidos.length);
+  print(pedidos);
+  pedidos = ['pão', 'café'];
+  print(pedidos);
+}
+</pre>
+
+<pre class="term">$ dart run listas.dart
+[Aninha, null, Bia]
+3
+null
+[pão, café]
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Lê-se</th><th>Exemplo</th></tr>
+<tr><td><code>List&lt;String&gt;</code></td><td>Uma lista (que existe) de textos (que existem)</td><td><code>['pão', 'café']</code></td></tr>
+<tr><td><code>List&lt;String?&gt;</code></td><td>Uma lista que existe; <strong>cada item</strong> pode ser <code>null</code></td><td><code>['Aninha', null, 'Bia']</code>: 3 itens, um vazio</td></tr>
+<tr><td><code>List&lt;String&gt;?</code></td><td>A <strong>lista inteira</strong> pode não existir; se existir, os itens são textos</td><td><code>null</code>, ou <code>['pão', 'café']</code></td></tr>
+<tr><td><code>List&lt;String?&gt;?</code></td><td>As duas coisas</td><td>Raro; evite</td></tr>
+</table>
+</div>
+
+<p>Para usar os itens de uma <code>List&lt;String?&gt;</code>, confira cada um:</p>
+
+<pre class="file" data-file="lista_ok.dart">void main() {
+  List&lt;String?&gt; apelidos = ['Aninha', null, 'Bia'];
+  for (var a in apelidos) {
+    if (a != null) {
+      print(a.toUpperCase());
+    } else {
+      print('(sem apelido)');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run lista_ok.dart
+ANINHA
+(sem apelido)
+BIA
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de usar um anulável</h2>
+<p>O mesmo trabalho (mostrar o apelido em maiúsculas, ou um aviso) de quatro jeitos. Os dois últimos são das próximas aulas:</p>
+<pre class="file" data-file="formas.dart">if (apelido != null) {                       // 1. conferir
+  print(apelido.toUpperCase());
+} else {
+  print('sem apelido');
+}
+
+if (apelido == null) return;                  // 2. sair cedo (dentro de uma função)
+print(apelido.toUpperCase());
+
+print(apelido?.toUpperCase() ?? 'sem apelido');   // 3. ?. e ??
+
+print(apelido!.toUpperCase());                // 4. ! (quebra se for null)
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Fazer várias coisas quando o valor existe</td><td><code>if (x != null) { … }</code></td></tr>
+<tr><td>Numa função, o <code>null</code> é o caso "estranho"</td><td><code>if (x == null) return;</code> no começo</td></tr>
+<tr><td>Uma expressão curta, com valor padrão</td><td><code>x?.metodo() ?? padrao</code> (aula <a href="operadores-null.html">?. , ?? e ??=</a>)</td></tr>
+<tr><td>Você <strong>tem certeza</strong> de que não é <code>null</code> e o Dart não percebe</td><td><code>x!</code> (aula <a href="late.html">late e o Operador !</a>)</td></tr>
+<tr><td>O valor nunca falta</td><td>Nem use <code>?</code>: tipo comum</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou um método num <code>String?</code></strong>
+<pre class="file" data-file="err_lista.dart">void main() {
+  List&lt;String?&gt; apelidos = ['Aninha', null, 'Bia'];
+  for (var a in apelidos) {
+    print(a.toUpperCase());
+  }
+}
+</pre>
+<pre class="term">$ dart run err_lista.dart
+err_lista.dart:4:13: Error: Method 'toUpperCase' cannot be called on 'String?' because it is potentially null.
+Try calling using ?. instead.
+    print(a.toUpperCase());
+            ^^^^^^^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>err_lista.dart:4:13:</dt><dd>Linha 4, coluna 13: o nome do método.</dd>
+  <dt>Method 'toUpperCase' cannot be called on 'String?'</dt><dd>"O método <code>toUpperCase</code> não pode ser chamado num <code>String?</code>…"</dd>
+  <dt>because it is potentially null.</dt><dd>"…porque ele é <strong>potencialmente</strong> <code>null</code>" (pode ser). O item do meio da lista é mesmo <code>null</code>, mas o Dart reclamaria mesmo se nenhum fosse: ele olha o tipo.</dd>
+  <dt>Try calling using ?. instead.</dt><dd>"Tente chamar com <code>?.</code>." Funciona, mas mostraria <code>null</code> no item vazio.</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira cada item com <code>if (a != null)</code>, como na seção 5. Com uma propriedade, a mensagem troca <code>Method … cannot be called</code> por <code>Property 'length' cannot be accessed</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Fez conta com um <code>int?</code></strong>
+<pre class="file" data-file="err_conta.dart">void main() {
+  int? quantidade = int.tryParse('3');
+  print(quantidade + 1);
+}
+</pre>
+<pre class="term">$ dart run err_conta.dart
+err_conta.dart:3:20: Error: Operator '+' cannot be called on 'int?' because it is potentially null.
+  print(quantidade + 1);
+                   ^
+</pre>
+<p>"O operador <code>+</code> não pode ser usado num <code>int?</code>, porque ele pode ser <code>null</code>." Quanto é "nada + 1"? Não existe resposta. <strong>Como consertar:</strong> <code>if (quantidade != null)</code>, ou um valor padrão: <code>(quantidade ?? 0) + 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mandou um <code>String?</code> para uma função que pede <code>String</code></strong>
+<pre class="file" data-file="err_param.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  String? recado;
+  saudar(recado);
+}
+</pre>
+<pre class="term">$ dart run err_param.dart
+err_param.dart:7:10: Error: The argument type 'String?' can't be assigned to the parameter type 'String'.
+  saudar(recado);
+         ^
+</pre>
+<p>"O tipo do argumento, <code>String?</code>, não pode ser atribuído ao tipo do parâmetro, <code>String</code>." É a regra da seção 2 de novo: "talvez texto" não entra onde se exige texto. <strong>Como consertar:</strong> confira antes de chamar (<code>if (recado != null) saudar(recado);</code>), mande um padrão (<code>saudar(recado ?? 'cliente')</code>), ou, se a função sabe lidar com o "nada", mude o parâmetro para <code>String? nome</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A promoção se perdeu depois de uma nova atribuição</strong>
+<pre class="file" data-file="err_perde.dart">String? lerApelido() =&gt; null;
+
+void main() {
+  String? apelido = 'Aninha';
+  if (apelido != null) {
+    apelido = lerApelido();
+    print(apelido.length);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_perde.dart
+err_perde.dart:7:19: Error: Property 'length' cannot be accessed on 'String?' because it is potentially null.
+Try accessing using ?. instead.
+    print(apelido.length);
+                  ^^^^^^
+err_perde.dart:6:5: Context: Variable 'apelido' could not be promoted due to an assignment.
+Try null checking the variable after the assignment.  See http://dart.dev/go/non-promo-write
+    apelido = lerApelido();
+    ^
+</pre>
+<p>Este é traiçoeiro: o <code>if (apelido != null)</code> está lá! Mas, na linha 6, a variável recebeu um valor <strong>novo</strong>, que pode ser <code>null</code>, e a conferência deixou de valer. A segunda mensagem, <code>Context:</code> ("contexto"), explica: "a variável <code>apelido</code> não pôde ser promovida por causa de uma atribuição. Tente conferir o <code>null</code> <strong>depois</strong> da atribuição". (O <code>=&gt; null</code> da linha 1 é uma função de uma linha que devolve <code>null</code>: veja <a href="arrow.html">Funções de Uma Linha</a>.) <strong>Como consertar:</strong> confira depois de atribuir: <code>apelido = lerApelido(); if (apelido != null) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou um anulável num tipo comum</strong>
+<p>Seção 2: <code>A value of type 'String?' can't be assigned to a variable of type 'String'.</code> <strong>Como consertar:</strong> declare a variável como <code>String?</code>, confira antes, ou use <code>?? padrao</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>String? x;</code></td><td>Anulável; sem valor inicial, vale <code>null</code></td></tr>
+<tr><td><code>String? x = nome;</code></td><td><code>String</code> cabe em <code>String?</code></td></tr>
+<tr><td><code>if (x != null) { … }</code></td><td>Dentro, <code>x</code> é <code>String</code></td></tr>
+<tr><td><code>if (x == null) return;</code></td><td>Depois, <code>x</code> é <code>String</code></td></tr>
+<tr><td><code>if (x is String) { … }</code></td><td>Mesmo efeito do <code>!= null</code></td></tr>
+<tr><td><code>String? buscar(…)</code></td><td>Função que pode devolver <code>null</code></td></tr>
+<tr><td><code>void f(int? n)</code></td><td>Parâmetro que aceita <code>null</code></td></tr>
+<tr><td><code>List&lt;String?&gt;</code> / <code>List&lt;String&gt;?</code></td><td>Itens anuláveis / lista anulável</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa</th></tr>
+<tr><td><code>Method '…' cannot be called on 'String?' because it is potentially null.</code></td><td>Método num anulável sem conferir</td></tr>
+<tr><td><code>Property '…' cannot be accessed on 'String?' because it is potentially null.</code></td><td>Propriedade num anulável sem conferir</td></tr>
+<tr><td><code>Operator '+' cannot be called on 'int?' because it is potentially null.</code></td><td>Conta com um anulável</td></tr>
+<tr><td><code>The argument type 'String?' can't be assigned to the parameter type 'String'.</code></td><td>Anulável para parâmetro comum</td></tr>
+<tr><td><code>A value of type 'String?' can't be assigned to a variable of type 'String'.</code></td><td>Anulável para variável comum</td></tr>
+<tr><td><code>Context: Variable '…' could not be promoted due to an assignment.</code></td><td>Atribuiu depois de conferir</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Quanto vale?</h3>
+<p>O que mostra este trecho? <code>int? mesa;</code> / <code>print(mesa);</code></p>
+<div class="ex-code">Mostra <input data-answer="null" aria-label="valor"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete o "sai cedo"</h3>
+<div class="ex-code">void mostrar(String? nome) {<br>&nbsp;&nbsp;if (nome <input data-answer="==" aria-label="operador"> null) <input data-answer="return" aria-label="palavra-chave">;<br>&nbsp;&nbsp;print(nome.length);<br>}</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>String nome = 'Ana';</code> e <code>String? apelido;</code>, qual linha <strong>não</strong> compila?</p>
+<label><input type="radio" name="q3"> <code>apelido = nome;</code></label>
+<label><input type="radio" name="q3"> <code>apelido = null;</code></label>
+<label><input type="radio" name="q3"> <code>nome = apelido;</code></label>
+<label><input type="radio" name="q3"> <code>print(apelido);</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual tipo aceita <code>['pão', null]</code>?</p>
+<label><input type="radio" name="q4"> <code>List&lt;String&gt;</code></label>
+<label><input type="radio" name="q4"> <code>List&lt;String?&gt;</code></label>
+<label><input type="radio" name="q4"> <code>List&lt;String&gt;?</code></label>
+<label><input type="radio" name="q4"> Nenhum</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Por que <code>int.tryParse</code> devolve <code>int?</code> e não <code>int</code>?</p>
+<label><input type="radio" name="q5"> Porque, se o texto não for número, não há resposta: ele devolve <code>null</code></label>
+<label><input type="radio" name="q5"> Porque é mais rápido</label>
+<label><input type="radio" name="q5"> Porque números grandes não cabem em <code>int</code></label>
+<label><input type="radio" name="q5"> Por engano dos criadores do Dart</label>
+</div>
+
+<h3>Missão final: a agenda da lojinha</h3>
+
+<div class="trydart" data-goal="out:Ana: 10 caracteres;;out:Bia: sem telefone;;semerro">
+<p class="try-task"><strong>Missão:</strong> <code>buscarTelefone</code> devolve <code>String?</code> (a Bia não tem telefone), e o programa não compila. Na função <code>mostrar</code>, trate o <code>null</code> primeiro: se <code>telefone == null</code>, mostre <code>NOME: sem telefone</code> e saia com <code>return</code>. A saída deve ser <code>Ana: 10 caracteres</code> e <code>Bia: sem telefone</code>.</p>
+<pre class="script" data-file="main.dart">String? buscarTelefone(String nome) {
+  if (nome == 'Ana') {
+    return '99999-1234';
+  }
+  return null;
+}
+
+void mostrar(String nome) {
+  String? telefone = buscarTelefone(nome);
+  print('$nome: ${telefone.length} caracteres');
+}
+
+void main() {
+  mostrar('Ana');
+  mostrar('Bia');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String? buscarTelefone(String nome) {
+  if (nome == 'Ana') {
+    return '99999-1234';
+  }
+  return null;
+}
+
+void mostrar(String nome) {
+  String? telefone = buscarTelefone(nome);
+  if (telefone == null) {
+    print('$nome: sem telefone');
+    return;
+  }
+  print('$nome: ${telefone.length} caracteres');
+}
+
+void main() {
+  mostrar('Ana');
+  mostrar('Bia');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run agenda.dart
+Ana: 10 caracteres
+Bia: sem telefone
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>?</code> no fim do tipo o torna anulável: <code>String?</code>, <code>int?</code>, <code>bool?</code>, <code>List&lt;String&gt;?</code>. Sem valor inicial, ele vale <code>null</code>.</li>
+  <li>Um valor comum cabe numa variável anulável; um anulável não cabe numa comum sem conferência.</li>
+  <li>Métodos, propriedades e operadores não funcionam direto num anulável: o Dart diz <code>because it is potentially null</code>.</li>
+  <li>Confira com <code>!= null</code>, <code>is</code> ou <code>== null</code> + <code>return</code>: depois disso, a variável é promovida ao tipo comum. Uma nova atribuição desfaz a promoção.</li>
+  <li>Funções podem devolver e receber anuláveis; em listas, o lugar do <code>?</code> decide se é o item ou a lista que pode faltar.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
