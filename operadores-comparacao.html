@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Comparação — ==, !=, &lt;, &gt;, &lt;= e &gt;= | Guia Dart</title>
+<meta name="description" content="Os operadores de comparação do Dart para quem nunca programou: ==, !=, &lt;, &gt;, &lt;= e &gt;=, o resultado bool (true ou false), comparar textos (maiúsculas contam, compareTo para ordem alfabética), 5 == 5.0, o 0.1 + 0.2 == 0.3 que dá false, '5' == 5, e os erros reais do Dart 3 (18 &lt;= idade &lt;= 60, =&lt; invertido, = no lugar de ==, === e &lt; em String).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Comparação</span></h1>
+
+<p class="intro">"A Ana tem 18 anos ou mais?" "A senha está certa?" "Ainda tem pão no estoque?" Todo programa que toma decisões começa com uma <strong>pergunta</strong> assim, de sim ou não. No Dart, essas perguntas se fazem com os <strong>operadores de comparação</strong>: <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code> e <code>&gt;=</code>. A resposta é sempre um <code>bool</code>: <code>true</code> (verdadeiro) ou <code>false</code> (falso).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Os seis operadores de comparação e como ler cada um em voz alta.</li>
+  <li>Que o resultado de uma comparação é um valor <code>bool</code>, que dá para guardar numa variável.</li>
+  <li>Como comparar textos: <code>==</code> diferencia maiúsculas, e a ordem alfabética usa <code>compareTo</code>.</li>
+  <li>As pegadinhas dos números: <code>5 == 5.0</code> é <code>true</code>, mas <code>0.1 + 0.2 == 0.3</code> é <code>false</code>; e <code>'5' == 5</code> é <code>false</code>, sem aviso.</li>
+  <li>Os erros reais: <code>18 &lt;= idade &lt;= 60</code>, <code>=&lt;</code> invertido, <code>=</code> no lugar de <code>==</code>, <code>===</code> e <code>&lt;</code> entre textos.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: a placa da montanha-russa</h2>
+<p>Na entrada da montanha-russa tem uma placa: "altura mínima 1,40 m". O funcionário mede a criança e faz uma pergunta só: <em>a altura é maior ou igual a 1,40?</em> A resposta não é "1,35" nem "quase": é <strong>sim</strong> ou <strong>não</strong>. Uma comparação é isso: pega dois valores, compara, e responde sim (<code>true</code>) ou não (<code>false</code>). Quem decide o que fazer com a resposta (deixar entrar ou não) é o <a href="if-else.html">if</a>, na próxima parte do guia.</p>
+
+<hr>
+
+<h2>1. Os seis operadores</h2>
+
+<pre class="file" data-file="comparar.dart">void main() {
+  final idade = 17;
+  print('idade == 18 → ${idade == 18}');
+  print('idade != 18 → ${idade != 18}');
+  print('idade &lt; 18  → ${idade &lt; 18}');
+  print('idade &gt; 18  → ${idade &gt; 18}');
+  print('idade &lt;= 17 → ${idade &lt;= 17}');
+  print('idade &gt;= 18 → ${idade &gt;= 18}');
+}
+</pre>
+
+<pre class="term">$ dart run comparar.dart
+idade == 18 → false
+idade != 18 → true
+idade &lt; 18  → true
+idade &gt; 18  → false
+idade &lt;= 17 → true
+idade &gt;= 18 → false
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Lê-se</th><th>Com <code>idade = 17</code></th></tr>
+<tr><td><code>==</code></td><td>é igual a</td><td><code>idade == 18</code> → <code>false</code></td></tr>
+<tr><td><code>!=</code></td><td>é diferente de</td><td><code>idade != 18</code> → <code>true</code></td></tr>
+<tr><td><code>&lt;</code></td><td>é menor que</td><td><code>idade &lt; 18</code> → <code>true</code></td></tr>
+<tr><td><code>&gt;</code></td><td>é maior que</td><td><code>idade &gt; 18</code> → <code>false</code></td></tr>
+<tr><td><code>&lt;=</code></td><td>é menor ou igual a</td><td><code>idade &lt;= 17</code> → <code>true</code> (17 é igual a 17)</td></tr>
+<tr><td><code>&gt;=</code></td><td>é maior ou igual a</td><td><code>idade &gt;= 18</code> → <code>false</code></td></tr>
+</table>
+</div>
+
+<p>Três detalhes de escrita:</p>
+<ul>
+  <li>O "igual" de comparar tem <strong>dois</strong> sinais: <code>==</code>. Um sinal só (<code>=</code>) é a atribuição, que <strong>guarda</strong> (veja <a href="atribuicao.html">Atribuição</a>).</li>
+  <li>O "diferente" é <code>!=</code>: o <code>!</code> quer dizer "não" no Dart (você vai vê-lo em <a href="operadores-logicos.html">Operadores Lógicos</a>).</li>
+  <li>Em <code>&lt;=</code> e <code>&gt;=</code>, o <code>=</code> vem <strong>depois</strong>, do jeito que se fala: "menor ou igual". <code>=&lt;</code> dá erro.</li>
+</ul>
+
+<hr>
+
+<h2>2. O resultado é um <code>bool</code></h2>
+<p>Uma comparação é uma <strong>expressão</strong>, como uma conta: ela produz um valor. Só que, em vez de um número, produz um <code>bool</code> (veja <a href="bool.html">Booleanos</a>). E um valor pode ser guardado numa variável:</p>
+
+<pre class="file" data-file="guardar.dart">void main() {
+  final nota = 7.5;
+  final aprovado = nota &gt;= 6;
+  print('Nota: $nota');
+  print('Aprovado? $aprovado');
+  print(aprovado.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run guardar.dart
+Nota: 7.5
+Aprovado? true
+bool
+</pre>
+
+<dl class="anatomy">
+  <dt>nota &gt;= 6</dt><dd>A pergunta: "a nota é maior ou igual a 6?". Com 7.5, a resposta é <code>true</code>. Repare que dá para comparar um <code>double</code> (7.5) com um <code>int</code> (6) sem problema.</dd>
+  <dt>final aprovado = …</dt><dd>Guarda a resposta. A variável <code>aprovado</code> é do tipo <code>bool</code>, como o <code>.runtimeType</code> confirma. Dar nome à pergunta deixa o código mais fácil de ler: mais adiante, <code>if (aprovado)</code> se lê sozinho.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Pode entrar? true;;src:&gt;=">
+<p class="try-task"><strong>Missão:</strong> na montanha-russa, a altura mínima é 1,40 m. Complete a linha do <code>podeEntrar</code> com uma comparação para que, com a altura 1.45, o programa mostre <code>Pode entrar? true</code>. Depois troque a altura para <code>1.40</code> e para <code>1.39</code> e veja a resposta mudar.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final altura = 1.45;
+  final podeEntrar = false; // troque false por uma comparação
+  print('Altura: $altura m');
+  print('Pode entrar? $podeEntrar');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final altura = 1.45;
+  final podeEntrar = altura &gt;= 1.40;
+  print('Altura: $altura m');
+  print('Pode entrar? $podeEntrar');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Comparando textos</h2>
+<p>O <code>==</code> também compara textos (<code>String</code>): dois textos são iguais quando têm <strong>exatamente</strong> as mesmas letras, na mesma ordem.</p>
+
+<pre class="file" data-file="textos.dart">void main() {
+  final senha = 'abacate';
+  print(senha == 'abacate');
+  print(senha == 'Abacate');
+  print(senha != 'banana');
+  print('Ana' == 'Ana ');
+}
+</pre>
+
+<pre class="term">$ dart run textos.dart
+true
+false
+true
+false
+</pre>
+
+<p>Maiúscula e minúscula são letras <strong>diferentes</strong> para o computador: <code>'abacate' == 'Abacate'</code> dá <code>false</code>. E um espaço a mais no fim também conta: <code>'Ana' == 'Ana '</code> dá <code>false</code>. Quando o texto vem do teclado, é comum limpar antes de comparar, com <code>trim()</code> (tira os espaços das pontas) e <code>toLowerCase()</code> (tudo minúsculo): veja <a href="strings-metodos.html">Métodos de String</a>.</p>
+
+<h3>Ordem alfabética: <code>compareTo</code></h3>
+<p>Os operadores <code>&lt;</code> e <code>&gt;</code> <strong>não funcionam</strong> com textos no Dart (veja o erro em <a href="#errado">Quando dá errado</a>). Para saber quem vem antes no alfabeto, use o método <code>compareTo</code> ("comparar com"), que responde com um número:</p>
+
+<pre class="file" data-file="ordem_texto.dart">void main() {
+  print('Ana'.compareTo('Bia'));
+  print('Bia'.compareTo('Ana'));
+  print('Ana'.compareTo('Ana'));
+  print('Ana'.compareTo('Bia') &lt; 0);
+  print('abacate'.compareTo('Banana'));
+  print('abacate'.toLowerCase().compareTo('Banana'.toLowerCase()));
+}
+</pre>
+
+<pre class="term">$ dart run ordem_texto.dart
+-1
+1
+0
+true
+1
+-1
+</pre>
+
+<dl class="anatomy">
+  <dt>'Ana'.compareTo('Bia') → -1</dt><dd>Negativo: <code>'Ana'</code> vem <strong>antes</strong> de <code>'Bia'</code>.</dd>
+  <dt>'Bia'.compareTo('Ana') → 1</dt><dd>Positivo: vem <strong>depois</strong>.</dd>
+  <dt>'Ana'.compareTo('Ana') → 0</dt><dd>Zero: são iguais.</dd>
+  <dt>… &lt; 0 → true</dt><dd>O jeito de escrever "<code>'Ana'</code> vem antes de <code>'Bia'</code>?" como pergunta de sim ou não: compara o resultado do <code>compareTo</code> com zero.</dd>
+  <dt>'abacate'.compareTo('Banana') → 1</dt><dd>Surpresa: <code>'abacate'</code> veio <strong>depois</strong> de <code>'Banana'</code>. Para o computador, <strong>todas as maiúsculas vêm antes de todas as minúsculas</strong> (a ordem é a dos códigos das letras, não a do dicionário).</dd>
+  <dt>… toLowerCase() … → -1</dt><dd>Com os dois em minúsculas (<code>toLowerCase()</code>), volta a ordem do dicionário: <code>abacate</code> antes de <code>banana</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Pegadinhas com números</h2>
+
+<pre class="file" data-file="numeros.dart">void main() {
+  print(5 == 5.0);
+  print(10 / 2 == 5);
+  print(0.1 + 0.2 == 0.3);
+  print(0.1 + 0.2);
+  print((0.1 + 0.2 - 0.3).abs() &lt; 0.000001);
+}
+</pre>
+
+<pre class="term">$ dart run numeros.dart
+true
+true
+false
+0.30000000000000004
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>5 == 5.0 → true</dt><dd>Um <code>int</code> e um <code>double</code> com o mesmo valor são iguais. Por isso <code>10 / 2 == 5</code> também dá <code>true</code>, mesmo o <code>10 / 2</code> sendo <code>5.0</code>.</dd>
+  <dt>0.1 + 0.2 == 0.3 → false</dt><dd>A conta dá <code>0.30000000000000004</code> (o <code>double</code> não guarda 0.1 exato; veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>), e esse número não é igual a 0.3.</dd>
+  <dt>(… - 0.3).abs() &lt; 0.000001 → true</dt><dd>O jeito seguro de comparar <code>double</code> que vieram de contas: perguntar se a <strong>diferença</strong> entre eles é minúscula. O <code>abs()</code> tira o sinal da diferença (o "valor absoluto").</dd>
+</dl>
+
+<div class="warning">
+<strong>Dinheiro e <code>==</code></strong>
+<p>Evite <code>==</code> com <code>double</code> que saíram de contas, como totais de compra. Para dinheiro, um truque comum é trabalhar em <strong>centavos</strong>, com <code>int</code>: 4,50 vira 450, e aí o <code>==</code> é exato.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Toda pergunta pode ser escrita de mais de um jeito. "Menor de idade" pode ser <code>idade &lt; 18</code> ou <code>idade &lt;= 17</code> (para números inteiros, as duas dão o mesmo); "não é 18" pode ser <code>idade != 18</code> ou <code>!(idade == 18)</code>. Prefira a forma que se lê mais perto do jeito que você falaria a regra: se a placa diz "mínimo 18", escreva <code>idade &gt;= 18</code>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer saber…</th><th>Use</th></tr>
+<tr><td>Se dois números ou textos são iguais / diferentes</td><td><code>==</code> / <code>!=</code></td></tr>
+<tr><td>Se um número é maior, menor, ou está no limite</td><td><code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code></td></tr>
+<tr><td>Se dois <code>double</code> de contas são "iguais"</td><td><code>(a - b).abs() &lt; 0.000001</code></td></tr>
+<tr><td>Quem vem antes no alfabeto</td><td><code>a.compareTo(b) &lt; 0</code></td></tr>
+<tr><td>Se um texto é igual sem ligar para maiúsculas</td><td><code>a.toLowerCase() == b.toLowerCase()</code></td></tr>
+<tr><td>Se um número está entre dois valores</td><td><code>idade &gt;= 18 &amp;&amp; idade &lt;= 60</code> (<a href="operadores-logicos.html">Operadores Lógicos</a>)</td></tr>
+<tr><td>Se a variável está vazia</td><td><code>idade == null</code> (<a href="tipos-anulaveis.html">Tipos Anuláveis</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>&lt;</code> entre textos</strong>
+<pre class="file" data-file="err_strmenor.dart">void main() {
+  print('Ana' &lt; 'Bia');
+}
+</pre>
+<pre class="term">$ dart run err_strmenor.dart
+err_strmenor.dart:2:15: Error: The operator '&lt;' isn't defined for the type 'String'.
+Try correcting the operator to an existing operator, or defining a '&lt;' operator.
+  print('Ana' &lt; 'Bia');
+              ^
+</pre>
+<dl class="anatomy">
+  <dt>err_strmenor.dart:2:15:</dt><dd>Linha 2, coluna 15: o <code>&lt;</code>.</dd>
+  <dt>Error: The operator '&lt;' isn't defined for the type 'String'.</dt><dd>"O operador <code>&lt;</code> não está definido para o tipo <code>String</code>." Em Dart, texto não tem <code>&lt;</code> nem <code>&gt;</code>.</dd>
+  <dt>Try correcting the operator…</dt><dd>A dica genérica do Dart: "tente corrigir para um operador que existe, ou definir um operador <code>&lt;</code>". Não ajuda muito aqui.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>'Ana'.compareTo('Bia') &lt; 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Entre 18 e 60" escrito como na matemática</strong>
+<pre class="file" data-file="err_encad.dart">void main() {
+  final idade = 30;
+  print(18 &lt;= idade &lt;= 60);
+}
+</pre>
+<pre class="term">$ dart run err_encad.dart
+err_encad.dart:3:21: Error: A comparison expression can't be an operand of another comparison expression.
+Try putting parentheses around one of the comparisons.
+  print(18 &lt;= idade &lt;= 60);
+                    ^^
+err_encad.dart:3:21: Error: The operator '&lt;=' isn't defined for the type 'bool'.
+Try correcting the operator to an existing operator, or defining a '&lt;=' operator.
+  print(18 &lt;= idade &lt;= 60);
+                    ^^
+</pre>
+<p>Na matemática, 18 ≤ idade ≤ 60 é normal. No Dart, não. O primeiro erro diz: "uma comparação não pode ser parte de outra comparação". O segundo explica o porquê: o Dart faria <code>18 &lt;= idade</code> primeiro, que dá <code>true</code>, e depois <code>true &lt;= 60</code>, e "o operador <code>&lt;=</code> não está definido para o tipo <code>bool</code>". (A dica de pôr parênteses não resolve: <code>(18 &lt;= idade) &lt;= 60</code> cai no segundo erro.) <strong>Como consertar:</strong> duas comparações ligadas por <code>&amp;&amp;</code> ("e"): <code>idade &gt;= 18 &amp;&amp; idade &lt;= 60</code> (aula <a href="operadores-logicos.html">Operadores Lógicos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>=&lt;</code> em vez de <code>&lt;=</code></strong>
+<pre class="file" data-file="err_invert.dart">void main() {
+  final idade = 30;
+  print(idade =&lt; 60);
+}
+</pre>
+<pre class="term">$ dart run err_invert.dart
+err_invert.dart:3:18: Error: Expected a type, but got '60'.
+  print(idade =&lt; 60);
+                 ^^
+err_invert.dart:3:18: Error: This couldn't be parsed.
+  print(idade =&lt; 60);
+                 ^
+err_invert.dart:3:18: Error: Expected '[' before this.
+  print(idade =&lt; 60);
+                 ^^
+err_invert.dart:3:9: Error: Can't assign to the final variable 'idade'.
+  print(idade =&lt; 60);
+        ^^^^^
+err_invert.dart:3:18: Error: Expected ',' before this.
+  print(idade =&lt; 60);
+                 ^^
+err_invert.dart:3:8: Error: Too many positional arguments: 1 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print(idade =&lt; 60);
+       ^
+org-dartlang-sdk:///sdk/lib/core/print.dart:19:6: Context: Found this candidate, but the arguments don't match.
+void print(Object? object) {
+     ^^^^^
+</pre>
+<p>Uma troca de dois caracteres, sete mensagens! O Dart leu o <code>=</code> como atribuição ("guarde em <code>idade</code>…") e o <code>&lt;</code> como o começo de um tipo genérico (como em <code>List&lt;int&gt;</code>), e cada tentativa de entender o resto gerou mais um erro. A lição vale para a vida toda: <strong>quando aparecem muitos erros juntos, olhe a primeira linha que eles apontam</strong> (aqui, todas apontam a linha 3) e procure algo simples escrito errado. <strong>Como consertar:</strong> <code>idade &lt;= 60</code>, com o <code>=</code> por último.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar de <code>==</code></strong>
+<pre class="file" data-file="err_if.dart">void main() {
+  var idade = 30;
+  if (idade = 18) {
+    print('Tem 18');
+  }
+}
+</pre>
+<pre class="term">$ dart run err_if.dart
+err_if.dart:3:7: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  if (idade = 18) {
+      ^
+</pre>
+<p>"Um valor do tipo <code>int</code> não pode ser atribuído a um <code>bool</code>." O <code>idade = 18</code> <strong>guarda</strong> 18 e devolve 18, um <code>int</code>; e o <code>if</code> exige um <code>bool</code>. É um erro que, em outras linguagens, passa despercebido; o Dart pega na hora. <strong>Como consertar:</strong> <code>if (idade == 18)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>===</code> (do JavaScript)</strong>
+<pre class="term">$ dart run err_tres.dart
+err_tres.dart:2:11: Error: The '===' operator is not supported.
+  print(5 === 5);
+          ^
+err_tres.dart:2:11: Error: The string '===' isn't a user-definable operator.
+  print(5 === 5);
+          ^^^
+</pre>
+<p>"O operador <code>===</code> não é suportado." Quem vem do JavaScript usa <code>===</code> para "igual de verdade". No Dart não existe: o <code>==</code> já compara direito. <strong>Como consertar:</strong> <code>5 == 5</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Comparou texto com número: <code>false</code>, sem erro</strong>
+<pre class="file" data-file="tiposdif.dart">void main() {
+  final digitado = '5';
+  print(digitado == 5);
+  print(int.parse(digitado) == 5);
+}
+</pre>
+<pre class="term">$ dart run tiposdif.dart
+false
+true
+</pre>
+<p>Este é traiçoeiro, porque compila e roda: o texto <code>'5'</code> e o número <code>5</code> são coisas diferentes, e o <code>==</code> responde <code>false</code>. Acontece muito com o que se lê do teclado, que sempre chega como texto (veja <a href="stdin.html">Lendo o Teclado</a>). <strong>Como consertar:</strong> converta antes, com <code>int.parse</code> (aula <a href="conversao.html">Conversão de Tipos</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Comparou uma variável que pode estar vazia</strong>
+<pre class="file" data-file="err_null.dart">void main() {
+  int? idade;
+  print(idade == null);
+  print(idade &gt; 18);
+}
+</pre>
+<pre class="term">$ dart run err_null.dart
+err_null.dart:4:15: Error: Operator '&gt;' cannot be called on 'int?' because it is potentially null.
+  print(idade &gt; 18);
+              ^
+</pre>
+<p>"O operador <code>&gt;</code> não pode ser usado em <code>int?</code>, porque ele pode ser <code>null</code>." O <code>==</code> funciona com <code>null</code> (a linha 3 está certa), mas <code>&lt;</code> e <code>&gt;</code> precisam de um número de verdade. <strong>Como consertar:</strong> garanta um valor antes, por exemplo com <code>(idade ?? 0) &gt; 18</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Verdade quando…</th></tr>
+<tr><td><code>a == b</code></td><td><code>a</code> é igual a <code>b</code> (textos: letra por letra, maiúsculas contam)</td></tr>
+<tr><td><code>a != b</code></td><td><code>a</code> é diferente de <code>b</code></td></tr>
+<tr><td><code>a &lt; b</code> · <code>a &gt; b</code></td><td>menor · maior (só números)</td></tr>
+<tr><td><code>a &lt;= b</code> · <code>a &gt;= b</code></td><td>menor ou igual · maior ou igual (só números)</td></tr>
+<tr><td><code>a.compareTo(b)</code></td><td>negativo se <code>a</code> vem antes, 0 se igual, positivo se depois</td></tr>
+<tr><td><code>(a - b).abs() &lt; 0.000001</code></td><td>dois <code>double</code> praticamente iguais</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The operator '&lt;' isn't defined for the type 'String'.</code></td><td><code>&lt;</code>/<code>&gt;</code> entre textos: use <code>compareTo</code></td></tr>
+<tr><td><code>A comparison expression can't be an operand of another comparison expression.</code></td><td><code>18 &lt;= x &lt;= 60</code>: use <code>&amp;&amp;</code></td></tr>
+<tr><td>Muitos erros, um deles <code>Expected a type</code></td><td><code>=&lt;</code> ou <code>=&gt;</code> invertido</td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td><code>=</code> no lugar de <code>==</code></td></tr>
+<tr><td><code>The '===' operator is not supported.</code></td><td><code>===</code>: no Dart é <code>==</code></td></tr>
+<tr><td><code>false</code> onde esperava <code>true</code></td><td>Maiúsculas, espaço sobrando, texto contra número ou <code>double</code> de conta</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. true ou false?</h3>
+<p>Responda <code>true</code> ou <code>false</code>, com <code>final x = 10;</code>:</p>
+<div class="ex-code"><code>x &gt;= 10</code> → <input data-answer="true" aria-label="x >= 10"><br><code>x != 10</code> → <input data-answer="false" aria-label="x != 10"><br><code>x / 4 == 2.5</code> → <input data-answer="true" aria-label="x / 4 == 2.5"><br><code>'Dart' == 'dart'</code> → <input data-answer="false" aria-label="'Dart' == 'dart'"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Escreva o operador</h3>
+<div class="ex-code">// "o estoque acabou" (zero)<br>estoque <input data-answer="==" aria-label="operador igual"> 0<br>// "a nota é pelo menos 6"<br>nota <input data-answer="&gt;=" aria-label="operador maior ou igual"> 6<br>// "a senha não é 1234"<br>senha <input data-answer="!=" aria-label="operador diferente"> '1234'</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que <code>print(0.1 + 0.2 == 0.3);</code> mostra?</p>
+<label><input type="radio" name="q3"> <code>true</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> <code>false</code></label>
+<label><input type="radio" name="q3"> <code>0.3</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Como perguntar se <code>'Ana'</code> vem antes de <code>'Bia'</code> no alfabeto?</p>
+<label><input type="radio" name="q4"> <code>'Ana' &lt; 'Bia'</code></label>
+<label><input type="radio" name="q4"> <code>'Ana'.compareTo('Bia') &lt; 0</code></label>
+<label><input type="radio" name="q4"> <code>'Ana' =&lt; 'Bia'</code></label>
+<label><input type="radio" name="q4"> <code>'Ana' != 'Bia'</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual é o jeito certo de perguntar "a idade está entre 18 e 60"?</p>
+<label><input type="radio" name="q5"> <code>18 &lt;= idade &lt;= 60</code></label>
+<label><input type="radio" name="q5"> <code>idade == 18..60</code></label>
+<label><input type="radio" name="q5"> <code>idade =&gt; 18 &amp;&amp; idade =&lt; 60</code></label>
+<label><input type="radio" name="q5"> <code>idade &gt;= 18 &amp;&amp; idade &lt;= 60</code></label>
+</div>
+
+<h3>Missão final: o caixa eletrônico</h3>
+
+<div class="trydart" data-goal="out:Saque de 300 permitido? false;;out:Saque de 250 permitido? true;;semerro">
+<p class="try-task"><strong>Missão:</strong> a conta da Ana tem <code>saldo = 250</code>. Um saque só é permitido se o valor for <strong>menor ou igual</strong> ao saldo. O programa tem um erro e uma comparação errada. Conserte para que ele mostre <code>Saque de 300 permitido? false</code> e <code>Saque de 250 permitido? true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final saldo = 250;
+  final saque1 = 300;
+  final saque2 = 250;
+  print('Saque de $saque1 permitido? ${saque1 =&lt; saldo}');
+  print('Saque de $saque2 permitido? ${saque2 &lt; saldo}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final saldo = 250;
+  final saque1 = 300;
+  final saque2 = 250;
+  print('Saque de $saque1 permitido? ${saque1 &lt;= saldo}');
+  print('Saque de $saque2 permitido? ${saque2 &lt;= saldo}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Os operadores de comparação são <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code> e <code>&gt;=</code>; o resultado é sempre um <code>bool</code>, <code>true</code> ou <code>false</code>, que dá para guardar numa variável.</li>
+  <li><code>==</code> (dois sinais) pergunta; <code>=</code> (um sinal) guarda. No <code>&lt;=</code> e no <code>&gt;=</code>, o <code>=</code> vem por último.</li>
+  <li>Textos são iguais só se forem idênticos, maiúsculas e espaços incluídos. Ordem alfabética: <code>compareTo</code> (o <code>&lt;</code> não existe para <code>String</code>).</li>
+  <li><code>5 == 5.0</code> é <code>true</code>; <code>0.1 + 0.2 == 0.3</code> é <code>false</code>; <code>'5' == 5</code> é <code>false</code>, sem erro nenhum.</li>
+  <li>"Entre dois valores" não se escreve <code>a &lt;= x &lt;= b</code>: são duas comparações ligadas por <code>&amp;&amp;</code>, assunto da próxima aula.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
