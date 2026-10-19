@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Mensagens de Erro Comuns — erros de compilação e exceções, traduzidos e explicados | Guia Dart</title>
+<meta name="description" content="Referência das mensagens de erro mais comuns do Dart 3, colhidas no Dart SDK 3.13: erros de compilação (Expected ';', Undefined name, A value of type can't be assigned, isn't defined for the type, potentially null, Non-nullable variable must be assigned, Too few positional arguments, not exhaustively matched…) e exceções em tempo de execução (RangeError, Null check operator, FormatException, type cast, Bad state, LateInitializationError, NoSuchMethodError, Stack Overflow…), com tradução, causa e conserto.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Mensagens de Erro Comuns</span></h1>
+
+<p class="intro">As mensagens do Dart saem sempre em inglês. Esta página reúne as que mais aparecem para quem está começando, todas <strong>colhidas no computador da Ana</strong> (Dart SDK 3.13.5), com a tradução, a causa mais comum e o conserto. Procure pelo começo da mensagem com <kbd>Ctrl</kbd>+<kbd>F</kbd>. Para aprender a ler uma mensagem do zero, veja a aula <a href="erros.html">Lendo uma Mensagem de Erro</a>.</p>
+
+<h2 id="tipos">Os dois tipos de erro</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Exceção (em tempo de execução)</th></tr>
+<tr><td>Quando</td><td>Antes de rodar: o Dart lê o código e recusa.</td><td>Durante a execução: o programa rodou até um ponto e quebrou.</td></tr>
+<tr><td>Começa com</td><td><code>arquivo.dart:linha:coluna: Error: …</code></td><td><code>Unhandled exception:</code></td></tr>
+<tr><td>Depois vem</td><td>A linha do código e o <code>^</code> embaixo do lugar exato. Às vezes um <code>Context:</code> apontando outra linha relacionada.</td><td>A mensagem e o <strong>stack trace</strong> (<code>#0</code>, <code>#1</code>…): o caminho das chamadas, do lugar do erro até o <code>main</code>. Procure a primeira linha com <code>file:///home/ana/…</code>: é o seu código.</td></tr>
+<tr><td>Saída do programa</td><td>Nada roda, nem os <code>print</code> de antes do erro.</td><td>O que rodou antes aparece normalmente.</td></tr>
+<tr><td>Código de saída (<code>echo $?</code>)</td><td><code>254</code></td><td><code>255</code></td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/err">$ dart run pontovirgula.dart
+pontovirgula.dart:2:14: Error: Expected ';' after this.
+  print('Olá')
+             ^
+$ echo $?
+254
+</pre>
+<p>Arquivo <code>pontovirgula.dart</code>, linha 2, coluna 14; "esperava <code>;</code> depois disto"; o <code>^</code> fica embaixo do <code>)</code>, depois do qual faltou o ponto e vírgula.</p>
+
+<hr>
+
+<h2 id="compilacao">Erros de compilação</h2>
+<p>Na coluna "Mensagem", <code>'x'</code> e os tipos mudam conforme o seu código. O exemplo é a linha que causou o erro no lab.</p>
+
+<h3 id="sintaxe">Escrita (sintaxe)</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>Expected ';' after this.</code></td><td>Esperava <code>;</code> depois disto.</td><td><code>print('Olá')</code></td><td>Ponha o <code>;</code> no fim da instrução.</td><td><a href="sintaxe.html">Sintaxe</a></td></tr>
+<tr><td><code>String starting with ' must end with '.</code></td><td>Texto que começa com <code>'</code> tem de terminar com <code>'</code>.</td><td><code>print('Olá, mundo!);</code></td><td>Feche as aspas. Esse erro vem junto com outros dois (<code>Can't find ')' to match '('</code> e <code>Expected ';'</code>): conserte o primeiro e os outros somem.</td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td><code>Can't find '}' to match '{'.</code></td><td>Não achei a <code>}</code> que fecha esta <code>{</code>.</td><td>um <code>for (…) {</code> sem a <code>}</code> dele</td><td>O <code>^</code> aponta a <code>{</code> que ficou aberta. Use o <code>dart format</code> para ver o recuo.</td><td><a href="sintaxe.html">Sintaxe</a></td></tr>
+<tr><td><code>'class' can't be used as an identifier because it's a keyword.</code></td><td>Palavra-chave não pode ser nome.</td><td><code>var class = 'Turma A';</code></td><td>Escolha outro nome.</td><td><a href="ref-palavras-reservadas.html">Palavras Reservadas</a></td></tr>
+<tr><td><code>Error when reading 'contas.dart': No such file or directory</code></td><td>Erro ao ler <code>contas.dart</code>: arquivo não existe.</td><td><code>import 'contas.dart';</code></td><td>Confira o nome e a pasta do arquivo importado.</td><td><a href="imports.html">import e export</a></td></tr>
+</table>
+</div>
+
+<h3 id="nomes">Nomes que o Dart não conhece</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>Undefined name 'nme'.</code></td><td>Nome não definido.</td><td><code>print(nme);</code> (a variável é <code>nome</code>)</td><td>Erro de digitação, ou a variável foi criada em outro bloco.</td><td><a href="variaveis.html">Variáveis</a></td></tr>
+<tr><td><code>Undefined name 'stdin'.</code></td><td>Nome não definido.</td><td><code>stdin.readLineSync()</code> sem import</td><td><code>import 'dart:io';</code> no topo.</td><td><a href="stdin.html">stdin</a></td></tr>
+<tr><td><code>The method 'upper' isn't defined for the type 'String'.</code></td><td>Esse método não existe nesse tipo.</td><td><code>nome.upper()</code></td><td>O nome certo: <code>toUpperCase()</code>.</td><td><a href="ref-string.html">Métodos de String</a></td></tr>
+<tr><td><code>The getter 'idade' isn't defined for the type 'Pessoa'.</code></td><td>A classe não tem esse campo/getter.</td><td><code>p.idade</code></td><td>Crie o campo na classe ou corrija o nome.</td><td><a href="classes.html">Classes</a></td></tr>
+<tr><td><code>The setter 'saldo' isn't defined for the type 'ContaBancaria'.</code></td><td>Não dá para escrever nesse nome.</td><td><code>conta.saldo = 1000000;</code> com só um <code>get saldo</code></td><td>É de propósito? Use um método. Se não, crie um <code>set</code>.</td><td><a href="getters-setters.html">get e set</a></td></tr>
+<tr><td><code>The operator '[]=' isn't defined for the type 'String'.</code></td><td>Não dá para escrever numa posição de String.</td><td><code>nome[0] = 'A';</code></td><td>Strings não mudam: monte uma nova.</td><td><a href="strings-metodos.html">Métodos de String</a></td></tr>
+</table>
+</div>
+
+<h3 id="tipos-erro">Tipos</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'int'.</code></td><td>Um valor <code>String</code> não cabe numa variável <code>int</code>.</td><td><code>int troco = 'cinco';</code></td><td>Use o tipo certo ou converta (<code>int.parse</code>).</td><td><a href="tipos.html">Tipos</a></td></tr>
+<tr><td><code>A value of type 'double' can't be assigned to a variable of type 'int'.</code></td><td>Um <code>double</code> não cabe em <code>int</code>.</td><td><code>List&lt;int&gt; notas = [7, 8.5];</code>; <code>var soma = 0; soma += 8.5;</code></td><td><code>List&lt;double&gt;</code>; <code>var soma = 0.0;</code></td><td><a href="int-double.html">Números</a></td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'String'.</code></td><td>Um <code>int</code> não cabe em <code>String</code>.</td><td><code>'Total: ' + total</code></td><td>Interpolação: <code>'Total: $total'</code>.</td><td><a href="interpolacao.html">Interpolação</a></td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td>O <code>if</code> precisa de <code>bool</code>.</td><td><code>if (x = 4)</code></td><td><code>==</code> para comparar.</td><td><a href="operadores-comparacao.html">Comparação</a></td></tr>
+<tr><td><code>The argument type 'String' can't be assigned to the parameter type 'int'.</code></td><td>O argumento é do tipo errado.</td><td><code>notas.add('nove');</code> numa <code>List&lt;int&gt;</code></td><td>Passe um valor do tipo que a função pede.</td><td><a href="genericos.html">Genéricos</a></td></tr>
+<tr><td><code>The type 'Cor' is not exhaustively matched by the switch cases since it doesn't match 'Cor.amarelo'.</code></td><td>O <code>switch</code> não cobre todos os casos: faltou <code>Cor.amarelo</code>.</td><td>expressão <code>switch</code> com só <code>verde</code> e <code>vermelho</code></td><td>Acrescente o caso que falta ou um <code>_ =&gt;</code>.</td><td><a href="switch.html">switch</a></td></tr>
+</table>
+</div>
+
+<h3 id="null-erros">Null safety</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>A value of type 'String?' can't be assigned to a variable of type 'String'.</code></td><td>Um valor que pode ser nulo não cabe numa variável que não aceita nulo.</td><td><code>String nome = stdin.readLineSync();</code></td><td><code>stdin.readLineSync() ?? ''</code>, ou <code>String? nome</code>.</td><td><a href="tipos-anulaveis.html">Tipos Anuláveis</a></td></tr>
+<tr><td><code>A value of type 'double?' can't be assigned to a variable of type 'double'.</code></td><td>Idem: a chave do mapa pode não existir.</td><td><code>final double p = precos['bolo'];</code></td><td><code>precos['bolo'] ?? 0</code>.</td><td><a href="map.html">Map</a></td></tr>
+<tr><td><code>Property 'length' cannot be accessed on 'String?' because it is potentially null.</code></td><td>Não dá para usar <code>.length</code> em algo que pode ser nulo.</td><td><code>apelido.length</code> com <code>String? apelido</code></td><td><code>apelido?.length</code>, <code>if (apelido != null)</code>.</td><td><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td><code>Operator '+' cannot be called on 'int?' because it is potentially null.</code></td><td>Não dá para somar algo que pode ser nulo.</td><td><code>estoque['pão'] + 10</code></td><td><code>(estoque['pão'] ?? 0) + 10</code>.</td><td><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td><code>Non-nullable variable 'total' must be assigned before it can be used.</code></td><td>A variável precisa de um valor antes de ser usada.</td><td><code>int total; print(total);</code></td><td>Dê um valor inicial: <code>int total = 0;</code></td><td><a href="null-safety.html">Null Safety</a></td></tr>
+<tr><td><code>A non-null value must be returned since the return type 'int' doesn't allow null.</code></td><td>A função promete um <code>int</code>, mas há um caminho sem <code>return</code>.</td><td><code>int maior(a, b) { if (a &gt; b) { return a; } }</code></td><td>Cubra todos os caminhos (<code>return b;</code> no fim).</td><td><a href="funcoes.html">Funções</a></td></tr>
+</table>
+</div>
+
+<h3 id="funcoes-classes">Funções, variáveis e classes</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>Can't assign to the final variable 'total'.</code></td><td>Variável <code>final</code> não recebe outro valor.</td><td><code>final total = 10; total = 20;</code></td><td>Use <code>var</code> se ela precisa mudar.</td><td><a href="final-const.html">final e const</a></td></tr>
+<tr><td><code>Can't assign to the const variable 'pi'.</code></td><td>Idem, com <code>const</code>.</td><td><code>const pi = 3.14; pi = 3.1416;</code></td><td>Idem.</td><td><a href="final-const.html">final e const</a></td></tr>
+<tr><td><code>Too few positional arguments: 1 required, 0 given.</code></td><td>Poucos argumentos: 1 obrigatório, 0 passados.</td><td><code>dobro()</code> com <code>int dobro(int n)</code></td><td>Passe os argumentos. O <code>Context:</code> mostra a função.</td><td><a href="parametros.html">Parâmetros</a></td></tr>
+<tr><td><code>Required named parameter 'taxaMensal' must be provided.</code></td><td>Parâmetro nomeado obrigatório faltando.</td><td><code>ContaPoupanca('Ana')</code></td><td><code>ContaPoupanca('Ana', taxaMensal: 0.005)</code></td><td><a href="parametros-nomeados.html">Parâmetros Nomeados</a></td></tr>
+<tr><td><code>The non-abstract class 'Quadrado' is missing implementations for these members:</code></td><td>A classe não implementou métodos que a classe de cima exige.</td><td><code>class Quadrado extends Forma</code> sem <code>area()</code></td><td>Escreva o método com <code>@override</code>.</td><td><a href="abstract.html">Classes Abstratas</a></td></tr>
+<tr><td><code>'await' can only be used in 'async' or 'async*' methods.</code></td><td><code>await</code> só dentro de função <code>async</code>.</td><td><code>await buscar()</code> num <code>void main()</code></td><td><code>Future&lt;void&gt; main() async</code>.</td><td><a href="async-await.html">async e await</a></td></tr>
+</table>
+</div>
+
+<div class="cenario">
+<strong>Uma mensagem longa: o método abstrato esquecido</strong>
+<pre class="term" data-cwd="~/err">$ dart run abstrata.dart
+abstrata.dart:5:7: Error: The non-abstract class 'Quadrado' is missing implementations for these members:
+ - Forma.area
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Quadrado extends Forma {
+      ^^^^^^^^
+abstrata.dart:2:10: Context: 'Forma.area' is defined here.
+  double area();
+         ^^^^
+</pre>
+<p>"A classe não abstrata <code>Quadrado</code> não tem implementação para estes membros: <code>Forma.area</code>." Depois, quatro saídas possíveis ("Tente: escrever a implementação; herdá-la de uma superclasse ou mixin; marcar a classe como abstrata; ou escrever um <code>noSuchMethod</code>"). O <code>Context:</code> mostra onde o método foi declarado, na linha 2. Quase sempre a resposta é a primeira: escrever <code>@override double area() =&gt; lado * lado;</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="excecoes">Exceções (Unhandled exception)</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Em português</th><th>Exemplo que causou</th><th>Conserto</th><th>Aula</th></tr>
+<tr><td><code>RangeError (length): Invalid value: Not in inclusive range 0..2: 3</code></td><td>Posição fora da faixa 0..2.</td><td><code>compras[3]</code> numa lista de 3</td><td>A última posição é <code>length - 1</code>.</td><td><a href="list.html">Listas</a></td></tr>
+<tr><td><code>RangeError (end): Invalid value: Not in inclusive range 0..3: 5</code></td><td>Fim do pedaço fora da faixa.</td><td><code>'Ana'.substring(0, 5)</code></td><td>Confira o <code>length</code>.</td><td><a href="ref-string.html">Métodos de String</a></td></tr>
+<tr><td><code>Null check operator used on a null value</code></td><td>O <code>!</code> foi usado num valor nulo.</td><td><code>apelido!.length</code> com <code>apelido</code> nulo</td><td>Use <code>?.</code>, <code>??</code> ou confira antes.</td><td><a href="late.html">late e o Operador !</a></td></tr>
+<tr><td><code>LateInitializationError: Field 'cliente' has not been initialized.</code></td><td>O campo <code>late</code> foi lido antes de receber valor.</td><td><code>late String cliente;</code> e <code>print(p.cliente)</code></td><td>Dê o valor antes de ler, ou use <code>String?</code>.</td><td><a href="late.html">late</a></td></tr>
+<tr><td><code>FormatException: Invalid radix-10 number (at character 1)</code></td><td>Texto não é um número inteiro.</td><td><code>int.parse('30 anos')</code></td><td><code>int.tryParse</code> e conferir o <code>null</code>.</td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>FormatException: Invalid double</code></td><td>Texto não é um número decimal.</td><td><code>double.parse('')</code></td><td><code>double.tryParse</code>.</td><td><a href="conversao.html">Conversão</a></td></tr>
+<tr><td><code>FormatException: Unexpected character (at line 3, character 1)</code></td><td>JSON mal escrito (linha e caractere <strong>do JSON</strong>).</td><td>vírgula depois do último item</td><td>Corrija o arquivo JSON.</td><td><a href="json.html">JSON</a></td></tr>
+<tr><td><code>type 'String' is not a subtype of type 'int' in type cast</code></td><td>O <code>as</code> recebeu outro tipo.</td><td><code>valor as int</code> com <code>'dez'</code></td><td>Para converter texto em número, <code>int.parse</code>.</td><td><a href="operadores-tipo.html">is, is! e as</a></td></tr>
+<tr><td><code>type 'int' is not a subtype of type 'double' in type cast</code></td><td>Idem: um <code>int</code> não passa num <code>as double</code>.</td><td><code>json['preco'] as double</code> com <code>3</code></td><td><code>(json['preco'] as num).toDouble()</code>.</td><td><a href="json.html">JSON</a></td></tr>
+<tr><td><code>Bad state: No element</code></td><td>Não há elemento.</td><td><code>firstWhere</code> sem resultado; <code>reduce</code> em lista vazia</td><td><code>orElse:</code>; <code>fold</code>.</td><td><a href="iterables.html">map, where, reduce</a></td></tr>
+<tr><td><code>NoSuchMethodError: Class 'String' has no instance method 'toUpperCas'.</code></td><td>O objeto não tem esse método. Só acontece com <code>dynamic</code>: com o tipo certo, seria erro de compilação.</td><td><code>dynamic valor = 'Ana'; valor.toUpperCas()</code></td><td>Corrija o nome; evite <code>dynamic</code>.</td><td><a href="dynamic-object.html">dynamic e Object</a></td></tr>
+<tr><td><code>IntegerDivisionByZeroException</code></td><td>Divisão inteira por zero.</td><td><code>5 ~/ 0</code></td><td>Confira o divisor. (<code>5 / 0</code> dá <code>Infinity</code>, sem erro.)</td><td><a href="operadores-aritmeticos.html">Aritméticos</a></td></tr>
+<tr><td><code>Concurrent modification during iteration: …</code></td><td>A coleção mudou no meio do <code>for</code>.</td><td><code>compras.remove(item)</code> dentro do <code>for-in</code></td><td><code>removeWhere</code>.</td><td><a href="list-metodos.html">Métodos de Lista</a></td></tr>
+<tr><td><code>Unsupported operation: Cannot add to an unmodifiable list</code></td><td>Lista que não pode mudar.</td><td><code>add</code> numa lista <code>const</code></td><td>Use uma lista comum (<code>final</code>, não <code>const</code>).</td><td><a href="final-const.html">final e const</a></td></tr>
+<tr><td><code>PathNotFoundException: Cannot open file, path = 'notas.csv' (OS Error: No such file or directory, errno = 2)</code></td><td>Arquivo não encontrado.</td><td><code>File('notas.csv').readAsLinesSync()</code></td><td>Rode da pasta certa; <code>existsSync()</code>.</td><td><a href="arquivos.html">Arquivos</a></td></tr>
+<tr><td><code>Stack Overflow</code></td><td>"Estouro da pilha": chamadas demais, uma dentro da outra.</td><td>função que chama a si mesma sem parar</td><td>Toda recursão precisa de um caso que para.</td><td><a href="recursao.html">Recursão</a></td></tr>
+<tr><td><code>Failed assertion: line 3 pos 10: 'estoque &gt;= 0': estoque negativo</code></td><td>Um <code>assert</code> deu falso (só com <code>--enable-asserts</code>).</td><td><code>assert(estoque &gt;= 0, 'estoque negativo')</code></td><td>Descubra por que a condição ficou falsa.</td><td><a href="assert.html">assert</a></td></tr>
+</table>
+</div>
+
+<div class="cenario">
+<strong>Lendo um stack trace</strong>
+<pre class="term" data-cwd="~/err">$ dart run late.dart
+Unhandled exception:
+LateInitializationError: Field 'cliente' has not been initialized.
+#0      Pedido.cliente (file:///home/ana/err/late.dart)
+#1      main (file:///home/ana/err/late.dart:7:11)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<ul>
+  <li><code>Unhandled exception:</code> = exceção não tratada (ninguém a pegou com <code>catch</code>).</li>
+  <li>A segunda linha é o tipo e a mensagem: "o campo <code>cliente</code> não foi inicializado".</li>
+  <li><code>#0</code> é onde a exceção nasceu: na leitura do campo <code>Pedido.cliente</code>.</li>
+  <li><code>#1</code> é quem chamou: o <code>main</code>, linha 7, coluna 11 do <code>late.dart</code> (que estava na pasta <code>err</code> da Ana).</li>
+  <li><code>#2</code> e <code>#3</code> são o próprio Dart chamando o <code>main</code>: aparecem em todo stack trace e podem ser ignoradas.</li>
+</ul>
+</div>
+
+<div class="cenario">
+<strong>O stack trace gigante do <code>Stack Overflow</code></strong>
+<pre class="file" data-file="recursao.dart">int contar(int n) =&gt; contar(n + 1);
+
+void main() {
+  print(contar(0));
+}
+</pre>
+<pre class="term" data-cwd="~/err">$ dart run recursao.dart
+Unhandled exception:
+Stack Overflow
+#0      contar (file:///home/ana/err/recursao.dart:1:1)
+#1      contar (file:///home/ana/err/recursao.dart:1:22)
+#2      contar (file:///home/ana/err/recursao.dart:1:22)
+#3      contar (file:///home/ana/err/recursao.dart:1:22)
+«       (aqui o lab mostrou mais 40 linhas iguais, depois "..." duas vezes)
+#20788  contar (file:///home/ana/err/recursao.dart:1:22)
+#20789  contar (file:///home/ana/err/recursao.dart:1:22)
+#20790  main (file:///home/ana/err/recursao.dart:4:9)
+#20791  _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#20792  _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>A função <code>contar</code> chama a si mesma sem nunca parar. Cada chamada ocupa um pedaço da memória reservada para as chamadas (a <strong>pilha</strong>), e, depois de mais de 20 mil chamadas, ela estourou. O stack trace é enorme e todo igual: é o sinal clássico de recursão sem fim (o número exato de chamadas depende da máquina).</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-goal="out:Total: 15;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa tem <strong>três</strong> erros de compilação. Rode, leia as mensagens uma por uma e conserte até aparecer <code>Total: 15</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [4, 5, 6];
+  int total = '0';
+  for (final p in precos) {
+    total += p
+  }
+  print('Total: $totl');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [4, 5, 6];
+  int total = 0;
+  for (final p in precos) {
+    total += p;
+  }
+  print('Total: $total');
+}
+</pre>
+</div>
+
+<div class="trydart" data-goal="out:Nenhum produto custa mais de 100.;;semerro">
+<p class="try-task"><strong>Missão:</strong> este compila, mas quebra ao rodar com <code>Bad state: No element</code>. Use o <code>orElse</code> do <code>firstWhere</code> (ou outro jeito) para mostrar <code>Nenhum produto custa mais de 100.</code> quando nenhum preço passar de 100.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [4.5, 12.0, 30.0];
+  final caro = precos.firstWhere((p) =&gt; p &gt; 100);
+  print('Primeiro acima de 100: $caro');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [4.5, 12.0, 30.0];
+  final caro = precos.firstWhere((p) =&gt; p &gt; 100, orElse: () =&gt; -1);
+  if (caro &lt; 0) {
+    print('Nenhum produto custa mais de 100.');
+  } else {
+    print('Primeiro acima de 100: $caro');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>arquivo:linha:coluna: Error:</code> = erro de compilação (nada roda, código 254). <code>Unhandled exception:</code> = exceção (código 255).</li>
+  <li>Comece pelo <strong>primeiro</strong> erro da lista: os seguintes costumam ser consequência dele.</li>
+  <li>No stack trace, procure a primeira linha com <code>file:///home/ana/…</code>: é onde o seu código estava.</li>
+  <li>Os mais comuns: <code>Expected ';'</code>, <code>Undefined name</code>, <code>A value of type … can't be assigned</code>, <code>isn't defined for the type</code>, <code>potentially null</code>, <code>RangeError</code>, <code>Null check operator</code>, <code>FormatException</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
