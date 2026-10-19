@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Classes e Funções Genéricas — escrevendo o seu &lt;T&gt; | Guia Dart</title>
+<meta name="description" content="Classes e funções genéricas no Dart para quem nunca programou: class Caixa&lt;T&gt;, uma Fila&lt;T&gt; de verdade, T primeiro&lt;T&gt;(List&lt;T&gt;), dois tipos (Par&lt;A, B&gt;), limites com T extends num e Comparable, e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Classes e Funções Genéricas</span></h1>
+
+<p class="intro">Na aula <a href="genericos.html">Genéricos</a> você usou as "caixas com etiqueta" que o Dart já traz: <code>List&lt;T&gt;</code>, <code>Set&lt;T&gt;</code>, <code>Map&lt;K, V&gt;</code>. Agora você vai <strong>fabricar</strong> as suas: uma classe ou uma função que funciona com qualquer tipo, sem perder a conferência de tipos do Dart. É assim que a própria <code>List</code> é escrita por dentro.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever uma classe genérica: <code>class Caixa&lt;T&gt;</code>, e o que é esse <code>T</code>.</li>
+  <li>Como montar uma <code>Fila&lt;T&gt;</code> que serve para clientes (<code>String</code>) e para senhas (<code>int</code>).</li>
+  <li>Como escrever uma função genérica: <code>T primeiro&lt;T&gt;(List&lt;T&gt; lista)</code>.</li>
+  <li>Como usar dois tipos (<code>Par&lt;A, B&gt;</code>) e como <strong>limitar</strong> o tipo (<code>T extends num</code>).</li>
+  <li>Os erros reais: <code>The operator '&gt;' isn't defined for the type 'Object?'</code> e companhia.</li>
+</ul>
+</div>
+
+<p>Esta aula usa <a href="classes.html">classes</a> e <a href="funcoes.html">funções</a>. Todos os programas rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a fôrma de bolo</h2>
+<p>A padaria tem uma fôrma que serve para qualquer massa: chocolate, cenoura, fubá. A fôrma é sempre a mesma; o que muda é o que você coloca nela. E o que sai do forno é <strong>exatamente</strong> o que entrou: pôs massa de cenoura, sai bolo de cenoura.</p>
+<p>Uma classe genérica é essa fôrma. O <code>T</code> (de "tipo") é um <strong>espaço reservado</strong>: "aqui vai um tipo, que eu ainda não sei qual é". Quem usa a classe preenche o espaço: <code>Caixa&lt;int&gt;</code>, <code>Caixa&lt;String&gt;</code>. A partir daí, em todo lugar onde a classe diz <code>T</code>, o Dart entende <code>int</code> ou <code>String</code>.</p>
+<p>Sem genéricos, você teria duas saídas ruins: escrever uma classe para cada tipo (<code>CaixaDeInt</code>, <code>CaixaDeString</code>…), ou usar <code>Object</code>/<code>dynamic</code> e perder a conferência (o "sai exatamente o que entrou").</p>
+
+<hr>
+
+<h2>1. A primeira classe genérica</h2>
+
+<pre class="file" data-file="caixa.dart">class Caixa&lt;T&gt; {
+  final T conteudo;
+  final String etiqueta;
+
+  Caixa(this.conteudo, this.etiqueta);
+
+  T abrir() {
+    print('Abrindo a caixa "$etiqueta"...');
+    return conteudo;
+  }
+}
+
+void main() {
+  final ovos = Caixa&lt;int&gt;(12, 'ovos');
+  final bolo = Caixa('chocolate', 'bolo');
+  final n = ovos.abrir();
+  print('Tem $n ovos; dá para ${n ~/ 6} receitas.');
+  final sabor = bolo.abrir();
+  print('O bolo é de ${sabor.toUpperCase()}.');
+  print(ovos.runtimeType);
+  print(bolo.runtimeType);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Caixa&lt;T&gt;</dt><dd>Declara a classe e o seu <strong>parâmetro de tipo</strong>, <code>T</code>. O nome é livre, mas por tradição é uma letra maiúscula: <code>T</code> (tipo), <code>E</code> (elemento), <code>K</code> e <code>V</code> (chave e valor).</dd>
+  <dt>final T conteudo;</dt><dd>Um campo do tipo <code>T</code>: numa <code>Caixa&lt;int&gt;</code>, é um <code>int</code>; numa <code>Caixa&lt;String&gt;</code>, é uma <code>String</code>.</dd>
+  <dt>final String etiqueta;</dt><dd>Nem tudo precisa ser <code>T</code>: este campo é sempre texto.</dd>
+  <dt>T abrir()</dt><dd>Um método que <strong>devolve</strong> um <code>T</code>: sai o mesmo tipo que entrou.</dd>
+  <dt>Caixa&lt;int&gt;(12, 'ovos')</dt><dd>Preenche o <code>T</code> com <code>int</code>, escrito.</dd>
+  <dt>Caixa('chocolate', 'bolo')</dt><dd>Sem escrever: o Dart <strong>infere</strong> <code>T = String</code> pelo valor passado.</dd>
+  <dt>n ~/ 6 e sabor.toUpperCase()</dt><dd>A prova de que o tipo não se perdeu: o Dart sabe que <code>n</code> é <code>int</code> (dá para dividir) e que <code>sabor</code> é <code>String</code> (tem <code>toUpperCase</code>).</dd>
+</dl>
+
+<pre class="term">$ dart run caixa.dart
+Abrindo a caixa "ovos"...
+Tem 12 ovos; dá para 2 receitas.
+Abrindo a caixa "bolo"...
+O bolo é de CHOCOLATE.
+Caixa&lt;int&gt;
+Caixa&lt;String&gt;
+</pre>
+
+<div class="trydart" data-goal="out:Tempero: orégano;;src:class\s+Pote&lt;T&gt;">
+<p class="try-task"><strong>Missão:</strong> o <code>Pote</code> só aceita <code>int</code>, e o pote de orégano não compila. Torne a classe genérica: <code>class Pote&lt;T&gt;</code> e o campo <code>final T conteudo;</code>.</p>
+<pre class="script" data-file="main.dart">class Pote {
+  final int conteudo;
+  Pote(this.conteudo);
+}
+
+void main() {
+  final moedas = Pote(35);
+  final tempero = Pote('orégano');
+  print('Moedas: ${moedas.conteudo}');
+  print('Tempero: ${tempero.conteudo}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Pote&lt;T&gt; {
+  final T conteudo;
+  Pote(this.conteudo);
+}
+
+void main() {
+  final moedas = Pote(35);
+  final tempero = Pote('orégano');
+  print('Moedas: ${moedas.conteudo}');
+  print('Tempero: ${tempero.conteudo}');
+}
+</pre>
+</div>
+
+<p>No lab, a versão de antes deu <code>pote.dart:8:24: Error: The argument type 'String' can't be assigned to the parameter type 'int'.</code>; a genérica mostrou <code>Moedas: 35</code> e <code>Tempero: orégano</code>.</p>
+
+<hr>
+
+<h2>2. Uma classe útil: <code>Fila&lt;T&gt;</code></h2>
+<p>Na padaria há duas filas: a de clientes (nomes) e a de senhas (números). A regra é a mesma nas duas: quem entra primeiro é atendido primeiro. Uma classe genérica serve para as duas:</p>
+
+<pre class="file" data-file="fila.dart">class Fila&lt;T&gt; {
+  final _itens = &lt;T&gt;[];
+
+  void entrar(T item) =&gt; _itens.add(item);
+
+  T atender() =&gt; _itens.removeAt(0);
+
+  bool get vazia =&gt; _itens.isEmpty;
+  int get tamanho =&gt; _itens.length;
+}
+
+void main() {
+  final clientes = Fila&lt;String&gt;();
+  clientes.entrar('Ana');
+  clientes.entrar('Bia');
+  clientes.entrar('Caio');
+  print('Na fila: ${clientes.tamanho}');
+  while (!clientes.vazia) {
+    print('Atendendo ${clientes.atender()}');
+  }
+
+  final senhas = Fila&lt;int&gt;();
+  senhas.entrar(101);
+  senhas.entrar(102);
+  print('Próxima senha: ${senhas.atender() + 0}');
+}
+</pre>
+
+<pre class="term">$ dart run fila.dart
+Na fila: 3
+Atendendo Ana
+Atendendo Bia
+Atendendo Caio
+Próxima senha: 101
+</pre>
+
+<dl class="anatomy">
+  <dt>final _itens = &lt;T&gt;[];</dt><dd>Por dentro, a fila guarda uma <code>List&lt;T&gt;</code>. O <code>T</code> da classe passa para a lista. O <code>_</code> deixa a lista <a href="privado.html">privada</a>: de fora, só se usa <code>entrar</code> e <code>atender</code>.</dd>
+  <dt>void entrar(T item)</dt><dd>Numa <code>Fila&lt;String&gt;</code>, só entra <code>String</code>; o Dart barra um número na fila de clientes.</dd>
+  <dt>T atender()</dt><dd>Tira e devolve o primeiro da fila (<code>removeAt(0)</code>). O <code>+ 0</code> na senha está ali só para provar que o resultado é um <code>int</code> de verdade.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Funções genéricas</h2>
+<p>Uma função também pode ter o seu <code>&lt;T&gt;</code>. Ele vem logo depois do nome da função:</p>
+
+<pre class="file" data-file="func.dart">T primeiro&lt;T&gt;(List&lt;T&gt; lista) {
+  return lista[0];
+}
+
+(T, T) pontas&lt;T&gt;(List&lt;T&gt; lista) =&gt; (lista.first, lista.last);
+
+void main() {
+  final nome = primeiro(['Ana', 'Bia']);
+  final nota = primeiro&lt;int&gt;([9, 7]);
+  print('$nome ${nome.length}');
+  print('$nota ${nota + 1}');
+  final (menor, maior) = pontas([3, 5, 8]);
+  print('de $menor a $maior');
+}
+</pre>
+
+<pre class="term">$ dart run func.dart
+Ana 3
+9 10
+de 3 a 8
+</pre>
+
+<dl class="anatomy">
+  <dt>T primeiro&lt;T&gt;(List&lt;T&gt; lista)</dt><dd>Leia da direita para a esquerda: a função recebe uma "lista de T" e devolve "um T". O <code>&lt;T&gt;</code> depois de <code>primeiro</code> declara o espaço reservado; o <code>T</code> do começo é o tipo de retorno.</dd>
+  <dt>primeiro(['Ana', 'Bia'])</dt><dd>O Dart infere <code>T = String</code>, então <code>nome</code> é <code>String</code> e tem <code>.length</code>.</dd>
+  <dt>primeiro&lt;int&gt;([9, 7])</dt><dd>Também dá para escrever o tipo na chamada.</dd>
+  <dt>(T, T) pontas&lt;T&gt;(…)</dt><dd>Devolve um <a href="records.html">record</a> com dois <code>T</code>, desmontado em <code>menor</code> e <code>maior</code>.</dd>
+</dl>
+
+<p>Muitos métodos que você já usou são genéricos assim: o <code>map&lt;R&gt;</code> das listas, o <code>fold&lt;T&gt;</code>, o <code>List&lt;E&gt;.generate</code> (veja <a href="iterables.html">map, where, reduce</a>).</p>
+
+<hr>
+
+<h2>4. Dois tipos: <code>Par&lt;A, B&gt;</code></h2>
+<p>Como o <code>Map&lt;K, V&gt;</code>, uma classe pode ter vários parâmetros de tipo, separados por vírgula:</p>
+
+<pre class="file" data-file="par.dart">class Par&lt;A, B&gt; {
+  final A primeiro;
+  final B segundo;
+  Par(this.primeiro, this.segundo);
+
+  @override
+  String toString() =&gt; '($primeiro, $segundo)';
+}
+
+void main() {
+  final item = Par&lt;String, double&gt;('pão', 0.75);
+  print(item);
+}
+</pre>
+
+<pre class="term">$ dart run par.dart
+(pão, 0.75)
+</pre>
+
+<p>Para pares simples assim, hoje o Dart tem um jeito mais curto: o record <code>('pão', 0.75)</code>, do tipo <code>(String, double)</code>.</p>
+
+<hr>
+
+<h2>5. Limitando o tipo: <code>T extends …</code></h2>
+<p>Dentro de uma função genérica, o Dart não sabe nada sobre <code>T</code>: pode ser número, texto, uma <code>Caixa</code>… Por isso ele só deixa usar o que <strong>todo</strong> objeto tem. Para calcular uma média, você precisa somar; então diz ao Dart: "<code>T</code> pode ser qualquer tipo, <strong>desde que</strong> seja um número". É o <code>extends</code> ("estende"), o <strong>limite</strong> do tipo:</p>
+
+<pre class="file" data-file="limite.dart">double media&lt;T extends num&gt;(List&lt;T&gt; valores) {
+  var soma = 0.0;
+  for (final v in valores) {
+    soma += v;
+  }
+  return soma / valores.length;
+}
+
+void main() {
+  print(media([7, 8, 10]));
+  print(media([4.5, 9.0]));
+  print(media(&lt;num&gt;[7, 8.5]));
+}
+</pre>
+
+<pre class="term">$ dart run limite.dart
+8.333333333333334
+6.75
+7.75
+</pre>
+
+<p>A mesma função serviu para <code>List&lt;int&gt;</code>, <code>List&lt;double&gt;</code> e <code>List&lt;num&gt;</code>. Dentro dela, o Dart sabe que <code>v</code> é pelo menos um <code>num</code>, então o <code>soma += v</code> é permitido. (O <code>8.333333333333334</code> é o jeito do <code>double</code> mostrar 25 ÷ 3; veja <a href="int-double.html">int e double</a>.)</p>
+
+<p>Outro limite muito usado é <code>Comparable</code> ("comparável"): tipos que sabem dizer qual vem antes, como números e textos, pelo método <code>compareTo</code>:</p>
+
+<pre class="file" data-file="maior.dart">T maior&lt;T extends Comparable&lt;T&gt;&gt;(T a, T b) {
+  return a.compareTo(b) &gt;= 0 ? a : b;
+}
+
+void main() {
+  print(maior(3, 7));
+  print(maior('Ana', 'Bia'));
+  print(maior(2.5, 1.0));
+}
+</pre>
+
+<pre class="term">$ dart run maior.dart
+7
+Bia
+2.5
+</pre>
+
+<p>O <code>compareTo</code> devolve um número positivo se <code>a</code> vem depois de <code>b</code>, zero se são iguais, e negativo se vem antes. Para textos, "depois" é na ordem do dicionário: <code>Bia</code> vem depois de <code>Ana</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A mesma lógica para vários tipos, e quem usa precisa do tipo de volta</td><td>Genérico: <code>class Fila&lt;T&gt;</code>, <code>T primeiro&lt;T&gt;(…)</code></td></tr>
+<tr><td>Só funciona para alguns tipos (números, coisas comparáveis)</td><td>Genérico com limite: <code>&lt;T extends num&gt;</code>, <code>&lt;T extends Comparable&lt;T&gt;&gt;</code></td></tr>
+<tr><td>Só um tipo faz sentido</td><td>Sem genérico: <code>class Produto</code> com <code>int estoque</code></td></tr>
+<tr><td>Juntar dois valores rapidinho</td><td>Um record: <code>('pão', 0.75)</code>, em vez de criar <code>Par&lt;A, B&gt;</code></td></tr>
+<tr><td>Aceitar "qualquer coisa" sem precisar do tipo de volta</td><td><code>Object</code> (evite <code>dynamic</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou em <code>T</code> uma operação que nem todo tipo tem</strong>
+<pre class="file" data-file="e2.dart">T maior&lt;T&gt;(T a, T b) {
+  return a &gt; b ? a : b;
+}
+
+void main() {
+  print(maior(3, 7));
+}
+</pre>
+<pre class="term">$ dart run e2.dart
+e2.dart:2:12: Error: The operator '&gt;' isn't defined for the type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '&gt;' operator.
+  return a &gt; b ? a : b;
+           ^
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>The operator '&gt;' isn't defined for the type 'Object?'.</dt><dd>"O operador <code>&gt;</code> não existe para o tipo <code>Object?</code>". Sem limite, o <code>T</code> pode ser <strong>qualquer coisa</strong>, até <code>null</code>; para o Dart, dentro da função, ele é só um <code>Object?</code>. E nem todo objeto sabe fazer <code>&gt;</code> (uma <code>Caixa</code> não sabe).</dd>
+  <dt>- 'Object' is from 'dart:core'.</dt><dd>Só informa de onde vem o <code>Object</code>: da biblioteca básica do Dart.</dd>
+  <dt>Try correcting …</dt><dd>"Tente corrigir para um operador que exista, ou definir um operador <code>&gt;</code>".</dd>
+</dl>
+<p>Não importa que, na chamada, foram passados números: a função tem de funcionar para <strong>todo</strong> <code>T</code> possível. <strong>Como consertar:</strong> ponha um limite, como na seção 5: <code>T extends Comparable&lt;T&gt;</code> e <code>a.compareTo(b) &gt;= 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O tipo não respeita o limite</strong>
+<pre class="file" data-file="e1.dart">double media&lt;T extends num&gt;(List&lt;T&gt; valores) {
+  var soma = 0.0;
+  for (final v in valores) {
+    soma += v;
+  }
+  return soma / valores.length;
+}
+
+void main() {
+  print(media(['sete', 'oito']));
+}
+</pre>
+<pre class="term">$ dart run e1.dart
+e1.dart:10:15: Error: The argument type 'List&lt;String&gt;' can't be assigned to the parameter type 'List&lt;num&gt;'.
+ - 'List' is from 'dart:core'.
+  print(media(['sete', 'oito']));
+              ^
+</pre>
+<p>"Uma <code>List&lt;String&gt;</code> não pode ir onde se espera <code>List&lt;num&gt;</code>". O limite <code>T extends num</code> barrou os textos <strong>antes</strong> de rodar. <strong>Como consertar:</strong> passe números: <code>media([7, 8])</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O valor não combina com o tipo escrito</strong>
+<pre class="file" data-file="e3.dart">class Caixa&lt;T&gt; {
+  final T conteudo;
+  Caixa(this.conteudo);
+}
+
+void main() {
+  final ovos = Caixa&lt;int&gt;('doze');
+  print(ovos.conteudo);
+}
+</pre>
+<pre class="term">$ dart run e3.dart
+e3.dart:7:27: Error: The argument type 'String' can't be assigned to the parameter type 'int'.
+  final ovos = Caixa&lt;int&gt;('doze');
+                          ^
+</pre>
+<p>Com <code>Caixa&lt;int&gt;</code>, o construtor espera um <code>int</code>. É a conferência funcionando. <strong>Como consertar:</strong> <code>Caixa&lt;int&gt;(12)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Número errado de tipos</strong>
+<pre class="term">$ dart run e4.dart
+e4.dart:13:13: Error: Expected 2 type arguments.
+  final p = Par&lt;String&gt;('x', 1);
+            ^
+e4.dart:4:3: Context: Found this candidate, but the arguments don't match.
+  Par(this.primeiro, this.segundo);
+  ^^^
+</pre>
+<p>O arquivo <code>e4.dart</code> é o <code>par.dart</code> da seção 4 com uma linha a mais no <code>main</code>: <code>final p = Par&lt;String&gt;('x', 1);</code>. "Eram esperados 2 argumentos de tipo": o <code>Par</code> tem <code>A</code> e <code>B</code>. A linha <code>Context:</code> ("contexto") mostra o construtor que o Dart tentou usar. <strong>Como consertar:</strong> <code>Par&lt;String, int&gt;('x', 1)</code>, ou deixe o Dart inferir: <code>Par('x', 1)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class Caixa&lt;T&gt; { final T conteudo; … }</code></td><td>Classe genérica com um parâmetro de tipo</td></tr>
+<tr><td><code>Caixa&lt;int&gt;(12)</code> ou <code>Caixa(12)</code></td><td>Preenche o <code>T</code> (escrito ou inferido)</td></tr>
+<tr><td><code>class Par&lt;A, B&gt;</code></td><td>Dois parâmetros de tipo</td></tr>
+<tr><td><code>T primeiro&lt;T&gt;(List&lt;T&gt; lista)</code></td><td>Função genérica</td></tr>
+<tr><td><code>primeiro&lt;int&gt;([9, 7])</code></td><td>Chamada com o tipo escrito</td></tr>
+<tr><td><code>&lt;T extends num&gt;</code></td><td>Limite: <code>T</code> tem de ser um número</td></tr>
+<tr><td><code>&lt;T extends Comparable&lt;T&gt;&gt;</code></td><td>Limite: <code>T</code> sabe se comparar (<code>compareTo</code>)</td></tr>
+<tr><td><code>&lt;T&gt;[]</code> dentro da classe</td><td>Uma lista do tipo que a classe recebeu</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a classe</h3>
+<div class="ex-code">class Sacola<input data-answer="&lt;T&gt;" aria-label="parâmetro de tipo"> {<br>&nbsp;&nbsp;final itens = &lt;T&gt;[];<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O limite</h3>
+<p>Complete para que a função só aceite listas de números:</p>
+<div class="ex-code">num total&lt;T <input data-answer="extends" aria-label="palavra-chave do limite"> num&gt;(List&lt;T&gt; valores) { … }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Em <code>final c = Caixa('pão', 'padaria');</code> (a <code>Caixa&lt;T&gt;</code> da seção 1), qual é o tipo de <code>c.abrir()</code>?</p>
+<label><input type="radio" name="q3"> <code>dynamic</code></label>
+<label><input type="radio" name="q3"> <code>String</code></label>
+<label><input type="radio" name="q3"> <code>Object</code></label>
+<label><input type="radio" name="q3"> <code>T</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Por que <code>T maior&lt;T&gt;(T a, T b) =&gt; a &gt; b ? a : b;</code> não compila?</p>
+<label><input type="radio" name="q4"> Porque falta o <code>return</code></label>
+<label><input type="radio" name="q4"> Porque funções não podem ser genéricas</label>
+<label><input type="radio" name="q4"> Porque <code>T</code> tem de ser <code>E</code></label>
+<label><input type="radio" name="q4"> Porque, sem limite, <code>T</code> pode ser qualquer objeto, e nem todo objeto tem <code>&gt;</code></label>
+</div>
+
+<h3>Missão final: o último da lista</h3>
+
+<div class="trydart" data-goal="out:Último item: CAFÉ;;out:Último número + 1: 9;;src:ultimo&lt;T&gt;">
+<p class="try-task"><strong>Missão:</strong> a função <code>ultimo</code> devolve <code>Object?</code>, e por isso o Dart não deixa usar <code>.toUpperCase()</code> nem somar <code>+ 1</code> no resultado (o programa não compila). Reescreva a função como genérica: <code>T ultimo&lt;T&gt;(List&lt;T&gt; lista)</code>.</p>
+<pre class="script" data-file="main.dart">Object? ultimo(List lista) {
+  return lista.last;
+}
+
+void main() {
+  final compras = ['pão', 'leite', 'café'];
+  print('Último item: ${ultimo(compras).toUpperCase()}');
+  print('Último número + 1: ${ultimo([3, 5, 8]) + 1}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">T ultimo&lt;T&gt;(List&lt;T&gt; lista) {
+  return lista.last;
+}
+
+void main() {
+  final compras = ['pão', 'leite', 'café'];
+  print('Último item: ${ultimo(compras).toUpperCase()}');
+  print('Último número + 1: ${ultimo([3, 5, 8]) + 1}');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Último item: CAFÉ</code> e <code>Último número + 1: 9</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma classe genérica declara um espaço reservado para um tipo: <code>class Caixa&lt;T&gt;</code>. Quem usa preenche: <code>Caixa&lt;int&gt;</code>, ou deixa o Dart inferir.</li>
+  <li>Dentro da classe, <code>T</code> vale para campos, parâmetros, retornos e até listas internas (<code>&lt;T&gt;[]</code>).</li>
+  <li>Uma função genérica tem o <code>&lt;T&gt;</code> depois do nome: <code>T primeiro&lt;T&gt;(List&lt;T&gt; lista)</code>.</li>
+  <li>Vários tipos se separam por vírgula: <code>Par&lt;A, B&gt;</code>.</li>
+  <li>Sem limite, <code>T</code> é tratado como <code>Object?</code>: nada de <code>&gt;</code>, <code>+</code> ou <code>.length</code>. Com <code>T extends num</code> ou <code>T extends Comparable&lt;T&gt;</code>, você ganha essas operações e o Dart barra os tipos que não servem.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
