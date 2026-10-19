@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Métodos de String — length, trim, contains, substring, split e outros | Guia Dart</title>
+<meta name="description" content="Os métodos de String do Dart para quem nunca programou: length e [ ], toUpperCase e toLowerCase, trim, contains, startsWith, indexOf, substring, replaceAll, split e join, padLeft e padRight, por que uma String nunca muda, encadear métodos e os erros reais do Dart 3 (método que não existe, parênteses esquecidos, RangeError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Na aula <a href="strings.html">Strings</a> você aprendeu a criar textos e a juntar variáveis neles. Mas um texto também sabe <strong>fazer coisas</strong>: dizer o próprio tamanho, virar maiúsculas, tirar os espaços das pontas, procurar uma palavra, ser cortado em pedaços. Cada uma dessas ações é um <strong>método</strong>: uma função que "pertence" ao texto e se chama com um ponto: <code>nome.toUpperCase()</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um método e como se chama (<code>texto.metodo()</code>), e a diferença para uma <strong>propriedade</strong> (<code>texto.length</code>, sem parênteses).</li>
+  <li>Tamanho e letras: <code>length</code>, <code>isEmpty</code>, <code>[0]</code>.</li>
+  <li>Maiúsculas e minúsculas, aparar espaços: <code>toUpperCase</code>, <code>toLowerCase</code>, <code>trim</code>.</li>
+  <li>Procurar: <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>indexOf</code>.</li>
+  <li>Cortar, trocar e dividir: <code>substring</code>, <code>replaceAll</code>, <code>split</code> (e o <code>join</code>, que faz o caminho de volta).</li>
+  <li>Alinhar: <code>padLeft</code> e <code>padRight</code>.</li>
+  <li>Por que uma <code>String</code> <strong>nunca muda</strong>, e como encadear vários métodos.</li>
+  <li>Os erros reais: método que não existe, parênteses esquecidos, posição fora do texto.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o texto que sabe se cuidar</h2>
+<p>Pense numa etiqueta de preço da padaria. Você pode perguntar coisas a ela ("quantas letras você tem?", "você contém a palavra <em>queijo</em>?") e pedir versões dela ("me dá você em letras grandes", "me dá só os 3 primeiros caracteres"). A etiqueta original continua igual; o que você recebe é uma <strong>etiqueta nova</strong>. É exatamente assim que os métodos de <code>String</code> funcionam.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>Exemplo</th><th>O que é</th></tr>
+<tr><td>O texto</td><td><code>nome</code></td><td>Quem vai fazer a ação</td></tr>
+<tr><td>O ponto</td><td><code>.</code></td><td>"de": <code>nome.length</code> = "o tamanho <strong>de</strong> nome"</td></tr>
+<tr><td>Propriedade</td><td><code>length</code></td><td>Uma informação do texto. <strong>Sem</strong> parênteses</td></tr>
+<tr><td>Método</td><td><code>toUpperCase()</code></td><td>Uma ação. <strong>Com</strong> parênteses, mesmo vazios</td></tr>
+<tr><td>Argumentos</td><td><code>contains('leite')</code></td><td>O que o método precisa saber, entre os parênteses</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Tamanho e letras: <code>length</code>, <code>isEmpty</code> e <code>[ ]</code></h2>
+
+<pre class="file" data-file="tamanho.dart">void main() {
+  final nome = 'Ana Souza';
+  print(nome.length);
+  print(nome.isEmpty);
+  print(''.isEmpty);
+  print(nome.isNotEmpty);
+  print(nome[0]);
+  print(nome[nome.length - 1]);
+}
+</pre>
+
+<pre class="term">$ dart run tamanho.dart
+9
+false
+true
+true
+A
+a
+</pre>
+
+<dl class="anatomy">
+  <dt>nome.length → 9</dt><dd>"Comprimento": quantos caracteres o texto tem. O espaço conta: <code>Ana</code> (3) + espaço (1) + <code>Souza</code> (5) = 9.</dd>
+  <dt>isEmpty / isNotEmpty</dt><dd>"Está vazio?" e "não está vazio?". Devolvem <code>bool</code> (veja <a href="bool.html">Booleanos</a>). <code>''</code>, o texto sem nada, é o único vazio.</dd>
+  <dt>nome[0] → A</dt><dd>O caractere na <strong>posição</strong> 0. As posições começam do <strong>zero</strong>: em <code>Ana Souza</code>, o <code>A</code> é a posição 0, o <code>n</code> a 1, o <code>a</code> a 2, o espaço a 3…</dd>
+  <dt>nome[nome.length - 1] → a</dt><dd>O <strong>último</strong> caractere. Se o texto tem 9 caracteres, as posições vão de 0 a 8, então a última é <code>length - 1</code>.</dd>
+</dl>
+
+<div class="note">
+<strong>Acentos e emojis</strong>
+<p><code>'José'.length</code> dá <code>4</code>, como esperado. Já um emoji pode contar como <strong>2</strong>: no lab, <code>'😀'.length</code> deu <code>2</code>. O Dart guarda o texto em pedaços de 16 bits (UTF-16), e alguns símbolos ocupam dois. Para contar símbolos de verdade, existe <code>'😀'.runes.length</code>, que deu <code>1</code>. Para textos em português comum, o <code>length</code> funciona bem.</p>
+</div>
+
+<hr>
+
+<h2>2. Maiúsculas, minúsculas e espaços</h2>
+
+<pre class="file" data-file="caixa.dart">void main() {
+  final produto = 'Pão de Queijo';
+  print(produto.toUpperCase());
+  print(produto.toLowerCase());
+  print(produto);
+}
+</pre>
+
+<pre class="term">$ dart run caixa.dart
+PÃO DE QUEIJO
+pão de queijo
+Pão de Queijo
+</pre>
+
+<p><code>toUpperCase</code> = "para caixa alta" (maiúsculas); <code>toLowerCase</code> = "para caixa baixa" (minúsculas). Os acentos acompanham: <code>Ã</code>, <code>ã</code> (no lab, <code>'café'.toUpperCase()</code> deu <code>CAFÉ</code>). E repare na última linha: <code>produto</code> continua <code>Pão de Queijo</code>. O método <strong>devolveu um texto novo</strong>, sem mexer no original (seção 7).</p>
+
+<h3><code>trim</code>: aparar os espaços das pontas</h3>
+<p>Quando alguém digita (veja <a href="stdin.html">Lendo o Teclado</a>), é comum vir espaço sobrando antes ou depois. Os colchetes no <code>print</code> abaixo mostram onde o texto começa e termina:</p>
+
+<pre class="file" data-file="aparar.dart">void main() {
+  final digitado = '   ana@email.com  ';
+  print('[$digitado]');
+  print('[${digitado.trim()}]');
+  print('[${digitado.trimLeft()}]');
+  print('[${digitado.trimRight()}]');
+}
+</pre>
+
+<pre class="term">$ dart run aparar.dart
+[   ana@email.com  ]
+[ana@email.com]
+[ana@email.com  ]
+[   ana@email.com]
+</pre>
+
+<p><code>trim</code> tira dos dois lados; <code>trimLeft</code>, só da esquerda; <code>trimRight</code>, só da direita. Os espaços <strong>do meio</strong> ficam: <code>' pão de queijo '.trim()</code> é <code>'pão de queijo'</code>.</p>
+
+<div class="trydart" data-goal="out:ANA SOUZA;;src:toUpperCase\(\)">
+<p class="try-task"><strong>Missão:</strong> a Ana digitou o nome com espaços sobrando e em minúsculas. Faça o programa mostrar <code>[ANA SOUZA]</code>: aparado e em maiúsculas.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final digitado = '   ana souza ';
+  final limpo = digitado;
+  print('[$limpo]');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final digitado = '   ana souza ';
+  final limpo = digitado.trim().toUpperCase();
+  print('[$limpo]');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Procurar dentro do texto</h2>
+
+<pre class="file" data-file="procurar.dart">void main() {
+  final frase = 'Comprar pão, leite e café';
+  print(frase.contains('leite'));
+  print(frase.contains('Leite'));
+  print(frase.startsWith('Comprar'));
+  print(frase.endsWith('café'));
+  print(frase.indexOf('pão'));
+  print(frase.indexOf('arroz'));
+  print(frase.toLowerCase().contains('LEITE'.toLowerCase()));
+}
+</pre>
+
+<pre class="term">$ dart run procurar.dart
+true
+false
+true
+true
+8
+-1
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>contains('leite') → true</dt><dd>"Contém?" O texto tem <code>leite</code> em algum lugar.</dd>
+  <dt>contains('Leite') → false</dt><dd>A procura diferencia maiúsculas de minúsculas: <code>Leite</code> com L maiúsculo não está lá.</dd>
+  <dt>startsWith / endsWith</dt><dd>"Começa com?" e "termina com?".</dd>
+  <dt>indexOf('pão') → 8</dt><dd>"Índice de": a <strong>posição</strong> onde o pedaço começa. <code>Comprar</code> ocupa as posições 0 a 6, o espaço é a 7, e o <code>p</code> de <code>pão</code> é a 8.</dd>
+  <dt>indexOf('arroz') → -1</dt><dd>Não achou. O <code>-1</code> é o jeito de dizer "não está aqui" (nenhuma posição real é negativa).</dd>
+  <dt>toLowerCase().contains(… .toLowerCase())</dt><dd>O truque para procurar <strong>sem</strong> ligar para maiúsculas: põe os dois em minúsculas antes de comparar.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Cortar um pedaço: <code>substring</code></h2>
+<p><code>substring(inicio, fim)</code> devolve o pedaço que começa na posição <code>inicio</code> e vai <strong>até antes</strong> da posição <code>fim</code>. Sem o <code>fim</code>, vai até o final:</p>
+
+<pre class="file" data-file="pedaco.dart">void main() {
+  final data = '19/10/2026';
+  print(data.substring(0, 2));
+  print(data.substring(3, 5));
+  print(data.substring(6));
+}
+</pre>
+
+<pre class="term">$ dart run pedaco.dart
+19
+10
+2026
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Posição</th><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td></tr>
+<tr><th>Caractere</th><td>1</td><td>9</td><td>/</td><td>1</td><td>0</td><td>/</td><td>2</td><td>0</td><td>2</td><td>6</td></tr>
+</table>
+</div>
+
+<p><code>substring(0, 2)</code> pega as posições 0 e 1 (o 2 fica de fora): <code>19</code>. <code>substring(3, 5)</code>: posições 3 e 4, <code>10</code>. <code>substring(6)</code>: da 6 até o fim, <code>2026</code>. Um jeito de lembrar: o tamanho do pedaço é <code>fim - inicio</code>.</p>
+
+<p>Juntando <code>[0]</code>, <code>toUpperCase</code> e <code>substring</code>, dá para pôr só a primeira letra em maiúscula:</p>
+
+<pre class="file" data-file="maiuscula.dart">void main() {
+  final nome = 'ana';
+  final bonito = nome[0].toUpperCase() + nome.substring(1);
+  print(bonito);
+}
+</pre>
+
+<pre class="term">$ dart run maiuscula.dart
+Ana
+</pre>
+
+<hr>
+
+<h2>5. Trocar e dividir: <code>replaceAll</code>, <code>split</code> e <code>join</code></h2>
+
+<pre class="file" data-file="trocar.dart">void main() {
+  final preco = '12,90';
+  print(preco.replaceAll(',', '.'));
+  final recado = 'bom dia, bom almoço, bom jantar';
+  print(recado.replaceAll('bom', 'ótimo'));
+  print(recado.replaceFirst('bom', 'ótimo'));
+}
+</pre>
+
+<pre class="term">$ dart run trocar.dart
+12.90
+ótimo dia, ótimo almoço, ótimo jantar
+ótimo dia, bom almoço, bom jantar
+</pre>
+
+<p><code>replaceAll(velho, novo)</code> troca <strong>todas</strong> as ocorrências; <code>replaceFirst</code>, só a primeira. O primeiro uso, trocar a vírgula do preço por ponto, é o que permite converter <code>12,90</code> em número com <code>double.tryParse</code> (veja <a href="stdin.html">Lendo o Teclado</a>).</p>
+
+<h3><code>split</code>: de um texto para uma lista</h3>
+<pre class="file" data-file="dividir.dart">void main() {
+  final lista = 'arroz,feijão,café';
+  final itens = lista.split(',');
+  print(itens);
+  print(itens.length);
+  print(itens[1]);
+  print('a b  c'.split(' '));
+  print('Ana'.split(''));
+  print(itens.join(' - '));
+}
+</pre>
+
+<pre class="term">$ dart run dividir.dart
+[arroz, feijão, café]
+3
+feijão
+[a, b, , c]
+[A, n, a]
+arroz - feijão - café
+</pre>
+
+<dl class="anatomy">
+  <dt>split(',')</dt><dd>"Dividir" o texto em cada vírgula. O resultado é uma <strong>lista</strong> de textos (<code>List&lt;String&gt;</code>), mostrada entre colchetes (veja <a href="list.html">Listas</a>). A vírgula some: ela só marcava onde cortar.</dd>
+  <dt>itens[1] → feijão</dt><dd>Como nos textos, as posições da lista começam do zero.</dd>
+  <dt>'a b  c'.split(' ') → [a, b, , c]</dt><dd>Com <strong>dois</strong> espaços seguidos, entre eles sobra um texto vazio. Cuidado com isso ao dividir frases digitadas.</dd>
+  <dt>'Ana'.split('') → [A, n, a]</dt><dd>Com o texto vazio como separador, cada caractere vira um item.</dd>
+  <dt>itens.join(' - ')</dt><dd>O caminho de volta: "juntar" a lista num texto só, com <code>' - '</code> entre os itens. (O <code>join</code> é da lista, não da <code>String</code>.)</dd>
+</dl>
+
+<div class="trydart" data-goal="out:R$ 12.90;;src:replaceAll">
+<p class="try-task"><strong>Missão:</strong> o preço chegou com vírgula e o programa não consegue convertê-lo (sai <code>null</code>). Use <code>replaceAll</code> para trocar a vírgula por ponto antes do <code>double.tryParse</code>, até aparecer <code>R$ 12.90</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final texto = '12,90';
+  final preco = double.tryParse(texto);
+  print('R\$ ${preco?.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final texto = '12,90';
+  final preco = double.tryParse(texto.replaceAll(',', '.'));
+  print('R\$ ${preco?.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. Alinhar: <code>padLeft</code> e <code>padRight</code></h2>
+<p>"Preencher à esquerda/direita" até o texto ter um tamanho certo. Ótimo para números com zeros na frente e para tabelinhas alinhadas:</p>
+
+<pre class="file" data-file="alinhar.dart">void main() {
+  print('7'.padLeft(3, '0'));
+  print('42'.padLeft(5) + '|');
+  print('Pão'.padRight(10, '.') + 'R\$ 0,75');
+  print('Leite'.padRight(10, '.') + 'R\$ 5,49');
+  print('ha' * 3);
+}
+</pre>
+
+<pre class="term">$ dart run alinhar.dart
+007
+   42|
+Pão.......R$ 0,75
+Leite.....R$ 5,49
+hahaha
+</pre>
+
+<p><code>padLeft(3, '0')</code>: completa com <code>0</code> à esquerda até ter 3 caracteres. Sem o segundo argumento, completa com espaços. Se o texto já for maior, nada muda. E o <code>*</code> repete um texto: <code>'ha' * 3</code> é <code>hahaha</code>.</p>
+
+<hr>
+
+<h2>7. Uma <code>String</code> nunca muda</h2>
+<p>Este é o detalhe que mais confunde quem começa. Nenhum método muda o texto original: todos <strong>devolvem um texto novo</strong>. Se você não guardar o resultado, ele se perde:</p>
+
+<pre class="file" data-file="imutavel.dart">void main() {
+  var nome = 'ana';
+  nome.toUpperCase();
+  print(nome);
+  nome = nome.toUpperCase();
+  print(nome);
+}
+</pre>
+
+<pre class="term">$ dart run imutavel.dart
+ana
+ANA
+</pre>
+
+<p>Na linha 3, o <code>ANA</code> foi criado e jogado fora, porque ninguém o guardou: o <code>print</code> mostrou <code>ana</code>. Na linha 5, o resultado foi guardado de volta na variável (por isso ela é <code>var</code>), e aí sim apareceu <code>ANA</code>. Diz-se que a <code>String</code> do Dart é <strong>imutável</strong> ("não muda").</p>
+
+<h3>Encadear métodos</h3>
+<p>Como cada método devolve uma <code>String</code> nova, dá para chamar outro método direto no resultado, em fila. O Dart faz da esquerda para a direita:</p>
+
+<pre class="file" data-file="encadear.dart">void main() {
+  final digitado = '  pão DE queijo ';
+  final limpo = digitado.trim().toLowerCase().replaceAll(' ', '-');
+  print(limpo);
+}
+</pre>
+
+<pre class="term">$ dart run encadear.dart
+pão-de-queijo
+</pre>
+
+<p><code>'  pão DE queijo '</code> → <code>trim()</code> → <code>'pão DE queijo'</code> → <code>toLowerCase()</code> → <code>'pão de queijo'</code> → <code>replaceAll(' ', '-')</code> → <code>'pão-de-queijo'</code>. Se a fila ficar comprida demais, quebre em várias variáveis com nomes que expliquem cada passo.</p>
+
+<div class="trydart" data-goal="out:pao-de-queijo;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria quer o nome do produto sem acento, para o endereço do site. Acrescente mais um <code>replaceAll</code> na fila para trocar <code>ã</code> por <code>a</code>, até aparecer <code>pao-de-queijo</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final digitado = '  pão DE queijo ';
+  final limpo = digitado.trim().toLowerCase().replaceAll(' ', '-');
+  print(limpo);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final digitado = '  pão DE queijo ';
+  final limpo = digitado.trim().toLowerCase().replaceAll(' ', '-').replaceAll('ã', 'a');
+  print(limpo);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Jeitos</th><th>Qual usar</th></tr>
+<tr><td>Saber se tem a palavra</td><td><code>frase.contains('leite')</code> · <code>frase.indexOf('leite') != -1</code></td><td><code>contains</code>: diz exatamente o que você quer saber</td></tr>
+<tr><td>Saber se está vazio</td><td><code>texto.isEmpty</code> · <code>texto.length == 0</code> · <code>texto == ''</code></td><td><code>isEmpty</code> (é o que o Effective Dart recomenda)</td></tr>
+<tr><td>Os 2 primeiros caracteres</td><td><code>data.substring(0, 2)</code> · <code>data[0] + data[1]</code></td><td><code>substring</code></td></tr>
+<tr><td>Pegar o dia, o mês e o ano de <code>19/10/2026</code></td><td>três <code>substring</code> · <code>data.split('/')</code></td><td><code>split</code>: funciona mesmo se o dia vier com um algarismo só (<code>9/10/2026</code>)</td></tr>
+<tr><td>Montar um texto com variáveis</td><td><code>'Olá, ' + nome + '!'</code> · <code>'Olá, $nome!'</code></td><td>Interpolação (<code>$nome</code>), veja <a href="strings.html">Strings</a>; para montar textos grandes, peça a peça, veja <a href="string-buffer.html">StringBuffer</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou um método que não existe</strong>
+<pre class="file" data-file="err1.dart">void main() {
+  final nome = 'ana';
+  print(nome.upper());
+}
+</pre>
+<pre class="term">$ dart run err1.dart
+err1.dart:3:14: Error: The method 'upper' isn't defined for the type 'String'.
+Try correcting the name to the name of an existing method, or defining a method named 'upper'.
+  print(nome.upper());
+             ^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>err1.dart:3:14: Error:</dt><dd>Erro de compilação na linha 3, coluna 14.</dd>
+  <dt>The method 'upper' isn't defined for the type 'String'.</dt><dd>"O método <code>upper</code> não existe no tipo <code>String</code>." Quem vem do Python escreve <code>upper()</code>; no Dart é <code>toUpperCase()</code>.</dd>
+  <dt>Try correcting the name…</dt><dd>"Tente corrigir o nome para o de um método que existe."</dd>
+</dl>
+<p><strong>Como consertar:</strong> confira o nome exato na <a href="#ref">Referência rápida</a> ou na documentação oficial (<a href="https://api.dart.dev/dart-core/String-class.html">api.dart.dev</a>). Maiúsculas importam: <code>touppercase()</code> também não existe.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses do método</strong>
+<pre class="file" data-file="err2.dart">void main() {
+  final nome = 'ana';
+  print(nome.toUpperCase);
+}
+</pre>
+<pre class="term">$ dart run err2.dart
+Closure: () =&gt; String from Function 'toUpperCase':.
+</pre>
+<p>Não deu erro, mas também não deu <code>ANA</code>. Sem os parênteses, você não <strong>chamou</strong> o método: você pegou o <strong>próprio método</strong>, e o <code>print</code> mostrou uma descrição dele ("uma função que devolve <code>String</code>"; veja <a href="funcoes-valores.html">Funções como Valores</a>). <strong>Como consertar:</strong> <code>nome.toUpperCase()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs parênteses numa propriedade</strong>
+<pre class="file" data-file="err6.dart">void main() {
+  final nome = 'Ana';
+  print(nome.length());
+}
+</pre>
+<pre class="term">$ dart run err6.dart
+err6.dart:3:20: Error: 'length' isn't a function or method and can't be invoked.
+  print(nome.length());
+                   ^^^^^...
+</pre>
+<p>"<code>length</code> não é uma função nem método, e não pode ser chamado." O contrário do caso anterior: <code>length</code> é uma informação, não uma ação. <strong>Como consertar:</strong> <code>nome.length</code>, sem parênteses. (O mesmo vale para <code>isEmpty</code> e <code>isNotEmpty</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou mudar uma letra</strong>
+<pre class="file" data-file="err3.dart">void main() {
+  var nome = 'ana';
+  nome[0] = 'A';
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err3.dart
+err3.dart:3:7: Error: The operator '[]=' isn't defined for the type 'String'.
+Try correcting the operator to an existing operator, or defining a '[]=' operator.
+  nome[0] = 'A';
+      ^
+</pre>
+<p>"O operador <code>[]=</code> não existe para <code>String</code>": dá para <strong>ler</strong> uma letra com <code>nome[0]</code>, mas não <strong>trocar</strong>, porque a <code>String</code> é imutável (seção 7). <strong>Como consertar:</strong> monte um texto novo: <code>nome = nome[0].toUpperCase() + nome.substring(1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Posição fora do texto: <code>RangeError</code></strong>
+<pre class="file" data-file="err5.dart">void main() {
+  final nome = 'Ana';
+  print(nome[3]);
+}
+</pre>
+<pre class="term">$ dart run err5.dart
+Unhandled exception:
+RangeError (index): Invalid value: Not in inclusive range 0..2: 3
+#0      _StringBase.[] (dart:core-patch/string_patch.dart:288:41)
+#1      main (file:///home/ana/err5.dart:3:13)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>Desta vez compilou, e o erro aconteceu <strong>rodando</strong> (código de saída 255).</dd>
+  <dt>RangeError (index): Invalid value: Not in inclusive range 0..2: 3</dt><dd>"Erro de faixa (no índice): valor inválido, fora da faixa de 0 a 2: 3". <code>Ana</code> tem 3 letras, nas posições 0, 1 e 2. A posição 3 não existe.</dd>
+  <dt>#1 main (file:///home/ana/err5.dart:3:13)</dt><dd>A linha sua: linha 3, o <code>nome[3]</code>.</dd>
+</dl>
+<p>Com <code>substring</code> acontece igual. Em <code>'19/10'.substring(3, 8)</code> (o texto só tem 5 caracteres):</p>
+<pre class="term">$ dart run err4.dart
+Unhandled exception:
+RangeError (end): Invalid value: Not in inclusive range 3..5: 8
+#0      RangeError.checkValidRange (dart:core/errors.dart:392:9)
+#1      _StringBase.substring (dart:core-patch/string_patch.dart:437:27)
+#2      main (file:///home/ana/err4.dart:3:14)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"O <strong>fim</strong> (<code>end</code>) tem de estar entre 3 e 5, e veio 8." <strong>Como consertar:</strong> lembre que a última posição é <code>length - 1</code>, e que o <code>fim</code> do <code>substring</code> pode ir no máximo até <code>length</code>. Se o tamanho do texto pode variar (algo digitado), teste o <code>length</code> antes de cortar.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou o método e esqueceu de guardar</strong>
+<p>O <code>nome.toUpperCase();</code> sozinho numa linha não muda nada (seção 7). O Dart não acusa erro. <strong>Como consertar:</strong> <code>nome = nome.toUpperCase();</code>, ou guarde numa variável nova.</p>
+</div>
+
+<hr>
+
+<h2 id="ref">Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Devolve</th><th>Exemplo (no lab)</th></tr>
+<tr><td><code>t.length</code></td><td><code>int</code>: quantos caracteres</td><td><code>'Ana Souza'.length</code> → <code>9</code></td></tr>
+<tr><td><code>t.isEmpty</code> / <code>t.isNotEmpty</code></td><td><code>bool</code></td><td><code>''.isEmpty</code> → <code>true</code></td></tr>
+<tr><td><code>t[i]</code></td><td>O caractere da posição <code>i</code> (começa em 0)</td><td><code>'Ana'[0]</code> → <code>A</code></td></tr>
+<tr><td><code>t.toUpperCase()</code> / <code>t.toLowerCase()</code></td><td>Texto em maiúsculas / minúsculas</td><td><code>'café'.toUpperCase()</code> → <code>CAFÉ</code></td></tr>
+<tr><td><code>t.trim()</code> (<code>trimLeft</code>, <code>trimRight</code>)</td><td>Texto sem espaços nas pontas</td><td><code>'  oi '.trim()</code> → <code>oi</code></td></tr>
+<tr><td><code>t.contains(x)</code></td><td><code>bool</code>: tem <code>x</code>?</td><td><code>'pão, leite'.contains('leite')</code> → <code>true</code></td></tr>
+<tr><td><code>t.startsWith(x)</code> / <code>t.endsWith(x)</code></td><td><code>bool</code></td><td><code>'Comprar pão'.startsWith('Comprar')</code> → <code>true</code></td></tr>
+<tr><td><code>t.indexOf(x)</code></td><td>Posição de <code>x</code>, ou <code>-1</code></td><td><code>'Comprar pão'.indexOf('pão')</code> → <code>8</code></td></tr>
+<tr><td><code>t.substring(a, b)</code></td><td>Pedaço de <code>a</code> até antes de <code>b</code></td><td><code>'19/10/2026'.substring(3, 5)</code> → <code>10</code></td></tr>
+<tr><td><code>t.replaceAll(x, y)</code> / <code>t.replaceFirst(x, y)</code></td><td>Texto com <code>x</code> trocado por <code>y</code></td><td><code>'12,90'.replaceAll(',', '.')</code> → <code>12.90</code></td></tr>
+<tr><td><code>t.split(sep)</code></td><td><code>List&lt;String&gt;</code></td><td><code>'a,b'.split(',')</code> → <code>[a, b]</code></td></tr>
+<tr><td><code>lista.join(sep)</code></td><td>Um texto só</td><td><code>['a', 'b'].join(' - ')</code> → <code>a - b</code></td></tr>
+<tr><td><code>t.padLeft(n, c)</code> / <code>t.padRight(n, c)</code></td><td>Texto completado até <code>n</code> caracteres</td><td><code>'7'.padLeft(3, '0')</code> → <code>007</code></td></tr>
+<tr><td><code>t * n</code></td><td>Texto repetido</td><td><code>'ha' * 3</code> → <code>hahaha</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The method '…' isn't defined for the type 'String'.</code></td><td>Nome de método errado (<code>upper</code>, <code>touppercase</code>…)</td></tr>
+<tr><td><code>Closure: () =&gt; String from Function '…'</code></td><td>Faltaram os parênteses: <code>toUpperCase()</code></td></tr>
+<tr><td><code>'length' isn't a function or method and can't be invoked.</code></td><td>Parênteses numa propriedade: é <code>length</code>, sem <code>()</code></td></tr>
+<tr><td><code>The operator '[]=' isn't defined for the type 'String'.</code></td><td>Tentou trocar uma letra: monte um texto novo</td></tr>
+<tr><td><code>RangeError (index)</code> / <code>RangeError (end)</code></td><td>Posição além do fim do texto</td></tr>
+<tr><td>O texto "não mudou"</td><td>Chamou o método e não guardou o resultado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar o nome aparado e em minúsculas:</p>
+<div class="ex-code">final nome = '  BIA  ';<br>print(nome.<input data-answer="trim" aria-label="método que tira os espaços">().<input data-answer="toLowerCase" aria-label="método das minúsculas">());</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual o resultado?</h3>
+<p>O que <code>'padaria'.substring(0, 3)</code> devolve?</p>
+<div class="ex-code"><input data-answer="pad" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>3. E este?</h3>
+<p>O que <code>'banana'.indexOf('n')</code> devolve? (Responda com um número.)</p>
+<div class="ex-code"><input data-answer="2" aria-label="posição"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. <code>var t = 'oi'; t.toUpperCase(); print(t);</code> mostra:</p>
+<label><input type="radio" name="q4"> <code>OI</code></label>
+<label><input type="radio" name="q4"> Um erro de compilação</label>
+<label><input type="radio" name="q4"> <code>oi</code>: o resultado não foi guardado</label>
+<label><input type="radio" name="q4"> <code>Closure: …</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que <code>'arroz;feijão;café'.split(';')</code> devolve?</p>
+<label><input type="radio" name="q5"> O texto <code>arroz feijão café</code></label>
+<label><input type="radio" name="q5"> Uma lista: <code>[arroz, feijão, café]</code></label>
+<label><input type="radio" name="q5"> O número 3</label>
+<label><input type="radio" name="q5"> <code>-1</code></label>
+</div>
+
+<h3>Missão final: as iniciais</h3>
+
+<div class="trydart" data-goal="out:Iniciais: A.S.;;src:split">
+<p class="try-task"><strong>Missão:</strong> mostre as iniciais do nome da Ana, <code>Iniciais: A.S.</code>. Divida o nome em partes com <code>split(' ')</code> e junte a primeira letra de cada parte (<code>partes[0][0]</code> e <code>partes[1][0]</code>), cada uma seguida de ponto.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final nome = 'ana souza';
+  // divida o nome em partes e monte as iniciais
+  final iniciais = '';
+  print('Iniciais: $iniciais');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final nome = 'ana souza';
+  final partes = nome.toUpperCase().split(' ');
+  final iniciais = '${partes[0][0]}.${partes[1][0]}.';
+  print('Iniciais: $iniciais');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Método = ação do texto, com parênteses (<code>t.trim()</code>); propriedade = informação, sem parênteses (<code>t.length</code>).</li>
+  <li>As posições começam em 0; a última é <code>length - 1</code>. Passar dela dá <code>RangeError</code>.</li>
+  <li><code>toUpperCase</code>/<code>toLowerCase</code>, <code>trim</code>, <code>contains</code>, <code>indexOf</code>, <code>substring</code>, <code>replaceAll</code>, <code>split</code> e <code>padLeft</code> resolvem a maior parte do trabalho com textos.</li>
+  <li>A <code>String</code> é imutável: todo método devolve um texto <strong>novo</strong>. Guarde o resultado.</li>
+  <li>Dá para encadear: <code>t.trim().toLowerCase().replaceAll(' ', '-')</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
