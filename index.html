@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tutorial Dart — aprenda a programar do zero, como numa escola | Guia Dart</title>
-<meta name="description" content="Curso de Dart 3 do zero ao avançado, em português, para quem nunca programou: print, variáveis, null safety, if, for, listas, mapas, funções, classes, records, patterns, async e await, pacotes e testes, com um editor que roda Dart no seu navegador, missões, projetos e exercícios. Saídas e mensagens de erro colhidas no Dart SDK oficial.">
+<meta name="description" content="Curso de Dart do zero ao avançado, em português, para quem nunca programou: print, variáveis, null safety, if, for, listas, mapas, funções, classes, records e patterns, exceções, async/await, arquivos e JSON, com um editor que roda Dart no seu navegador, missões, projetos e exercícios. Saídas e mensagens de erro conferidas no Dart SDK 3.13.5 de verdade.">
 <link rel="stylesheet" href="assets/style.css">
 <script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
@@ -16,28 +16,28 @@
 
 <div class="hero">
 <h1>Tutorial Dart</h1>
-<p>Aprenda a <strong>programar do zero</strong> com Dart, a linguagem do Flutter, como numa escola: cada comando é explicado pedaço por pedaço, você vê o que o programa responde de verdade e pratica num editor aqui mesmo na página. Você não precisa instalar nada para começar, em qualquer sistema: Windows, macOS, Linux ou até um Chromebook.</p>
+<p>Aprenda a <strong>programar do zero</strong> com Dart, como numa escola. Cada comando é explicado pedaço por pedaço, você vê o que o programa responde de verdade e pratica num editor aqui mesmo na página. O Dart é a linguagem do <strong>Flutter</strong>, usado para criar aplicativos de celular, e também roda no terminal, em servidores e na web. Você não precisa instalar nada para começar, em qualquer sistema: Windows, macOS, Linux ou até um Chromebook.</p>
 <a class="btn btn-lg" href="introducao.html">Comece pelo Nível 1 &#10095;</a>
 </div>
 
 <div class="pager"></div>
 
 <h2>Experimente agora</h2>
-<p>A caixa abaixo é o editor <strong>Experimente</strong> do guia. Em cima fica o programa; clique em <strong>▶ Rodar</strong> e o que ele escreve aparece embaixo, num terminal. Na primeira vez, o editor baixa o Dart do guia (uns 180 KB, menos que uma foto); depois, é na hora. Pode mexer à vontade: nada que você fizer aqui estraga o guia.</p>
+<p>A caixa abaixo é o editor <strong>Experimente</strong> do guia. Em cima fica o programa; clique em <strong>▶ Rodar</strong> e o que ele escreve aparece embaixo, num terminal. Na primeira vez, o editor é baixado (uns 180 KB, menos que uma foto); depois, é na hora. Pode mexer à vontade: nada que você fizer aqui estraga o guia.</p>
 
 <div class="trydart" data-goal="out:Comprar: manteiga;;out:Total de itens: 4">
 <p class="try-task"><strong>Missão:</strong> rode o programa como está e veja a lista de compras da Ana. Depois, ela lembrou que acabou a manteiga: acrescente <code>'manteiga'</code> na lista da segunda linha (depois de <code>'café'</code>, com uma vírgula antes) e rode de novo.</p>
 <pre class="script" data-file="main.dart">void main() {
-  var compras = ['pão', 'leite', 'café'];
-  for (var item in compras) {
+  final compras = ['pão', 'leite', 'café'];
+  for (final item in compras) {
     print('Comprar: $item');
   }
   print('Total de itens: ${compras.length}');
 }
 </pre>
 <pre class="solucao" data-file="main.dart">void main() {
-  var compras = ['pão', 'leite', 'café', 'manteiga'];
-  for (var item in compras) {
+  final compras = ['pão', 'leite', 'café', 'manteiga'];
+  for (final item in compras) {
     print('Comprar: $item');
   }
   print('Total de itens: ${compras.length}');
@@ -46,8 +46,7 @@
 </div>
 
 <p>O que aconteceu: você escreveu um <strong>programa</strong>, uma lista de instruções que o computador segue na ordem. Lido em voz alta, ele diz: "a lista de compras é pão, leite, café e manteiga; <strong>para cada</strong> item da lista, escreva 'Comprar: ' e o item; no fim, escreva quantos itens a lista tem". O Dart seguiu as instruções e escreveu uma linha por item. Você não precisou mudar o resto do programa: ele se adaptou sozinho à lista maior. Essa língua de instruções é o <strong>Dart</strong>, e é isso que este guia ensina.</p>
-
-<p>Se você esqueceu de fechar as aspas (<code>'manteiga]</code>), viu uma mensagem em vermelho, em inglês: <code>main.dart:2:42: Error: String starting with ' must end with '.</code> ("o texto que começa com <code>'</code> tem de terminar com <code>'</code>", na linha 2, coluna 42). E se esqueceu a <strong>vírgula</strong>? Aí não houve erro nenhum, e sim uma surpresa: <code>Comprar: cafémanteiga</code> e <code>Total de itens: 3</code>. Em Dart, dois textos colados um no outro viram um texto só. O computador não adivinha o que você quis dizer: ele faz exatamente o que está escrito. Errar e ler o que ele responde é metade do aprendizado: todas as aulas mostram os erros mais comuns, com a mensagem real e o jeito de consertar.</p>
+<p>Se você esqueceu de fechar as aspas de <code>'manteiga</code>, viu uma mensagem em vermelho, em inglês: <code>main.dart:2:44: Error: String starting with ' must end with '.</code> ("o texto que começa com ' precisa terminar com '"), apontando a linha 2, coluna 44. E se esqueceu a <strong>vírgula</strong>? Aí não deu erro nenhum, mas apareceu <code>Comprar: cafémanteiga</code> e a lista continuou com 3 itens: no Dart, dois textos colados viram um texto só. O Dart não adivinha o que você quis dizer: ele faz exatamente o que está escrito. Errar e ler o que o computador responde é metade do aprendizado: todas as aulas mostram os erros mais comuns, com a mensagem real e o jeito de consertar.</p>
 
 <h3>Um programa que conversa</h3>
 <p>Programas também podem <strong>perguntar</strong>. Rode a caixa, digite o seu nome no terminal dela (no campo que aparece depois da pergunta) e tecle <kbd>Enter</kbd>:</p>
@@ -57,7 +56,7 @@
 
 void main() {
   stdout.write('Qual é o seu nome? ');
-  var nome = stdin.readLineSync();
+  final nome = stdin.readLineSync();
   print('Olá, $nome! Bem-vinda ao Dart.');
 }
 </pre>
@@ -66,18 +65,17 @@ void main() {
 <hr>
 
 <h2>O que é este guia</h2>
-<p>Um programa é uma receita que o computador segue. O <strong>Dart</strong> é uma língua para escrever essas receitas, criada pelo Google e apresentada em 2011. Ela é a linguagem do <strong>Flutter</strong>, a ferramenta do Google para fazer aplicativos de celular (Android e iPhone), de computador e da web com um código só. Mas o Dart também roda sozinho, em programas de terminal, e é assim que este guia o ensina: sem telas, só você, o código e o que ele responde. A aula <a href="introducao.html">O que é Dart</a> conta essa história.</p>
-
+<p>Um programa é uma receita que o computador segue. O <strong>Dart</strong> é uma língua para escrever essas receitas, criada pelo Google e lançada em 2011. Ela ficou famosa por ser a língua do <strong>Flutter</strong>, a ferramenta que cria aplicativos para Android, iPhone, web e computador com um código só. A aula <a href="introducao.html">O que é Dart</a> conta essa história.</p>
 <p>Quem aprende Dart consegue:</p>
 <ul>
   <li>fazer o computador repetir tarefas e tomar decisões: "se a nota for 7 ou mais, aprovada; senão, recuperação";</li>
-  <li>guardar e organizar informações em <strong>listas</strong>, <strong>conjuntos</strong> e <strong>mapas</strong>: o estoque da lojinha, a agenda de contatos;</li>
-  <li>escrever programas que não quebram por causa de um valor "vazio", graças ao <strong>null safety</strong>, a marca registrada do Dart;</li>
-  <li>organizar programas grandes em funções, <strong>classes</strong> e pacotes, ler e gravar arquivos e JSON, e esperar respostas lentas com <code>async</code> e <code>await</code>;</li>
-  <li>dar o próximo passo para o <strong>Flutter</strong> e criar os seus próprios aplicativos (aula <a href="flutter.html">Dart e Flutter</a>).</li>
+  <li>guardar e organizar informações em <strong>listas</strong>, <strong>conjuntos</strong> e <strong>mapas</strong>: o estoque da lojinha, as notas da turma;</li>
+  <li>escrever programas seguros contra o erro mais comum de todos, o valor "vazio" (<code>null</code>), com o <strong>null safety</strong>;</li>
+  <li>organizar programas grandes em <strong>classes</strong>, com herança, interfaces, mixins e enums;</li>
+  <li>esperar por coisas demoradas (um arquivo, a internet) sem travar, com <code>async</code> e <code>await</code>;</li>
+  <li>ler e gravar arquivos e JSON e, depois, partir para o Flutter.</li>
 </ul>
-
-<p>O guia é para quem <strong>nunca programou</strong>. Ele começa do zero absoluto (o que é um programa? como se roda um?) e vai até classes, genéricos, records, patterns, código assíncrono, pacotes do pub.dev e testes. Cada aula ensina <strong>um assunto só</strong>, com calma. O Dart das aulas é o <strong>Dart 3</strong>; o que chegou numa versão recente ganha um selo com o número da versão.</p>
+<p>O guia é para quem <strong>nunca programou</strong>. Ele começa do zero absoluto (o que é um programa? como se roda um?) e vai até records, patterns, genéricos, código assíncrono e testes. Cada aula ensina <strong>um assunto só</strong>, com calma. O Dart das aulas é o <strong>Dart 3</strong> (a versão 3.13.5); o que é recente aparece marcado com a versão em que chegou.</p>
 
 <hr>
 
@@ -89,7 +87,7 @@ void main() {
   <li><strong>A saída real.</strong> Depois de cada exemplo, o que o Dart respondeu de verdade, no terminal. Nenhuma saída foi inventada.</li>
   <li><strong>Experimente.</strong> Pelo menos duas caixas por aula para você mudar o código e rodar, muitas com uma <strong>missão</strong> que confere sozinha se você acertou.</li>
   <li><strong>Várias formas de fazer.</strong> Quase sempre há mais de um jeito de escrever a mesma coisa, e uma tabela "qual usar" mostra quando escolher cada um.</li>
-  <li><strong>Quando dá errado.</strong> O código com erro e a mensagem real do Dart (<code>main.dart:3:9: Error: …</code>, ou o <code>Unhandled exception:</code> com o rastro <code>#0 …</code>), traduzida e explicada linha por linha.</li>
+  <li><strong>Quando dá errado.</strong> O código com erro e a mensagem real do Dart (<code>main.dart:3:9: Error: …</code> ou <code>Unhandled exception:</code>), traduzida e explicada linha por linha.</li>
   <li><strong>Exercícios e resumo.</strong> Perguntas com correção na hora e uma lista curta do que levar da aula.</li>
 </ol>
 
@@ -97,8 +95,8 @@ void main() {
 <p>Veja como as aulas desmontam um programa. Primeiro o código, num arquivo chamado <code>compras.dart</code>:</p>
 
 <pre class="file" data-file="compras.dart">void main() {
-  var compras = ['pão', 'leite', 'café'];
-  for (var item in compras) {
+  final compras = ['pão', 'leite', 'café'];
+  for (final item in compras) {
     print('Comprar: $item');
   }
   print('Total de itens: ${compras.length}');
@@ -106,18 +104,17 @@ void main() {
 </pre>
 
 <p>Agora cada parte:</p>
-
 <dl class="anatomy">
-  <dt>void main() { … }</dt><dd>A função <strong>principal</strong>: todo programa Dart começa a rodar por ela. As chaves <code>{ }</code> marcam onde ela começa e termina (aula <a href="primeiro-programa.html">Seu Primeiro Programa</a>).</dd>
-  <dt>var compras = ['pão', 'leite', 'café'];</dt><dd>Uma <strong>variável</strong>: um nome (<code>compras</code>) que guarda um valor. Aqui o valor é uma <strong>lista</strong> com três textos, entre colchetes. O <code>;</code> encerra a instrução (aulas <a href="variaveis.html">Variáveis</a>, <a href="list.html">Listas</a> e <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>).</dd>
-  <dt>for (var item in compras) {</dt><dd>"Para cada item de compras, faça": repete o bloco de baixo uma vez para cada elemento da lista (aula <a href="for-in.html">for-in</a>).</dd>
+  <dt>void main() { … }</dt><dd>A <strong>porta de entrada</strong>: todo programa Dart começa pela função <code>main</code> ("principal"). O que fica entre as chaves é o que o programa faz (aula <a href="primeiro-programa.html">Seu Primeiro Programa</a>).</dd>
+  <dt>final compras = ['pão', 'leite', 'café'];</dt><dd>Uma <strong>variável</strong>: um nome (<code>compras</code>) que guarda um valor. O <code>final</code> diz que o nome não vai apontar para outra coisa depois. Aqui o valor é uma <strong>lista</strong> com três textos, entre colchetes. O <code>;</code> fecha a instrução (aulas <a href="variaveis.html">Variáveis</a>, <a href="final-const.html">final e const</a> e <a href="list.html">Listas</a>).</dd>
+  <dt>for (final item in compras) {</dt><dd>"Para cada item de compras, faça": repete o bloco de baixo uma vez para cada elemento da lista (aula <a href="for-in.html">for-in</a>).</dd>
   <dt>  print('Comprar: $item');</dt><dd>O bloco que se repete. O <code>$item</code> põe o valor do item dentro do texto (aula <a href="interpolacao.html">Interpolação</a>). Os 2 espaços no começo são para você enxergar que a linha está "dentro" do <code>for</code>.</dd>
   <dt>}</dt><dd>Fecha o bloco do <code>for</code>.</dd>
-  <dt>print('Total de itens: ${compras.length}');</dt><dd>Depois do <code>}</code>: roda uma vez só. O <code>compras.length</code> é o tamanho da lista; o <code>${…}</code> põe o resultado dentro do texto.</dd>
+  <dt>print('Total de itens: ${compras.length}');</dt><dd>Depois do <code>}</code>: roda uma vez só. O <code>length</code> é o tamanho da lista, e o <code>${…}</code> põe o resultado de uma conta dentro do texto.</dd>
 </dl>
 
 <h3>Exemplo: o terminal</h3>
-<p>Além do editor, as aulas mostram o <strong>terminal</strong> da máquina das aulas: um computador chamado <code>notebook</code>, da usuária <code>ana</code>, com o <strong>Dart SDK oficial</strong> instalado. Lá, o programa fica no arquivo <code>compras.dart</code>, e quem o roda é o comando <code>dart run</code>:</p>
+<p>Além do editor, as aulas mostram o <strong>terminal</strong> da máquina das aulas: um computador chamado <code>notebook</code>, da usuária <code>ana</code>. Lá, o programa fica no arquivo <code>compras.dart</code>, e quem o roda é o comando <code>dart run</code>:</p>
 
 <pre class="term">$ dart run compras.dart
 Comprar: pão
@@ -126,7 +123,7 @@ Comprar: café
 Total de itens: 3
 </pre>
 
-<p>E o programa que conversa (salvo como <code>conversa.dart</code>), com a Ana digitando o nome dela:</p>
+<p>E o programa que conversa, com a Ana digitando o nome dela:</p>
 
 <pre class="term">$ dart run conversa.dart
 Qual é o seu nome? Ana
@@ -139,16 +136,17 @@ Olá, Ana! Bem-vinda ao Dart.
 
 <h2>Escolha sua trilha</h2>
 <p>O guia tem três níveis, uma seção de projetos e uma de referência. Os níveis foram pensados para serem feitos em ordem: cada aula usa o que as anteriores ensinaram.</p>
+
 <div class="trilhas">
   <div class="trilha n1">
     <h3>Nível 1 · Iniciante</h3>
     <p>Dart do zero.</p>
     <ul>
       <li><a href="introducao.html">Começando</a>: o que é Dart, instalar, rodar um programa, o editor do guia, o primeiro programa, sintaxe e comentários</li>
-      <li><a href="variaveis.html">Variáveis e tipos</a>: <code>var</code>, <code>final</code> e <code>const</code>, números, textos, interpolação, <code>bool</code> e conversões</li>
-      <li><a href="null-safety.html">Null safety</a>: <code>String?</code>, <code>?.</code>, <code>??</code>, <code>late</code> e o <code>!</code></li>
-      <li><a href="operadores-aritmeticos.html">Operadores</a>: contas, comparações, lógica e tipos</li>
-      <li><a href="if-else.html">Decisões</a> e <a href="for.html">repetições</a>: <code>if</code>, <code>switch</code>, <code>for</code>, <code>while</code>, e <a href="stdin.html">lendo o teclado</a></li>
+      <li><a href="variaveis.html">Variáveis e tipos</a>: <code>var</code>, <code>final</code> e <code>const</code>, <code>int</code> e <code>double</code>, textos, interpolação, <code>bool</code> e conversões</li>
+      <li><a href="null-safety.html">Null safety</a>: tipos anuláveis (<code>String?</code>), <code>?.</code>, <code>??</code>, <code>late</code> e o <code>!</code></li>
+      <li><a href="operadores-aritmeticos.html">Operadores</a> e <a href="if-else.html">decisões e repetições</a>: <code>if</code>, ternário, <code>switch</code>, <code>for</code>, <code>while</code></li>
+      <li><a href="stdin.html">Entrada e saída</a>: o teclado, os métodos de texto e o <code>StringBuffer</code></li>
     </ul>
     <a class="btn" href="introducao.html">Começar &#10095;</a>
   </div>
@@ -157,8 +155,8 @@ Olá, Ana! Bem-vinda ao Dart.
     <p>Funções, coleções e classes.</p>
     <ul>
       <li><a href="funcoes.html">Funções</a>: parâmetros posicionais, nomeados e opcionais, <code>=&gt;</code>, funções anônimas, closures e recursão</li>
-      <li><a href="list.html">Coleções</a>: <code>List</code>, <code>Set</code>, <code>Map</code>, <code>map</code>/<code>where</code>, records e patterns</li>
-      <li><a href="classes.html">Classes e objetos</a>: construtores, <code>get</code>/<code>set</code>, herança, interfaces, mixins, enums e extensões</li>
+      <li><a href="list.html">Coleções</a>: <code>List</code>, <code>Set</code>, <code>Map</code>, <code>map</code>/<code>where</code>, spread, records e patterns</li>
+      <li><a href="classes.html">Classes e objetos</a>: construtores, <code>get</code>/<code>set</code>, herança, interfaces, mixins, enums, <code>sealed</code> e extensões</li>
       <li><a href="erros.html">Erros</a>: ler uma mensagem, <code>try</code>/<code>catch</code>, <code>throw</code> e exceções próprias</li>
     </ul>
     <a class="btn" href="funcoes.html">Começar &#10095;</a>
@@ -167,10 +165,10 @@ Olá, Ana! Bem-vinda ao Dart.
     <h3>Nível 3 · Avançado</h3>
     <p>Assíncrono, pacotes e o ecossistema.</p>
     <ul>
-      <li><a href="genericos.html">Genéricos</a>: <code>List&lt;T&gt;</code> e as suas próprias classes genéricas</li>
-      <li><a href="future.html">Assíncrono</a>: <code>Future</code>, <code>async</code>/<code>await</code>, <code>Stream</code> e isolates</li>
-      <li><a href="arquivos.html">Arquivos e projetos</a>: <code>dart:io</code>, JSON, <code>dart create</code>, pacotes do pub.dev, testes e <code>dart compile</code></li>
-      <li><a href="estilo.html">Dart no mundo</a>: estilo de código, Flutter, Dart na web e as versões</li>
+      <li><a href="genericos.html">Genéricos</a>: <code>List&lt;T&gt;</code>, classes e funções genéricas</li>
+      <li><a href="future.html">Assíncrono</a>: <code>Future</code>, <code>async</code>/<code>await</code>, <code>Stream</code>, geradores e isolates</li>
+      <li><a href="arquivos.html">Arquivos e projetos</a>: <code>dart:io</code>, JSON, argumentos, <code>dart create</code>, pacotes, imports, testes e <code>dart compile</code></li>
+      <li><a href="estilo.html">Dart no mundo</a>: estilo, Flutter, Dart na web e as versões do Dart</li>
     </ul>
     <a class="btn" href="genericos.html">Começar &#10095;</a>
   </div>
@@ -182,15 +180,15 @@ Olá, Ana! Bem-vinda ao Dart.
       <li><a href="projeto-tarefas.html">Lista de tarefas</a> e <a href="projeto-notas.html">notas da turma</a></li>
       <li><a href="projeto-banco.html">Conta bancária (classes)</a> e <a href="projeto-estoque.html">estoque da lojinha (JSON)</a></li>
     </ul>
-    <a class="btn" href="projeto-adivinhacao.html">Ver projetos &#10095;</a>
+    <a class="btn" href="projeto-adivinhacao.html">Começar &#10095;</a>
   </div>
   <div class="trilha ref">
     <h3>Referência</h3>
-    <p>Consulta rápida para quando você já sabe o que procura.</p>
+    <p>Consulta rápida.</p>
     <ul>
       <li><a href="ref-palavras-reservadas.html">Palavras reservadas</a> e <a href="ref-operadores.html">operadores</a></li>
-      <li>Métodos de <a href="ref-string.html">String</a> e de <a href="ref-colecoes.html">List, Set e Map</a></li>
-      <li><a href="ref-cli.html">Comandos <code>dart</code></a> e <a href="ref-erros.html">mensagens de erro comuns</a>, traduzidas</li>
+      <li><a href="ref-string.html">Métodos de String</a> e <a href="ref-colecoes.html">de List, Set e Map</a></li>
+      <li><a href="ref-cli.html">Comandos <code>dart</code></a> e <a href="ref-erros.html">mensagens de erro comuns</a></li>
     </ul>
     <a class="btn" href="ref-palavras-reservadas.html">Consultar &#10095;</a>
   </div>
@@ -204,12 +202,12 @@ Olá, Ana! Bem-vinda ao Dart.
   <li><strong>Leia com calma.</strong> Leia a ideia, a anatomia e a saída. Não pule a parte "Quando dá errado": quem entende a mensagem de erro conserta o problema em segundos.</li>
   <li><strong>Mexa nos exemplos.</strong> Em toda caixa Experimente, mude um número, troque um texto, apague um pedaço de propósito e veja o que o Dart responde. Não tem como estragar nada: cada Rodar começa do zero.</li>
   <li><strong>Faça as missões.</strong> As caixas com <strong>Missão</strong> conferem sozinhas se você acertou. Tente de verdade antes de abrir a solução; se abrir, digite a solução você mesmo em vez de só olhar.</li>
-  <li><strong>Repita no seu computador.</strong> Quando chegar à aula <a href="instalar.html">Instalar o Dart</a>, instale-o e refaça os programas no terminal. Algumas coisas (criar projetos, baixar pacotes do pub.dev, rodar testes, compilar um executável, guardar arquivos de verdade) só existem lá.</li>
+  <li><strong>Repita no seu computador.</strong> Quando chegar à aula <a href="instalar.html">Instalar o Dart</a>, instale-o e refaça os programas no terminal. Algumas coisas (pacotes do pub.dev, o Flutter, guardar arquivos de verdade) só existem lá.</li>
 </ol>
 
 <div class="tip">
 <strong>A regra de ouro</strong>
-<p>Ler não basta: digite cada programa. Copiar e colar ensina pouco; digitar faz você reparar em cada aspa, cada <code>;</code> e cada chave. Comece pela aula <a href="introducao.html">O que é Dart</a> e, antes de ir longe, dê uma olhada em <a href="simulador.html">O Editor do Guia</a>.</p>
+<p>Ler não basta: digite cada programa. Copiar e colar ensina pouco; digitar faz você reparar em cada aspa, cada chave e cada <code>;</code>. Comece pela aula <a href="introducao.html">O que é Dart</a> e, antes de ir longe, dê uma olhada em <a href="simulador.html">O Editor do Guia</a>.</p>
 </div>
 
 <hr>
@@ -225,15 +223,14 @@ Olá, Ana! Bem-vinda ao Dart.
 <tr><td><code>ana@notebook:~$</code></td><td>O prompt do terminal: usuária <code>ana</code>, no computador <code>notebook</code>, na pasta pessoal (<code>~</code>). O que vem depois é o comando digitado.</td></tr>
 <tr><td>Linhas sem prompt</td><td>A resposta do computador.</td></tr>
 <tr><td><span class="t-a">← etiqueta</span></td><td>Uma explicação do guia sobre aquela linha. Não aparece no terminal real.</td></tr>
-<tr><td><span class="versao">Dart 3.8</span></td><td>Algo que só existe a partir daquela versão do Dart (a lista está em <a href="novidades.html">Novidades do Dart</a>).</td></tr>
+<tr><td><span class="versao">Dart 3.0</span></td><td>Algo que só existe a partir daquela versão do Dart (a lista está em <a href="novidades.html">Novidades do Dart</a>).</td></tr>
 </tbody>
 </table>
 </div>
 
 <div class="note">
 <strong>Versão de referência: Dart 3</strong>
-<p>O guia ensina o <strong>Dart 3</strong>. Todas as saídas de terminal foram colhidas no <strong>Dart SDK 3.13.5</strong> oficial (o mesmo que você baixa em dart.dev), num Ubuntu 26.04 em português do Brasil. As mensagens do Dart saem em inglês, exatamente como ele as escreve, e as aulas as explicam em português.</p>
-<p>O editor das caixas Experimente é outra coisa: o <strong>Dart do guia</strong>, um tradutor de Dart para JavaScript feito para estas aulas, que roda no seu navegador e imita o <code>dart run</code>. Ele dá as mesmas respostas nos programas das aulas, mas não é o SDK oficial: às vezes mostra menos mensagens de erro de uma vez, e não tem pacotes nem outros programas. A aula <a href="simulador.html">O Editor do Guia</a> conta as diferenças.</p>
+<p>O guia ensina o <strong>Dart 3</strong>, com null safety, records, patterns e modificadores de classe. As saídas de terminal foram colhidas no <strong>Dart SDK 3.13.5</strong> oficial, num Ubuntu 26.04 em português do Brasil. As mensagens de erro saem em inglês, exatamente como o Dart as escreve, e as aulas as explicam em português. O editor das caixas Experimente é um tradutor de Dart feito para o guia, que imita esse mesmo Dart 3.13.5. O que ele faz diferente está em <a href="simulador.html">O Editor do Guia</a>.</p>
 </div>
 
 <div class="pager"></div>

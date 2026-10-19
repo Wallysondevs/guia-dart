@@ -86,7 +86,7 @@
       else if (tripla && src[i] === "\r" && src[i + 1] === "\n") i += 2;
       var partes = [], buf = "";
       while (true) {
-        if (i >= n || (!tripla && src[i] === "\n")) err("String starting with " + fecho + " must end with " + fecho + ".", p0, 1);
+        if (i >= n || (!tripla && src[i] === "\n")) { var fl = src.indexOf("\n", p0); err("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0)); }
         if (src.startsWith(fecho, i)) { i += fecho.length; break; }
         var ch = src[i];
         if (ch === "\\" && !crua) {
