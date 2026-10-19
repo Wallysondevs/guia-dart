@@ -34,7 +34,12 @@
 
     function lc(p) { return ctx.linhaCol ? ctx.linhaCol(p) : { l: 0, c: 0 }; }
     function fotoPilha() { return pilha.map(function (f) { return { n: f.n, p: f.p, async: f.async }; }); }
-    function formatarPilha(frames, nativos, async) {
+    var BASES_PILHA = {
+      main: ["_delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)", "_RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)"],
+      delayed: ["new Future.delayed.<anonymous closure> (dart:async/future.dart:448:42)", "Timer._createTimer.<anonymous closure> (dart:async-patch/timer_patch.dart:18:15)", "_Timer._runTimers (dart:isolate-patch/timer_impl.dart:423:19)", "_Timer._handleMessage (dart:isolate-patch/timer_impl.dart:454:5)", "_RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)"],
+      timer: ["Timer._createTimer.<anonymous closure> (dart:async-patch/timer_patch.dart:18:15)", "_Timer._runTimers (dart:isolate-patch/timer_impl.dart:423:19)", "_Timer._handleMessage (dart:isolate-patch/timer_impl.dart:454:5)", "_RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)"],
+    };
+    function formatarPilha(frames, nativos, async, base) {
       var linhas = [], k = 0;
       (nativos || []).forEach(function (n) { linhas.push(pad("#" + (k++)) + n); });
       for (var i = frames.length - 1; i >= 0; i--) {
@@ -43,18 +48,18 @@
         if (f.async) { linhas.push("<asynchronous suspension>"); }
       }
       if (!async && !frames.some(function (f) { return f.async; })) {
-        linhas.push(pad("#" + (k++)) + "_delayEntrypointInvocation.<anonymous closure> (dart:isolate-patch/isolate_patch.dart:313:19)");
-        linhas.push(pad("#" + (k++)) + "_RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)");
+        (BASES_PILHA[base || "main"] || BASES_PILHA.main).forEach(function (l) { linhas.push(pad("#" + (k++)) + l); });
       }
       return linhas.join("\n") + "\n";
     }
     function pad(s) { while (s.length < 8) s += " "; return s; }
 
     /* ---------- exceções ---------- */
+    var baseAtual = "main";
     function Lancado(valor, nativos, assincrono) {
-      this.valor = valor; this.frames = fotoPilha(); this.nativos = nativos || []; this.assincrono = !!assincrono;
+      this.valor = valor; this.frames = fotoPilha(); this.nativos = nativos || []; this.assincrono = !!assincrono; this.base = baseAtual;
     }
-    Lancado.prototype.pilha = function () { var t = this; return new DStackTrace(formatarPilha(t.frames, t.nativos)); };
+    Lancado.prototype.pilha = function () { var t = this; return new DStackTrace(formatarPilha(t.frames, t.nativos, false, t.base)); };
     R.Lancado = Lancado;
     R.lancar = function (v, p) {
       if (v === null || v === undefined) { topo().p = p; throw new Lancado(erroTipo("Throw of null.")); }
@@ -1213,13 +1218,13 @@
     function erroNaoTratado(e) { if (e instanceof Sinal) { if (ctx.aoSinal) ctx.aoSinal(e); return; } if (ctx.aoErro) ctx.aoErro(e, true); }
     R.erroNaoTratado = erroNaoTratado;
     R.aguardar = function (v, f, p) { if (f) { f.async = true; f.p = p; } return v; };
-    R.retomou = function (f, v) { if (f) f.async = true; return v; };
+    R.retomou = function (f, v) { if (f) { f.async = true; if (pilha.indexOf(f) < 0) pilha.push(f); } return v; };
     R.futuro = function (p, t) { p.$t = t; return p; };
     R.futuroT = function (p, t) { if (p instanceof Promise && !p.$t) p.$t = t; return p; };
 
     function futuroDelayed(d, f) {
       return new Promise(function (ok, falha) {
-        timer(function () { try { ok(f ? R.chamarF(f, []) : null); } catch (e) { falha(e); } }, d ? d.us / 1000 : 0);
+        timer(function () { baseAtual = "delayed"; try { ok(f ? R.chamarF(f, []) : null); } catch (e) { falha(e); } finally { baseAtual = "main"; } }, d ? d.us / 1000 : 0);
       });
     }
     function completer() {

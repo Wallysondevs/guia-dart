@@ -1,0 +1,24 @@
+sintaxe_varios.dart:3:8: Error: The non-ASCII character 'ã' (U+00E3) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  var pães = 3;
+       ^
+sintaxe_varios.dart:4:9: Error: String starting with ' must end with '.
+  Print('Pão saindo às 7h);
+        ^^^^^^^^^^^^^^^^^^^
+sintaxe_varios.dart:4:8: Error: Can't find ')' to match '('.
+  Print('Pão saindo às 7h);
+       ^
+sintaxe_varios.dart:2:18: Error: Expected ';' after this.
+  print('Pão: 10')
+                 ^
+sintaxe_varios.dart:4:3: Error: Method not found: 'Print'.
+  Print('Pão saindo às 7h);
+  ^^^^^
+sintaxe_varios.dart:4:9: Error: Expected ';' after this.
+  Print('Pão saindo às 7h);
+        ^^^^^^^^^^^^^^^^^^^
+sintaxe_varios.dart:5:19: Error: Binary operator 'and' is written as '&' instead of the written out word.
+Try replacing 'and' with '&'.
+  final total = 3 and 4;
+                  ^^^
+[exit 254]

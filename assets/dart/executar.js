@@ -104,7 +104,7 @@
             var lan = null;
             try { lan = e instanceof R.Lancado ? e : R.capturar(e); } catch (x) { lan = null; }
             if (lan) {
-              var texto = "Unhandled exception:\n" + R.str(lan.valor) + "\n" + R.formatarPilha(lan.frames, lan.nativos, lan.assincrono);
+              var texto = "Unhandled exception:\n" + R.str(lan.valor) + "\n" + R.formatarPilha(lan.frames, lan.nativos, lan.assincrono && lan.frames.some(function (f) { return f.async; }), lan.base);
               acabou = false; ctx.escrever("err", texto); acabou = true;
               res.exit = 255; res.excecao = true; res.traceback = texto;
             } else {

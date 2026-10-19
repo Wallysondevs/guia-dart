@@ -1,0 +1,11 @@
+Pedido enviado
+pão: 30
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque.<anonymous closure> (file:///home/ana/future_delayed_erro.dart:4:7)
+#1      new Future.delayed.<anonymous closure> (dart:async/future.dart:448:42)
+#2      Timer._createTimer.<anonymous closure> (dart:async-patch/timer_patch.dart:18:15)
+#3      _Timer._runTimers (dart:isolate-patch/timer_impl.dart:423:19)
+#4      _Timer._handleMessage (dart:isolate-patch/timer_impl.dart:454:5)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+[exit 255]

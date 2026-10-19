@@ -43,7 +43,18 @@
         toks.push({ t: "eof", v: "", p: n, e: n, nl: true });
         // como o scanner do CFE: parênteses, colchetes e chaves sem par
         var pilhaB = [], PAR = { "(": ")", "[": "]", "{": "}" }, ABRE = { ")": "(", "]": "[", "}": "{" };
+        var novos = [];
         toks.forEach(function (t) {
+          novos.push(t);
+          if (t.t === "str" && t.semFim) {
+            // a string sem fim fecha os ( e [ abertos na mesma instrução (o scanner do CFE insere os que faltam)
+            while (pilhaB.length && pilhaB[pilhaB.length - 1].v !== "{") {
+              var ab = pilhaB.pop();
+              lexErros.push(new ErroDart("Can't find '" + PAR[ab.v] + "' to match '" + ab.v + "'.", ab.p, 1));
+              novos.push({ t: "op", v: PAR[ab.v], p: t.e, e: t.e, sintetico: true });
+            }
+            return;
+          }
           if (t.t !== "op") return;
           if (PAR[t.v]) pilhaB.push(t);
           else if (ABRE[t.v]) {
@@ -55,6 +66,7 @@
           }
         });
         for (var jb = pilhaB.length - 1; jb >= 0; jb--) lexErros.push(new ErroDart("Can't find '" + PAR[pilhaB[jb].v] + "' to match '" + pilhaB[jb].v + "'.", pilhaB[jb].p, 1));
+        toks.length = 0; novos.forEach(function (t) { toks.push(t); });
         break;
       }
       if (interp && src[i] === "}" && prof === 0) { toks.push({ t: "eof", v: "", p: i, e: i }); return { toks: toks, fim: i }; }
@@ -99,12 +111,13 @@
       i += fecho.length;
       if (tripla && src[i] === "\n") i++;
       else if (tripla && src[i] === "\r" && src[i + 1] === "\n") i += 2;
-      var partes = [], buf = "";
+      var partes = [], buf = "", semFim = false;
       while (true) {
         if (i >= n || (!tripla && src[i] === "\n")) {
           var fl = src.indexOf("\n", p0);
           if (tripla || interp) err("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0));
           lexErros.push(new ErroDart("String starting with " + fecho + " must end with " + fecho + ".", p0, Math.max(1, (fl < 0 ? n : fl) - p0)));
+          semFim = true;
           break;
         }
         if (src.startsWith(fecho, i)) { i += fecho.length; break; }
@@ -144,7 +157,7 @@
         buf += ch; i++;
       }
       partes.push(buf);
-      return { t: "str", partes: partes, p: p0, e: i, nl: nl };
+      return { t: "str", partes: partes, p: p0, e: i, nl: nl, semFim: semFim };
     }
   }
 
@@ -181,7 +194,8 @@
     var t = this.peek();
     if (v === ";" || v === ")" || v === "]" || v === "}" ) {
       if (v === ";" || (t.t !== "eof" && !this.isOp(")") && !this.isOp("}") && !this.isOp("]") && false)) {
-        var pv = this.prev();
+        var kp = this.i - 1; while (kp > 0 && this.t[kp].sintetico) kp--;
+        var pv = this.t[kp] || this.prev();
         throw new ErroDart("Expected '" + v + "' after this.", pv.p, Math.max(1, pv.e - pv.p));
       }
     }
@@ -2927,7 +2941,8 @@
           catch (e) {
             if (!(e instanceof ErroDart) || e.msg !== "Expected ';' after this." || volta > 30) throw e;
             var k = -1;
-            for (var j = 0; j < toks.length; j++) if (toks[j].p === e.pos) k = j;
+            for (var j = 0; j < toks.length; j++) if (toks[j].p === e.pos && !toks[j].sintetico) k = j;
+            while (k >= 0 && toks[k + 1] && toks[k + 1].sintetico) k++;
             if (k < 0 || !toks[k + 1] || !(toks[k + 1].nl || toks[k + 1].t === "eof" || (toks[k + 1].t === "op" && toks[k + 1].v === "}"))) throw e;
             toks.splice(k + 1, 0, { t: "op", v: ";", p: toks[k].e, e: toks[k].e, virtual: true });
             errosRec.push(e);
@@ -2973,7 +2988,7 @@
       var fase = function (x) {
         if (x.lex) return 0;
         if (x.fase !== undefined) return x.fase;
-        if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Not a constant expression|'.*' is already declared|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
+        if (/^(Undefined name|Method not found|Member not found|Setter not found|Getter not found|'.*' isn't a type|Type '.*' not found|'.*' can't be used as an identifier|Expected|Can't find|Unexpected|'.*' is imported from both|Error when reading|Couldn't resolve|Too (few|many) positional|Required named parameter|No named parameter|Binary operator|Not a constant expression|'.*' is already declared|Cannot invoke a non-'const'|Methods can't be invoked in constant)/.test(x.msg)) return 1;
         return 2;
       };
       var posOrd = function (x) { return x.ordemPos !== undefined && x.ordemPos !== null ? x.ordemPos : x.pos; };

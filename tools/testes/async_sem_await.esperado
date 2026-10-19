@@ -1,0 +1,7 @@
+Pedido enviado
+Fim do main
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque (file:///home/ana/async_sem_await.dart:3:3)
+<asynchronous suspension>
+[exit 255]
