@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Operador Ternário — condição ? valor1 : valor2 | Guia Dart</title>
+<meta name="description" content="O operador ternário do Dart para quem nunca programou: condição ? valorSeVerdade : valorSeFalso, escolher um valor numa linha, usar dentro de textos com ${…} (item ou itens), ternário com números (int e double viram num), ternários encadeados, quando preferir o if, e os erros reais do Dart 3 (faltou o :, tipos que não combinam, if usado como valor, condição int, o ternário fora das chaves da interpolação).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">O Operador Ternário</span></h1>
+
+<p class="intro">Na aula <a href="if-else.html">if e else</a>, escolher entre "Aprovada" e "Recuperação" ocupou seis linhas: criar a variável, o <code>if</code>, o <code>else</code>, as chaves. Quando a escolha é só entre <strong>dois valores</strong>, o Dart tem um atalho de uma linha: o <strong>operador ternário</strong>, <code>condição ? valor1 : valor2</code>. Ele se chama ternário porque tem <strong>três</strong> partes.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como ler e escrever <code>condição ? valorSeVerdade : valorSeFalso</code>.</li>
+  <li>A diferença entre o ternário (escolhe um <strong>valor</strong>) e o <code>if</code> (escolhe <strong>o que fazer</strong>).</li>
+  <li>Como usar o ternário dentro de um texto: "1 item", "3 itens".</li>
+  <li>O tipo do resultado quando os dois lados são diferentes (<code>int</code> e <code>double</code>).</li>
+  <li>Ternários encadeados, e quando é melhor voltar para o <code>if</code>.</li>
+  <li>Os erros reais: o <code>:</code> esquecido, tipos que não combinam, o <code>if</code> usado como valor, a condição que não é <code>bool</code> e o ternário fora das chaves da interpolação.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "chá ou café?"</h2>
+<p>A avó da Ana pergunta toda manhã: "Está frio? Então é chá; senão, é café." A resposta da pergunta não é uma tarefa, é <strong>uma coisa</strong>: chá ou café. O ternário faz isso: olha a condição e <strong>devolve</strong> um de dois valores.</p>
+<pre class="file" data-file="ideia.txt">        está frio  ?   'chá'   :   'café'
+        └─ pergunta ┘ └─ se sim ┘ └─ se não ┘
+</pre>
+
+<hr>
+
+<h2>1. O primeiro ternário</h2>
+
+<pre class="file" data-file="ter1.dart">void main() {
+  final nota = 7.5;
+  final situacao = nota &gt;= 6 ? 'Aprovada' : 'Recuperação';
+  print('Situação: $situacao');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>nota &gt;= 6</dt><dd>A <strong>condição</strong>: uma pergunta que dá <code>true</code> ou <code>false</code>.</dd>
+  <dt>?</dt><dd>Separa a pergunta das respostas. Lê-se "então".</dd>
+  <dt>'Aprovada'</dt><dd>O valor que o ternário devolve se a condição for <code>true</code>.</dd>
+  <dt>:</dt><dd>Separa as duas respostas. Lê-se "senão".</dd>
+  <dt>'Recuperação'</dt><dd>O valor devolvido se a condição for <code>false</code>.</dd>
+  <dt>final situacao = …</dt><dd>O valor escolhido vai para a variável, como o resultado de qualquer conta.</dd>
+</dl>
+
+<pre class="term">$ dart run ter1.dart
+Situação: Aprovada
+</pre>
+
+<p>Em voz alta: "a situação é: a nota é maior ou igual a 6? Então <code>'Aprovada'</code>, senão <code>'Recuperação'</code>".</p>
+
+<h3>O mesmo, com <code>if</code> e com ternário</h3>
+
+<pre class="file" data-file="ter_if.dart">void main() {
+  final nota = 4.0;
+  String situacao;
+  if (nota &gt;= 6) {
+    situacao = 'Aprovada';
+  } else {
+    situacao = 'Recuperação';
+  }
+  print('Com if: $situacao');
+  final situacao2 = nota &gt;= 6 ? 'Aprovada' : 'Recuperação';
+  print('Com ternário: $situacao2');
+}
+</pre>
+
+<pre class="term">$ dart run ter_if.dart
+Com if: Recuperação
+Com ternário: Recuperação
+</pre>
+
+<p>Mesmo resultado. Com o ternário, a variável pode ser <code>final</code> (recebe o valor uma vez só, na criação), e o leitor vê numa linha só tudo o que pode acontecer com ela.</p>
+
+<hr>
+
+<h2>2. O ternário dentro de um texto</h2>
+<p>Como o ternário é um <strong>valor</strong>, ele pode ir em qualquer lugar onde cabe um valor, inclusive dentro de <code>${ … }</code> num texto. O carrinho da loja escreve "1 item", mas "3 itens":</p>
+
+<pre class="file" data-file="ter_interp.dart">void main() {
+  final itens = 1;
+  print('Você tem $itens ${itens == 1 ? 'item' : 'itens'} no carrinho');
+  final itens2 = 3;
+  print('Você tem $itens2 ${itens2 == 1 ? 'item' : 'itens'} no carrinho');
+}
+</pre>
+
+<pre class="term">$ dart run ter_interp.dart
+Você tem 1 item no carrinho
+Você tem 3 itens no carrinho
+</pre>
+
+<p>Dentro do <code>${ … }</code> pode ir uma expressão inteira, e as aspas simples de <code>'item'</code> não atrapalham o texto de fora, porque estão dentro das chaves. Sem as chaves, o ternário vira texto comum: veja <a href="#errado">Quando dá errado</a>.</p>
+
+<div class="trydart" data-goal="out:Hoje é dia de folga;;src:\?.*:">
+<p class="try-task"><strong>Missão:</strong> o programa sempre diz "dia de trabalho". Troque o texto fixo por um ternário: se <code>fimDeSemana</code> for <code>true</code>, <code>'folga'</code>; senão, <code>'trabalho'</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final fimDeSemana = true;
+  final tipo = 'trabalho';
+  print('Hoje é dia de $tipo');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final fimDeSemana = true;
+  final tipo = fimDeSemana ? 'folga' : 'trabalho';
+  print('Hoje é dia de $tipo');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Ternário com números</h2>
+
+<pre class="file" data-file="ter_num.dart">void main() {
+  final total = 120.0;
+  final frete = total &gt;= 100 ? 0 : 15;
+  print('Frete: $frete');
+  final desconto = total &gt; 100 ? total * 0.1 : 0;
+  print('Desconto: $desconto');
+  print(desconto.runtimeType);
+  final aPagar = total - desconto + frete;
+  print('A pagar: $aPagar');
+}
+</pre>
+
+<pre class="term">$ dart run ter_num.dart
+Frete: 0
+Desconto: 12.0
+double
+A pagar: 108.0
+</pre>
+
+<p>O frete é 0 ou 15: os dois lados são <code>int</code>, e <code>frete</code> é <code>int</code>. Já no desconto, um lado é <code>double</code> (<code>120.0 * 0.1</code>) e o outro é <code>int</code> (<code>0</code>). Nesse caso o Dart dá à variável o tipo <code>num</code>, que aceita os dois (veja <a href="int-double.html">Números</a>). Desta vez saiu o lado <code>double</code>, e o <code>runtimeType</code> mostrou <code>double</code>. Se os dois lados forem de tipos que não têm nada a ver (um número e um texto), o tipo vira <code>Object</code>, e aí uma variável <code>int</code> não aceita (veja <a href="#errado">Quando dá errado</a>). Para ficar tudo <code>double</code>, escreva <code>0.0</code> no lugar do <code>0</code>.</p>
+
+<hr>
+
+<h2>4. Ternários encadeados</h2>
+<p>A parte do "senão" pode ser outro ternário. Para escolher a roupa conforme a temperatura:</p>
+
+<pre class="file" data-file="ter_aninhado.dart">void main() {
+  final temperatura = 18;
+  final roupa = temperatura &gt; 28
+      ? 'camiseta'
+      : temperatura &gt; 15
+          ? 'blusa leve'
+          : 'casaco';
+  print('Hoje: $roupa');
+}
+</pre>
+
+<pre class="term">$ dart run ter_aninhado.dart
+Hoje: blusa leve
+</pre>
+
+<p>Funciona como um <code>if … else if … else</code>: 18 não é maior que 28, então vai para o "senão", que pergunta de novo: 18 é maior que 15? Sim: <code>'blusa leve'</code>. Quebrar em linhas, com o <code>?</code> e o <code>:</code> no começo de cada uma, é o jeito que o <code>dart format</code> organiza. Mesmo assim, <strong>dois níveis já é o limite</strong>: com mais que isso, use <code>if … else if</code> ou um <a href="switch.html">switch</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Escolher entre dois <strong>valores</strong> para uma variável, um texto ou um argumento</td><td>ternário: <code>final s = nota &gt;= 6 ? 'A' : 'R';</code></td></tr>
+<tr><td>Escolher entre duas <strong>ações</strong> (vários comandos, <code>print</code>s diferentes)</td><td><code>if … else</code></td></tr>
+<tr><td>Três ou mais caminhos</td><td><code>if … else if</code> ou <a href="switch.html">switch</a> (no máximo dois ternários encadeados)</td></tr>
+<tr><td>"Este valor, ou um padrão se ele for <code>null</code>"</td><td><code>nome ?? 'visitante'</code> (aula <a href="operadores-null.html">?. , ?? e ??=</a>), em vez de <code>nome != null ? nome : 'visitante'</code></td></tr>
+<tr><td>Um item a mais numa lista, só se…</td><td>o <code>if</code> dentro de coleções (aula <a href="collection-if-for.html">if e for Dentro de Coleções</a>)</td></tr>
+</table>
+</div>
+
+<p>Dá para usar o ternário para escolher uma ação, como em <code>chovendo ? print('Leve o guarda-chuva') : print('Leve o boné');</code> (no lab, mostrou <code>Leve o guarda-chuva</code>). Funciona, mas confunde quem lê: o ternário existe para escolher <strong>valores</strong>. Nesse caso, prefira <code>print(chovendo ? 'Leve o guarda-chuva' : 'Leve o boné');</code>, ou um <code>if</code>.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu a parte do "senão"</strong>
+<pre class="file" data-file="err_semdois.dart">void main() {
+  final nota = 7;
+  final situacao = nota &gt;= 6 ? 'Aprovada';
+  print(situacao);
+}
+</pre>
+<pre class="term">$ dart run err_semdois.dart
+err_semdois.dart:3:42: Error: Expected ':' before this.
+  final situacao = nota &gt;= 6 ? 'Aprovada';
+                                         ^
+err_semdois.dart:3:42: Error: Expected an identifier, but got ';'.
+Try inserting an identifier before ';'.
+  final situacao = nota &gt;= 6 ? 'Aprovada';
+                                         ^
+</pre>
+<dl class="anatomy">
+  <dt>err_semdois.dart:3:42:</dt><dd>Linha 3, coluna 42: o <code>;</code> do fim.</dd>
+  <dt>Error: Expected ':' before this.</dt><dd>"Era esperado <code>:</code> antes disto." O ternário <strong>sempre</strong> tem as duas respostas: o Dart chegou no <code>;</code> esperando o <code>:</code> e o valor do "senão".</dd>
+  <dt>Expected an identifier, but got ';'.</dt><dd>Consequência do mesmo problema: depois do <code>:</code> que faltou, viria um valor, e veio o <code>;</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> dê as duas respostas: <code>nota &gt;= 6 ? 'Aprovada' : 'Recuperação'</code>. Se não existe resposta para o "senão", você quer um <code>if</code> sem <code>else</code>, não um ternário.</p>
+</div>
+
+<div class="cenario">
+<strong>Os dois lados com tipos que não combinam</strong>
+<pre class="file" data-file="err_tipo.dart">void main() {
+  final nota = 7;
+  final int pontos = nota &gt;= 6 ? 10 : 'zero';
+  print(pontos);
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:3:32: Error: A value of type 'Object' can't be assigned to a variable of type 'int'.
+ - 'Object' is from 'dart:core'.
+  final int pontos = nota &gt;= 6 ? 10 : 'zero';
+                               ^
+</pre>
+<p>"Um valor do tipo <code>Object</code> não pode ser atribuído a uma variável <code>int</code>." Um lado é <code>int</code> (10), o outro é <code>String</code> (<code>'zero'</code>); o único tipo que serve para os dois é <code>Object</code> ("qualquer coisa"), e uma variável <code>int</code> não aceita "qualquer coisa". O Dart reclama mesmo sabendo que, com nota 7, sairia o 10: ele confere os dois caminhos. <strong>Como consertar:</strong> os dois lados do mesmo tipo: <code>nota &gt;= 6 ? 10 : 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou usar o <code>if</code> como valor</strong>
+<pre class="file" data-file="err_ifexpr.dart">void main() {
+  final nota = 7;
+  final situacao = if (nota &gt;= 6) 'Aprovada' else 'Recuperação';
+  print(situacao);
+}
+</pre>
+<pre class="term">$ dart run err_ifexpr.dart
+err_ifexpr.dart:3:20: Error: Expected an identifier, but got 'if'.
+Try inserting an identifier before 'if'.
+  final situacao = if (nota &gt;= 6) 'Aprovada' else 'Recuperação';
+                   ^^
+err_ifexpr.dart:3:18: Error: Expected ';' after this.
+  final situacao = if (nota &gt;= 6) 'Aprovada' else 'Recuperação';
+                 ^
+err_ifexpr.dart:3:35: Error: Expected ';' after this.
+  final situacao = if (nota &gt;= 6) 'Aprovada' else 'Recuperação';
+                                  ^^^^^^^^^^
+</pre>
+<p>"Era esperado um nome (um valor), mas veio <code>if</code>." Em linguagens como Kotlin e Python, o <code>if</code> pode devolver um valor. No Dart, não: o <code>if</code> é uma instrução, não um valor. (A exceção é o <code>if</code> dentro de listas, da aula <a href="collection-if-for.html">if e for Dentro de Coleções</a>.) <strong>Como consertar:</strong> é exatamente o trabalho do ternário: <code>final situacao = nota &gt;= 6 ? 'Aprovada' : 'Recuperação';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O ternário fora das chaves, dentro do texto</strong>
+<pre class="file" data-file="err_interp2.dart">void main() {
+  final nota = 4;
+  print('Situação: ${nota &gt;= 6} ? Aprovada : Recuperação');
+}
+</pre>
+<pre class="term">$ dart run err_interp2.dart
+Situação: false ? Aprovada : Recuperação
+</pre>
+<p>Compila, roda, e mostra o código em vez do resultado! As chaves fecharam logo depois do <code>6</code>: só a comparação foi calculada (<code>false</code>); o resto, <code>? Aprovada : Recuperação</code>, ficou sendo texto comum. E com <code>$nota</code> sem chaves e aspas no meio, <code>'Situação: $nota &gt;= 6 ? 'Aprovada' : 'Recuperação''</code>, o lab mostrou <strong>nove</strong> erros, o primeiro deles <code>Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.</code>: as aspas de <code>'Aprovada'</code> fecharam o texto, e o <code>Recuperação</code> ficou fora das aspas, como se fosse um nome de variável (que não pode ter "ç"). <strong>Como consertar:</strong> o ternário inteiro dentro de <code>${ … }</code>: <code>'Situação: ${nota &gt;= 6 ? 'Aprovada' : 'Recuperação'}'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma condição que não é <code>bool</code></strong>
+<pre class="term">$ dart run err_cond.dart
+err_cond.dart:3:9: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  print(estoque ? 'tem' : 'acabou');
+        ^
+</pre>
+<p>A mesma regra do <code>if</code>: antes do <code>?</code> vem uma pergunta de sim ou não, e um número não é. <strong>Como consertar:</strong> <code>estoque &gt; 0 ? 'tem' : 'acabou'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O ternário "engoliu" o texto da frente</strong>
+<pre class="term">$ dart run err_mais.dart
+err_mais.dart:3:22: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  print('Pontos: ' + pontos &gt; 0 ? 'positivo' : 'zero');
+                     ^
+err_mais.dart:3:29: Error: The operator '&gt;' isn't defined for the type 'String'.
+Try correcting the operator to an existing operator, or defining a '&gt;' operator.
+  print('Pontos: ' + pontos &gt; 0 ? 'positivo' : 'zero');
+                            ^
+</pre>
+<p>O ternário tem a prioridade <strong>mais baixa</strong> de todas as contas: o Dart faz tudo o que está antes do <code>?</code> primeiro. Aqui, ele tentou <code>'Pontos: ' + pontos</code> (texto mais número: primeiro erro) e depois <code>… &gt; 0</code> com um texto (segundo erro). <strong>Como consertar:</strong> use interpolação: <code>'Pontos: ${pontos &gt; 0 ? 'positivo' : 'zero'}'</code>, ou parênteses em volta do ternário.</p>
+</div>
+
+<div class="trydart" data-goal="out:Ingresso: R$ 15;;semerro">
+<p class="try-task"><strong>Missão:</strong> crianças até 12 anos pagam 15 reais; os outros pagam 30. O programa não compila. Leia o erro e conserte até aparecer <code>Ingresso: R$ 15</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final idade = 10;
+  final preco = idade &lt;= 12 ? 15;
+  print('Ingresso: R\$ $preco');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final idade = 10;
+  final preco = idade &lt;= 12 ? 15 : 30;
+  print('Ingresso: R\$ $preco');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>cond ? a : b</code></td><td>Devolve <code>a</code> se <code>cond</code> for <code>true</code>, senão <code>b</code></td></tr>
+<tr><td><code>final x = cond ? a : b;</code></td><td>Escolhe o valor de uma variável (pode ser <code>final</code>)</td></tr>
+<tr><td><code>'… ${cond ? 'a' : 'b'} …'</code></td><td>Escolhe um pedaço de texto</td></tr>
+<tr><td><code>c1 ? a : c2 ? b : c</code></td><td>Encadeado (no máximo dois níveis)</td></tr>
+<tr><td><code>x ?? padrao</code></td><td>Atalho para <code>x != null ? x : padrao</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Expected ':' before this.</code></td><td>Faltou o <code>: valorSeFalso</code></td></tr>
+<tr><td><code>A value of type 'Object' can't be assigned to a variable of type 'int'.</code></td><td>Os dois lados com tipos diferentes</td></tr>
+<tr><td><code>Expected an identifier, but got 'if'.</code></td><td><code>if</code> usado como valor: use o ternário</td></tr>
+<tr><td><code>… can't be assigned to a variable of type 'bool'.</code></td><td>Condição que não é <code>bool</code></td></tr>
+<tr><td>O texto mostra <code>? … : …</code> literalmente</td><td>O ternário ficou fora do <code>${ … }</code></td></tr>
+<tr><td><code>The operator '&gt;' isn't defined for the type 'String'.</code></td><td>Texto <code>+</code> ternário sem parênteses</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que vale?</h3>
+<p>Com <code>final x = 8;</code>, escreva o valor (sem aspas):</p>
+<div class="ex-code"><code>x % 2 == 0 ? 'par' : 'ímpar'</code> → <input data-answer="par" aria-label="resultado 1"><br><code>x &gt; 10 ? 'grande' : 'pequeno'</code> → <input data-answer="pequeno" aria-label="resultado 2"><br><code>x &gt; 5 ? x * 2 : x</code> → <input data-answer="16" aria-label="resultado 3"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<div class="ex-code">final aviso = bateria &lt; 20 <input data-answer="?" aria-label="primeiro símbolo"> 'Carregue!' <input data-answer=":" aria-label="segundo símbolo"> 'Tudo bem';</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é a diferença principal entre o ternário e o <code>if</code>?</p>
+<label><input type="radio" name="q3"> O ternário é mais rápido</label>
+<label><input type="radio" name="q3"> O ternário devolve um valor; o <code>if</code> escolhe que instruções rodar</label>
+<label><input type="radio" name="q3"> O <code>if</code> não aceita <code>else</code></label>
+<label><input type="radio" name="q3"> Nenhuma: são iguais em tudo</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que mostra <code>print('Nota: ${7 &gt;= 6} ? ok : não');</code>?</p>
+<label><input type="radio" name="q4"> <code>Nota: ok</code></label>
+<label><input type="radio" name="q4"> <code>Nota: não</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>Nota: true ? ok : não</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>final int x = ok ? 1 : 'um';</code> O que acontece?</p>
+<label><input type="radio" name="q5"> Não compila: os dois lados juntos são <code>Object</code>, que não cabe em <code>int</code></label>
+<label><input type="radio" name="q5"> Compila e guarda 1 ou <code>'um'</code></label>
+<label><input type="radio" name="q5"> Compila, mas dá exceção se <code>ok</code> for <code>false</code></label>
+<label><input type="radio" name="q5"> O Dart converte <code>'um'</code> em 1</label>
+</div>
+
+<h3>Missão final: a mensagem do carrinho</h3>
+
+<div class="trydart" data-goal="out:Carrinho: 1 produto, frete R$ 20;;src:\?">
+<p class="try-task"><strong>Missão:</strong> complete as duas linhas com ternários. A palavra deve ser <code>'produto'</code> se <code>quantidade</code> for 1, senão <code>'produtos'</code>; o frete deve ser 0 se o <code>total</code> for 100 ou mais, senão 20. Com 1 produto de 45 reais, deve aparecer <code>Carrinho: 1 produto, frete R$ 20</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final quantidade = 1;
+  final total = 45;
+  final palavra = 'produtos'; // use um ternário
+  final frete = 0; // use um ternário
+  print('Carrinho: $quantidade $palavra, frete R\$ $frete');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final quantidade = 1;
+  final total = 45;
+  final palavra = quantidade == 1 ? 'produto' : 'produtos';
+  final frete = total &gt;= 100 ? 0 : 20;
+  print('Carrinho: $quantidade $palavra, frete R\$ $frete');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>condição ? valorSeVerdade : valorSeFalso</code> devolve um de dois valores. As três partes são obrigatórias.</li>
+  <li>Use o ternário para escolher <strong>valores</strong> (variáveis, pedaços de texto); para escolher <strong>ações</strong>, use <code>if</code>.</li>
+  <li>Dentro de texto, o ternário inteiro vai entre <code>${ … }</code>.</li>
+  <li>Os dois lados devem ter o mesmo tipo; <code>int</code> com <code>double</code> dá <code>num</code>, número com texto dá <code>Object</code>.</li>
+  <li>O ternário tem a prioridade mais baixa: na dúvida, parênteses. E no máximo dois ternários encadeados.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
