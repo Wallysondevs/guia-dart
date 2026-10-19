@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Comandos dart — run, create, pub, analyze, format, fix, test e compile | Guia Dart</title>
+<meta name="description" content="Referência rápida da ferramenta de linha de comando dart (Dart SDK 3.13): dart run, create, pub get/add/outdated, analyze, format, fix, test, compile exe e js, help e --version, com a saída real de cada comando, os códigos de saída e os erros mais comuns (arquivo inexistente, pacote inexistente, pubspec.yaml ausente).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Comandos dart</span></h1>
+
+<p class="intro">Tudo o que você faz com o Dart no terminal passa por um único programa, o <code>dart</code>, seguido de um <strong>subcomando</strong>: <code>dart run</code> roda, <code>dart create</code> cria um projeto, <code>dart format</code> arruma o código, e assim por diante. Esta página é a consulta rápida desses comandos, com a saída que cada um deu no computador da Ana (Dart SDK 3.13.5). A explicação passo a passo está nas aulas <a href="executar.html">Rodando um Programa</a>, <a href="dart-create.html">dart create</a>, <a href="pacotes.html">Pacotes</a>, <a href="analise.html">Análise e Formatação</a>, <a href="testes.html">Testes</a> e <a href="compilar.html">Compilando</a>.</p>
+
+<div class="note">
+<strong>O editor do guia só faz <code>dart run</code></strong>
+<p>As caixas "Experimente" rodam o seu <code>main.dart</code>, como um <code>dart run main.dart</code>. Os outros comandos desta página (criar projeto, baixar pacotes, compilar) precisam do Dart instalado no seu computador (veja <a href="instalar.html">Instalar o Dart</a>).</p>
+</div>
+
+<hr>
+
+<h2 id="resumo">Os comandos, de relance</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th><th>Aula</th></tr>
+<tr><td><code>dart --version</code></td><td>Mostra a versão instalada.</td><td><a href="instalar.html">Instalar o Dart</a></td></tr>
+<tr><td><code>dart help</code>, <code>dart help run</code>, <code>dart run --help</code></td><td>Lista os comandos / explica um deles.</td><td>—</td></tr>
+<tr><td><code>dart run arquivo.dart [args]</code></td><td>Compila e roda um programa. <code>dart arquivo.dart</code> (sem o <code>run</code>) também funciona.</td><td><a href="executar.html">Rodando um Programa</a></td></tr>
+<tr><td><code>dart run</code> (dentro de um projeto)</td><td>Roda o <code>bin/NOME_DO_PROJETO.dart</code>.</td><td><a href="dart-create.html">dart create</a></td></tr>
+<tr><td><code>dart run --enable-asserts arquivo.dart</code></td><td>Roda com os <code>assert</code> ligados.</td><td><a href="assert.html">assert</a></td></tr>
+<tr><td><code>dart create nome</code></td><td>Cria um projeto de terminal, já com teste e <code>pubspec.yaml</code>.</td><td><a href="dart-create.html">dart create</a></td></tr>
+<tr><td><code>dart pub get</code></td><td>Baixa os pacotes listados no <code>pubspec.yaml</code>.</td><td><a href="pubspec.html">pubspec.yaml</a></td></tr>
+<tr><td><code>dart pub add pacote</code></td><td>Acrescenta um pacote ao projeto e baixa.</td><td><a href="pacotes.html">Pacotes</a></td></tr>
+<tr><td><code>dart pub remove pacote</code></td><td>Tira um pacote do projeto.</td><td><a href="pacotes.html">Pacotes</a></td></tr>
+<tr><td><code>dart pub upgrade</code>, <code>dart pub outdated</code></td><td>Atualiza / mostra o que tem versão nova.</td><td><a href="pacotes.html">Pacotes</a></td></tr>
+<tr><td><code>dart analyze</code></td><td>Procura erros e problemas sem rodar o programa.</td><td><a href="analise.html">Análise e Formatação</a></td></tr>
+<tr><td><code>dart format pasta_ou_arquivo</code></td><td>Arruma espaços, quebras e recuo no estilo oficial.</td><td><a href="analise.html">Análise e Formatação</a></td></tr>
+<tr><td><code>dart fix --dry-run</code> / <code>--apply</code></td><td>Mostra / aplica correções automáticas.</td><td><a href="analise.html">Análise e Formatação</a></td></tr>
+<tr><td><code>dart test</code></td><td>Roda os testes da pasta <code>test/</code>.</td><td><a href="testes.html">Testes</a></td></tr>
+<tr><td><code>dart compile exe arquivo.dart -o nome</code></td><td>Gera um executável que roda sem o Dart instalado.</td><td><a href="compilar.html">Compilando</a></td></tr>
+<tr><td><code>dart compile js arquivo.dart -o nome.js</code></td><td>Gera JavaScript, para o navegador.</td><td><a href="dart-web.html">Dart na Web</a></td></tr>
+<tr><td><code>dart doc</code></td><td>Gera a documentação HTML de um pacote a partir dos comentários <code>///</code>.</td><td><a href="comentarios.html">Comentários</a></td></tr>
+<tr><td><code>dart devtools</code></td><td>Abre as ferramentas de depuração e desempenho no navegador.</td><td>—</td></tr>
+<tr><td><code>dart --disable-analytics</code></td><td>Desliga o envio de estatísticas de uso para o Google.</td><td><a href="instalar.html">Instalar o Dart</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="ajuda">dart --version e dart help</h2>
+<pre class="term">$ dart --version
+Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64"
+$ dart help
+A command-line utility for Dart development.
+
+Usage: dart &lt;command|dart-file&gt; [arguments]
+
+Global options:
+-v, --verbose               Show additional command output.
+    --version               Print the Dart SDK version.
+    --enable-analytics      Enable analytics.
+    --disable-analytics     Disable analytics.
+    --suppress-analytics    Disallow analytics for this `dart *` run without changing the analytics configuration.
+-h, --help                  Print this usage information.
+
+Available commands:
+
+Global
+  install     Install or upgrade a Dart CLI tool for global use.
+  installed   List globally installed Dart CLI tools.
+  uninstall   Remove a globally installed Dart CLI tool.
+
+Project
+  build       Build a Dart application including code assets.
+  compile     Compile Dart to various formats.
+  create      Create a new Dart project.
+  pub         Work with packages.
+  run         Run a Dart program from a file or a local or remote package.
+  test        Run tests for a project.
+
+Source code
+  analyze     Analyze Dart code in a directory.
+  doc         Generate API documentation for Dart projects.
+  fix         Apply automated fixes to Dart source code.
+  format      Idiomatically format Dart source code.
+
+Tools
+  devtools    Open DevTools (optionally connecting to an existing application).
+  info        Show diagnostic information about the installed tooling.
+
+Run "dart help &lt;command&gt;" for more information about a command.
+See https://dart.dev/tools/dart-tool for detailed documentation.
+</pre>
+<p>A ajuda está em inglês: "Uso: <code>dart &lt;comando|arquivo-dart&gt; [argumentos]</code>". Os comandos vêm em grupos: <strong>Global</strong> (ferramentas instaladas para o computador todo), <strong>Project</strong> (projeto), <strong>Source code</strong> (código-fonte) e <strong>Tools</strong> (ferramentas). Os grupos e os comandos <code>install</code>, <code>installed</code>, <code>uninstall</code> e <code>build</code> são desta versão; numa versão mais antiga do Dart a lista é menor (veja <a href="versoes.html">Versões do Dart</a>).</p>
+
+<h2 id="run">dart run</h2>
+<pre class="file" data-file="ola.dart">void main(List&lt;String&gt; args) {
+  print('Olá, ${args.isEmpty ? 'mundo' : args.join(' ')}!');
+}
+</pre>
+<pre class="term">$ dart run ola.dart
+Olá, mundo!
+$ dart ola.dart Ana Souza
+Olá, Ana Souza!
+$ dart run nao_existe.dart
+Could not find file `nao_existe.dart`
+$ echo $?
+255
+</pre>
+<p>Tudo o que vem depois do nome do arquivo chega no <code>main</code> como a lista <code>args</code> (veja <a href="argumentos.html">Argumentos da Linha de Comando</a>). Arquivo errado: "não encontrei o arquivo", com código de saída 255.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código de saída (<code>echo $?</code>)</th><th>Quando</th></tr>
+<tr><td><code>0</code></td><td>Deu tudo certo.</td></tr>
+<tr><td><code>254</code></td><td>Erro de compilação (<code>arquivo:linha:coluna: Error: …</code>).</td></tr>
+<tr><td><code>255</code></td><td>Exceção não tratada (<code>Unhandled exception:</code>) ou arquivo não encontrado.</td></tr>
+<tr><td>o número <code>n</code></td><td>O programa chamou <code>exit(n)</code> (de <code>dart:io</code>).</td></tr>
+<tr><td><code>1</code></td><td><code>dart test</code> com algum teste falhando.</td></tr>
+<tr><td><code>3</code></td><td><code>dart analyze</code> achou um erro (veja abaixo).</td></tr>
+<tr><td><code>65</code></td><td><code>dart pub add</code> de um pacote que não existe.</td></tr>
+<tr><td><code>66</code></td><td><code>dart pub</code> fora de um projeto.</td></tr>
+</table>
+</div>
+
+<h2 id="create">dart create</h2>
+<pre class="term">$ dart create padaria
+Creating padaria using template console...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/padaria.dart
+  lib/padaria.dart
+  test/padaria_test.dart
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 50 dependencies!
+
+Created project padaria in padaria! In order to get started, run the following commands:
+
+  cd padaria
+  dart run
+
+$ cd padaria
+$ dart run
+Hello world: 42!
+</pre>
+<p>"Criando <code>padaria</code> com o modelo <code>console</code>" (programa de terminal), a lista dos arquivos criados e o <code>pub get</code> automático, que baixou 50 pacotes (o de testes e os de análise, com as dependências deles). Precisa de internet. O <code>bin/padaria.dart</code> é o programa; o <code>lib/padaria.dart</code>, a biblioteca com a função <code>calculate</code>; o <code>test/padaria_test.dart</code>, o teste dela.</p>
+
+<h2 id="pub">dart pub</h2>
+<pre class="term" data-cwd="~/padaria">$ dart pub add intl
+Resolving dependencies...
+Downloading packages...
++ clock 1.1.3
++ intl 0.20.3
+Changed 2 dependencies!
+$ dart pub get
+Resolving dependencies...
+Downloading packages...
+Got dependencies!
+$ dart pub outdated
+Showing outdated packages.
+[*] indicates versions that are not the latest available.
+
+Found no outdated packages
+</pre>
+<p>O <code>+</code> marca o que entrou: o <code>intl</code> e o <code>clock</code>, de que ele depende. O <code>pub add</code> também escreve o pacote na seção <code>dependencies</code> do <code>pubspec.yaml</code>. O <code>pub get</code> não tinha nada novo: "consegui as dependências". O <code>outdated</code> ("desatualizado") não achou nenhum pacote com versão mais nova.</p>
+
+<h2 id="analyze">dart analyze, format e fix</h2>
+<p>A Ana escreveu um <code>bin/caixa.dart</code> com vários problemas de propósito:</p>
+<pre class="file" data-file="bin/caixa.dart">import 'dart:math';
+
+void main() {
+  var total = new StringBuffer();
+  int troco = 'cinco';
+  print("Caixa aberto");
+}
+</pre>
+<pre class="term" data-cwd="~/padaria">$ dart analyze
+Analyzing padaria...
+
+  error - bin/caixa.dart:5:15 - A value of type 'String' can't be assigned to a variable of type 'int'. Try changing the type of the variable, or casting the right-hand type to 'int'. - invalid_assignment
+warning - bin/caixa.dart:1:8 - Unused import: 'dart:math'. Try removing the import directive. - unused_import
+warning - bin/caixa.dart:4:7 - The value of the local variable 'total' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - bin/caixa.dart:5:7 - The value of the local variable 'troco' isn't used. Try removing the variable or using it. - unused_local_variable
+   info - bin/caixa.dart:4:15 - Unnecessary 'new' keyword. Try removing the 'new' keyword. - unnecessary_new
+
+5 issues found.
+$ echo $?
+3
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Nível</th><th>Quer dizer</th><th>Neste exemplo</th></tr>
+<tr><td><code>error</code></td><td>Erro: o programa não compila.</td><td>texto numa variável <code>int</code></td></tr>
+<tr><td><code>warning</code></td><td>Aviso: compila, mas provavelmente há um engano.</td><td><code>import</code> sem uso; variáveis criadas e nunca usadas</td></tr>
+<tr><td><code>info</code></td><td>Dica de estilo (um <em>lint</em>).</td><td>o <code>new</code> desnecessário</td></tr>
+</table>
+</div>
+<p>Cada linha tem o nível, o <code>arquivo:linha:coluna</code>, a mensagem com a sugestão ("Try…") e, no fim, o nome da regra (<code>unused_import</code>), que serve para procurar na documentação. Com um <code>error</code>, o código de saída é 3. As aspas duplas em <code>"Caixa aberto"</code> não geraram aviso: a regra das aspas simples (<code>prefer_single_quotes</code>) não vem ligada no projeto padrão.</p>
+
+<pre class="term" data-cwd="~/padaria">$ dart fix --dry-run
+Computing fixes in padaria (dry run)...
+
+2 proposed fixes in 1 file.
+
+bin/caixa.dart
+  unnecessary_new - 1 fix
+  unused_import - 1 fix
+
+To fix an individual diagnostic, run one of:
+  dart fix --apply --code=unnecessary_new
+  dart fix --apply --code=unused_import
+
+To fix all diagnostics, run:
+  dart fix --apply
+$ dart fix --apply
+Computing fixes in padaria...
+Applying fixes...
+
+bin/caixa.dart
+  unnecessary_new - 1 fix
+  unused_import - 1 fix
+
+2 fixes made in 1 file.
+$ dart run bin/caixa.dart
+bin/caixa.dart:4:15: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int troco = 'cinco';
+              ^
+</pre>
+<p><code>--dry-run</code> ("ensaio") só mostra; <code>--apply</code> aplica. O <code>fix</code> resolveu os dois problemas que têm conserto automático (o <code>new</code> e o <code>import</code>; por isso o erro agora está na linha 4). O erro de tipo continua: esse, só a Ana pode decidir como consertar.</p>
+
+<pre class="term" data-cwd="~/padaria">$ cat lib/padaria.dart
+int calculate() {
+  var total = 6*7;
+  return total;
+}
+$ dart format lib
+Formatted lib/padaria.dart
+Formatted 1 file (1 changed) in 0.00 seconds.
+$ cat lib/padaria.dart
+int calculate() {
+  var total = 6 * 7;
+  return total;
+}
+</pre>
+<p>O <code>format</code> pôs os espaços em volta do <code>*</code>. (O primeiro <code>cat</code> mostra o arquivo como a Ana o tinha escrito.)</p>
+
+<h2 id="test">dart test</h2>
+<pre class="term" data-cwd="~/padaria">$ dart test
+00:00 +0: loading test/padaria_test.dart
+00:00 +0: test/padaria_test.dart: calculate
+00:00 +1: All tests passed!
+</pre>
+<p>O tempo, o <code>+1</code> (testes que passaram) e "todos os testes passaram". Teste que falha: <code>-1</code>, o esperado e o recebido, e código de saída 1 (veja <a href="testes.html">Testes</a>).</p>
+
+<h2 id="compile">dart compile</h2>
+<pre class="term" data-cwd="~/padaria">$ dart compile exe bin/padaria.dart -o padaria
+Generated: /home/ana/padaria/padaria
+$ ./padaria
+Hello world: 42!
+$ dart compile js bin/padaria.dart -o padaria.js
+Compiled 10,747,323 input bytes (5,318,275 characters source) to 97,058 characters JavaScript in 0.50 seconds
+$ ls
+CHANGELOG.md
+README.md
+analysis_options.yaml
+bin
+lib
+padaria
+padaria.js
+padaria.js.deps
+padaria.js.map
+pubspec.lock
+pubspec.yaml
+test
+</pre>
+<p><code>exe</code> gera um executável nativo, que roda com <code>./padaria</code> sem o Dart instalado (mas só no mesmo sistema: um executável de Linux não roda no Windows). <code>js</code> gera JavaScript para o navegador, mais o mapa (<code>.js.map</code>) e a lista de arquivos usados (<code>.js.deps</code>). Outros formatos: <code>dart compile wasm</code>, <code>aot-snapshot</code>, <code>jit-snapshot</code> e <code>kernel</code> (veja <a href="compilar.html">Compilando</a>).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Pacote que não existe</strong>
+<pre class="term" data-cwd="~/padaria">$ dart pub add pacote_que_nao_existe_xyz
+Because padaria depends on pacote_que_nao_existe_xyz any which doesn't exist (could not find package pacote_que_nao_existe_xyz at https://pub.dev), version solving failed.
+$ echo $?
+65
+</pre>
+<p>"Como <code>padaria</code> depende de <code>pacote_que_nao_existe_xyz</code>, que não existe (não encontrado no pub.dev), a resolução de versões falhou." Confira o nome em pub.dev; os nomes de pacote usam <code>snake_case</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>dart pub</code> fora do projeto</strong>
+<pre class="term">$ dart pub get
+Found no `pubspec.yaml` file in `/home/ana` or parent directories
+$ echo $?
+66
+</pre>
+<p>"Não achei um <code>pubspec.yaml</code> em <code>/home/ana</code> nem nas pastas acima." Os comandos <code>pub</code> precisam rodar <strong>dentro</strong> da pasta do projeto: <code>cd padaria</code> antes.</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-args="Ana Souza" data-goal="out:Olá, Ana Souza! (2 palavras);;semerro">
+<p class="try-task"><strong>Missão:</strong> esta caixa roda o programa como <code>dart run main.dart Ana Souza</code>. Faça-o mostrar também quantos argumentos chegaram: <code>Olá, Ana Souza! (2 palavras)</code>.</p>
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  print('Olá, ${args.join(' ')}!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main(List&lt;String&gt; args) {
+  print('Olá, ${args.join(' ')}! (${args.length} palavras)');
+}
+</pre>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Livre:</strong> um programa que termina com um código de saída escolhido. Troque o número do <code>exit</code> e veja o código que o editor mostra.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  print('Encerrando com código 3');
+  exit(3);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>dart run arquivo.dart</code> roda; <code>dart create nome</code> cria um projeto; dentro dele, <code>dart run</code> roda o <code>bin/</code>.</li>
+  <li><code>dart pub add</code>/<code>get</code>/<code>outdated</code> cuidam dos pacotes e só funcionam dentro do projeto.</li>
+  <li><code>dart analyze</code> (erros, avisos e dicas), <code>dart format</code> (estilo) e <code>dart fix --apply</code> (correções automáticas) deixam o código limpo.</li>
+  <li><code>dart test</code> roda os testes; <code>dart compile exe</code> gera um executável.</li>
+  <li>Códigos de saída: 0 ok, 254 erro de compilação, 255 exceção ou arquivo inexistente.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
