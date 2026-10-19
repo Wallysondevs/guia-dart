@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Projeto Estoque da Lojinha (JSON) — jsonDecode, fromJson, toJson e um arquivo .json passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto passo a passo em Dart 3: o estoque de uma papelaria guardado em JSON. Ler o JSON com jsonDecode, transformar cada item num objeto Produto com um construtor factory fromJson, vender e avisar o que falta repor, e gravar o arquivo de volta com toJson e JsonEncoder.withIndent. Quatro versões com saídas reais, os erros mais comuns com JSON (int no lugar de double, vírgula sobrando, produto que não existe) e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Estoque da Lojinha (JSON)</span></h1>
+
+<p class="intro">A Ana abriu uma papelaria pequena e anota o estoque num arquivo. Ela quer um programa que leia esse arquivo, registre as vendas, avise o que está acabando e grave tudo de volta, para o dia seguinte começar de onde parou. O formato do arquivo é o <strong>JSON</strong>, o mesmo que os aplicativos usam para conversar com servidores: aprender a ler e escrever JSON em Dart serve para muito mais do que esta lojinha.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Ler JSON com <code>jsonDecode</code> e escrever com <code>JsonEncoder</code> (veja <a href="json.html">JSON (dart:convert)</a>).</li>
+  <li>Criar uma <a href="classes.html">classe</a> <code>Produto</code> com um <a href="construtores-nomeados.html">construtor factory</a> <code>fromJson</code> e um método <code>toJson</code>.</li>
+  <li>Converter <code>dynamic</code> no tipo certo com <code>as</code> (veja <a href="operadores-tipo.html">is, is! e as</a> e <a href="dynamic-object.html">dynamic e Object</a>).</li>
+  <li>Procurar com <code>firstWhere</code> e filtrar com <code>where</code> (veja <a href="iterables.html">map, where, reduce e Outros</a>).</li>
+  <li>Ler e gravar o arquivo com <a href="arquivos.html">dart:io</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O arquivo de estoque</h2>
+<p>JSON (<em>JavaScript Object Notation</em>, "notação de objetos do JavaScript") é um jeito de escrever dados como texto. Ele tem só seis tipos de coisa: textos entre aspas <strong>duplas</strong>, números, <code>true</code>/<code>false</code>, <code>null</code>, listas entre <code>[ ]</code> e objetos entre <code>{ }</code> com pares <code>"chave": valor</code>. O estoque da Ana é uma lista de objetos, um por produto:</p>
+
+<pre class="file" data-file="estoque.json">[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+</pre>
+
+<p>Repare que o JSON parece muito com uma lista de mapas do Dart. É essa a ideia: o <code>jsonDecode</code> transforma o texto JSON em <code>List</code> e <code>Map</code> do Dart; o <code>jsonEncode</code> faz o caminho de volta.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No JSON</th><th>Vira, no Dart</th></tr>
+<tr><td><code>[ … ]</code></td><td><code>List&lt;dynamic&gt;</code></td></tr>
+<tr><td><code>{ "chave": … }</code></td><td><code>Map&lt;String, dynamic&gt;</code></td></tr>
+<tr><td><code>"texto"</code></td><td><code>String</code></td></tr>
+<tr><td><code>40</code> (sem ponto)</td><td><code>int</code></td></tr>
+<tr><td><code>18.9</code> (com ponto)</td><td><code>double</code></td></tr>
+<tr><td><code>true</code>, <code>false</code>, <code>null</code></td><td><code>bool</code>, <code>null</code></td></tr>
+</table>
+</div>
+
+<ol class="passo">
+  <li><a href="#versao1">Decodificar o JSON</a> e espiar o resultado.</li>
+  <li><a href="#versao2">A classe Produto</a> com <code>fromJson</code>.</li>
+  <li><a href="#versao3">Vender e avisar o que repor</a>, lendo o arquivo.</li>
+  <li><a href="#versao4">Gravar o estoque de volta</a> com <code>toJson</code>.</li>
+</ol>
+
+<p>Crie a pasta, entre nela e salve o <code>estoque.json</code> lá dentro:</p>
+<pre class="term">$ mkdir estoque
+$ cd estoque
+</pre>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · Decodificar o JSON</h2>
+<p>Antes de ler o arquivo, um teste com o texto JSON dentro do próprio programa. Uma string com três aspas (<code>'''</code>) pode ocupar várias linhas, perfeita para isso.</p>
+
+<pre class="file" data-file="estoque.dart">import 'dart:convert';
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final dados = jsonDecode(textoJson) as List;
+  print('${dados.length} produtos');
+  print(dados[0]);
+  print(dados[0]['nome']);
+  print(dados[0].runtimeType);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:convert';</dt><dd>A biblioteca de conversões, onde moram <code>jsonDecode</code> e <code>jsonEncode</code>.</dd>
+  <dt>const textoJson = '''…''';</dt><dd>Uma constante com o texto JSON, em várias linhas.</dd>
+  <dt>jsonDecode(textoJson)</dt><dd>"Decodificar JSON": lê o texto e monta os objetos do Dart. O resultado é <code>dynamic</code>, porque o Dart não sabe de antemão se o texto tem uma lista, um mapa ou um número.</dd>
+  <dt>as List</dt><dd>Avisa ao Dart: "isto é uma lista". Se não fosse, o programa pararia com uma exceção nesta linha, o que é bom: o erro aparece cedo e no lugar certo.</dd>
+  <dt>dados[0]['nome']</dt><dd>O primeiro produto (um mapa) e, dentro dele, o valor da chave <code>'nome'</code>.</dd>
+  <dt>runtimeType</dt><dd>O tipo verdadeiro do valor, na hora em que o programa roda.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/estoque">$ dart run estoque.dart
+4 produtos
+{nome: Caderno, preco: 18.9, quantidade: 40}
+Caderno
+_Map&lt;String, dynamic&gt;
+</pre>
+
+<p>O <code>print</code> de um mapa mostra as chaves <strong>sem aspas</strong>: é o jeito do Dart mostrar um <code>Map</code>, e não JSON. E o tipo é <code>_Map&lt;String, dynamic&gt;</code>: a versão interna do Dart de um <code>Map&lt;String, dynamic&gt;</code>. As chaves são sempre texto; os valores podem ser qualquer coisa, por isso <code>dynamic</code>.</p>
+
+<div class="trydart" data-goal="out:Mochila;;semerro">
+<p class="try-task"><strong>Missão (versão 1):</strong> mostre o nome do <strong>terceiro</strong> produto da lista (lembre: a contagem começa em 0).</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final dados = jsonDecode(textoJson) as List;
+  print(dados[0]['nome']);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final dados = jsonDecode(textoJson) as List;
+  print(dados[2]['nome']);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · A classe Produto</h2>
+<p>Trabalhar com <code>dados[0]['nome']</code> funciona, mas é frágil: um erro de digitação em <code>'nmoe'</code> só aparece quando o programa roda, e o Dart não ajuda a completar nada, porque tudo é <code>dynamic</code>. O jeito profissional é converter cada mapa num objeto de uma classe, <strong>uma vez só</strong>, logo depois de ler o JSON. A partir daí, o resto do programa usa <code>produto.nome</code>, com tipo e com a ajuda do compilador.</p>
+
+<pre class="file" data-file="estoque.dart">import 'dart:convert';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final lista = jsonDecode(textoJson) as List;
+  final produtos = [
+    for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;),
+  ];
+
+  for (final p in produtos) {
+    print('${p.nome.padRight(12)} ${p.quantidade.toString().padLeft(4)} un.'
+        '  R\$ ${p.preco.toStringAsFixed(2).padLeft(7)}');
+  }
+  final total = produtos.fold(0.0, (soma, p) =&gt; soma + p.valorEmEstoque);
+  print('Valor do estoque: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>int quantidade;</code></td><td>Sem <code>final</code>: a quantidade muda a cada venda. Nome e preço não mudam.</td></tr>
+<tr><td><code>Produto({required this.nome, …})</code></td><td>Construtor com parâmetros nomeados obrigatórios (veja <a href="parametros-nomeados.html">Parâmetros Nomeados</a>).</td></tr>
+<tr><td><code>factory Produto.fromJson(Map&lt;String, dynamic&gt; json)</code></td><td>Um construtor <strong>com nome</strong> (<code>fromJson</code> = "a partir do JSON") e <code>factory</code> ("fábrica"): ele recebe o mapa e devolve um <code>Produto</code> pronto. É a convenção do Dart para isso.</td></tr>
+<tr><td><code>json['nome'] as String</code></td><td>O valor do mapa é <code>dynamic</code>; o <code>as</code> confere e converte para <code>String</code>.</td></tr>
+<tr><td><code>(json['preco'] as num).toDouble()</code></td><td>O preço pode vir como <code>18.9</code> (<code>double</code>) ou como <code>3</code> (<code>int</code>). <code>num</code> aceita os dois, e o <code>toDouble()</code> transforma em <code>double</code>. Veja o porquê no erro logo abaixo.</td></tr>
+<tr><td><code>double get valorEmEstoque</code></td><td>Um getter calculado: preço × quantidade.</td></tr>
+<tr><td><code>Produto.fromJson(item as Map&lt;String, dynamic&gt;)</code></td><td>Cada item da lista (<code>dynamic</code>) vira mapa e, em seguida, produto.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/estoque">$ dart run estoque.dart
+Caderno        40 un.  R$   18.90
+Caneta azul   120 un.  R$    2.50
+Mochila         3 un.  R$  149.90
+Borracha        0 un.  R$    1.75
+Valor do estoque: R$ 1505.70
+</pre>
+
+<div class="cenario">
+<strong>Um preço sem ponto: <code>int</code> no lugar de <code>double</code></strong>
+<p>A Ana mudou o preço da caneta para <code>"preco": 3</code> (sem <code>.0</code>) e, na linha 12, tinha escrito o atalho <code>preco: json['preco'] as double,</code>:</p>
+<pre class="term" data-cwd="~/estoque">$ dart run estoque.dart
+Unhandled exception:
+type 'int' is not a subtype of type 'double' in type cast
+#0      new Produto.fromJson (file:///home/ana/estoque/estoque.dart:12:30)
+#1      main (file:///home/ana/estoque/estoque.dart:31:39)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<ul>
+  <li><code>type 'int' is not a subtype of type 'double' in type cast</code> = "o tipo <code>int</code> não é um subtipo de <code>double</code> numa conversão de tipo". Em português claro: o <code>as double</code> recebeu um <code>int</code> (o <code>3</code>) e recusou.</li>
+  <li><code>#0 new Produto.fromJson (…estoque.dart:12:30)</code>: estourou no construtor <code>fromJson</code>, linha 12, no <code>as</code>.</li>
+  <li><code>#1 main (…:31:39)</code>: quem chamou foi o <code>main</code>, na linha 31.</li>
+</ul>
+<p>No Dart, <code>int</code> e <code>double</code> são tipos <strong>diferentes</strong>, irmãos debaixo do <code>num</code>: um <code>int</code> não "vira" <code>double</code> sozinho num <code>as</code>. E o JSON não distingue: quem escreve o arquivo (uma pessoa, uma planilha, outro programa) pode muito bem escrever <code>3</code>. <strong>Conserto:</strong> <code>(json['preco'] as num).toDouble()</code>, como na versão 2.</p>
+</div>
+
+<div class="trydart" data-goal="out:Valor do estoque: R$ 1505.70;;semerro">
+<p class="try-task"><strong>Missão (versão 2):</strong> o getter <code>valorEmEstoque</code> devolve sempre 0, e o valor do estoque sai R$ 0.00. Faça-o devolver o preço vezes a quantidade.</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  double get valorEmEstoque =&gt; 0; // complete: preço × quantidade
+}
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final lista = jsonDecode(textoJson) as List;
+  final produtos = [
+    for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;),
+  ];
+
+  for (final p in produtos) {
+    print('${p.nome.padRight(12)} ${p.quantidade.toString().padLeft(4)} un.'
+        '  R\$ ${p.preco.toStringAsFixed(2).padLeft(7)}');
+  }
+  final total = produtos.fold(0.0, (soma, p) =&gt; soma + p.valorEmEstoque);
+  print('Valor do estoque: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+const textoJson = '''
+[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+''';
+
+void main() {
+  final lista = jsonDecode(textoJson) as List;
+  final produtos = [
+    for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;),
+  ];
+
+  for (final p in produtos) {
+    print('${p.nome.padRight(12)} ${p.quantidade.toString().padLeft(4)} un.'
+        '  R\$ ${p.preco.toStringAsFixed(2).padLeft(7)}');
+  }
+  final total = produtos.fold(0.0, (soma, p) =&gt; soma + p.valorEmEstoque);
+  print('Valor do estoque: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · Vender e avisar o que repor</h2>
+<p>Agora o programa lê o <code>estoque.json</code> de verdade e ganha duas funções: <code>carregar</code>, que transforma o arquivo numa lista de produtos, e <code>vender</code>, que procura o produto pelo nome e dá baixa, recusando a venda quando não há o suficiente. No fim, ele lista o que está com menos de 5 unidades. A classe <code>Produto</code> ganhou também o método <code>toJson</code>, que a versão 4 vai usar.</p>
+
+<pre class="file" data-file="estoque.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void vender(List&lt;Produto&gt; produtos, String nome, int quantidade) {
+  final produto = produtos.firstWhere((p) =&gt; p.nome == nome);
+  if (quantidade &gt; produto.quantidade) {
+    print('Venda recusada: só há ${produto.quantidade} de $nome.');
+    return;
+  }
+  produto.quantidade -= quantidade;
+  print('Vendido: $quantidade × $nome.');
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  vender(produtos, 'Caderno', 5);
+  vender(produtos, 'Mochila', 4);
+  vender(produtos, 'Mochila', 2);
+
+  print('');
+  print('Repor (menos de 5 unidades):');
+  for (final p in produtos.where((p) =&gt; p.quantidade &lt; 5)) {
+    print('- ${p.nome}: ${p.quantidade}');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>File(caminho).readAsStringSync()</dt><dd>Lê o arquivo inteiro como um texto só, que vai direto para o <code>jsonDecode</code>.</dd>
+  <dt>produtos.firstWhere((p) =&gt; p.nome == nome)</dt><dd>"O primeiro onde…": devolve o primeiro produto cujo nome é igual ao pedido. Os produtos são objetos, então mudar <code>produto.quantidade</code> muda o produto <strong>que está na lista</strong>.</dd>
+  <dt>return;</dt><dd>Numa função <code>void</code>, sai na hora, sem dar baixa.</dd>
+  <dt>produto.quantidade -= quantidade;</dt><dd>Dá baixa no estoque.</dd>
+  <dt>produtos.where((p) =&gt; p.quantidade &lt; 5)</dt><dd>Só os produtos com menos de 5 unidades. O <code>for</code> percorre esse resultado.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/estoque">$ dart run estoque.dart
+Vendido: 5 × Caderno.
+Venda recusada: só há 3 de Mochila.
+Vendido: 2 × Mochila.
+
+Repor (menos de 5 unidades):
+- Mochila: 1
+- Borracha: 0
+</pre>
+
+<div class="cenario">
+<strong>Um produto que não existe</strong>
+<p>O <code>firstWhere</code> não sabe o que devolver quando ninguém combina. Um teste pequeno:</p>
+<pre class="file" data-file="erro.dart">void main() {
+  final nomes = ['Caderno', 'Mochila'];
+  print(nomes.firstWhere((n) =&gt; n == 'Lápis'));
+}
+</pre>
+<pre class="term" data-cwd="~/estoque">$ dart run erro.dart
+Unhandled exception:
+Bad state: No element
+#0      ListBase.firstWhere (dart:collection/list.dart:132:5)
+#1      main (file:///home/ana/estoque/erro.dart:3:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p><code>Bad state: No element</code> = "estado inválido: nenhum elemento". Se o caixa da lojinha digitar um nome errado, o programa inteiro cai. Duas saídas: passar o parâmetro <code>orElse</code> (o que devolver quando não achar), ou usar o <code>firstWhereOrNull</code> do pacote <code>collection</code> (veja <a href="pacotes.html">Pacotes do pub.dev</a>) e conferir o <code>null</code> (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>).</p>
+</div>
+
+<div class="trydart" data-goal="out:Venda recusada: só há 3 de Mochila.;;out:- Mochila: 1;;semerro">
+<p class="try-task"><strong>Missão (versão 3):</strong> o <code>vender</code> não confere o estoque, e a mochila ficou com −3. No lugar do comentário, recuse a venda (mostre <code>Venda recusada: só há 3 de Mochila.</code> e saia com <code>return</code>) quando a quantidade pedida for maior que a do produto. A segunda aba é o <code>estoque.json</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void vender(List&lt;Produto&gt; produtos, String nome, int quantidade) {
+  final produto = produtos.firstWhere((p) =&gt; p.nome == nome);
+  // recuse a venda se não houver o suficiente
+  produto.quantidade -= quantidade;
+  print('Vendido: $quantidade × $nome.');
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  vender(produtos, 'Caderno', 5);
+  vender(produtos, 'Mochila', 4);
+  vender(produtos, 'Mochila', 2);
+
+  print('');
+  print('Repor (menos de 5 unidades):');
+  for (final p in produtos.where((p) =&gt; p.quantidade &lt; 5)) {
+    print('- ${p.nome}: ${p.quantidade}');
+  }
+}
+</pre>
+<pre class="script" data-file="estoque.json">[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void vender(List&lt;Produto&gt; produtos, String nome, int quantidade) {
+  final produto = produtos.firstWhere((p) =&gt; p.nome == nome);
+  if (quantidade &gt; produto.quantidade) {
+    print('Venda recusada: só há ${produto.quantidade} de $nome.');
+    return;
+  }
+  produto.quantidade -= quantidade;
+  print('Vendido: $quantidade × $nome.');
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  vender(produtos, 'Caderno', 5);
+  vender(produtos, 'Mochila', 4);
+  vender(produtos, 'Mochila', 2);
+
+  print('');
+  print('Repor (menos de 5 unidades):');
+  for (final p in produtos.where((p) =&gt; p.quantidade &lt; 5)) {
+    print('- ${p.nome}: ${p.quantidade}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Gravar o estoque de volta</h2>
+<p>Até aqui, as vendas sumiam quando o programa terminava: o arquivo continuava igual. Para guardar, o caminho é o inverso: cada produto vira um mapa (<code>toJson</code>), a lista de mapas vira texto JSON, e o texto vai para o arquivo. A classe e o <code>carregar</code> são os da versão 3; o resto muda:</p>
+
+<pre class="file" data-file="estoque.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void salvar(String caminho, List&lt;Produto&gt; produtos) {
+  const codificador = JsonEncoder.withIndent('  ');
+  File(caminho).writeAsStringSync(codificador.convert(produtos));
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  final caderno = produtos.firstWhere((p) =&gt; p.nome == 'Caderno');
+  caderno.quantidade -= 5;
+
+  produtos.add(Produto(nome: 'Régua 30 cm', preco: 4.2, quantidade: 25));
+
+  salvar('estoque.json', produtos);
+  print('Estoque salvo: ${produtos.length} produtos.');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>Map&lt;String, dynamic&gt; toJson() =&gt; {…}</code></td><td>O caminho de volta do <code>fromJson</code>: o produto vira um mapa com as mesmas chaves do arquivo.</td></tr>
+<tr><td><code>JsonEncoder.withIndent('  ')</code></td><td>Um codificador que escreve o JSON "bonito", com quebras de linha e 2 espaços de recuo. O <code>jsonEncode(…)</code> simples escreveria tudo numa linha só.</td></tr>
+<tr><td><code>codificador.convert(produtos)</code></td><td>Transforma a lista em texto. O codificador não sabe o que é um <code>Produto</code>, mas, quando encontra um objeto desconhecido, chama o método <code>toJson()</code> dele. Por isso o nome tem de ser exatamente esse.</td></tr>
+<tr><td><code>File(caminho).writeAsStringSync(…)</code></td><td>Grava o texto no arquivo, apagando o conteúdo antigo.</td></tr>
+<tr><td><code>produtos.add(Produto(…))</code></td><td>Um produto novo, a régua, entra na lista e, portanto, no arquivo.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/estoque">$ dart run estoque.dart
+Estoque salvo: 5 produtos.
+$ cat estoque.json
+[
+  {
+    "nome": "Caderno",
+    "preco": 18.9,
+    "quantidade": 35
+  },
+  {
+    "nome": "Caneta azul",
+    "preco": 2.5,
+    "quantidade": 120
+  },
+  {
+    "nome": "Mochila",
+    "preco": 149.9,
+    "quantidade": 3
+  },
+  {
+    "nome": "Borracha",
+    "preco": 1.75,
+    "quantidade": 0
+  },
+  {
+    "nome": "Régua 30 cm",
+    "preco": 4.2,
+    "quantidade": 25
+  }
+]</pre>
+
+<p>O caderno caiu para 35 e a régua entrou. (O <code>JsonEncoder</code> não põe uma quebra de linha depois do <code>]</code> final; no terminal, o próximo <code>$</code> apareceria colado nele.) Rode de novo e o caderno cai para 30: o programa agora lembra.</p>
+
+<div class="cenario">
+<strong>Uma vírgula sobrando no arquivo</strong>
+<p>Editando o <code>estoque.json</code> à mão, é fácil deixar uma vírgula depois do último item, como o Dart aceita nas listas dele. O JSON <strong>não</strong> aceita. Com um <code>quebrado.json</code> assim:</p>
+<pre class="file" data-file="quebrado.json">[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+]
+</pre>
+<pre class="term" data-cwd="~/estoque">$ dart run erro.dart
+Unhandled exception:
+FormatException: Unexpected character (at line 3, character 1)
+]
+^
+
+#0      _ChunkedJsonParser.fail (dart:convert-patch/convert_patch.dart:1466:5)
+#1      _ChunkedJsonParser.parse (dart:convert-patch/convert_patch.dart:914:13)
+#2      _parseJson (dart:convert-patch/convert_patch.dart:35:10)
+#3      JsonDecoder.convert (dart:convert/json.dart:640:36)
+#4      JsonCodec.decode (dart:convert/json.dart:219:41)
+#5      jsonDecode (dart:convert/json.dart:160:12)
+#6      main (file:///home/ana/estoque/erro.dart:5:17)
+#7      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#8      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>(O <code>erro.dart</code> só faz <code>jsonDecode(File('quebrado.json').readAsStringSync())</code> na linha 5.) <code>FormatException: Unexpected character (at line 3, character 1)</code> = "erro de formato: caractere inesperado (na linha 3, caractere 1)" <strong>do arquivo JSON</strong>, não do programa. Logo abaixo, o Dart mostra a linha do JSON e o <code>^</code> embaixo do <code>]</code>: depois daquela vírgula ele esperava mais um item, e veio o fecha-colchete. As linhas <code>#0</code> a <code>#5</code> são o leitor de JSON do próprio Dart; a sua é a <code>#6</code>. <strong>Conserto:</strong> apague a vírgula depois do último item. Outras pegadinhas do JSON: aspas simples (<code>'nome'</code>) e comentários também são proibidos.</p>
+</div>
+
+<div class="trydart" data-goal="arquivo:estoque.json~Régua 30 cm;;semerro">
+<p class="try-task"><strong>Missão (versão 4):</strong> o programa acrescenta a régua, mas não grava. No lugar do comentário, transforme a lista em JSON com <code>JsonEncoder.withIndent('  ')</code> e grave em <code>estoque.json</code> com <code>writeAsStringSync</code>. Depois de rodar, o arquivo da segunda aba deve ter a régua.</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  final caderno = produtos.firstWhere((p) =&gt; p.nome == 'Caderno');
+  caderno.quantidade -= 5;
+
+  produtos.add(Produto(nome: 'Régua 30 cm', preco: 4.2, quantidade: 25));
+
+  // grave a lista em estoque.json (JsonEncoder.withIndent)
+  print('Estoque salvo: ${produtos.length} produtos.');
+}
+</pre>
+<pre class="script" data-file="estoque.json">[
+  {"nome": "Caderno", "preco": 18.9, "quantidade": 40},
+  {"nome": "Caneta azul", "preco": 2.5, "quantidade": 120},
+  {"nome": "Mochila", "preco": 149.9, "quantidade": 3},
+  {"nome": "Borracha", "preco": 1.75, "quantidade": 0}
+]
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+import 'dart:io';
+
+class Produto {
+  final String nome;
+  final double preco;
+  int quantidade;
+
+  Produto({required this.nome, required this.preco, required this.quantidade});
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) =&gt; Produto(
+        nome: json['nome'] as String,
+        preco: (json['preco'] as num).toDouble(),
+        quantidade: json['quantidade'] as int,
+      );
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {
+        'nome': nome,
+        'preco': preco,
+        'quantidade': quantidade,
+      };
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+List&lt;Produto&gt; carregar(String caminho) {
+  final lista = jsonDecode(File(caminho).readAsStringSync()) as List;
+  return [for (final item in lista) Produto.fromJson(item as Map&lt;String, dynamic&gt;)];
+}
+
+void salvar(String caminho, List&lt;Produto&gt; produtos) {
+  const codificador = JsonEncoder.withIndent('  ');
+  File(caminho).writeAsStringSync(codificador.convert(produtos));
+}
+
+void main() {
+  final produtos = carregar('estoque.json');
+
+  final caderno = produtos.firstWhere((p) =&gt; p.nome == 'Caderno');
+  caderno.quantidade -= 5;
+
+  produtos.add(Produto(nome: 'Régua 30 cm', preco: 4.2, quantidade: 25));
+
+  salvar('estoque.json', produtos);
+  print('Estoque salvo: ${produtos.length} produtos.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tipo do número</h3>
+<p>No JSON <code>{"quantidade": 40}</code>, que tipo do Dart o <code>jsonDecode</code> dá para o <code>40</code>?</p>
+<div class="ex-code">Tipo: <input data-answer="int" aria-label="tipo" size="8"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O nome do método</h3>
+<p>Para o <code>JsonEncoder</code> conseguir gravar um objeto seu, a classe precisa ter um método chamado…</p>
+<div class="ex-code"><input data-answer="toJson" aria-label="nome do método" size="10">()</div>
+</div>
+
+<div class="exercise">
+<h3>3. Aceitando int e double</h3>
+<p>Complete para converter o preço, venha ele <code>3</code> ou <code>18.9</code>:</p>
+<div class="ex-code">preco: (json['preco'] as <input data-answer="num" aria-label="tipo" size="6">).toDouble(),</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destes textos é um JSON válido?</p>
+<label><input type="radio" name="q4"> <code>{'nome': 'Caderno'}</code></label>
+<label><input type="radio" name="q4"> <code>[1, 2, 3,]</code></label>
+<label><input type="radio" name="q4"> <code>{"nome": "Caderno", "preco": 18.9}</code></label>
+<label><input type="radio" name="q4"> <code>{nome: "Caderno"}</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que acontece com <code>firstWhere</code> quando nenhum item combina (e não há <code>orElse</code>)?</p>
+<label><input type="radio" name="q5"> Lança <code>Bad state: No element</code></label>
+<label><input type="radio" name="q5"> Devolve <code>null</code></label>
+<label><input type="radio" name="q5"> Devolve o primeiro item da lista</label>
+<label><input type="radio" name="q5"> Não compila</label>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>JSON é texto; <code>jsonDecode</code> o transforma em <code>List</code>/<code>Map&lt;String, dynamic&gt;</code>, e <code>jsonEncode</code>/<code>JsonEncoder.withIndent</code> fazem o caminho de volta.</li>
+  <li>Converta o <code>dynamic</code> num objeto logo na entrada: <code>factory Produto.fromJson(Map&lt;String, dynamic&gt; json)</code>; na saída, <code>toJson()</code>.</li>
+  <li><code>as String</code>, <code>as int</code> conferem o tipo; para números que podem vir com ou sem ponto, <code>(… as num).toDouble()</code> evita o <code>type 'int' is not a subtype of type 'double'</code>.</li>
+  <li><code>firstWhere</code> procura; sem resultado, <code>Bad state: No element</code>. <code>where</code> filtra.</li>
+  <li><code>readAsStringSync</code> lê, <code>writeAsStringSync</code> grava. Vírgula sobrando no JSON dá <code>FormatException: Unexpected character</code>, com a linha e o caractere do arquivo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
