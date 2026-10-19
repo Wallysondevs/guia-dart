@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart switch — o switch clássico e as expressões switch do Dart 3 | Guia Dart</title>
+<meta name="description" content="O switch do Dart para quem nunca programou: o switch clássico com case e default (sem break no Dart 3), vários valores no mesmo caso, a expressão switch com =&gt; e _, patterns simples (&gt;= 9, &gt;= 12 &amp;&amp; &lt; 18, 'sábado' || 'domingo', int n, when), a exaustividade, e os erros reais do Dart 3 (is not exhaustively matched, default numa expressão switch, case numa expressão, vírgula esquecida, Not a constant expression, o _ no lugar errado).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">switch e Expressões switch</span></h1>
+
+<p class="intro">Quando uma variável pode ter muitos valores, e cada um pede uma resposta diferente (o dia da semana, a opção do menu, o tamanho da pizza), uma fileira de <code>if … else if</code> fica comprida e repetitiva. O <code>switch</code> ("chave", como a chave seletora de um ventilador) olha o valor <strong>uma vez</strong> e vai direto para o caso certo. O Dart tem duas formas: o <strong><code>switch</code> clássico</strong>, que escolhe o que <strong>fazer</strong>, e a <strong>expressão <code>switch</code></strong> <span class="versao">Dart 3.0</span>, que escolhe um <strong>valor</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>switch</code> clássico: <code>case</code>, <code>default</code>, e por que no Dart 3 não precisa de <code>break</code>.</li>
+  <li>Vários valores levando ao mesmo caso.</li>
+  <li>A expressão <code>switch</code>: <code>valor =&gt; resultado</code>, com o <code>_</code> para "qualquer outro".</li>
+  <li><em>Patterns</em> (padrões) simples: <code>&gt;= 9</code>, <code>&gt;= 12 &amp;&amp; &lt; 18</code>, <code>'sábado' || 'domingo'</code>, <code>int n</code> e o <code>when</code>.</li>
+  <li>A <strong>exaustividade</strong>: o Dart exige que a expressão <code>switch</code> cubra todos os valores possíveis, e mostra o erro quando falta algum.</li>
+  <li>Os erros reais: <code>default</code> e <code>case</code> na expressão, a vírgula esquecida, o caso com variável, e os casos que compilam mas nunca são alcançados.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o cardápio numerado</h2>
+<p>Na lanchonete, o cliente diz "número 3", e o atendente nem pensa: olha o cardápio, acha a linha 3 e prepara o X-salada. Ele não pergunta "é o 1? não. É o 2? não. É o 3? sim" (isso seria o <code>if … else if</code>). Ele <strong>compara o pedido com a lista</strong> e vai direto. E se o cliente pedir o número 99, que não existe, o atendente tem uma resposta padrão: "esse não temos". Isso é o <code>switch</code>: um valor, uma lista de casos, e um caso padrão.</p>
+
+<hr>
+
+<h2>1. O <code>switch</code> clássico</h2>
+
+<pre class="file" data-file="sw1.dart">void main() {
+  final dia = 3;
+  switch (dia) {
+    case 1:
+      print('Domingo');
+    case 2:
+      print('Segunda');
+    case 3:
+      print('Terça');
+    case 4:
+      print('Quarta');
+    default:
+      print('Outro dia');
+  }
+  print('Fim');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>switch (dia)</dt><dd>O valor que vai ser comparado, entre parênteses.</dd>
+  <dt>{ … }</dt><dd>As chaves envolvem todos os casos.</dd>
+  <dt>case 1:</dt><dd>"No caso de ser 1". Depois dos dois-pontos vêm as linhas desse caso, até o próximo <code>case</code>.</dd>
+  <dt>default:</dt><dd>"Padrão": roda quando nenhum <code>case</code> combinou. É opcional aqui.</dd>
+</dl>
+
+<pre class="term">$ dart run sw1.dart
+Terça
+Fim
+</pre>
+
+<p>O Dart comparou <code>dia</code> com 1, 2, 3, achou o 3, rodou <code>print('Terça')</code> e <strong>saiu</strong> do <code>switch</code>. Só um caso roda.</p>
+
+<div class="note">
+<strong>E o <code>break</code>?</strong>
+<p>Em C, Java e JavaScript, cada <code>case</code> precisa terminar com <code>break</code> ("quebrar", sair), senão o programa "cai" no caso de baixo. No <strong>Dart 3</strong>, não: um caso com instruções termina sozinho. O <code>break</code> ainda é aceito (no lab, um <code>switch</code> com <code>break</code> no fim de cada caso rodou igual), mas é desnecessário, e você vai encontrá-lo em código antigo.</p>
+</div>
+
+<h3>Vários valores, o mesmo caso</h3>
+<p>Um <code>case</code> <strong>vazio</strong> (sem nenhuma instrução) passa para o de baixo. E, desde o Dart 3, dá para juntar valores com <code>||</code> num <code>case</code> só:</p>
+
+<pre class="file" data-file="sw_varios.dart">void main() {
+  final dia = 'sábado';
+  switch (dia) {
+    case 'sábado':
+    case 'domingo':
+      print('Fim de semana: padaria abre às 7h');
+    case 'segunda' || 'terça' || 'quarta' || 'quinta' || 'sexta':
+      print('Dia útil: padaria abre às 6h');
+    default:
+      print('Dia desconhecido: $dia');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run sw_varios.dart
+Fim de semana: padaria abre às 7h
+</pre>
+
+<p>O <code>case 'sábado':</code> está vazio, então o sábado usa as linhas do <code>case 'domingo':</code>. A segunda forma, <code>'segunda' || 'terça' || …</code>, é um <em>pattern</em> "ou": combina com qualquer um dos valores. O <code>switch</code> funciona com <code>int</code>, <code>String</code>, <code>bool</code>, <a href="enums.html">enums</a> e mais.</p>
+
+<h3>Sem <code>default</code>, pode não acontecer nada</h3>
+<pre class="file" data-file="sw_semdefault.dart">void main() {
+  final opcao = 9;
+  switch (opcao) {
+    case 1:
+      print('Pão francês');
+    case 2:
+      print('Pão de queijo');
+  }
+  print('Fim do menu');
+}
+</pre>
+
+<pre class="term">$ dart run sw_semdefault.dart
+Fim do menu
+</pre>
+
+<p>A opção 9 não combinou com nenhum caso, e não havia <code>default</code>: o <code>switch</code> não fez nada. Num menu, quase sempre você quer um <code>default</code> avisando "opção inválida".</p>
+
+<div class="trydart" data-goal="out:Pizza grande: R$ 60;;src:case\s+'G'">
+<p class="try-task"><strong>Missão:</strong> a pizzaria tem os tamanhos P, M e G. O <code>switch</code> só conhece P e M. Acrescente um <code>case 'G':</code> que mostre <code>Pizza grande: R$ 60</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final tamanho = 'G';
+  switch (tamanho) {
+    case 'P':
+      print('Pizza pequena: R\$ 35');
+    case 'M':
+      print('Pizza média: R\$ 48');
+    default:
+      print('Tamanho desconhecido: $tamanho');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final tamanho = 'G';
+  switch (tamanho) {
+    case 'P':
+      print('Pizza pequena: R\$ 35');
+    case 'M':
+      print('Pizza média: R\$ 48');
+    case 'G':
+      print('Pizza grande: R\$ 60');
+    default:
+      print('Tamanho desconhecido: $tamanho');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. A expressão <code>switch</code> <span class="versao">Dart 3.0</span></h2>
+<p>Muitas vezes, o <code>switch</code> só serve para escolher um <strong>valor</strong>: o nome do dia, o preço do tamanho. Para isso, o Dart 3 trouxe a <strong>expressão <code>switch</code></strong>, que devolve o valor direto, como o <a href="ternario.html">ternário</a> faz com duas opções:</p>
+
+<pre class="file" data-file="sw_expr.dart">void main() {
+  final dia = 3;
+  final nome = switch (dia) {
+    1 =&gt; 'Domingo',
+    2 =&gt; 'Segunda',
+    3 =&gt; 'Terça',
+    4 =&gt; 'Quarta',
+    5 =&gt; 'Quinta',
+    6 =&gt; 'Sexta',
+    7 =&gt; 'Sábado',
+    _ =&gt; 'Dia inválido',
+  };
+  print('Hoje é $nome');
+}
+</pre>
+
+<pre class="term">$ dart run sw_expr.dart
+Hoje é Terça
+</pre>
+
+<dl class="anatomy">
+  <dt>final nome = switch (dia) { … };</dt><dd>O <code>switch</code> fica do lado direito do <code>=</code>: ele <strong>é</strong> um valor. Repare no <code>;</code> depois da chave final: é o fim da linha do <code>final nome = …</code>.</dd>
+  <dt>1 =&gt; 'Domingo',</dt><dd>Cada linha é um caso: o valor (o <em>pattern</em>), a seta <code>=&gt;</code> ("dá") e o resultado. Sem <code>case</code>, sem <code>:</code>, sem <code>print</code>. Os casos são separados por <strong>vírgula</strong>.</dd>
+  <dt>_ =&gt; 'Dia inválido',</dt><dd>O <code>_</code> (sublinhado) é o <strong>curinga</strong>: combina com qualquer valor. É o <code>default</code> da expressão <code>switch</code>, e vem por último.</dd>
+  <dt>a vírgula no último caso</dt><dd>É opcional, mas é o estilo do Dart: com ela, o <code>dart format</code> mantém um caso por linha.</dd>
+</dl>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>switch</code> clássico</th><th>expressão <code>switch</code></th></tr>
+<tr><td>Serve para</td><td>escolher o que <strong>fazer</strong> (instruções)</td><td>escolher um <strong>valor</strong></td></tr>
+<tr><td>Cada caso</td><td><code>case 1:</code> + instruções</td><td><code>1 =&gt; valor,</code></td></tr>
+<tr><td>"Qualquer outro"</td><td><code>default:</code> (ou <code>case _:</code>)</td><td><code>_ =&gt;</code></td></tr>
+<tr><td>Precisa cobrir todos os valores?</td><td>só para <code>bool</code>, enums e tipos <code>sealed</code></td><td><strong>sempre</strong> (seção 4)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>3. <em>Patterns</em>: casos que não são só um valor</h2>
+<p>Nos casos de um <code>switch</code> do Dart 3 vão <strong>patterns</strong> (padrões): moldes que o valor tem de encaixar. Um número ou um texto é o pattern mais simples ("igual a isto"). Há outros, e eles resolvem muita coisa que antes só o <code>if</code> fazia.</p>
+
+<h3>Comparações: <code>&gt;= 9</code></h3>
+<pre class="file" data-file="sw_rel.dart">void main() {
+  final nota = 7.8;
+  final conceito = switch (nota) {
+    &gt;= 9 =&gt; 'A',
+    &gt;= 7 =&gt; 'B',
+    &gt;= 5 =&gt; 'C',
+    _ =&gt; 'D',
+  };
+  print('Nota $nota: conceito $conceito');
+}
+</pre>
+
+<pre class="term">$ dart run sw_rel.dart
+Nota 7.8: conceito B
+</pre>
+
+<p><code>&gt;= 9</code> quer dizer "o valor é maior ou igual a 9". Como no <code>else if</code>, os casos são testados <strong>de cima para baixo</strong>, e vale o <strong>primeiro</strong> que combinar: por isso o <code>&gt;= 7</code> não precisa dizer "e menor que 9".</p>
+
+<h3>"E" e "ou" dentro do caso: <code>&amp;&amp;</code> e <code>||</code></h3>
+<pre class="file" data-file="sw_faixa.dart">void main() {
+  final idade = 15;
+  final fase = switch (idade) {
+    &lt; 0 =&gt; 'idade inválida',
+    &gt;= 0 &amp;&amp; &lt; 12 =&gt; 'criança',
+    &gt;= 12 &amp;&amp; &lt; 18 =&gt; 'adolescente',
+    _ =&gt; 'adulto',
+  };
+  print('$idade anos: $fase');
+}
+</pre>
+
+<pre class="term">$ dart run sw_faixa.dart
+15 anos: adolescente
+</pre>
+
+<p><code>&gt;= 12 &amp;&amp; &lt; 18</code> é uma faixa: "de 12 até menos de 18". Dentro de um pattern, o <code>&amp;&amp;</code> junta dois moldes que o valor precisa encaixar ao mesmo tempo, e o <code>||</code> (como no <code>'sábado' || 'domingo'</code>) aceita qualquer um deles. Repare que <strong>não</strong> se repete o nome da variável: é <code>&gt;= 12 &amp;&amp; &lt; 18</code>, e não <code>idade &gt;= 12 &amp;&amp; idade &lt; 18</code>.</p>
+
+<div class="trydart" data-goal="out:Temperatura 31: calor;;src:switch\s*\(">
+<p class="try-task"><strong>Missão:</strong> complete a expressão <code>switch</code>: abaixo de 15 é <code>'frio'</code>; de 15 até menos de 28 é <code>'agradável'</code>; o resto é <code>'calor'</code>. Com 31 graus, deve aparecer <code>Temperatura 31: calor</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final temperatura = 31;
+  final sensacao = switch (temperatura) {
+    &lt; 15 =&gt; 'frio',
+    _ =&gt; 'não sei',
+  };
+  print('Temperatura $temperatura: $sensacao');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final temperatura = 31;
+  final sensacao = switch (temperatura) {
+    &lt; 15 =&gt; 'frio',
+    &gt;= 15 &amp;&amp; &lt; 28 =&gt; 'agradável',
+    _ =&gt; 'calor',
+  };
+  print('Temperatura $temperatura: $sensacao');
+}
+</pre>
+</div>
+
+<h3>Pelo tipo: <code>int n</code>, e o <code>when</code></h3>
+<p>Um pattern também pode perguntar o <strong>tipo</strong>, como o <code>is</code> da aula <a href="operadores-tipo.html">is, is! e as</a>, e já dar um nome ao valor:</p>
+
+<pre class="file" data-file="sw_tipo.dart">String descrever(Object valor) {
+  return switch (valor) {
+    int n when n &lt; 0 =&gt; 'inteiro negativo: $n',
+    int n =&gt; 'inteiro: $n',
+    double d =&gt; 'número com vírgula: $d',
+    String s =&gt; 'texto com ${s.length} letras',
+    _ =&gt; 'outra coisa',
+  };
+}
+
+void main() {
+  print(descrever(-4));
+  print(descrever(10));
+  print(descrever(2.5));
+  print(descrever('pão'));
+  print(descrever(true));
+}
+</pre>
+
+<pre class="term">$ dart run sw_tipo.dart
+inteiro negativo: -4
+inteiro: 10
+número com vírgula: 2.5
+texto com 3 letras
+outra coisa
+</pre>
+
+<dl class="anatomy">
+  <dt>int n</dt><dd>"Se o valor for um <code>int</code>, chame-o de <code>n</code>." Do lado direito da seta, <code>n</code> é um <code>int</code> de verdade (dá para fazer contas com ele).</dd>
+  <dt>when n &lt; 0</dt><dd>Uma <strong>guarda</strong> (<em>when</em> = "quando"): uma condição extra. O caso só vale se o tipo encaixar <strong>e</strong> a condição for verdadeira. O -4 caiu aqui; o 10 não passou na guarda e caiu no caso de baixo.</dd>
+  <dt>String s =&gt; … s.length …</dt><dd>Para textos, o nome <code>s</code> já é uma <code>String</code>: o <code>.length</code> funciona sem <code>if</code> nem <code>as</code>.</dd>
+</dl>
+
+<p>Há muitos outros patterns (de listas, de records, de objetos), assunto da aula <a href="patterns.html">Patterns e Desestruturação</a>.</p>
+
+<hr>
+
+<h2>4. Exaustividade: "e se não for nenhum desses?"</h2>
+<p>Uma expressão <code>switch</code> <strong>tem de</strong> devolver um valor, sempre. Então o Dart confere, antes de rodar, se os casos cobrem <strong>todos</strong> os valores possíveis. Essa conferência se chama <strong>exaustividade</strong> (de "esgotar": não pode sobrar nenhum valor). Sem o <code>_</code>:</p>
+
+<pre class="file" data-file="err_exaust.dart">void main() {
+  final dia = 3;
+  final nome = switch (dia) {
+    1 =&gt; 'Domingo',
+    2 =&gt; 'Segunda',
+    3 =&gt; 'Terça',
+  };
+  print(nome);
+}
+</pre>
+
+<pre class="term">$ dart run err_exaust.dart
+err_exaust.dart:3:24: Error: The type 'int' is not exhaustively matched by the switch cases since it doesn't match 'int()'.
+Try adding a wildcard pattern or cases that match 'int()'.
+  final nome = switch (dia) {
+                       ^
+</pre>
+
+<dl class="anatomy">
+  <dt>err_exaust.dart:3:24:</dt><dd>Linha 3, coluna 24: o valor do <code>switch</code>, <code>dia</code>.</dd>
+  <dt>The type 'int' is not exhaustively matched by the switch cases…</dt><dd>"O tipo <code>int</code> não é coberto por completo pelos casos do switch…"</dd>
+  <dt>…since it doesn't match 'int()'.</dt><dd>"…porque eles não combinam com <code>int()</code>." O <code>int()</code> é o jeito do Dart dizer "um <code>int</code> qualquer": existem bilhões de inteiros, e os casos só cobrem 1, 2 e 3. E se <code>dia</code> fosse 4?</dd>
+  <dt>Try adding a wildcard pattern or cases that match 'int()'.</dt><dd>"Tente acrescentar um pattern curinga (o <code>_</code>), ou casos que cubram qualquer <code>int</code>."</dd>
+</dl>
+
+<p>O Dart reclama mesmo sabendo que <code>dia</code> é 3: ele confere todos os valores que <strong>o tipo</strong> permite. Com <code>String</code>, a mensagem é a mesma, trocando o tipo (<code>The type 'String' is not exhaustively matched by the switch cases since it doesn't match 'String()'.</code>). <strong>Como consertar:</strong> acrescente <code>_ =&gt; …</code> no fim.</p>
+
+<h3>Com <code>bool</code>, dá para cobrir tudo sem <code>_</code></h3>
+<p>Um <code>bool</code> só tem dois valores. Com os dois casos, a expressão está completa:</p>
+
+<pre class="file" data-file="sw_bool.dart">void main() {
+  final chovendo = false;
+  final levar = switch (chovendo) {
+    true =&gt; 'guarda-chuva',
+    false =&gt; 'boné',
+  };
+  print('Leve o $levar');
+}
+</pre>
+
+<pre class="term">$ dart run sw_bool.dart
+Leve o boné
+</pre>
+
+<p>Esquecendo o <code>false</code>, o Dart diz exatamente qual valor falta:</p>
+
+<pre class="term">$ dart run err_exaust_bool.dart
+err_exaust_bool.dart:3:25: Error: The type 'bool' is not exhaustively matched by the switch cases since it doesn't match 'false'.
+Try adding a wildcard pattern or cases that match 'false'.
+  final levar = switch (chovendo) {
+                        ^
+</pre>
+
+<p>Com <code>bool</code>, a exigência vale também para o <code>switch</code> <strong>clássico</strong>: um <code>switch (chovendo)</code> só com <code>case true:</code> deu <code>The type 'bool' is not exhaustively matched by the switch cases since it doesn't match 'false'.</code>, com a dica <code>Try adding a default case or cases that match 'false'.</code> ("acrescente um <code>default</code>"). O mesmo vale para os <a href="enums.html">enums</a>, onde a exaustividade brilha: esqueceu um valor do enum, o Dart avisa. Com <code>int</code> e <code>String</code>, o <code>switch</code> clássico pode ficar sem <code>default</code> (como na seção 1).</p>
+
+<h3>A pegadinha das faixas de <code>double</code></h3>
+<p>Estes casos parecem cobrir todos os números: maior ou igual a 9, a 7, a 5, e menor que 5. Mas:</p>
+
+<pre class="file" data-file="err_rel_exaust.dart">void main() {
+  final nota = 7.8;
+  final conceito = switch (nota) {
+    &gt;= 9 =&gt; 'A',
+    &gt;= 7 =&gt; 'B',
+    &gt;= 5 =&gt; 'C',
+    &lt; 5 =&gt; 'D',
+  };
+  print(conceito);
+}
+</pre>
+
+<pre class="term">$ dart run err_rel_exaust.dart
+err_rel_exaust.dart:3:28: Error: The type 'double' is not exhaustively matched by the switch cases since it doesn't match 'double()'.
+Try adding a wildcard pattern or cases that match 'double()'.
+  final conceito = switch (nota) {
+                           ^
+</pre>
+
+<p>O Dart não faz contas para descobrir que as faixas se completam: ele só garante a cobertura com tipos, valores exatos (como <code>true</code>/<code>false</code>) e o curinga. (E existe mesmo um <code>double</code> que não é maior, nem menor, nem igual a nada: o <code>NaN</code>, de <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.) <strong>Como consertar:</strong> troque o último caso por <code>_ =&gt; 'D'</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>O mesmo "nome do dia" pode sair de uma cadeia de <code>if … else if</code>, de um <code>switch</code> clássico que guarda numa variável, ou da expressão <code>switch</code>. Para escolher:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Escolher um <strong>valor</strong> conforme muitos casos</td><td>expressão <code>switch</code>: <code>final x = switch (v) { … };</code></td></tr>
+<tr><td>Fazer <strong>coisas diferentes</strong> (vários comandos) em cada caso</td><td><code>switch</code> clássico, com <code>case</code> e <code>default</code></td></tr>
+<tr><td>Faixas de valores (notas, idades)</td><td>expressão <code>switch</code> com <code>&gt;= 9</code>, <code>&gt;= 12 &amp;&amp; &lt; 18</code>, ou <code>if … else if</code></td></tr>
+<tr><td>Condições que envolvem <strong>variáveis diferentes</strong> (<code>idade</code> e <code>temIngresso</code>)</td><td><code>if … else if</code> (o <code>switch</code> olha um valor só, mas o <code>when</code> ajuda)</td></tr>
+<tr><td>Só dois caminhos</td><td><code>if … else</code> ou o <a href="ternario.html">ternário</a></td></tr>
+<tr><td>Valor de um tipo conforme o tipo (<code>Object</code>)</td><td>expressão <code>switch</code> com <code>int n</code>, <code>String s</code></td></tr>
+</table>
+</div>
+
+<p>E se um caso "não pode acontecer"? Em vez de inventar um valor qualquer para o <code>_</code>, dá para parar o programa com uma exceção: <code>_ =&gt; throw ArgumentError('Tamanho desconhecido: $tamanho')</code> (o <code>throw</code> é assunto de <a href="throw.html">Lançando Exceções</a>). No lab, com o tamanho <code>'M'</code>, o programa mostrou <code>12</code> normalmente: o <code>throw</code> só age se o curinga for alcançado.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou <code>default</code> numa expressão <code>switch</code></strong>
+<pre class="file" data-file="err_default_expr.dart">void main() {
+  final dia = 3;
+  final nome = switch (dia) {
+    1 =&gt; 'Domingo',
+    default =&gt; 'Outro',
+  };
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err_default_expr.dart
+err_default_expr.dart:5:5: Error: A switch expression may not use the `default` keyword.
+Try replacing `default` with `_`.
+    default =&gt; 'Outro',
+    ^^^^^^^
+</pre>
+<p>"Uma expressão switch não pode usar a palavra-chave <code>default</code>. Tente trocar <code>default</code> por <code>_</code>." Uma das mensagens mais claras do Dart: o <code>default</code> é do <code>switch</code> clássico; na expressão, o "qualquer outro" é o <code>_</code>. <strong>Como consertar:</strong> <code>_ =&gt; 'Outro',</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Misturou <code>case … :</code> com a expressão <code>switch</code></strong>
+<pre class="file" data-file="err_case_expr.dart">void main() {
+  final dia = 1;
+  final nome = switch (dia) {
+    case 1: 'Domingo',
+    _ =&gt; 'Outro',
+  };
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err_case_expr.dart
+err_case_expr.dart:4:5: Error: Unexpected token 'case'.
+    case 1: 'Domingo',
+    ^^^^
+err_case_expr.dart:4:11: Error: Expected '=&gt;' before this.
+    case 1: 'Domingo',
+          ^
+</pre>
+<p>"Palavra inesperada: <code>case</code>" e "era esperado <code>=&gt;</code> antes disto" (apontando o <code>:</code>). Na expressão <code>switch</code> não existe <code>case</code> nem <code>:</code>. <strong>Como consertar:</strong> <code>1 =&gt; 'Domingo',</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu a vírgula entre os casos</strong>
+<pre class="file" data-file="err_virgula.dart">void main() {
+  final dia = 1;
+  final nome = switch (dia) {
+    1 =&gt; 'Domingo'
+    2 =&gt; 'Segunda',
+    _ =&gt; 'Outro',
+  };
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err_virgula.dart
+err_virgula.dart:5:5: Error: Expected ',' before this.
+    2 =&gt; 'Segunda',
+    ^
+</pre>
+<p>"Era esperado <code>,</code> antes disto." O erro aponta a linha <strong>5</strong>, mas a vírgula faltou no fim da linha 4: o Dart só percebe quando encontra o caso seguinte. <strong>Como consertar:</strong> <code>1 =&gt; 'Domingo',</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma variável no <code>case</code></strong>
+<pre class="file" data-file="err_var_case.dart">void main() {
+  final limite = 10;
+  final valor = 10;
+  switch (valor) {
+    case limite:
+      print('No limite');
+    default:
+      print('Outro');
+  }
+}
+</pre>
+<pre class="term">$ dart run err_var_case.dart
+err_var_case.dart:5:10: Error: Not a constant expression.
+    case limite:
+         ^^^^^^
+</pre>
+<p>"Não é uma expressão constante." Os valores dos casos têm de ser conhecidos <strong>antes</strong> de o programa rodar: números e textos escritos direto, ou <code>const</code> (aula <a href="final-const.html">final e const</a>). Uma <code>final</code> só ganha o valor rodando. <strong>Como consertar:</strong> <code>const limite = 10;</code>, ou um <code>if (valor == limite)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Casos que compilam, mas nunca são alcançados</strong>
+<p>Três programas que o <code>dart run</code> aceita sem nenhuma mensagem, e que fazem a coisa errada:</p>
+<pre class="file" data-file="err_ordem.dart">void main() {
+  final dia = 1;
+  final nome = switch (dia) {
+    _ =&gt; 'Outro',
+    1 =&gt; 'Domingo',
+  };
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run err_ordem.dart
+Outro
+</pre>
+<ul>
+  <li><strong>O <code>_</code> primeiro</strong> (acima): o curinga combina com tudo, e os casos de baixo nunca são testados. O 1 virou <code>Outro</code>.</li>
+  <li><strong>Caso repetido</strong>: num <code>switch</code> clássico com <code>case 1:</code> duas vezes, a opção 2 mostrou <code>Outro</code> e o segundo <code>case 1:</code> nunca vai rodar.</li>
+  <li><strong>Tipo errado no caso</strong>: <code>switch (opcao)</code> com <code>opcao = 2</code> (um <code>int</code>) e <code>case '2':</code> (um texto) mostrou <code>Outro</code>: o número 2 nunca é igual ao texto <code>'2'</code>.</li>
+</ul>
+<p>O <code>dart run</code> não avisa, mas o <code>dart analyze</code> (o "analisador", aula <a href="analise.html">Análise e Formatação</a>) encontra os três. A Ana pôs os três arquivos numa pasta <code>an</code> e rodou:</p>
+<pre class="term">$ cd an
+$ dart analyze .
+Analyzing ....
+
+warning - err_dup.dart:6:5 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - err_ordem.dart:5:5 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - err_ordem.dart:5:7 - This case is covered by the previous cases. Try removing the case clause, or restructuring the preceding patterns. - unreachable_switch_case
+warning - err_tipocase.dart:4:10 - The matched value type 'int' can never be equal to this constant of type 'String'. Try a constant of the same type as the matched value type. - constant_pattern_never_matches_value_type
+
+4 issues found.
+</pre>
+<p>São avisos (<code>warning</code>), não erros: "este caso já é coberto pelos casos anteriores" (o <code>case 1:</code> repetido e o <code>1 =&gt;</code> depois do <code>_</code>), "código morto" (que nunca roda) e "um valor <code>int</code> nunca pode ser igual a esta constante do tipo <code>String</code>". Vale rodar o <code>dart analyze</code> antes de entregar um programa. <strong>Como consertar:</strong> o <code>_</code> sempre por último, sem casos repetidos, e casos do mesmo tipo do valor.</p>
+</div>
+
+<div class="trydart" data-goal="out:Tamanho M: R$ 12;;semerro">
+<p class="try-task"><strong>Missão:</strong> a expressão <code>switch</code> dos copos de suco não compila. Leia o erro e conserte até aparecer <code>Tamanho M: R$ 12</code>. (Dica: o Dart quer saber o que fazer com um tamanho que não é P, M nem G.)</p>
+<pre class="script" data-file="main.dart">void main() {
+  final tamanho = 'M';
+  final preco = switch (tamanho) {
+    'P' =&gt; 10,
+    'M' =&gt; 12,
+    'G' =&gt; 15,
+  };
+  print('Tamanho $tamanho: R\$ $preco');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final tamanho = 'M';
+  final preco = switch (tamanho) {
+    'P' =&gt; 10,
+    'M' =&gt; 12,
+    'G' =&gt; 15,
+    _ =&gt; 0,
+  };
+  print('Tamanho $tamanho: R\$ $preco');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>switch (v) { case 1: … default: … }</code></td><td>Switch clássico: roda as instruções do primeiro caso que combina; sem <code>break</code></td></tr>
+<tr><td><code>case 'a':</code> vazio + <code>case 'b':</code></td><td>Os dois valores usam o mesmo bloco</td></tr>
+<tr><td><code>final x = switch (v) { 1 =&gt; 'a', _ =&gt; 'b' };</code></td><td>Expressão switch: devolve um valor</td></tr>
+<tr><td><code>_</code></td><td>Curinga: qualquer valor (sempre no fim)</td></tr>
+<tr><td><code>&gt;= 9</code> · <code>&lt; 0</code> · <code>!= 0</code></td><td>Pattern de comparação</td></tr>
+<tr><td><code>&gt;= 12 &amp;&amp; &lt; 18</code></td><td>Os dois moldes ao mesmo tempo (faixa)</td></tr>
+<tr><td><code>'sáb' || 'dom'</code></td><td>Qualquer um dos moldes</td></tr>
+<tr><td><code>int n</code> · <code>String s</code></td><td>Combina pelo tipo e dá um nome ao valor</td></tr>
+<tr><td><code>… when condição</code></td><td>Guarda: condição extra para o caso valer</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The type 'X' is not exhaustively matched by the switch cases since it doesn't match 'X()'.</code></td><td>Faltou o <code>_ =&gt;</code> na expressão switch</td></tr>
+<tr><td><code>… since it doesn't match 'false'.</code></td><td>Switch de <code>bool</code> sem o caso <code>false</code> (ou <code>true</code>)</td></tr>
+<tr><td><code>A switch expression may not use the `default` keyword.</code></td><td><code>default</code> na expressão: use <code>_</code></td></tr>
+<tr><td><code>Unexpected token 'case'.</code></td><td><code>case …:</code> dentro de uma expressão switch</td></tr>
+<tr><td><code>Expected ',' before this.</code></td><td>Vírgula esquecida no fim do caso anterior</td></tr>
+<tr><td><code>Not a constant expression.</code></td><td>Variável (não <code>const</code>) num <code>case</code></td></tr>
+<tr><td>Sempre cai no <code>_</code>/<code>default</code></td><td><code>_</code> no começo, ou caso de outro tipo (<code>'2'</code> × <code>2</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a expressão switch</h3>
+<div class="ex-code">final cor = switch (sinal) {<br>&nbsp;&nbsp;'verde' <input data-answer="=&gt;" aria-label="seta"> 'siga',<br>&nbsp;&nbsp;'amarelo' =&gt; 'atenção',<br>&nbsp;&nbsp;<input data-answer="_" aria-label="curinga"> =&gt; 'pare',<br>};</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<pre class="file" data-file="ex2.dart">final n = 12;
+final r = switch (n) {
+  &lt; 10 =&gt; 'pouco',
+  &gt;= 10 &amp;&amp; &lt; 20 =&gt; 'médio',
+  _ =&gt; 'muito',
+};
+print(r);
+</pre>
+<div class="ex-code">Aparece: <input data-answer="médio" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. No Dart 3, o que acontece depois que um <code>case</code> com instruções termina, num switch clássico?</p>
+<label><input type="radio" name="q3"> Continua no <code>case</code> de baixo, se não houver <code>break</code></label>
+<label><input type="radio" name="q3"> Sai do <code>switch</code>: o <code>break</code> não é necessário</label>
+<label><input type="radio" name="q3"> Dá erro se não houver <code>break</code></label>
+<label><input type="radio" name="q3"> Volta para o primeiro <code>case</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que <code>switch (dia) { 1 =&gt; 'Dom', 2 =&gt; 'Seg' }</code> (com <code>dia</code> do tipo <code>int</code>) não compila?</p>
+<label><input type="radio" name="q4"> Porque falta <code>break</code></label>
+<label><input type="radio" name="q4"> Porque expressão switch não aceita números</label>
+<label><input type="radio" name="q4"> Porque não cobre todos os <code>int</code>: falta um <code>_ =&gt;</code></label>
+<label><input type="radio" name="q4"> Porque falta <code>default:</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual expressão switch sobre um <code>bool ok</code> compila sem <code>_</code>?</p>
+<label><input type="radio" name="q5"> <code>switch (ok) { true =&gt; 'sim', false =&gt; 'não' }</code></label>
+<label><input type="radio" name="q5"> <code>switch (ok) { true =&gt; 'sim' }</code></label>
+<label><input type="radio" name="q5"> <code>switch (ok) { case true: 'sim' }</code></label>
+<label><input type="radio" name="q5"> Nenhuma: toda expressão switch precisa de <code>_</code></label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="trydart" data-goal="out:Código 2: Pão de queijo, R$ 4.5;;out:Código 9: Produto não cadastrado, R$ 0.0;;src:switch\s*\(">
+<p class="try-task"><strong>Missão:</strong> complete as duas expressões <code>switch</code> da função <code>produto</code>. Código 1 é <code>'Pão francês'</code> (0.75), código 2 é <code>'Pão de queijo'</code> (4.5), código 3 é <code>'Sonho'</code> (6.0); qualquer outro é <code>'Produto não cadastrado'</code> (0.0).</p>
+<pre class="script" data-file="main.dart">String produto(int codigo) {
+  final nome = switch (codigo) {
+    1 =&gt; 'Pão francês',
+    _ =&gt; '?',
+  };
+  final preco = switch (codigo) {
+    1 =&gt; 0.75,
+    _ =&gt; 0.0,
+  };
+  return 'Código $codigo: $nome, R\$ $preco';
+}
+
+void main() {
+  print(produto(1));
+  print(produto(2));
+  print(produto(9));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String produto(int codigo) {
+  final nome = switch (codigo) {
+    1 =&gt; 'Pão francês',
+    2 =&gt; 'Pão de queijo',
+    3 =&gt; 'Sonho',
+    _ =&gt; 'Produto não cadastrado',
+  };
+  final preco = switch (codigo) {
+    1 =&gt; 0.75,
+    2 =&gt; 4.5,
+    3 =&gt; 6.0,
+    _ =&gt; 0.0,
+  };
+  return 'Código $codigo: $nome, R\$ $preco';
+}
+
+void main() {
+  print(produto(1));
+  print(produto(2));
+  print(produto(9));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <code>switch</code> compara um valor com uma lista de casos. O clássico (<code>case 1:</code>, <code>default:</code>) escolhe instruções; no Dart 3, cada caso termina sozinho, sem <code>break</code>.</li>
+  <li>A expressão <code>switch</code> <span class="versao">Dart 3.0</span> devolve um valor: <code>switch (v) { 1 =&gt; 'a', _ =&gt; 'b' }</code>, com vírgulas, sem <code>case</code> e com <code>_</code> no lugar do <code>default</code>.</li>
+  <li>Os casos são <em>patterns</em>: valores, comparações (<code>&gt;= 9</code>), faixas (<code>&gt;= 12 &amp;&amp; &lt; 18</code>), alternativas (<code>'sáb' || 'dom'</code>), tipos (<code>int n</code>) e guardas (<code>when</code>). Vale o primeiro que combinar.</li>
+  <li>A expressão <code>switch</code> precisa ser <strong>exaustiva</strong>: cobrir todos os valores do tipo. Com <code>int</code>, <code>double</code> e <code>String</code>, isso quer dizer ter um <code>_</code>; com <code>bool</code>, basta <code>true</code> e <code>false</code>.</li>
+  <li>O <code>_</code> vai sempre por último; o <code>dart analyze</code> acha casos que nunca são alcançados.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
