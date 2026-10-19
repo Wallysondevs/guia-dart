@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Comentários — //, /* */ e /// | Guia Dart</title>
+<meta name="description" content="Comentários em Dart para quem nunca programou: o comentário de linha //, o de bloco /* */ (que no Dart pode ficar um dentro do outro), o comentário de documentação ///, como desligar uma linha de código sem apagá-la, o que é um bom comentário, e os erros reais Comment starting with '/*' must end with '*/' e 'nome' isn't a type explicados.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Comentários</span></h1>
+
+<p class="intro">Um <strong>comentário</strong> é um recado escrito dentro do código para as <strong>pessoas</strong> que vão lê-lo: você mesmo daqui a um mês, um colega, o professor. O Dart pula os comentários sem ler, como se não estivessem lá. O Dart tem três tipos: o de linha <code>//</code>, o de bloco <code>/* */</code> e o de documentação <code>///</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O comentário de linha <code>//</code>, sozinho na linha ou no fim de uma instrução.</li>
+  <li>O comentário de bloco <code>/* … */</code>, de várias linhas, e por que no Dart um pode ficar dentro do outro.</li>
+  <li>O comentário de documentação <code>///</code>, que descreve funções e classes.</li>
+  <li>A "desligar" uma linha de código sem apagá-la.</li>
+  <li>Que <code>//</code> dentro de um texto entre aspas <strong>não</strong> é comentário.</li>
+  <li>O que faz um comentário ser bom ou ruim.</li>
+  <li>Os erros reais de comentário que não fecha e de recado sem as barras.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>cm</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o lápis na margem da receita</h2>
+<p>No caderno de receitas da avó da Ana, há anotações a lápis na margem: "usar fermento fresco", "a vó punha uma pitada a mais de sal", e uma linha inteira riscada (sem apagar) com "não precisa". Quem faz o bolo lê as anotações, mas elas não são passos da receita.</p>
+
+<p>Os comentários são o lápis na margem do código. O Dart (o cozinheiro) pula tudo o que é comentário; só as pessoas leem.</p>
+
+<hr>
+
+<h2>1. Comentário de linha: <code>//</code></h2>
+<p>Duas barras <code>//</code> começam um comentário que vai <strong>até o fim da linha</strong>. Ele pode ocupar a linha toda ou vir depois de uma instrução:</p>
+
+<pre class="file" data-file="linha.dart">// Programa da padaria: mostra o aviso do dia.
+void main() {
+  print('Padaria do Bairro'); // nome que vai na placa
+  // print('Fechado para balanço');
+  print('Pão saindo às 7h');
+}
+</pre>
+
+<pre class="term">$ dart run linha.dart
+Padaria do Bairro
+Pão saindo às 7h
+</pre>
+
+<dl class="anatomy">
+  <dt>// Programa da padaria: …</dt><dd>Linha inteira de comentário, antes do <code>main</code>: explica o que o programa faz.</dd>
+  <dt>print(…); // nome que vai na placa</dt><dd>A instrução roda normalmente; do <code>//</code> em diante, o Dart ignora. Deixe um espaço antes e outro depois das barras.</dd>
+  <dt>// print('Fechado para balanço');</dt><dd>Uma instrução <strong>desligada</strong>: como está atrás do <code>//</code>, virou comentário e não roda. Repare que <code>Fechado para balanço</code> não apareceu na saída.</dd>
+</dl>
+
+<div class="tip">
+<strong>Desligar e religar linhas</strong>
+<p>Pôr <code>//</code> na frente de uma linha para ela não rodar se chama <strong>comentar</strong> a linha; tirar as barras é <strong>descomentar</strong>. É o jeito mais rápido de testar o programa sem um pedaço. No VS Code, o atalho <kbd>Ctrl</kbd>+<kbd>/</kbd> comenta e descomenta as linhas selecionadas.</p>
+</div>
+
+<div class="trydart" data-goal="out:Pão saindo às 7h;;semerro;;outre:^(?![\s\S]*Fechado)">
+<p class="try-task"><strong>Missão:</strong> hoje a padaria está aberta. <strong>Comente</strong> a linha do aviso de fechado (sem apagá-la) e <strong>descomente</strong> a do pão.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  print('Fechado para balanço');
+  // print('Pão saindo às 7h');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  // print('Fechado para balanço');
+  print('Pão saindo às 7h');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Comentário de bloco: <code>/* … */</code></h2>
+<p>Para um recado de várias linhas, abra com <code>/*</code> e feche com <code>*/</code>. Tudo o que está entre os dois é ignorado, seja uma linha, seja um pedaço de linha, sejam dez linhas:</p>
+
+<pre class="file" data-file="bloco.dart">/*
+  Lista de compras da Ana
+  Escrito em outubro.
+*/
+void main() {
+  print('- pão');
+  /* print('- leite'); */
+  print('- café' /* o de sempre */);
+}
+</pre>
+
+<pre class="term">$ dart run bloco.dart
+- pão
+- café
+</pre>
+
+<dl class="anatomy">
+  <dt>/* … */ (linhas 1 a 4)</dt><dd>Um comentário de quatro linhas, no alto do arquivo.</dd>
+  <dt>/* print('- leite'); */</dt><dd>Uma instrução desligada: o leite não aparece na saída.</dd>
+  <dt>print('- café' /* o de sempre */);</dt><dd>Um comentário no <strong>meio</strong> da instrução. Funciona, mas atrapalha a leitura; prefira <code>//</code> no fim da linha.</dd>
+</dl>
+
+<h3>No Dart, um bloco pode ficar dentro do outro</h3>
+<p>Em muitas linguagens (C, Java, JavaScript), o primeiro <code>*/</code> fecha o comentário, mesmo que haja outro <code>/*</code> dentro. No Dart, não: cada <code>/*</code> precisa do seu <code>*/</code>, como as chaves. Assim dá para desligar um trecho que já tem comentário dentro:</p>
+
+<pre class="file" data-file="aninhado.dart">void main() {
+  /*
+  print('Promoção de sonho');
+  /* print('Só hoje'); */
+  print('Leve 3, pague 2');
+  */
+  print('Padaria do Bairro');
+}
+</pre>
+
+<pre class="term">$ dart run aninhado.dart
+Padaria do Bairro
+</pre>
+
+<p>O <code>*/</code> da linha 4 fechou só o comentário de dentro; o de fora continuou até o <code>*/</code> da linha 6. Por isso nenhuma das três linhas da promoção rodou.</p>
+
+<hr>
+
+<h2>3. Comentário de documentação: <code>///</code></h2>
+<p>Três barras fazem um comentário de <strong>documentação</strong>: a descrição oficial de uma função, classe ou variável, escrita logo <strong>acima</strong> dela. Para o programa, é igual a um <code>//</code>: não roda.</p>
+
+<pre class="file" data-file="doc.dart">/// Mostra a placa da padaria.
+///
+/// Todo dia de manhã a Ana roda este programa.
+void main() {
+  print('Padaria do Bairro');
+}
+</pre>
+
+<pre class="term">$ dart run doc.dart
+Padaria do Bairro
+</pre>
+
+<p>A diferença está nas ferramentas: no VS Code, ao passar o mouse sobre o nome da função, aparece esse texto; e o comando <code>dart doc</code> transforma esses comentários num site de documentação. É assim que é feita a documentação oficial do Dart em <a href="https://api.dart.dev">api.dart.dev</a>. A primeira linha deve ser uma frase curta que resume; depois, uma linha <code>///</code> vazia e os detalhes. Você vai usá-lo de verdade nas aulas de <a href="funcoes.html">Funções</a> e <a href="classes.html">Classes</a>.</p>
+
+<hr>
+
+<h2>4. <code>//</code> dentro de aspas não é comentário</h2>
+<p>Dentro de um texto entre aspas, as barras são só letras:</p>
+
+<pre class="file" data-file="no_texto.dart">void main() {
+  print('Site: https://padaria.exemplo // aberto');
+  print('/* isto não é comentário */');
+}
+</pre>
+
+<pre class="term">$ dart run no_texto.dart
+Site: https://padaria.exemplo // aberto
+/* isto não é comentário */
+</pre>
+
+<p>O Dart primeiro vê a aspa que abre o texto e só procura comentários de novo depois da aspa que fecha. Por isso endereços de site com <code>//</code> funcionam normalmente dentro de textos.</p>
+
+<hr>
+
+<h2>Os três tipos: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Vai até</th><th>Use para</th></tr>
+<tr><td><code>// …</code></td><td>O fim da linha</td><td><strong>Quase tudo</strong>: explicar um trecho, desligar uma linha. É o mais usado.</td></tr>
+<tr><td><code>/* … */</code></td><td>O <code>*/</code> que fecha</td><td>Desligar um trecho grande de uma vez. O guia de estilo do Dart prefere <code>//</code> em cada linha mesmo para várias linhas.</td></tr>
+<tr><td><code>/// …</code></td><td>O fim da linha</td><td>Descrever funções, classes e variáveis (documentação), logo acima delas.</td></tr>
+</table>
+</div>
+
+<h3>O que é um bom comentário</h3>
+<p>Um bom comentário explica o <strong>porquê</strong>, não repete o que o código já diz:</p>
+
+<pre class="file" data-file="exemplos (não é um programa)">// Ruim: repete o código.
+print('Pão saindo às 7h'); // mostra "Pão saindo às 7h"
+
+// Bom: explica o motivo.
+// O forno só fica quente às 7h; antes disso, não anunciar pão.
+print('Pão saindo às 7h');
+</pre>
+
+<p>Outro costume: <code>// TODO: …</code> (em inglês, "a fazer") marca algo que ainda falta. É só um comentário como outro qualquer (o <code>dart analyze</code> responde <code>No issues found!</code> para um arquivo com <code>// TODO</code>), mas é fácil de procurar depois, e o VS Code com a extensão Dart costuma listá-los.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Comentário de bloco que não fecha</strong>
+<pre class="file" data-file="aberto.dart">void main() {
+  /* comentário que não fecha
+  print('Padaria do Bairro');
+}
+</pre>
+<pre class="term">$ dart run aberto.dart
+aberto.dart:2:3: Error: Comment starting with '/*' must end with '*/'.
+  /* comentário que não fecha
+  ^
+aberto.dart:1:13: Error: Can't find '}' to match '{'.
+void main() {
+            ^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>Comment starting with '/*' must end with '*/'.</dt><dd>"Comentário que começa com <code>/*</code> tem de terminar com <code>*/</code>". O <code>^</code> aponta onde ele abriu: linha 2, coluna 3.</dd>
+  <dt>Can't find '}' to match '{'.</dt><dd>Consequência: o comentário engoliu tudo até o fim do arquivo, inclusive o <code>print</code> e a <code>}</code> do <code>main</code>. Para o Dart, a chave nunca fechou.</dd>
+</dl>
+<p><strong>Como consertar:</strong> feche o comentário com <code>*/</code> no fim da linha 2. No VS Code, o código "comentado" fica de outra cor: se metade do arquivo ficou dessa cor, falta um <code>*/</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Recado sem as barras</strong>
+<pre class="file" data-file="sem_barra.dart">void main() {
+  print('Padaria do Bairro');
+  nome que vai na placa
+}
+</pre>
+<pre class="term">$ dart run sem_barra.dart
+sem_barra.dart:3:3: Error: 'nome' isn't a type.
+  nome que vai na placa
+  ^^^^
+sem_barra.dart:3:8: Error: Expected ';' after this.
+  nome que vai na placa
+       ^^^
+sem_barra.dart:3:12: Error: 'vai' isn't a type.
+  nome que vai na placa
+           ^^^
+sem_barra.dart:3:16: Error: Expected ';' after this.
+  nome que vai na placa
+               ^^
+sem_barra.dart:3:19: Error: Expected ';' after this.
+  nome que vai na placa
+                  ^^^^^
+sem_barra.dart:3:19: Error: Undefined name 'placa'.
+  nome que vai na placa
+                  ^^^^^
+</pre>
+<p>Seis mensagens para uma linha! Sem as barras, o Dart tenta ler o recado como código. Ele vê <code>nome que</code> e acha que é a criação de uma variável <code>que</code> do tipo <code>nome</code> (como <code>int quantidade</code>, aula <a href="variaveis.html">Variáveis</a>), daí <code>'nome' isn't a type</code> ("<code>nome</code> não é um tipo") e o <code>;</code> que faltaria; e assim por diante com <code>vai na</code> e <code>placa</code>. Quando aparecerem muitas mensagens estranhas na <strong>mesma linha</strong>, desconfie de texto que devia ser comentário (ou estar entre aspas). <strong>Como consertar:</strong> <code>// nome que vai na placa</code>.</p>
+</div>
+
+<div class="trydart" data-goal="semerro;;out:Padaria do Bairro;;outre:^(?![\s\S]*Fechado)">
+<p class="try-task"><strong>Missão:</strong> este programa não roda. Conserte o comentário de bloco e o recado sem barras. O aviso de fechado deve continuar desligado.</p>
+<pre class="script" data-file="main.dart">void main() {
+  /* print('Fechado para balanço');
+  print('Padaria do Bairro');
+  aviso de hoje
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  /* print('Fechado para balanço'); */
+  print('Padaria do Bairro');
+  // aviso de hoje
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>// texto</code></td><td>Comentário até o fim da linha</td></tr>
+<tr><td><code>print('a'); // texto</code></td><td>A instrução roda; o resto da linha é comentário</td></tr>
+<tr><td><code>// print('a');</code></td><td>Linha desligada (comentada)</td></tr>
+<tr><td><code>/* texto */</code></td><td>Comentário de bloco, de uma ou várias linhas; pode ter outro <code>/* */</code> dentro</td></tr>
+<tr><td><code>/// texto</code></td><td>Comentário de documentação, acima de uma função ou classe</td></tr>
+<tr><td><code>'https://…'</code></td><td>Dentro de aspas, <code>//</code> e <code>/*</code> são só texto</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Comment starting with '/*' must end with '*/'.</code></td><td>Faltou o <code>*/</code></td></tr>
+<tr><td><code>'nome' isn't a type.</code> + vários <code>Expected ';'</code> na mesma linha</td><td>Texto solto no código: faltaram as barras <code>//</code> (ou as aspas)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Comentário de linha</h3>
+<p>Complete para transformar a linha num comentário:</p>
+<div class="ex-code"><input data-answer="//" aria-label="símbolo"> conferir o troco</div>
+</div>
+
+<div class="exercise">
+<h3>2. Fechando o bloco</h3>
+<p>Complete o comentário de bloco:</p>
+<div class="ex-code">/* lista de compras <input data-answer="*/" aria-label="símbolo"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Qual é a saída?</h3>
+<p>Quantas linhas mostra este <code>main</code>? <code>print('a'); // print('b');</code> e, na linha de baixo, <code>print('c');</code></p>
+<div class="ex-code">Linhas: <input data-answer="2|duas" aria-label="número de linhas"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que mostra <code>print('Veja em https://dart.dev');</code>?</p>
+<label><input type="radio" name="q4"> <code>Veja em https:</code></label>
+<label><input type="radio" name="q4"> Dá erro: o <code>//</code> comentou o resto da linha</label>
+<label><input type="radio" name="q4"> <code>Veja em https://dart.dev</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual comentário é melhor acima de <code>print('Fechado');</code>?</p>
+<label><input type="radio" name="q5"> <code>// mostra Fechado</code></label>
+<label><input type="radio" name="q5"> <code>// Domingo a padaria não abre.</code></label>
+<label><input type="radio" name="q5"> <code>// print</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Que tipo de comentário descreve uma função e aparece quando você passa o mouse sobre o nome dela no VS Code?</p>
+<label><input type="radio" name="q6"> <code>///</code></label>
+<label><input type="radio" name="q6"> <code>//</code></label>
+<label><input type="radio" name="q6"> <code>/* */</code></label>
+</div>
+
+<h3>Missão final: o cardápio comentado</h3>
+
+<div class="trydart" data-goal="outre:^Cardápio\nPão francês\nBolo de fubá\n$;;semerro;;src:^\s*//;;src:^\s*///">
+<p class="try-task"><strong>Missão:</strong> o cardápio deve mostrar só <code>Cardápio</code>, <code>Pão francês</code> e <code>Bolo de fubá</code>, nessa ordem. Desligue o sonho com <code>//</code> (o recheio acabou) e acrescente, acima do <code>main</code>, um comentário de documentação <code>///</code> dizendo o que o programa faz.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Cardápio');
+  print('Pão francês');
+  print('Sonho');
+  print('Bolo de fubá');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">/// Mostra o cardápio do dia da padaria.
+void main() {
+  print('Cardápio');
+  print('Pão francês');
+  // print('Sonho'); // o recheio acabou
+  print('Bolo de fubá');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Comentários são recados para pessoas; o Dart os ignora.</li>
+  <li><code>//</code> vai até o fim da linha; é o mais usado. Pôr <code>//</code> na frente de uma instrução a desliga.</li>
+  <li><code>/* … */</code> pode ter várias linhas e, no Dart, pode ter outro <code>/* */</code> dentro.</li>
+  <li><code>///</code> documenta funções e classes; aparece no editor e no <code>dart doc</code>.</li>
+  <li>Dentro de aspas, <code>//</code> e <code>/*</code> são texto comum.</li>
+  <li>Bom comentário explica o porquê. Erros: <code>/*</code> sem <code>*/</code>, e recado sem as barras, que vira uma chuva de mensagens na mesma linha.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
