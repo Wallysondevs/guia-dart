@@ -595,10 +595,11 @@
           try {
             this.next(); var ps2 = this.parseParams();
             if (this.isOp("{") || this.isOp("=>") || this.is("async")) {
+              var ehFun = true;
               var cp2 = this.parseFunctionBody(false);
               return this.no("LocalFun", ini, { nome: ini.v, pNome: ini.p, ret: null, params: ps2, corpo: cp2.corpo, async: cp2.async, gerador: cp2.gerador });
             }
-          } catch (e) { if (!(e instanceof ErroDart)) throw e; }
+          } catch (e) { if (!(e instanceof ErroDart) || ehFun) throw e; }
           this.i = s2;
         }
       }
@@ -655,11 +656,12 @@
           var nt = this.ident();
         }
         if (this.is("in")) {
+          var achouIn = true;
           this.next(); var it = this.parseExpr(); this.expect(")");
           var corpo = this.parseStmt();
           return this.no("ForIn", ini, { nome: nt ? nt.v : null, padrao: pat, tipo: tipo, iter: it, corpo: corpo, await: aw, final: final, p0: nt ? nt.p : 0 });
         }
-      } catch (e) { if (!(e instanceof ErroDart)) throw e; }
+      } catch (e) { if (!(e instanceof ErroDart) || achouIn) throw e; }
       this.i = s;
     }
     if (!this.isOp(";")) {
