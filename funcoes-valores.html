@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Funções como Valores — guardar, passar e devolver funções | Guia Dart</title>
+<meta name="description" content="Funções como valores no Dart para quem nunca programou: guardar uma função numa variável, o tipo double Function(double), passar uma função como argumento, forEach(print) e map(int.parse), um mapa de operações, typedef, devolver uma função e os erros reais do Dart 3 (mostrar() com parênteses, tipo de função errado, função anulável, NoSuchMethodError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Funções como Valores</span></h1>
+
+<p class="intro">Um número pode ser guardado numa variável, passado para uma função e devolvido por ela. No Dart, <strong>uma função também pode</strong>. Funções são valores como <code>42</code> ou <code>'Ana'</code>: dá para guardá-las em variáveis, colocá-las em listas e mapas, entregá-las a outras funções e recebê-las de volta. Os programadores dizem que, no Dart, funções são <strong>cidadãs de primeira classe</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>saudar</code> (a função) e <code>saudar('Ana')</code> (a chamada).</li>
+  <li>Como guardar uma função numa variável e chamá-la pela variável.</li>
+  <li>Como se escreve o <strong>tipo</strong> de uma função: <code>double Function(double)</code>.</li>
+  <li>Como uma função recebe outra como parâmetro, e por que isso é útil.</li>
+  <li>Atalhos como <code>forEach(print)</code> e <code>map(int.parse)</code>, um mapa de operações e o <code>typedef</code> (dar nome a um tipo de função).</li>
+  <li>Uma função que <strong>devolve</strong> outra função.</li>
+  <li>Os erros reais: os parênteses a mais, o tipo de função errado, a função que pode ser <code>null</code> e o <code>NoSuchMethodError</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a receita e o bolo</h2>
+<p>Pense numa <strong>receita de bolo</strong> escrita num papel. Você pode:</p>
+<ul>
+  <li><strong>fazer o bolo</strong> seguindo a receita: isso é <strong>chamar</strong> a função, e o resultado é um bolo;</li>
+  <li>ou <strong>entregar o papel</strong> da receita para a vizinha, guardar numa pasta, tirar uma cópia: isso é tratar a função como <strong>valor</strong>. Ninguém fez bolo nenhum ainda; você passou a receita adiante.</li>
+</ul>
+<p>No Dart, a diferença está nos parênteses: <code>saudar('Ana')</code> é "faça o bolo agora"; <code>saudar</code>, sem parênteses, é "o papel com a receita".</p>
+
+<hr>
+
+<h2>1. Guardando uma função numa variável</h2>
+
+<pre class="file" data-file="variavel.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  final cumprimentar = saudar;
+  cumprimentar('Ana');
+  saudar('Bia');
+  print(cumprimentar);
+  print(cumprimentar.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run variavel.dart
+Olá, Ana!
+Olá, Bia!
+Closure: (String) =&gt; void from Function 'saudar': static.
+(String) =&gt; void
+</pre>
+
+<dl class="anatomy">
+  <dt>final cumprimentar = saudar;</dt><dd><strong>Sem parênteses</strong>: a variável recebe a própria função, não o resultado dela. Nada é mostrado nesta linha. (O nome técnico de pegar uma função assim, sem chamar, é <em>tear-off</em>, "destacar".)</dd>
+  <dt>cumprimentar('Ana');</dt><dd>Agora sim, com parênteses: chama a função guardada. É exatamente o mesmo que <code>saudar('Ana')</code>; são dois nomes para a mesma receita.</dd>
+  <dt>Closure: (String) =&gt; void from Function 'saudar': static.</dt><dd>O que o <code>print</code> mostra de uma função: "uma função que recebe uma <code>String</code> e não devolve nada (<code>void</code>), que veio da função <code>saudar</code>". (<code>static</code> aqui quer dizer que é uma função de primeiro nível do arquivo, fora de qualquer classe.)</dd>
+  <dt>(String) =&gt; void</dt><dd>O <code>runtimeType</code> (o tipo em tempo de execução) da variável: o <strong>tipo da função</strong>, escrito à moda do Dart.</dd>
+</dl>
+
+<h3>O tipo de uma função</h3>
+<p>Se você quiser escrever o tipo da variável, em vez de deixar o Dart descobrir, ele se escreve assim:</p>
+
+<pre class="file" data-file="tipo_funcao.dart">void Function(String) cumprimentar = saudar;
+double Function(double) regra = (p) =&gt; p * 0.9;
+int Function(int, int) conta = (a, b) =&gt; a + b;
+</pre>
+
+<p>Leia da esquerda para a direita: <code>double Function(double)</code> = "uma função que <strong>devolve</strong> <code>double</code> e <strong>recebe</strong> um <code>double</code>". Primeiro o tipo de retorno, depois a palavra <code>Function</code>, depois os tipos dos parâmetros entre parênteses.</p>
+
+<hr>
+
+<h2>2. Passando uma função para outra função</h2>
+<p>Aqui está a grande utilidade. A lojinha da Ana mostra a tabela de preços, mas a <strong>regra</strong> muda: hoje tem 10% de desconto, amanhã tem taxa de entrega. Em vez de escrever uma função de tabela para cada regra, a Ana escreve <strong>uma</strong> função de tabela que <strong>recebe a regra</strong> como parâmetro:</p>
+
+<pre class="file" data-file="parametro.dart">double comDesconto(double preco) =&gt; preco * 0.9;
+double comTaxa(double preco) =&gt; preco + 2.0;
+
+void mostrarPrecos(List&lt;double&gt; precos, double Function(double) regra) {
+  for (final preco in precos) {
+    final novo = regra(preco);
+    print('R\$ $preco -&gt; R\$ ${novo.toStringAsFixed(2)}');
+  }
+}
+
+void main() {
+  final precos = [10.0, 25.0];
+  print('Com desconto:');
+  mostrarPrecos(precos, comDesconto);
+  print('Com taxa de entrega:');
+  mostrarPrecos(precos, comTaxa);
+  print('Em dobro:');
+  mostrarPrecos(precos, (p) =&gt; p * 2);
+}
+</pre>
+
+<pre class="term">$ dart run parametro.dart
+Com desconto:
+R$ 10.0 -&gt; R$ 9.00
+R$ 25.0 -&gt; R$ 22.50
+Com taxa de entrega:
+R$ 10.0 -&gt; R$ 12.00
+R$ 25.0 -&gt; R$ 27.00
+Em dobro:
+R$ 10.0 -&gt; R$ 20.00
+R$ 25.0 -&gt; R$ 50.00
+</pre>
+
+<dl class="anatomy">
+  <dt>double Function(double) regra</dt><dd>O segundo parâmetro de <code>mostrarPrecos</code>: "uma função que recebe um <code>double</code> e devolve um <code>double</code>". Qualquer função com esse formato serve.</dd>
+  <dt>final novo = regra(preco);</dt><dd>Lá dentro, o parâmetro é <strong>chamado</strong> como uma função qualquer. A <code>mostrarPrecos</code> não sabe qual regra é; ela só sabe que pode chamá-la.</dd>
+  <dt>mostrarPrecos(precos, comDesconto);</dt><dd>Passa a função <code>comDesconto</code>, <strong>sem parênteses</strong>.</dd>
+  <dt>mostrarPrecos(precos, (p) =&gt; p * 2);</dt><dd>Também serve uma função anônima, escrita na hora (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>). O Dart sabe que <code>p</code> é <code>double</code> pelo tipo do parâmetro.</dd>
+  <dt>'R\$ …'</dt><dd>O <code>\$</code> mostra um cifrão de verdade, em vez de começar uma interpolação (veja <a href="strings.html">Strings</a>).</dd>
+</dl>
+
+<p>Uma função que recebe (ou devolve) outra função se chama <strong>função de ordem superior</strong>. Você já usou várias sem saber: <code>forEach</code>, <code>sort</code> e <code>where</code> são assim.</p>
+
+<div class="trydart" data-goal="out:R$ 25.0 -&gt; R$ 20.00;;src:mostrarPrecos\(\s*precos\s*,\s*\w+\s*\)">
+<p class="try-task"><strong>Missão:</strong> crie a regra <code>blackFriday</code>, que tira R$ 5 do preço (<code>preco - 5</code>), e passe-a para <code>mostrarPrecos</code> no lugar de <code>comDesconto</code>.</p>
+<pre class="script" data-file="main.dart">double comDesconto(double preco) =&gt; preco * 0.9;
+
+void mostrarPrecos(List&lt;double&gt; precos, double Function(double) regra) {
+  for (final preco in precos) {
+    print('R\$ $preco -&gt; R\$ ${regra(preco).toStringAsFixed(2)}');
+  }
+}
+
+void main() {
+  final precos = [10.0, 25.0];
+  mostrarPrecos(precos, comDesconto);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double comDesconto(double preco) =&gt; preco * 0.9;
+double blackFriday(double preco) =&gt; preco - 5;
+
+void mostrarPrecos(List&lt;double&gt; precos, double Function(double) regra) {
+  for (final preco in precos) {
+    print('R\$ $preco -&gt; R\$ ${regra(preco).toStringAsFixed(2)}');
+  }
+}
+
+void main() {
+  final precos = [10.0, 25.0];
+  mostrarPrecos(precos, blackFriday);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Atalhos: passar funções prontas</h2>
+<p>Qualquer função com o formato certo pode ser passada, inclusive as do próprio Dart:</p>
+
+<pre class="file" data-file="tearoff.dart">void main() {
+  final compras = ['pão', 'leite'];
+  compras.forEach(print);
+  final textos = ['3', '10', '7'];
+  final numeros = textos.map(int.parse).toList();
+  print(numeros);
+  final gritar = 'oi'.toUpperCase;
+  print(gritar());
+}
+</pre>
+
+<pre class="term">$ dart run tearoff.dart
+pão
+leite
+[3, 10, 7]
+OI
+</pre>
+
+<ul>
+  <li><code>compras.forEach(print)</code>: o <code>print</code> recebe um valor, e é isso que o <code>forEach</code> entrega. Não precisa escrever <code>(item) =&gt; print(item)</code>.</li>
+  <li><code>textos.map(int.parse)</code>: o <code>map</code> passa cada texto para o <code>int.parse</code> e junta os resultados (o <code>map</code> e o <code>toList</code> estão em <a href="iterables.html">map, where, reduce e Outros</a>).</li>
+  <li><code>'oi'.toUpperCase</code>: até um método de um objeto pode ser destacado. A variável <code>gritar</code> guarda "deixar <code>'oi'</code> em maiúsculas", e só faz isso quando chamada.</li>
+</ul>
+
+<div class="tip">
+<strong>Boa prática</strong>
+<p>O guia de estilo do Dart (Effective Dart) recomenda o atalho: se a função anônima só repassa o argumento (<code>(x) =&gt; print(x)</code>), escreva a função direto (<code>print</code>). Menos coisa para ler.</p>
+</div>
+
+<hr>
+
+<h2>4. Funções dentro de um mapa</h2>
+<p>Como funções são valores, elas podem morar numa lista ou num mapa (veja <a href="map.html">Mapas</a>). Uma calculadora pode guardar uma função para cada símbolo:</p>
+
+<pre class="file" data-file="lista.dart">int somar(int a, int b) =&gt; a + b;
+int subtrair(int a, int b) =&gt; a - b;
+int multiplicar(int a, int b) =&gt; a * b;
+
+void main() {
+  final operacoes = {
+    '+': somar,
+    '-': subtrair,
+    '*': multiplicar,
+  };
+  for (final simbolo in operacoes.keys) {
+    final conta = operacoes[simbolo]!;
+    print('8 $simbolo 2 = ${conta(8, 2)}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+8 + 2 = 10
+8 - 2 = 6
+8 * 2 = 16
+</pre>
+
+<p><code>operacoes[simbolo]</code> pega a função guardada naquele símbolo. O <code>!</code> diz ao Dart "eu garanto que ela existe" (um mapa devolve <code>null</code> para chave que não existe; veja <a href="late.html">late e o Operador !</a>). Depois, <code>conta(8, 2)</code> chama a função. Acrescentar a divisão é só uma linha a mais no mapa, sem mexer no <code>for</code>.</p>
+
+<hr>
+
+<h2>5. <code>typedef</code>: um nome para o tipo da função</h2>
+<p>Quando o tipo da função é comprido ou aparece em vários lugares, dê um nome a ele com <code>typedef</code> ("definição de tipo"):</p>
+
+<pre class="file" data-file="typedef.dart">typedef RegraDePreco = double Function(double preco);
+
+double aplicar(double preco, RegraDePreco regra) =&gt; regra(preco);
+
+void main() {
+  RegraDePreco promocao = (p) =&gt; p / 2;
+  print(aplicar(30.0, promocao));
+  promocao = (p) =&gt; p - 5;
+  print(aplicar(30.0, promocao));
+}
+</pre>
+
+<pre class="term">$ dart run typedef.dart
+15.0
+25.0
+</pre>
+
+<p><code>RegraDePreco</code> passa a ser um apelido para <code>double Function(double preco)</code>. O nome do tipo segue o padrão das classes, <code>UpperCamelCase</code>. Repare também que a variável <code>promocao</code> não é <code>final</code>: ela recebeu uma função e, depois, <strong>outra</strong>, como uma variável qualquer.</p>
+
+<hr>
+
+<h2>6. Uma função que devolve outra função</h2>
+<p>O caminho inverso também vale: uma função pode <strong>devolver</strong> uma função.</p>
+
+<pre class="file" data-file="devolver.dart">double Function(double) escolherRegra(bool clienteFiel) {
+  if (clienteFiel) {
+    return (preco) =&gt; preco * 0.8;
+  }
+  return (preco) =&gt; preco;
+}
+
+void main() {
+  final regra = escolherRegra(true);
+  print(regra(50.0));
+  print(escolherRegra(false)(50.0));
+}
+</pre>
+
+<pre class="term">$ dart run devolver.dart
+40.0
+50.0
+</pre>
+
+<p>O tipo de retorno de <code>escolherRegra</code> é <code>double Function(double)</code>: ela não devolve um preço, devolve uma <strong>regra</strong>. Na segunda chamada, os dois pares de parênteses seguidos fazem as duas coisas de uma vez: <code>escolherRegra(false)</code> devolve a função, e <code>(50.0)</code> a chama. Funções que devolvem funções ficam ainda mais poderosas quando a função devolvida "lembra" de valores de onde nasceu: é o assunto da próxima aula, <a href="closures.html">Closures</a>.</p>
+
+<div class="trydart" data-goal="out:R$ 7.00;;src:operacoes|regras|Function">
+<p class="try-task"><strong>Experimente:</strong> acrescente uma entrada <code>'metade': (p) =&gt; p / 2</code> no mapa de regras e rode. Depois, troque o <code>'normal'</code> do <code>main</code> por <code>'metade'</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final regras = &lt;String, double Function(double)&gt;{
+    'normal': (p) =&gt; p,
+    'desconto': (p) =&gt; p * 0.9,
+  };
+  final regra = regras['normal']!;
+  print('R\$ ${regra(14.0).toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final regras = &lt;String, double Function(double)&gt;{
+    'normal': (p) =&gt; p,
+    'desconto': (p) =&gt; p * 0.9,
+    'metade': (p) =&gt; p / 2,
+  };
+  final regra = regras['metade']!;
+  print('R\$ ${regra(14.0).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para passar "mostrar cada item" ao <code>forEach</code>, há três jeitos:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>compras.forEach(print)</code></td><td>Já existe uma função que faz exatamente o que você quer (atalho recomendado)</td></tr>
+<tr><td><code>compras.forEach(mostrar)</code></td><td>A regra é sua, tem nome e é usada em mais de um lugar</td></tr>
+<tr><td><code>compras.forEach((item) =&gt; print('- $item'))</code></td><td>A regra é curta e só serve ali</td></tr>
+</table>
+</div>
+
+<p>E para escrever o tipo de um parâmetro que é função:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>double Function(double) regra</code></td><td>Aparece uma ou duas vezes</td></tr>
+<tr><td><code>typedef RegraDePreco = double Function(double);</code></td><td>O tipo é comprido ou repetido em vários lugares</td></tr>
+<tr><td><code>Function regra</code></td><td>Evite: aceita <strong>qualquer</strong> função, e o Dart deixa de conferir os argumentos (veja o último erro abaixo)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou a função em vez de passá-la</strong>
+<pre class="file" data-file="err_chamou.dart">void mostrar(String item) {
+  print('- $item');
+}
+
+void main() {
+  final compras = ['pão', 'leite'];
+  compras.forEach(mostrar());
+}
+</pre>
+<pre class="term">$ dart run err_chamou.dart
+err_chamou.dart:7:26: Error: Too few positional arguments: 1 required, 0 given.
+  compras.forEach(mostrar());
+                         ^
+err_chamou.dart:1:6: Context: Found this candidate, but the arguments don't match.
+void mostrar(String item) {
+     ^^^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>Error: Too few positional arguments: 1 required, 0 given.</dt><dd>"Poucos argumentos posicionais: 1 obrigatório, 0 dados." Com os parênteses, você <strong>chamou</strong> <code>mostrar</code> ali mesmo, sem nenhum item, e ela exige um.</dd>
+  <dt>Context: Found this candidate, but the arguments don't match.</dt><dd>"Contexto: encontrei esta candidata, mas os argumentos não batem." O Dart aponta onde a função foi declarada (linha 1, com <code>^^^^^^^</code> embaixo do nome) para você comparar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> tire os parênteses: <code>compras.forEach(mostrar);</code>. Quem chama é o <code>forEach</code>, uma vez para cada item.</p>
+</div>
+
+<div class="cenario">
+<strong>A função tem o formato errado</strong>
+<pre class="file" data-file="err_tipo.dart">int dobro(int x) =&gt; x * 2;
+
+void mostrarPrecos(List&lt;double&gt; precos, double Function(double) regra) {
+  for (final preco in precos) {
+    print(regra(preco));
+  }
+}
+
+void main() {
+  mostrarPrecos([10.0, 25.0], dobro);
+}
+</pre>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:10:31: Error: The argument type 'int Function(int)' can't be assigned to the parameter type 'double Function(double)'.
+  mostrarPrecos([10.0, 25.0], dobro);
+                              ^
+</pre>
+<p>"O tipo do argumento, <code>int Function(int)</code>, não pode ser atribuído ao tipo do parâmetro, <code>double Function(double)</code>." O Dart confere o formato da função antes de rodar: a regra tinha de receber e devolver <code>double</code>. <strong>Como consertar:</strong> <code>double dobro(double x) =&gt; x * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável da função pode ser <code>null</code></strong>
+<pre class="file" data-file="err_nulo.dart">void main() {
+  void Function()? aviso;
+  aviso();
+}
+</pre>
+<pre class="term">$ dart run err_nulo.dart
+err_nulo.dart:3:8: Error: Can't use an expression of type 'void Function()?' as a function because it's potentially null.
+Try calling using ?.call instead.
+  aviso();
+       ^
+</pre>
+<p>"Não dá para usar uma expressão do tipo <code>void Function()?</code> como função, porque ela pode ser <code>null</code>. Tente chamar com <code>?.call</code>." O <code>?</code> no fim do tipo diz que a variável pode estar vazia (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>), e chamar "nada" não dá. <strong>Como consertar:</strong> <code>aviso?.call();</code> chama só se houver uma função guardada; se for <code>null</code>, não faz nada.</p>
+</div>
+
+<div class="cenario">
+<strong>O tipo genérico <code>Function</code> e o <code>NoSuchMethodError</code></strong>
+<pre class="file" data-file="err_dynamic.dart">void saudar(String nome) {
+  print('Olá, $nome!');
+}
+
+void main() {
+  Function qualquer = saudar;
+  qualquer('Ana');
+  qualquer('Ana', 'Bia');
+}
+</pre>
+<pre class="term">$ dart run err_dynamic.dart
+Olá, Ana!
+Unhandled exception:
+NoSuchMethodError: Closure call with mismatched arguments: function 'saudar'
+Receiver: Closure: (String) =&gt; void from Function 'saudar': static.
+Tried calling: saudar("Ana", "Bia")
+Found: saudar(String) =&gt; void
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      _objectNoSuchMethod (dart:core-patch/object_patch.dart:88:9)
+#2      main (file:///home/ana/err_dynamic.dart:8:11)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>Olá, Ana!</dt><dd>O programa <strong>compilou</strong> e a primeira chamada funcionou. Com o tipo <code>Function</code> (qualquer função), o Dart não confere os argumentos antes de rodar.</dd>
+  <dt>NoSuchMethodError: Closure call with mismatched arguments</dt><dd>"Erro de método inexistente: chamada de função com argumentos que não batem", na função <code>saudar</code>.</dd>
+  <dt>Tried calling: / Found:</dt><dd>"Tentou chamar <code>saudar("Ana", "Bia")</code>" (dois argumentos); "encontrou <code>saudar(String) =&gt; void</code>" (que recebe um).</dd>
+  <dt>#2 main (…err_dynamic.dart:8:11)</dt><dd>A linha do seu código: a 8, a segunda chamada.</dd>
+</dl>
+<p>Com o tipo completo, <code>void Function(String) qualquer = saudar;</code>, esse erro seria pego <strong>antes</strong> de rodar, com uma mensagem de compilação. <strong>Como consertar:</strong> escreva sempre o tipo completo da função (ou deixe o Dart descobrir com <code>final</code>), e não o <code>Function</code> sozinho.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>final f = saudar;</code></td><td>Guarda a função (sem chamar)</td></tr>
+<tr><td><code>f('Ana')</code></td><td>Chama a função guardada</td></tr>
+<tr><td><code>double Function(double)</code></td><td>Tipo: recebe <code>double</code>, devolve <code>double</code></td></tr>
+<tr><td><code>void Function(String, int)</code></td><td>Tipo: recebe <code>String</code> e <code>int</code>, não devolve nada</td></tr>
+<tr><td><code>typedef Nome = int Function(int);</code></td><td>Dá um nome ao tipo de função</td></tr>
+<tr><td><code>lista.forEach(print)</code>, <code>map(int.parse)</code></td><td>Passa uma função pronta (tear-off)</td></tr>
+<tr><td><code>f?.call()</code></td><td>Chama só se a função não for <code>null</code></td></tr>
+<tr><td><code>escolher(true)(50.0)</code></td><td>Chama a função que outra função devolveu</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Too few positional arguments</code> ao passar uma função</td><td>Escreveu <code>f()</code> em vez de <code>f</code></td></tr>
+<tr><td><code>The argument type 'int Function(int)' can't be assigned to …</code></td><td>A função passada não tem o formato pedido</td></tr>
+<tr><td><code>… as a function because it's potentially null</code></td><td>Variável de função anulável: use <code>?.call()</code></td></tr>
+<tr><td><code>NoSuchMethodError: Closure call with mismatched arguments</code></td><td>Variável do tipo <code>Function</code> chamada com argumentos errados</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Passar ou chamar?</h3>
+<p>Complete para mostrar cada nome com a função <code>print</code>:</p>
+<div class="ex-code">nomes.forEach(<input data-answer="print" aria-label="a função">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. O tipo da função</h3>
+<p>Complete o tipo do parâmetro <code>regra</code>, uma função que recebe um <code>int</code> e devolve um <code>bool</code>:</p>
+<div class="ex-code">void filtrar(List&lt;int&gt; numeros, <input data-answer="bool" aria-label="tipo de retorno"> <input data-answer="Function" aria-label="palavra-chave"> (int) regra) { … }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é a diferença entre <code>final a = saudar;</code> e <code>final b = saudar('Ana');</code>?</p>
+<label><input type="radio" name="q3"> Nenhuma</label>
+<label><input type="radio" name="q3"> <code>a</code> guarda a função; <code>b</code> guarda o resultado de chamá-la</label>
+<label><input type="radio" name="q3"> <code>a</code> dá erro de compilação</label>
+<label><input type="radio" name="q3"> As duas mostram <code>Olá, Ana!</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. O que mostra <code>print(escolherRegra(true)(10.0));</code>, com a <code>escolherRegra</code> da seção 6?</p>
+<label><input type="radio" name="q4"> <code>10.0</code></label>
+<label><input type="radio" name="q4"> <code>Closure: (double) =&gt; double</code></label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+<label><input type="radio" name="q4"> <code>8.0</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Por que é melhor <code>void Function(String) f</code> do que <code>Function f</code>?</p>
+<label><input type="radio" name="q5"> O programa fica mais rápido</label>
+<label><input type="radio" name="q5"> <code>Function</code> não existe no Dart</label>
+<label><input type="radio" name="q5"> Com o tipo completo, o Dart confere os argumentos antes de rodar</label>
+<label><input type="radio" name="q5"> Não há diferença</label>
+</div>
+
+<h3>Missão final: a calculadora de mapa</h3>
+
+<div class="trydart" data-goal="out:8 / 2 = 4.0;;src:'/'\s*:">
+<p class="try-task"><strong>Missão:</strong> acrescente a divisão à calculadora: uma entrada <code>'/'</code> no mapa com uma função que divide <code>a / b</code>. O <code>for</code> não precisa mudar.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final operacoes = &lt;String, num Function(int, int)&gt;{
+    '+': (a, b) =&gt; a + b,
+    '-': (a, b) =&gt; a - b,
+  };
+  for (final simbolo in operacoes.keys) {
+    final conta = operacoes[simbolo]!;
+    print('8 $simbolo 2 = ${conta(8, 2)}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final operacoes = &lt;String, num Function(int, int)&gt;{
+    '+': (a, b) =&gt; a + b,
+    '-': (a, b) =&gt; a - b,
+    '/': (a, b) =&gt; a / b,
+  };
+  for (final simbolo in operacoes.keys) {
+    final conta = operacoes[simbolo]!;
+    print('8 $simbolo 2 = ${conta(8, 2)}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>No Dart, funções são valores: <code>saudar</code> (sem parênteses) é a função; <code>saudar('Ana')</code> é a chamada.</li>
+  <li>Uma função pode ser guardada em variável, lista ou mapa, passada como argumento e devolvida por outra função.</li>
+  <li>O tipo de uma função se escreve <code>Retorno Function(Parâmetros)</code>, como <code>double Function(double)</code>; o <code>typedef</code> dá um nome a ele.</li>
+  <li>Funções prontas também podem ser passadas: <code>forEach(print)</code>, <code>map(int.parse)</code>.</li>
+  <li>Passar <code>f()</code> em vez de <code>f</code> chama a função na hora (erro de argumentos). Evite o tipo <code>Function</code> sozinho: os erros só aparecem rodando, como <code>NoSuchMethodError</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
