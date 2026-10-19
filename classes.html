@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Classes — criando os seus próprios tipos de objeto | Guia Dart</title>
+<meta name="description" content="Classes do Dart para quem nunca programou: o que é uma classe e um objeto, campos (atributos) com valor inicial, criar objetos com Produto(), métodos que usam e mudam os campos, cada objeto com seus próprios valores, Instance of 'Produto' e toString, listas de objetos, e os erros reais do Dart 3.13 (campo sem valor inicial, setter e método que não existem, LateInitializationError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Classes</span></h1>
+
+<p class="intro">Até aqui, você usou os tipos que já vêm com o Dart: <code>int</code>, <code>String</code>, <code>List</code>, <code>Map</code>… Mas o programa da lojinha da Ana fala de <strong>produtos</strong>, o da escola fala de <strong>alunos</strong>, o do banco fala de <strong>contas</strong>. Uma <strong>classe</strong> (em inglês, <em>class</em>) é como você cria o <strong>seu próprio tipo</strong>: você diz quais informações um produto tem e o que ele sabe fazer, e depois cria quantos produtos quiser.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma <strong>classe</strong> e o que é um <strong>objeto</strong> (a forma e o bolo).</li>
+  <li>Como escrever uma classe com <strong>campos</strong> (as informações) e criar objetos com <code>Produto()</code>.</li>
+  <li>Como ler e mudar os campos com o ponto: <code>cafe.preco = 18.9</code>.</li>
+  <li>Como escrever <strong>métodos</strong> (o que o objeto sabe fazer): <code>cafe.mostrar()</code>.</li>
+  <li>Por que o <code>print</code> mostra <code>Instance of 'Produto'</code>, e como mudar isso.</li>
+  <li>Os erros reais mais comuns ao usar classes.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a forma de bolo</h2>
+<p>A padaria tem uma <strong>forma</strong> de bolo. A forma não é um bolo: ninguém come a forma. Ela diz o <strong>formato</strong> que todo bolo feito nela vai ter. Com a mesma forma, a padaria faz o bolo de cenoura de hoje, o de chocolate de amanhã, quantos quiser. Cada bolo é <strong>um</strong> bolo, com o seu sabor e a sua cobertura.</p>
+<ul>
+  <li>A <strong>classe</strong> é a forma: o desenho, a descrição. "Todo produto tem um nome e um preço."</li>
+  <li>O <strong>objeto</strong> é o bolo: uma coisa feita a partir da forma, com valores próprios. "Este produto é o café, de R$ 18,90." Também se diz <strong>instância</strong> da classe.</li>
+</ul>
+<p>Você escreve a classe <strong>uma vez</strong> e cria quantos objetos precisar.</p>
+
+<hr>
+
+<h2>1. A primeira classe</h2>
+
+<pre class="file" data-file="primeira.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+  print(cafe.nome);
+  print(cafe.preco);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Produto { … }</dt><dd>Cria a classe (a forma) chamada <code>Produto</code>. A palavra <code>class</code> vem primeiro; o nome começa com <strong>letra maiúscula</strong> e, se tiver várias palavras, cada uma começa com maiúscula (<code>ContaBancaria</code>): é o padrão <em>UpperCamelCase</em> do Dart, que ajuda a ver de longe o que é classe. A classe fica <strong>fora</strong> do <code>main</code>.</dd>
+  <dt>String nome = '';</dt><dd>Um <strong>campo</strong> (ou atributo): uma variável que <strong>todo</strong> produto vai ter. O <code>= ''</code> é o valor inicial, um texto vazio. Os campos se escrevem como variáveis comuns, só que dentro da classe.</dd>
+  <dt>double preco = 0;</dt><dd>Outro campo, o preço, começando em 0.</dd>
+  <dt>final cafe = Produto();</dt><dd>Cria um <strong>objeto</strong> da classe: o nome da classe com parênteses. A variável <code>cafe</code> guarda esse objeto, e o tipo dela é <code>Produto</code>. (Em código antigo você pode ver <code>new Produto()</code>: o <code>new</code> é opcional desde o Dart 2, e o estilo atual é não escrever.)</dd>
+  <dt>cafe.nome = 'café';</dt><dd>O <strong>ponto</strong> entra no objeto: "o <code>nome</code> do <code>cafe</code> passa a ser <code>'café'</code>". É o mesmo ponto que você já usa em <code>lista.length</code>.</dd>
+  <dt>print(cafe.nome);</dt><dd>Lê o campo.</dd>
+</dl>
+
+<pre class="term">$ dart run primeira.dart
+café
+18.9
+</pre>
+
+<p>A variável <code>cafe</code> é <code>final</code>, e mesmo assim os campos mudaram. O <code>final</code> diz que <code>cafe</code> vai apontar sempre para <strong>o mesmo objeto</strong>; ele não impede que esse objeto mude por dentro. (Para campos que não mudam, veja <a href="construtores.html">Construtores</a>.)</p>
+
+<h3>Cada objeto tem os seus valores</h3>
+
+<pre class="file" data-file="dois.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+
+  final pao = Produto();
+  pao.nome = 'pão';
+  pao.preco = 1.0;
+
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+  print('${pao.nome}: R\$ ${pao.preco}');
+}
+</pre>
+
+<pre class="term">$ dart run dois.dart
+café: R$ 18.9
+pão: R$ 1.0
+</pre>
+
+<p>Dois bolos da mesma forma: <code>cafe</code> e <code>pao</code> têm os mesmos <strong>campos</strong>, mas cada um com os <strong>seus valores</strong>. Mudar o preço do pão não mexe no café.</p>
+
+<div class="trydart" data-goal="out:leite: R$ 5.5;;src:Produto\(\)">
+<p class="try-task"><strong>Missão:</strong> crie um terceiro produto, <code>leite</code>, com preço <code>5.5</code>, e mostre <code>leite: R$ 5.5</code> do mesmo jeito que o café.</p>
+<pre class="script" data-file="main.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+
+  final leite = Produto();
+  leite.nome = 'leite';
+  leite.preco = 5.5;
+  print('${leite.nome}: R\$ ${leite.preco}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Métodos: o que o objeto sabe fazer</h2>
+<p>Uma classe também pode ter <strong>funções</strong> dentro dela. Uma função de classe se chama <strong>método</strong>. Ela pode usar os campos do objeto direto, pelo nome:</p>
+
+<pre class="file" data-file="metodos.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+  int estoque = 0;
+
+  void mostrar() {
+    print('$nome: R\$ ${preco.toStringAsFixed(2)} ($estoque no estoque)');
+  }
+
+  double totalPara(int quantidade) {
+    return preco * quantidade;
+  }
+
+  void vender(int quantidade) {
+    estoque = estoque - quantidade;
+  }
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+  cafe.estoque = 10;
+
+  cafe.mostrar();
+  print('3 pacotes: R\$ ${cafe.totalPara(3).toStringAsFixed(2)}');
+  cafe.vender(3);
+  cafe.mostrar();
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>void mostrar() { … }</dt><dd>Um método que não recebe nada e não devolve nada (<code>void</code>, "vazio"): só mostra o produto. Dentro dele, <code>nome</code>, <code>preco</code> e <code>estoque</code> são os campos <strong>deste</strong> objeto.</dd>
+  <dt>double totalPara(int quantidade)</dt><dd>Um método que recebe um <a href="parametros.html">parâmetro</a> e devolve um <code>double</code>: o preço vezes a quantidade.</dd>
+  <dt>void vender(int quantidade)</dt><dd>Um método que <strong>muda</strong> o objeto: tira do estoque.</dd>
+  <dt>cafe.mostrar();</dt><dd>Chama o método <strong>no</strong> objeto <code>cafe</code>: o ponto, o nome do método e os parênteses. Quem "faz" a ação é o café.</dd>
+</dl>
+
+<pre class="term">$ dart run metodos.dart
+café: R$ 18.90 (10 no estoque)
+3 pacotes: R$ 56.70
+café: R$ 18.90 (7 no estoque)
+</pre>
+
+<p>Depois do <code>cafe.vender(3)</code>, o mesmo <code>cafe.mostrar()</code> mostrou <code>7 no estoque</code>: o método mudou o campo, e o objeto "lembrou". É isso que torna as classes úteis: os <strong>dados</strong> (campos) e as <strong>ações</strong> sobre eles (métodos) ficam juntos.</p>
+
+<div class="tip">
+<strong>Campo × método</strong>
+<p>Campo é uma <strong>informação</strong>, e se usa sem parênteses: <code>cafe.preco</code>. Método é uma <strong>ação</strong>, e se chama com parênteses: <code>cafe.mostrar()</code>. Pense em substantivo (preço, nome, estoque) e verbo (mostrar, vender, calcular).</p>
+</div>
+
+<hr>
+
+<h2>3. <code>print</code> de um objeto: <code>Instance of 'Produto'</code></h2>
+
+<pre class="file" data-file="imprimir.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  print(cafe);
+  print(cafe.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run imprimir.dart
+Instance of 'Produto'
+Produto
+</pre>
+
+<p>"Instância de <code>Produto</code>". O Dart não sabe quais campos você quer ver, então diz só de que classe o objeto é. Para escolher o texto, escreva na classe um método especial chamado <code>toString</code> ("para texto"):</p>
+
+<pre class="file" data-file="tostring.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+
+  @override
+  String toString() =&gt; 'Produto($nome, R\$ $preco)';
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.nome = 'café';
+  cafe.preco = 18.9;
+  print(cafe);
+  print('No carrinho: $cafe');
+}
+</pre>
+
+<pre class="term">$ dart run tostring.dart
+Produto(café, R$ 18.9)
+No carrinho: Produto(café, R$ 18.9)
+</pre>
+
+<p>O <code>print</code> e a interpolação (<code>$cafe</code>) chamam o <code>toString</code> sozinhos. O <code>@override</code> ("sobrescrever") avisa que você está trocando um método que toda classe já tem; ele é explicado em <a href="override.html">Sobrescrevendo</a> e o <code>toString</code> em detalhe em <a href="tostring-igualdade.html">toString, == e hashCode</a>. O <code>=&gt;</code> é a <a href="arrow.html">função de uma linha</a>.</p>
+
+<hr>
+
+<h2>4. Duas variáveis, o mesmo objeto</h2>
+<p>Como nas listas (veja <a href="spread.html">Espalhando Coleções</a>), uma variável guarda o <strong>endereço</strong> do objeto, e não uma cópia dele:</p>
+
+<pre class="file" data-file="mesmo.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final a = Produto();
+  a.nome = 'café';
+  final b = a;
+  b.nome = 'chá';
+  print(a.nome);
+
+  final c = Produto();
+  c.nome = 'chá';
+  print(a == b);
+  print(a == c);
+}
+</pre>
+
+<pre class="term">$ dart run mesmo.dart
+chá
+true
+false
+</pre>
+
+<ul>
+  <li><code>final b = a;</code> não criou um produto novo: <code>a</code> e <code>b</code> são dois nomes para <strong>o mesmo</strong> objeto. Mudar <code>b.nome</code> mudou o que <code>a.nome</code> mostra.</li>
+  <li><code>a == b</code> deu <code>true</code> (é o mesmo objeto). <code>a == c</code> deu <code>false</code>, mesmo com o mesmo nome: são <strong>dois</strong> objetos. Por padrão, o <code>==</code> de uma classe compara "é o mesmo objeto?", e não "tem os mesmos valores?" (ao contrário dos <a href="records.html">records</a>).</li>
+</ul>
+
+<hr>
+
+<h2>5. Muitos objetos: uma lista de produtos</h2>
+<p>Objetos podem ir para listas, mapas, ser parâmetros e retorno de funções, como qualquer valor. A função <code>criar</code> monta um produto pronto:</p>
+
+<pre class="file" data-file="lista.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+Produto criar(String nome, double preco) {
+  final p = Produto();
+  p.nome = nome;
+  p.preco = preco;
+  return p;
+}
+
+void main() {
+  final carrinho = [
+    criar('pão', 1.0),
+    criar('leite', 5.5),
+    criar('café', 18.9),
+  ];
+  var total = 0.0;
+  for (final p in carrinho) {
+    total += p.preco;
+  }
+  print('${carrinho.length} produtos, total R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+3 produtos, total R$ 25.40
+</pre>
+
+<p>O tipo de <code>carrinho</code> é <code>List&lt;Produto&gt;</code>: uma lista de produtos. No <code>for</code>, cada <code>p</code> é um <code>Produto</code>, e o Dart deixa usar <code>p.preco</code>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: o construtor</h2>
+<p>A função <code>criar</code> resolveu um problema real: criar o objeto e preencher os campos em várias linhas é cansativo, e é fácil esquecer um campo. As classes têm uma solução própria para isso, o <strong>construtor</strong>, um "método" especial que roda na hora de criar o objeto:</p>
+
+<pre class="file" data-file="construtor.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+}
+</pre>
+
+<pre class="term">$ dart run construtor.dart
+café: R$ 18.9
+</pre>
+
+<p>Agora o produto nasce pronto, numa linha, e os campos podem ser <code>final</code>. Os detalhes estão na próxima aula, <a href="construtores.html">Construtores</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Poucos valores, usados ali perto, sem ações</td><td>Um <a href="records.html">record</a>: <code>(nome: 'café', preco: 18.9)</code></td></tr>
+<tr><td>Um "tipo de coisa" do seu programa, com dados e ações</td><td>Uma <strong>classe</strong></td></tr>
+<tr><td>Campos que sempre precisam de valor ao criar</td><td>Classe com <a href="construtores.html">construtor</a></td></tr>
+<tr><td>Campos com um valor inicial razoável (0, texto vazio)</td><td>Campo com <code>= valor</code>, como nesta aula</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Campo sem valor inicial</strong>
+<pre class="file" data-file="seminicial.dart">class Produto {
+  String nome;
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run seminicial.dart
+seminicial.dart:2:10: Error: Field 'nome' should be initialized because its type 'String' doesn't allow null.
+  String nome;
+         ^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>seminicial.dart:2:10</dt><dd>Linha 2, coluna 10: o campo <code>nome</code>.</dd>
+  <dt>Field 'nome' should be initialized because its type 'String' doesn't allow null.</dt><dd>"O campo <code>nome</code> deveria receber um valor inicial, porque o tipo dele, <code>String</code>, não aceita <code>null</code>." Ao criar um produto, o campo precisa valer <strong>alguma coisa</strong>, e o tipo <code>String</code> não aceita "nada" (veja <a href="null-safety.html">Null Safety</a>).</dd>
+  <dt>echo $? → 254</dt><dd>Erro de compilação: o programa nem começou.</dd>
+</dl>
+<p><strong>Como consertar</strong> (escolha um): dê um valor inicial (<code>String nome = '';</code>); aceite <code>null</code> (<code>String? nome;</code>); ou receba o valor num <a href="construtores.html">construtor</a> (o jeito mais comum).</p>
+</div>
+
+<div class="cenario">
+<strong>Campo com nome errado</strong>
+<pre class="file" data-file="naoexiste.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.valor = 18.9;
+}
+</pre>
+<pre class="term">$ dart run naoexiste.dart
+naoexiste.dart:8:8: Error: The setter 'valor' isn't defined for the type 'Produto'.
+ - 'Produto' is from 'naoexiste.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'valor'.
+  cafe.valor = 18.9;
+       ^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>The setter 'valor' isn't defined for the type 'Produto'.</dt><dd>"O <em>setter</em> <code>valor</code> não está definido para o tipo <code>Produto</code>." <strong>Setter</strong> é o que permite <strong>escrever</strong> num campo (veja <a href="getters-setters.html">get e set</a>). A classe tem <code>preco</code>, não <code>valor</code>.</dd>
+  <dt>- 'Produto' is from 'naoexiste.dart'.</dt><dd>De onde vem a classe <code>Produto</code>: do próprio arquivo. Ajuda quando o programa tem vários arquivos.</dd>
+  <dt>Try correcting the name…</dt><dd>"Tente corrigir o nome para um que exista, ou criar um campo chamado <code>valor</code>."</dd>
+</dl>
+<p>Para <strong>ler</strong> um campo que não existe (<code>print(cafe.valor)</code>), a mensagem fala em <code>getter</code> em vez de <code>setter</code>. <strong>Como consertar:</strong> <code>cafe.preco = 18.9;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Método que a classe não tem</strong>
+<pre class="file" data-file="metodonao.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.mostrar();
+}
+</pre>
+<pre class="term">$ dart run metodonao.dart
+metodonao.dart:8:8: Error: The method 'mostrar' isn't defined for the type 'Produto'.
+ - 'Produto' is from 'metodonao.dart'.
+Try correcting the name to the name of an existing method, or defining a method named 'mostrar'.
+  cafe.mostrar();
+       ^^^^^^^
+</pre>
+<p>"O método <code>mostrar</code> não está definido para o tipo <code>Produto</code>." O objeto só sabe fazer o que a classe dele diz. <strong>Como consertar:</strong> escreva o método dentro da classe, ou corrija o nome.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou a classe no lugar do objeto</strong>
+<pre class="file" data-file="classe.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+}
+
+void main() {
+  Produto.nome = 'café';
+}
+</pre>
+<pre class="term">$ dart run classe.dart
+classe.dart:7:11: Error: Setter not found: 'nome'.
+  Produto.nome = 'café';
+          ^^^^
+</pre>
+<p>"Setter não encontrado: <code>nome</code>." É como querer pôr cobertura na <strong>forma</strong> em vez de no bolo: o <code>nome</code> é de cada objeto, e não da classe. <strong>Como consertar:</strong> crie o objeto primeiro (<code>final cafe = Produto();</code>) e use <code>cafe.nome</code>. (Existem, sim, campos da própria classe; são os <a href="static.html">membros static</a>.)</p>
+</div>
+
+<div class="cenario">
+<strong>Nome da classe com letra minúscula</strong>
+<pre class="file" data-file="minuscula.dart">class Produto {
+  String nome = '';
+}
+
+void main() {
+  final cafe = produto();
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run minuscula.dart
+minuscula.dart:6:16: Error: Method not found: 'produto'.
+  final cafe = produto();
+               ^^^^^^^
+</pre>
+<p>"Método não encontrado: <code>produto</code>." O Dart diferencia maiúsculas de minúsculas: <code>produto</code> e <code>Produto</code> são nomes diferentes, e como não existe nada chamado <code>produto</code>, ele achou que era uma função. <strong>Como consertar:</strong> <code>Produto()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Campo <code>late</code> que ninguém preencheu</strong>
+<p>Com <code>late</code> ("tarde"), você promete dar valor ao campo depois (veja <a href="late.html">late e o Operador !</a>). O Dart aceita compilar, mas confere na hora de ler:</p>
+<pre class="file" data-file="late.dart">class Produto {
+  late String nome;
+  double preco = 0;
+}
+
+void main() {
+  final cafe = Produto();
+  cafe.preco = 18.9;
+  print('Preço: ${cafe.preco}');
+  print('Nome: ${cafe.nome}');
+}
+</pre>
+<pre class="term">$ dart run late.dart
+Preço: 18.9
+Unhandled exception:
+LateInitializationError: Field 'nome' has not been initialized.
+#0      Produto.nome (file:///home/ana/late.dart)
+#1      main (file:///home/ana/late.dart:10:23)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Preço: 18.9</dt><dd>O programa rodou normalmente até aqui.</dd>
+  <dt>LateInitializationError: Field 'nome' has not been initialized.</dt><dd>"Erro de inicialização tardia: o campo <code>nome</code> não recebeu valor." A promessa do <code>late</code> não foi cumprida.</dd>
+  <dt>#0 Produto.nome (file:///home/ana/late.dart)</dt><dd>O erro nasceu na leitura do campo <code>nome</code> da classe <code>Produto</code>.</dd>
+  <dt>#1 main (file:///home/ana/late.dart:10:23)</dt><dd>Quem leu: o <code>main</code>, linha 10, no <code>cafe.nome</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> dê valor antes de ler (<code>cafe.nome = 'café';</code>) ou, melhor, troque o <code>late</code> por um construtor que exige o nome.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>class Produto { … }</code></td><td>Cria uma classe (um tipo novo); nome em <em>UpperCamelCase</em></td></tr>
+<tr><td><code>String nome = '';</code> (dentro da classe)</td><td>Campo com valor inicial</td></tr>
+<tr><td><code>void mostrar() { … }</code> (dentro da classe)</td><td>Método: uma ação do objeto</td></tr>
+<tr><td><code>final cafe = Produto();</code></td><td>Cria um objeto (instância)</td></tr>
+<tr><td><code>cafe.preco</code> / <code>cafe.preco = 5;</code></td><td>Lê / muda um campo</td></tr>
+<tr><td><code>cafe.mostrar();</code></td><td>Chama um método no objeto</td></tr>
+<tr><td><code>String toString() =&gt; '…';</code></td><td>Escolhe o texto que o <code>print</code> mostra</td></tr>
+<tr><td><code>List&lt;Produto&gt;</code></td><td>Lista de objetos da sua classe</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Field 'x' should be initialized because its type '…' doesn't allow null.</code></td><td>Campo sem valor inicial</td></tr>
+<tr><td><code>The setter/getter 'x' isn't defined for the type 'Produto'.</code></td><td>Campo com nome errado (ou que não existe)</td></tr>
+<tr><td><code>The method 'x' isn't defined for the type 'Produto'.</code></td><td>Método que a classe não tem</td></tr>
+<tr><td><code>Setter not found: 'nome'.</code> em <code>Produto.nome</code></td><td>Usou a classe no lugar de um objeto</td></tr>
+<tr><td><code>Method not found: 'produto'.</code></td><td>Nome da classe com a letra errada</td></tr>
+<tr><td><code>Instance of 'Produto'</code></td><td>Não é erro: a classe não tem <code>toString</code></td></tr>
+<tr><td><code>LateInitializationError</code></td><td>Campo <code>late</code> lido antes de receber valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a classe</h3>
+<div class="ex-code"><input data-answer="class" aria-label="palavra-chave"> Aluno {<br>&nbsp;&nbsp;String nome = '';<br>&nbsp;&nbsp;double nota = 0;<br>}<br><br>final bia = <input data-answer="Aluno()" aria-label="criar o objeto">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>Com a classe <code>Produto</code> da seção 1 (sem <code>toString</code>), o que mostra <code>print(Produto());</code>?</p>
+<div class="ex-code"><input data-answer="Instance of 'Produto'" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Qual é a diferença entre classe e objeto?</p>
+<label><input type="radio" name="q3"> Nenhuma: são dois nomes para a mesma coisa</label>
+<label><input type="radio" name="q3"> A classe é o molde; o objeto é uma coisa criada a partir dele, com valores próprios</label>
+<label><input type="radio" name="q3"> O objeto é o molde; a classe é o que se cria com ele</label>
+<label><input type="radio" name="q3"> Classe é para números; objeto é para textos</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>final a = Produto(); final b = a; b.preco = 9;</code>. Quanto vale <code>a.preco</code>?</p>
+<label><input type="radio" name="q4"> 0, porque <code>b</code> é uma cópia</label>
+<label><input type="radio" name="q4"> Dá erro, porque <code>a</code> é <code>final</code></label>
+<label><input type="radio" name="q4"> <code>null</code></label>
+<label><input type="radio" name="q4"> 9, porque <code>a</code> e <code>b</code> são o mesmo objeto</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual linha chama um <strong>método</strong>?</p>
+<label><input type="radio" name="q5"> <code>conta.depositar(50);</code></label>
+<label><input type="radio" name="q5"> <code>conta.saldo = 50;</code></label>
+<label><input type="radio" name="q5"> <code>print(conta.saldo);</code></label>
+<label><input type="radio" name="q5"> <code>class Conta {}</code></label>
+</div>
+
+<h3>Missão final: o cofrinho</h3>
+
+<div class="trydart" data-goal="out:Saldo: R$ 35.0;;src:void\s+guardar\s*\(">
+<p class="try-task"><strong>Missão:</strong> a classe <code>Cofrinho</code> tem o campo <code>saldo</code>. Escreva dentro dela o método <code>void guardar(double valor)</code>, que soma o valor ao saldo. O <code>main</code> já guarda 20 e 15; o resultado deve ser <code>Saldo: R$ 35.0</code>.</p>
+<pre class="script" data-file="main.dart">class Cofrinho {
+  double saldo = 0;
+
+  // escreva o método guardar aqui
+
+  void mostrar() {
+    print('Saldo: R\$ $saldo');
+  }
+}
+
+void main() {
+  final cofre = Cofrinho();
+  // cofre.guardar(20);
+  // cofre.guardar(15);
+  cofre.mostrar();
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Cofrinho {
+  double saldo = 0;
+
+  void guardar(double valor) {
+    saldo = saldo + valor;
+  }
+
+  void mostrar() {
+    print('Saldo: R\$ $saldo');
+  }
+}
+
+void main() {
+  final cofre = Cofrinho();
+  cofre.guardar(20);
+  cofre.guardar(15);
+  cofre.mostrar();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma <strong>classe</strong> é o molde de um tipo novo; um <strong>objeto</strong> (instância) é uma coisa criada com ele: <code>final cafe = Produto();</code>.</li>
+  <li><strong>Campos</strong> são as informações de cada objeto; <strong>métodos</strong> são as ações. Os dois se usam com o ponto: <code>cafe.preco</code>, <code>cafe.mostrar()</code>.</li>
+  <li>Cada objeto tem os seus valores; uma variável guarda o endereço do objeto, então <code>final b = a;</code> não copia.</li>
+  <li>Campo de tipo que não aceita <code>null</code> precisa de valor inicial (ou de um construtor).</li>
+  <li><code>print(objeto)</code> mostra <code>Instance of 'Classe'</code> até você escrever um <code>toString</code>.</li>
+  <li>Próxima aula: <a href="construtores.html">Construtores</a>, para o objeto já nascer com os valores certos.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
