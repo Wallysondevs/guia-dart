@@ -5,7 +5,7 @@ void main() {
   print(l);
   print(l.map((x) => x * x).where((x) => x > 5));
   print(l.reversed.toList());
-  print(l.fold(0, (a, b) => a + b));
+  print(l.fold<int>(0, (a, b) => a + b));
   final m = {'b': 2, 'a': 1};
   m['c'] = 3;
   print(m);

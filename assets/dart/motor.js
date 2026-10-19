@@ -15,7 +15,7 @@
      =================================================================== */
   var PALAVRAS_RESERVADAS = new Set(("assert break case catch class const continue default do else enum extends false final finally for if in is new null rethrow return super switch this throw true try var void while with").split(" "));
   var OPS = [">>>=", "...?", "~/=", ">>=", "<<=", "??=", "...", "&&=", "||=", "?..", ">>>",
-    "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "=>", "??", "?.", "..", "~/", "<<",
+    "==", "!=", "<=", ">=", "&&", "||", "++", "--", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "=>", "??", "?.", "..", "~/", "<<", ">>",
     "+", "-", "*", "/", "%", "<", ">", "=", "!", "?", ":", ";", ",", ".", "(", ")", "[", "]", "{", "}", "&", "|", "^", "~", "@", "#"];
 
   function ErroDart(msg, pos, len, extra) { this.msg = msg; this.pos = pos; this.len = len || 1; this.extra = extra || null; }
@@ -414,6 +414,18 @@
     return this.parseVarDecl(ini, m, tipo, topo);
   };
   P.objPattern = function () { var s = this.i; var ok = false; try { this.parseType(); ok = this.isOp("("); } catch (e) { if (!(e instanceof ErroDart)) throw e; } this.i = s; return ok; };
+  // "c ? [1] : [2]" é condicional: procura o ":" depois do "]" correspondente
+  P.ehCondicional = function () {
+    var prof = 0;
+    for (var k = this.i + 1; k < this.t.length; k++) {
+      var t = this.t[k];
+      if (t.t === "op" && (t.v === "[" || t.v === "(" || t.v === "{")) prof++;
+      else if (t.t === "op" && (t.v === "]" || t.v === ")" || t.v === "}")) { prof--; if (prof === 0) { var nx = this.t[k + 1]; return !!nx && nx.t === "op" && nx.v === ":" && !this.ehArgNomeado(k + 1); } if (prof < 0) return false; }
+      else if (t.t === "eof") return false;
+    }
+    return false;
+  };
+  P.ehArgNomeado = function () { return false; };
   P.isGetSet = function () {
     return (this.is("get") || this.is("set")) && this.isId(1) && !this.isOp("(", 1) && !this.isOp("=", 1) && !this.isOp(";", 1) && !this.isOp(",", 1);
   };
@@ -869,8 +881,8 @@
     var ini = this.peek();
     var c = this.parseExprBin(0);
     if (this.isOp("?")) {
-      this.next(); var a = this.parseExprNoCascade(); this.expect(":"); var b = this.parseExprNoCascade();
-      return this.no("Cond", ini, { cond: c, a: a, b: b });
+      var tq = this.next(); var a = this.parseExprNoCascade(); this.expect(":"); var b = this.parseExprNoCascade();
+      return this.no("Cond", ini, { cond: c, a: a, b: b, pQ: tq.p });
     }
     return c;
   };
@@ -937,6 +949,7 @@
         if (this.isOp("[")) { this.next(); var ix0 = this.parseExpr(); this.expect("]"); e = this.no("Index", ini, { alvo: e, indice: ix0, nulo: true }); continue; }
         var n2 = this.ident(); e = this.no("Get", ini, { alvo: e, nome: n2.v, pNome: n2.p, eNome: n2.e, nulo: true }); continue;
       }
+      if (t.v === "?" && this.isOp("[", 1) && this.peek(1).p === t.e && !this.ehCondicional()) { this.next(); this.next(); var ixn = this.parseExpr(); this.expect("]"); e = this.no("Index", ini, { alvo: e, indice: ixn, nulo: true, pIdx: t.p }); continue; }
       if (t.v === "!") { var nx = this.peek(1); if (nx.t === "op" && nx.v === "=" ) break; this.next(); e = this.no("NotNull", ini, { valor: e, pOp: t.p }); continue; }
       if (t.v === "[") { this.next(); var ix = this.parseExpr(); this.expect("]"); e = this.no("Index", ini, { alvo: e, indice: ix, pIdx: t.p }); continue; }
       if (t.v === "(") { var a = this.parseArgs(); e = this.no("Call", ini, { alvo: e, args: a, targs: null }); continue; }
@@ -1038,6 +1051,7 @@
         case "void": break;
       }
       if (PALAVRAS_RESERVADAS.has(t.v) && t.v !== "void") {
+        if (t.v === "return") throw new ErroDart("Unexpected token 'return'.", t.p, t.e - t.p);
         this.fail("Expected an identifier, but got '" + t.v + "'.", t);
       }
       // lambda sem parâmetros tipados: x => …? não existe em Dart; só (x) =>
@@ -1200,7 +1214,7 @@
     return linhas.join("\n");
   };
   G.comCtx = function (tipos, extra) { var c = this.contexto(tipos); return c ? c + (extra ? "\n" + extra : "") : (extra || null); };
-  G.erro = function (msg, p, len, extra) { this.erros.push(new ErroDart(msg, p, len, extra)); };
+  G.erro = function (msg, p, len, extra, ctx) { var e = new ErroDart(msg, p, len, extra); if (ctx) e.ctx = ctx; this.erros.push(e); return e; };
   G.temp = function () { return "$t" + (++this.tmp); };
 
   // escopo
@@ -1274,6 +1288,7 @@
     var ps = main && main.decl ? main.decl.params.pos.length : 0;
     var temps = []; for (var ti = 1; ti <= this.tmp; ti++) temps.push("$t" + ti);
     if (temps.length) out.unshift("var " + temps.join(", ") + ";");
+    out.unshift("var $f = null;");
     out.unshift('"use strict";');
     out.push("return { main: " + (main ? main.js : "null") + ", nargs: " + ps + ", async: " + !!(main && main.decl && main.decl.async) + " };");
     return out.join("\n");
@@ -1513,6 +1528,12 @@
   G.paramsJs = function (ps, fesc, ctor) {
     var self = this, nomes = [], pre = "";
     ps.pos.concat(ps.opc, ps.nomeados).forEach(function (p) { self.checarTipo(p.tipo); });
+    ps.opc.concat(ps.nomeados).forEach(function (p) {
+      var t = p.tipo || (p.campo ? self.tipoCampo(fesc, p.nome) : null);
+      if (p.obrig || p.padrao || !t || t.k !== "T" || t.nul || ["dynamic", "Null", "void", "Object?"].indexOf(t.nome) >= 0 || self.tparams.has(t.nome)) return;
+      if (fesc.pai && fesc.pai.tipo === "funcao" && false) return;
+      self.erro("The parameter '" + p.nome + "' can't have a value of 'null' because of its type '" + self.tipoTexto(t) + "', but the implicit default value is 'null'.", p.p, p.nome.length, (self.contexto([t]) ? self.contexto([t]) + "\n" : "") + "Try adding either an explicit non-'null' default value or the 'required' modifier.");
+    });
     ps.pos.forEach(function (p) { nomes.push(jsNome(p.nome)); fesc.def(p.nome, { k: "local", js: jsNome(p.nome), tipo: p.tipo || (p.campo ? self.tipoCampo(fesc, p.nome) : null), param: true }); });
     ps.opc.forEach(function (p) {
       nomes.push(jsNome(p.nome));
@@ -1583,7 +1604,11 @@
       if (d.async) return this.envolverGerador(cabeca, ps, corpoF, true);
       return this.envolverGerador(cabeca, ps, corpoF, false);
     }
-    if (d.async) corpoF = "const $f = $R.entrar(" + nf + ");\ntry {\n" + corpo + "\n} finally { $R.sair($f); }";
+    if (d.async) {
+      var tf = d.ret && d.ret.k === "T" && (d.ret.nome === "Future" || d.ret.nome === "FutureOr") && d.ret.args.length ? this.tipoTexto(d.ret.args[0]) : (d.ret && d.ret.k === "T" && d.ret.nome === "void" ? "void" : "dynamic");
+      var cab2 = cabeca.replace(/^(static )?async /, "$1");
+      return cab2 + "(" + ps.lista + ") {" + ps.pre + "\nreturn $R.futuro((async () => {\n" + corpoF + "\n})(), " + q(tf) + ");\n}";
+    }
     return cabeca + "(" + ps.lista + ") {" + ps.pre + "\n" + corpoF + "\n}";
   };
   G.envolverGerador = function (cabeca, ps, corpo, async) {
@@ -2064,6 +2089,8 @@
   G.atribuivel = function (de, para) {
     if (!de || !para || de.k !== "T" || para.k !== "T") return true;
     if (this.tparams.has(para.nome) || this.tparams.has(de.nome)) return true;
+    var conhecido = function (n) { return TIPOS_NATIVOS.has(n) || GLOBAIS.has(n) || this.classes[n] || (this.topo[n] && this.topo[n].k === "typedef"); }.bind(this);
+    if (!conhecido(para.nome) || !conhecido(de.nome)) return true;
     var tp = this.topo[para.nome]; if (tp && tp.k === "typedef") return true;
     if (para.nome === "dynamic" || para.nome === "Object" && (!de.nul || para.nul)) return true;
     if (de.nome === "Null") return para.nul || para.nome === "dynamic" || para.nome === "Null" || para.nome === "void";
@@ -2078,6 +2105,20 @@
     if (s) return s.indexOf(para.nome) >= 0 || (para.nome === "FutureOr");
     return true; // classes do usuário e o resto: não confere
   };
+  function offsetDe(e) {
+    if (!e) return 0;
+    switch (e.k) {
+      case "Bin": return e.pOp;
+      case "Get": return e.pNome;
+      case "Call": return e.alvo.k === "Get" ? e.alvo.pNome : e.alvo.p;
+      case "Index": return e.pIdx || e.p;
+      case "NotNull": case "As": case "Is": return e.pOp;
+      case "Cond": return e.pQ || e.p;
+      case "Paren": return offsetDe(e.valor);
+      case "Assign": return e.pOp;
+    }
+    return e.p;
+  }
   G.checarAtrib = function (tipo, valor, esc, ehRetorno) {
     if (!tipo || tipo.k !== "T") return;
     var de = this.tipoDe(valor, esc);
@@ -2085,7 +2126,7 @@
     if (valor.k === "Num" && !valor.dbl && tipo.nome === "double") return; // 10 → 10.0
     if (valor.k === "ListLit" && !valor.targs || valor.k === "MapLit" && !valor.targs || valor.k === "SetLit") return;
     if (!this.atribuivel(de, tipo)) {
-      var ini = valor.p;
+      var ini = offsetDe(valor);
       this.erro("A value of type '" + this.tipoTexto(de) + "' can't be " + (ehRetorno ? "returned from " + ehRetorno : "assigned to a variable of type '" + this.tipoTexto(tipo) + "'") + ".", ini, 1, this.comCtx([de, tipo]));
     }
   };
@@ -2206,6 +2247,7 @@
       if (i.k === "local" || i.k === "localfun") return i.late ? "$R.lateGet(" + i.js + ", " + q(n) + ")" : i.js;
     }
     var mi = this.membroImplicito(n, esc);
+    if (!mi && (n === "runtimeType" || n === "hashCode" || n === "toString") && !this.topo[n]) { var ce = esc; while (ce && !ce.classe) ce = ce.pai; if (ce) return chamada ? "$R.extMetodoThis(this, " + q(n) + ")" : "$R.get(this, " + q(n) + ")"; }
     if (mi) {
       if (mi.k === "est") return "C_" + mi.classe + "." + mNome(n);
       var fe = esc; while (fe && fe.tipo !== "funcao") fe = fe.pai;
@@ -2232,7 +2274,7 @@
     return "null";
   };
   G.lit = function (e) {
-    if (e.dbl) { var v = Number(e.v); return String(e.neg ? -v : v).replace(/^(-?)Infinity$/, "$1Infinity"); }
+    if (e.dbl) { var v = Number(e.v); return e.neg ? "(-" + String(v) + ")" : String(v); }
     var s = e.v;
     var big;
     try { big = BigInt(s); } catch (x) { big = 0n; }
@@ -2293,7 +2335,7 @@
       case "Cond": this.checarBool(e.cond, esc); return "($R.cond(" + this.expr(e.cond, esc) + ") ? " + this.expr(e.a, filho(esc, this.promCond(e.cond, true))) + " : " + this.expr(e.b, filho(esc, this.promCond(e.cond, false))) + ")";
       case "NotNull": return "$R.nc(" + this.expr(e.valor, esc) + ", " + e.pOp + ")";
       case "Throw": return "$R.lancar(" + this.expr(e.valor, esc) + ", " + e.p + ")";
-      case "Await": return "(await $R.aguardar(" + this.expr(e.valor, esc) + "))";
+      case "Await": return "$R.retomou($f, await $R.aguardar(" + this.expr(e.valor, esc) + "))";
       case "Get": return this.get(e, esc);
       case "Index": {
         var a = this.expr(e.alvo, esc), i = this.expr(e.indice, esc);
@@ -2452,9 +2494,9 @@
   };
   G.checarMembro = function (e, esc, chamada) {
     var t = this.tipoDe(e.alvo, esc);
-    if (t && t.k === "T" && t.nome === "Object" && !t.nul && ["toString", "hashCode", "runtimeType", "noSuchMethod"].indexOf(e.nome) < 0 && !this.extensoes.some(function (x) { return x.membros.some(function (d) { return d.nome === e.nome; }); })) {
-      if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type 'Object'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
-      else this.erro("The getter '" + e.nome + "' isn't defined for the type 'Object'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
+    if (t && t.k === "T" && t.nome === "Object" && ["toString", "hashCode", "runtimeType", "noSuchMethod"].indexOf(e.nome) < 0 && !this.extensoes.some(function (x) { return x.membros.some(function (d) { return d.nome === e.nome; }); })) {
+      if (chamada) this.erro("The method '" + e.nome + "' isn't defined for the type '" + (t.nul ? "Object?" : "Object") + "'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing method, or defining a method named '" + e.nome + "'.");
+      else this.erro("The getter '" + e.nome + "' isn't defined for the type '" + (t.nul ? "Object?" : "Object") + "'.", e.pNome, e.nome.length, " - 'Object' is from 'dart:core'.\nTry correcting the name to the name of an existing getter, or defining a getter or field named '" + e.nome + "'.");
       return;
     }
     if (!t || t.k !== "T" || !this.classes[t.nome]) return;
@@ -2488,6 +2530,7 @@
   };
   G.call = function (e, esc) {
     var a = e.alvo, self = this;
+    this._esc = esc;
     if (a.k === "Get" && a.alvo.k === "Ident" && this.prefixo(a.alvo.nome, esc)) {
       var im = this.prefixo(a.alvo.nome, esc);
       var e2 = Object.assign({}, e, { alvo: { k: "Ident", nome: a.nome, p: a.pNome, e: a.pNome + a.nome.length, viaPrefixo: im } });
@@ -2554,19 +2597,23 @@
     if (a.nom.length) l.push("{" + a.nom.map(function (x) { var p = ps.nomeados.filter(function (y) { return chaveNom(y) === x.nome; })[0]; return q(x.nome) + ": " + (p ? self.exprT(x.valor, esc, p.tipo) : self.expr(x.valor, esc)); }).join(", ") + "}");
     return l.join(", ");
   };
-  G.checarArgs = function (d, e, nome) {
+  G.checarArgs = function (d, e, nome, cl) {
     var ps = d.params, a = e.args;
+    var ctx = d.k === "Function" || d.k === "LocalFun" ? { msg: "Found this candidate, but the arguments don't match.", pos: d.pNome, len: d.nome.length } : null;
+    var self0 = this;
+    var tipoP = function (p) { return p.tipo || (p.campo && cl ? (self0.membrosDe(cl.nome).inst[p.nome] || {}).tipo : null); };
     var min = ps.pos.length, max = ps.pos.length + ps.opc.length;
     var self = this;
-    a.pos.forEach(function (x, i) { var p = ps.pos[i] || ps.opc[i - ps.pos.length]; if (p && p.tipo) self.checarArgTipo(p.tipo, x); });
     if (a.pos.length < min) {
-      this.erro("Too few positional arguments: " + min + " required, " + a.pos.length + " given.", a.p, 1);
+      this.erro("Too few positional arguments: " + min + " required, " + a.pos.length + " given.", a.p, 1, null, ctx);
       return;
     }
     if (a.pos.length > max) {
-      this.erro("Too many positional arguments: " + max + " allowed, but " + a.pos.length + " found.", a.p, 1, "Try removing the extra positional arguments.");
+      this.erro("Too many positional arguments: " + max + " allowed, but " + a.pos.length + " found.", a.p, 1, "Try removing the extra positional arguments.", ctx);
       return;
     }
+    a.pos.forEach(function (x, i) { var p = ps.pos[i] || ps.opc[i - ps.pos.length]; var tp = p && tipoP(p); if (tp) self.checarArgTipo(tp, x, self._esc); });
+    a.nom.forEach(function (x) { var p = ps.nomeados.filter(function (y) { return chaveNom(y) === x.nome; })[0]; var tp = p && tipoP(p); if (tp) self.checarArgTipo(tp, x.valor, self._esc); });
     a.nom.forEach(function (x) {
       if (!ps.nomeados.some(function (p) { return chaveNom(p) === x.nome; })) self.erro("No named parameter with the name '" + x.nome + "'.", x.p, x.nome.length);
     });
@@ -2574,18 +2621,18 @@
       if (p.obrig && !a.nom.some(function (x) { return x.nome === chaveNom(p); })) self.erro("Required named parameter '" + chaveNom(p) + "' must be provided.", a.p, 1);
     });
   };
-  G.checarArgTipo = function (tipo, x) {
+  G.checarArgTipo = function (tipo, x, esc) {
     if (!tipo || tipo.k !== "T") return;
-    var de = this.tipoDe(x, this._escAtual || new Escopo(null));
+    var de = this.tipoDe(x, esc || new Escopo(null));
     if (!de || de.k !== "T") return;
     if (x.k === "Num" && !x.dbl && tipo.nome === "double") return;
     if (x.k === "ListLit" || x.k === "MapLit" || x.k === "SetLit") return;
-    if (!this.atribuivel(de, tipo)) this.erro("The argument type '" + this.tipoTexto(de) + "' can't be assigned to the parameter type '" + this.tipoTexto(tipo) + "'.", x.p, 1, this.comCtx([de, tipo]));
+    if (!this.atribuivel(de, tipo)) this.erro("The argument type '" + this.tipoTexto(de) + "' can't be assigned to the parameter type '" + this.tipoTexto(tipo) + "'.", offsetDe(x), 1, this.comCtx([de, tipo]));
   };
   G.checarArgsCtor = function (cl, nome, e) {
     var k = cl.membros.filter(function (d) { return d.k === "Ctor" && d.nome === nome; })[0];
     if (!k) { if (!cl.membros.some(function (d) { return d.k === "Ctor"; })) k = { params: { pos: [], opc: [], nomeados: [] } }; else return; }
-    this.checarArgs(k, e, cl.nome);
+    this.checarArgs(k, e, cl.nome, cl);
   };
   G.lvalue = function (alvo, esc) {
     // devolve um objeto {g: getter, s: setter} em JS
@@ -2633,6 +2680,10 @@
       if (op === "??=") return "(" + js + " ??= " + v + ")";
       if (op === "&&=" || op === "||=") return "(" + js + " " + op + " " + v + ")";
       var bop = OPS_JS[op.slice(0, -1)];
+      if (tipoAlvo && tipoAlvo.k === "T" && ["+", "-", "*", "/", "%", "~/"].indexOf(op.slice(0, -1)) >= 0) {
+        var tr = this.tipoDe({ k: "Bin", op: op.slice(0, -1), a: alvo, b: e.valor, p: alvo.p, pOp: e.pOp }, esc);
+        if (tr && tr.k === "T" && !this.atribuivel(tr, tipoAlvo)) this.erro("A value of type '" + this.tipoTexto(tr) + "' can't be assigned to a variable of type '" + this.tipoTexto(tipoAlvo) + "'.", e.pOp, 1, this.comCtx([tr, tipoAlvo]));
+      }
       return "(" + js + " = " + this.coagir("$R." + bop + "(" + js + ", " + v + (bop === "idiv" || bop === "mod" ? ", " + e.pOp : "") + ")", tipoAlvo) + ")";
     }
     if (alvo.k === "Get" && op === "=") {
@@ -2669,7 +2720,7 @@
     var lc = linhaCol(src, e.pos);
     var fimLinha = src.indexOf("\n", lc.ini); if (fimLinha < 0) fimLinha = src.length;
     var linha = src.slice(lc.ini, fimLinha);
-    var r = arq + ":" + lc.l + ":" + lc.c + ": Error: " + e.msg + "\n";
+    var r = arq + ":" + lc.l + ":" + lc.c + ": " + (e.rotulo || "Error") + ": " + e.msg + "\n";
     if (e.extra) r += e.extra + "\n";
     if (e.pos >= src.length && e.len === 0) {
       // fim do arquivo
@@ -2686,7 +2737,12 @@
     arq = arq || "main.dart"; outros = outros || {};
     var fontes = [{ nome: arq, src: src, base: 0 }], combinado = src, prog = [];
     function fonteDe(p) { for (var i = fontes.length - 1; i >= 0; i--) if (p >= fontes[i].base) return fontes[i]; return fontes[0]; }
-    function erroFmt(e) { var f = fonteDe(e.pos); var e2 = new ErroDart(e.msg, e.pos - f.base, e.len, e.extra); return formatarErro(f.nome, f.src, e2); }
+    function erroFmt(e) {
+      var f = fonteDe(e.pos); var e2 = new ErroDart(e.msg, e.pos - f.base, e.len, e.extra); e2.rotulo = e.rotulo;
+      var r = formatarErro(f.nome, f.src, e2);
+      if (e.ctx) { var c = new ErroDart(e.ctx.msg, e.ctx.pos, e.ctx.len, null); c.rotulo = "Context"; r += erroFmt(c); }
+      return r;
+    }
     var incluidos = {}; incluidos[arq] = true;
     ERROS_LEX.length = 0;
     var imports = [];
@@ -2722,7 +2778,7 @@
     g.arqDe = function (p) { return fonteDe(p).nome; };
     g.imports = imports;
     g.arqPrincipal = arq;
-    ERROS_LEX.forEach(function (e) { g.erros.push(e); });
+    ERROS_LEX.forEach(function (e) { e.lex = true; g.erros.push(e); });
     var js;
     try { js = g.gerar(); }
     catch (e) {
@@ -2731,7 +2787,7 @@
     if (g.erros.length) {
       var vistos = {};
       var errs = g.erros.filter(function (x) { var k = x.pos + x.msg; if (vistos[k]) return false; vistos[k] = 1; return true; });
-      errs.sort(function (a, b) { return a.pos - b.pos; });
+      errs.sort(function (a, b) { return (b.lex ? 1 : 0) - (a.lex ? 1 : 0) || a.pos - b.pos; });
       var semMain = errs.filter(function (x) { return x.extra === "semMain"; });
       if (semMain.length && errs.length === 1) return { erros: arq + ": Error: Undefined name 'main'.\n", n: 1 };
       errs = errs.filter(function (x) { return x.extra !== "semMain"; });

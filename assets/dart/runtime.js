@@ -273,7 +273,6 @@
       if (x === Infinity) return "Infinity"; if (x === -Infinity) return "-Infinity";
       if (Number.isInteger(x) && Math.abs(x) < 1e21) return (Object.is(x, -0) ? "-0" : String(x)) + ".0";
       var s = String(x);
-      if (/e/.test(s) && !/\./.test(s.split("e")[0]) && Math.abs(x) >= 1e21) s = s.replace("e", ".0e");
       return s;
     }
     R.dstr = dstr;
@@ -288,7 +287,7 @@
       }
       if (Array.isArray(v)) return listaStr(v);
       if (v.m_toString) return str(v.m_toString());
-      if (v instanceof Promise) return "Instance of 'Future<dynamic>'";
+      if (v instanceof Promise) return "Instance of 'Future<" + (v.$t || "dynamic") + ">'";
       if (v.toString !== Object.prototype.toString) return v.toString();
       return "Instance of 'Object'";
     }
@@ -371,6 +370,7 @@
     /* ---------- números ---------- */
     function ehNum(x) { return typeof x === "bigint" || typeof x === "number"; }
     function semNum(op, a, b) {
+      if (ehNum(a) && b !== null && b !== undefined && !ehNum(b) && typeof b !== "object") lancarErro(erroTipo("type '" + nomeTipo(b) + "' is not a subtype of type 'num'"));
       if (a === null || a === undefined) lancarErro(nsm(a, op, [b]));
       if (typeof a === "object" && a["m_" + op]) return a["m_" + op](b);
       if (typeof a === "object" && extensoes[op]) { var f = acharExt(a, op); if (f) return f.f.call(a, b); }
@@ -405,7 +405,7 @@
     };
     R.idiv = function (a, b, p) {
       var ta = typeof a, tb = typeof b;
-      if (ta === "bigint" && tb === "bigint") { if (b === 0n) { topo().p = p; throw new Lancado(new (BASES.IntegerDivisionByZeroException)(), ["int.~/ (dart:core-patch/integers.dart)"]); } return w64(a / b); }
+      if (ta === "bigint" && tb === "bigint") { if (b === 0n) { topo().p = p; throw new Lancado(new (BASES.IntegerDivisionByZeroException)(), ["int.~/ (dart:core-patch/integers.dart:27:7)"]); } return w64(a / b); }
       if (ehNum(a) && ehNum(b)) {
         var r = Number(a) / Number(b);
         if (!isFinite(r)) { topo().p = p; throw new Lancado(erroUnsup("Result of truncating division is " + dstr(r) + ": " + str(a) + " ~/ " + str(b))); }
@@ -790,7 +790,7 @@
       every: function (o, f) { f = fnArg(f); for (var x of iter(o)) if (!R.cond(f(x))) return false; return true; },
       fold: function (o, ini, f) { f = fnArg(f); var a = ini; for (var x of iter(o)) a = f(a, x); return a; },
       reduce: function (o, f) { f = fnArg(f); var prim = true, a; for (var x of iter(o)) { if (prim) { a = x; prim = false; } else a = f(a, x); } if (prim) lancarErro(erroEstado("No element")); return a; },
-      firstWhere: function (o, f, n) { f = fnArg(f); for (var x of iter(o)) if (R.cond(f(x))) return x; if (n && n.orElse) return R.chamarF(n.orElse, []); lancarErro(erroEstado("No element")); },
+      firstWhere: function (o, f, n) { f = fnArg(f); for (var x of iter(o)) if (R.cond(f(x))) return x; if (n && n.orElse) return R.chamarF(n.orElse, []); throw new Lancado(erroEstado("No element"), [Array.isArray(o) ? "ListBase.firstWhere (dart:collection/list.dart:132:5)" : "Iterable.firstWhere (dart:core/iterable.dart:765:5)"]); },
       lastWhere: function (o, f, n) { f = fnArg(f); var r, achou = false; for (var x of iter(o)) if (R.cond(f(x))) { r = x; achou = true; } if (achou) return r; if (n && n.orElse) return R.chamarF(n.orElse, []); lancarErro(erroEstado("No element")); },
       singleWhere: function (o, f, n) { f = fnArg(f); var r, c = 0; for (var x of iter(o)) if (R.cond(f(x))) { r = x; c++; } if (c === 1) return r; if (c > 1) lancarErro(erroEstado("Too many elements")); if (n && n.orElse) return R.chamarF(n.orElse, []); lancarErro(erroEstado("No element")); },
       skip: function (o, n) { n = Number(n); return iteravel(function* () { var i = 0; for (var x of iter(o)) { if (i++ >= n) yield x; } }); },
@@ -931,7 +931,7 @@
       toString: function (o) { return str(o); },
       abs: function (o) { return typeof o === "bigint" ? (o < 0n ? -o : o) : Math.abs(o); },
       toDouble: function (o) { return Number(o); },
-      toInt: function (o) { if (typeof o === "bigint") return o; if (!isFinite(o)) lancarErro(erroUnsup(dstr(o))); return BigInt(Math.trunc(o)); },
+      toInt: function (o) { if (typeof o === "bigint") return o; if (!isFinite(o)) throw new Lancado(erroUnsup("Infinity or NaN toInt"), ["double.toInt (dart:core-patch/double.dart)"]); return BigInt(Math.trunc(o)); },
       round: function (o) { return typeof o === "bigint" ? o : arred(o); },
       floor: function (o) { if (typeof o === "bigint") return o; if (!isFinite(o)) lancarErro(erroUnsup(dstr(o))); return BigInt(Math.floor(o)); },
       ceil: function (o) { if (typeof o === "bigint") return o; if (!isFinite(o)) lancarErro(erroUnsup(dstr(o))); return BigInt(Math.ceil(o)); },
@@ -979,7 +979,7 @@
       compareTo: function (o, b) { return BigInt(comparar(o, b)); },
       codeUnitAt: function (o, i) { i = Number(i); checarIndice(i, o.length, "index"); return I(o.charCodeAt(i)); },
       toString: function (o) { return o; },
-      allMatches: function (o, p) { var re = reGlobal(p), l = [], m; while ((m = re.exec(o))) { l.push(criarMatch(m)); if (m[0] === "") re.lastIndex++; } return iteravel(function* () { yield* l; }); },
+      allMatches: function (o, s) { return ocorrencias(o, s); },
       matchAsPrefix: function (o, s) { return null; },
     });
     // Future (Promise) e Stream
@@ -1068,10 +1068,11 @@
     DRegExp.prototype.$nome = "RegExp";
     DRegExp.prototype.m_hasMatch = function (s) { return this.re.test(s); };
     DRegExp.prototype.m_firstMatch = function (s) { var m = this.re.exec(s); return m ? criarMatch(m) : null; };
-    DRegExp.prototype.m_allMatches = function (s) { return STR.met.allMatches(s, this); };
+    DRegExp.prototype.m_allMatches = function (s) { return ocorrencias(this, s); };
     DRegExp.prototype.m_stringMatch = function (s) { var m = this.re.exec(s); return m ? m[0] : null; };
     DRegExp.prototype.m_toString = function () { return "RegExp: pattern=" + this.src + " flags=" + this.re.flags; };
     Object.defineProperty(DRegExp.prototype, "m_pattern", { get: function () { return this.src; } });
+    function ocorrencias(padrao, s) { var re = reGlobal(padrao), l = [], m; while ((m = re.exec(s))) { l.push(criarMatch(m)); if (m[0] === "") re.lastIndex++; } return iteravel(function* () { yield* l; }); }
     function criarMatch(m) {
       var arr = Array.isArray(m) ? m : m;
       var grupos = Array.isArray(m) && typeof m[m.length - 1] === "object" && !Array.isArray(m[m.length - 1]) && m.index === undefined ? m[m.length - 1] : m.groups;
@@ -1210,6 +1211,8 @@
     function erroNaoTratado(e) { if (e instanceof Sinal) { if (ctx.aoSinal) ctx.aoSinal(e); return; } if (ctx.aoErro) ctx.aoErro(e, true); }
     R.erroNaoTratado = erroNaoTratado;
     R.aguardar = function (v) { return v; };
+    R.retomou = function (f, v) { if (f) f.async = true; return v; };
+    R.futuro = function (p, t) { p.$t = t; return p; };
 
     function futuroDelayed(d, f) {
       return new Promise(function (ok, falha) {
@@ -1248,7 +1251,7 @@
       if (/^[+-]?(\d+\.?\d*([eE][+-]?\d+)?|\.\d+([eE][+-]?\d+)?|Infinity|NaN)$/.test(t)) return Number(t);
       if (/^[+-]?0x[0-9a-f]+$/i.test(t)) return Number(BigInt(t.replace(/^[+-]/, ""))) * (t[0] === "-" ? -1 : 1);
       if (tentar) return null;
-      throw new Lancado(erroFormato("Invalid double", s), ["double.parse (dart:core-patch/double_patch.dart:112:28)"]);
+      throw new Lancado(erroFormato("Invalid double", s), ["double.parse (dart:core-patch/double_patch.dart:111:7)"]);
     }
 
     /* ---------- dart:convert ---------- */
