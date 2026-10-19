@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart e Flutter — a linguagem por trás dos apps | Guia Dart</title>
+<meta name="description" content="Visão geral do Flutter para quem está aprendendo Dart: o que é o Flutter, widgets, a árvore de widgets, StatelessWidget e StatefulWidget, setState, hot reload, as plataformas, e quais partes do Dart deste guia aparecem em todo app (classes, parâmetros nomeados, const, funções anônimas, vírgula no fim). Com um 'Flutter de mentira' em Dart puro que roda no terminal.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart e <span class="hl">Flutter</span></h1>
+
+<p class="intro">Muita gente chega ao Dart por causa do <strong>Flutter</strong>: o kit do Google para criar aplicativos de celular, computador e web com <strong>um código só</strong>. O Flutter é escrito em Dart, e um app Flutter é um programa Dart. Esta aula é uma <strong>visão geral</strong>: o que é o Flutter, como o Dart que você aprendeu aparece nele, e o caminho para começar. Não há Flutter no laboratório da Ana, então o código de Flutter desta página é <strong>ilustrativo</strong> (tirado da documentação oficial, <a href="https://docs.flutter.dev">docs.flutter.dev</a>); o que roda de verdade é um "Flutter de mentira" em Dart puro, para você sentir a ideia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o Flutter e como ele se relaciona com o Dart.</li>
+  <li>O que é um <strong>widget</strong> e a <strong>árvore de widgets</strong>.</li>
+  <li>A diferença entre <code>StatelessWidget</code> e <code>StatefulWidget</code>, e o papel do <code>setState</code>.</li>
+  <li>O que é o <em>hot reload</em> e por que o Dart tem dois jeitos de compilar.</li>
+  <li>Quais aulas deste guia você mais vai usar no Flutter.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>A ideia: blocos de montar</h2>
+<p>Pense numa tela de app como um brinquedo de blocos de montar. Um bloco é um texto; outro é um botão; outro é uma "caixa" que centraliza o que estiver dentro; outro empilha blocos um embaixo do outro. Você monta a tela encaixando blocos dentro de blocos. No Flutter, cada bloco se chama <strong>widget</strong> (em inglês, "componente", "coisinha"), e tudo é widget: o texto, o botão, o espaço entre eles, a tela inteira.</p>
+<p>Os blocos encaixados formam uma <strong>árvore</strong>: a tela é a raiz; dentro dela, uma coluna; dentro da coluna, um título e um botão; dentro do botão, um texto.</p>
+
+<hr>
+
+<h2>1. O que é o Flutter</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Dart</th><th>Flutter</th></tr>
+<tr><td>O que é</td><td>A <strong>linguagem</strong> de programação</td><td>Um <strong>kit</strong> (<em>framework</em>, "estrutura pronta") para fazer telas, escrito em Dart</td></tr>
+<tr><td>Instala</td><td>O Dart SDK (<code>dart</code>)</td><td>O Flutter SDK (<code>flutter</code>), que já traz um Dart SDK dentro</td></tr>
+<tr><td>Faz</td><td>Programas de terminal, servidores, web, e a lógica dos apps</td><td>Apps com tela para Android, iOS, web, Windows, macOS e Linux</td></tr>
+<tr><td>Neste guia</td><td>Todas as aulas</td><td>Só esta página</td></tr>
+</table>
+</div>
+
+<p>Tudo que você aprendeu (variáveis, <code>if</code>, listas, classes, null safety, <code>async</code>/<code>await</code>) vale igual dentro do Flutter. O Flutter acrescenta as <strong>bibliotecas de tela</strong>: os widgets, as cores, os toques, as animações.</p>
+
+<p>No lab da Ana, que tem só o Dart, o comando <code>flutter</code> nem existe:</p>
+<pre class="term">$ flutter --version
+Comando 'flutter' não encontrado, você quis dizer:
+  comando 'fluster' do deb fluster (1.0.1+really0.6.0-2)
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+<p>O Flutter se instala à parte, seguindo <a href="https://docs.flutter.dev/get-started">docs.flutter.dev/get-started</a>.</p>
+
+<hr>
+
+<h2>2. O "Olá, mundo" do Flutter (ilustrativo)</h2>
+<p>Este é o menor app da documentação oficial do Flutter:</p>
+
+<pre class="file" data-file="lib/main.dart">import 'package:flutter/material.dart';
+
+void main() {
+  runApp(
+    const Center(
+      child: Text(
+        'Hello, world!',
+        textDirection: TextDirection.ltr,
+        style: TextStyle(color: Colors.blue),
+      ),
+    ),
+  );
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'package:flutter/material.dart';</dt><dd>Traz a biblioteca de widgets do Flutter no estilo <em>Material</em> (o visual do Google). É um <code>import</code> de pacote, como os da aula <a href="pacotes.html">Pacotes do pub.dev</a>.</dd>
+  <dt>void main()</dt><dd>O mesmo <code>main</code> de todo programa Dart: o app começa aqui.</dd>
+  <dt>runApp(…)</dt><dd>"Rode o app": pega o widget passado e o põe como <strong>raiz</strong> da árvore, ocupando a tela toda.</dd>
+  <dt>const Center(child: …)</dt><dd>Um widget que <strong>centraliza</strong> o filho. <code>child:</code> ("filho") é um <strong>parâmetro nomeado</strong>. O <code>const</code> diz que esse pedaço da tela nunca muda, e o Flutter pode reaproveitá-lo.</dd>
+  <dt>Text('Hello, world!', …)</dt><dd>Um widget de texto. O texto vem como parâmetro posicional; <code>textDirection</code> (direção: <code>ltr</code>, da esquerda para a direita) e <code>style</code> (estilo: cor azul) vêm nomeados.</dd>
+  <dt>as vírgulas no fim</dt><dd>Repare na vírgula depois de cada último parâmetro. Com ela, o <code>dart format</code> põe um parâmetro por linha, e a árvore fica com o formato de escada que você vê.</dd>
+</dl>
+
+<p>Na tela, aparece "Hello, world!" em azul, no meio. Não deu para rodar aqui: sem o Flutter, o Dart nem acha o pacote. No lab, a tentativa dá:</p>
+
+<pre class="term">$ dart run semflutter.dart; echo "codigo: $?"
+Error: Couldn't resolve the package 'flutter' in 'package:flutter/material.dart'.
+semflutter.dart:1:8: Error: Not found: 'package:flutter/material.dart'
+import 'package:flutter/material.dart';
+       ^
+semflutter.dart:4:16: Error: Couldn't find constructor 'Text'.
+  runApp(const Text('Olá'));
+               ^^^^
+semflutter.dart:4:3: Error: Method not found: 'runApp'.
+  runApp(const Text('Olá'));
+  ^^^^^^
+codigo: 254
+</pre>
+<p>"Não consegui resolver o pacote <code>flutter</code>", e por isso nem o <code>Text</code> nem o <code>runApp</code> existem. App Flutter se roda com <code>flutter run</code>, não com <code>dart run</code>.</p>
+
+<hr>
+
+<h2>3. Um "Flutter de mentira" em Dart puro</h2>
+<p>Para ver a ideia da árvore funcionando, a Ana escreveu, em Dart puro, umas classes com os mesmos nomes de parâmetro do Flutter. Em vez de pintar uma tela, cada widget sabe se <strong>desenhar</strong> como texto:</p>
+
+<pre class="file" data-file="arvore.dart">// Um "Flutter de mentira", só para ver a ideia da árvore de widgets.
+abstract class Widget {
+  const Widget();
+  String desenhar();
+}
+
+class Texto extends Widget {
+  final String texto;
+  const Texto(this.texto);
+
+  @override
+  String desenhar() =&gt; texto;
+}
+
+class Centro extends Widget {
+  final Widget child;
+  const Centro({required this.child});
+
+  @override
+  String desenhar() =&gt; '[ centro: ${child.desenhar()} ]';
+}
+
+class Coluna extends Widget {
+  final List&lt;Widget&gt; children;
+  const Coluna({required this.children});
+
+  @override
+  String desenhar() =&gt; children.map((w) =&gt; w.desenhar()).join('\n');
+}
+
+void runApp(Widget app) {
+  print(app.desenhar());
+}
+
+void main() {
+  runApp(
+    const Coluna(
+      children: [
+        Texto('Padaria da Ana'),
+        Centro(child: Texto('Pão francês: R\$ 0.75')),
+      ],
+    ),
+  );
+}
+</pre>
+
+<pre class="term">$ dart run arvore.dart
+Padaria da Ana
+[ centro: Pão francês: R$ 0.75 ]
+</pre>
+
+<p>Tudo ali é Dart que você já viu: uma <strong>classe abstrata</strong> (<code>Widget</code>), classes filhas com <code>extends</code> e <code>@override</code>, construtores <code>const</code>, parâmetros nomeados com <code>required</code>, uma lista de widgets (<code>children</code>, "filhos") e funções de seta (<code>=&gt;</code>). O Flutter de verdade é isso em escala gigante: centenas de widgets prontos, e o "desenhar" pinta pixels na tela.</p>
+
+<div class="trydart" data-goal="out:Sonho: R$ 2.50;;out:Padaria da Ana">
+<p class="try-task"><strong>Missão:</strong> acrescente na <code>Coluna</code> um terceiro filho: um <code>Texto</code> com <code>Sonho: R$ 2.50</code> (lembre o <code>\$</code>). Se quiser, ponha dentro de um <code>Centro</code>.</p>
+<pre class="script" data-file="main.dart">abstract class Widget {
+  const Widget();
+  String desenhar();
+}
+
+class Texto extends Widget {
+  final String texto;
+  const Texto(this.texto);
+
+  @override
+  String desenhar() =&gt; texto;
+}
+
+class Centro extends Widget {
+  final Widget child;
+  const Centro({required this.child});
+
+  @override
+  String desenhar() =&gt; '[ centro: ${child.desenhar()} ]';
+}
+
+class Coluna extends Widget {
+  final List&lt;Widget&gt; children;
+  const Coluna({required this.children});
+
+  @override
+  String desenhar() =&gt; children.map((w) =&gt; w.desenhar()).join('\n');
+}
+
+void runApp(Widget app) {
+  print(app.desenhar());
+}
+
+void main() {
+  runApp(
+    const Coluna(
+      children: [
+        Texto('Padaria da Ana'),
+        Centro(child: Texto('Pão francês: R\$ 0.75')),
+      ],
+    ),
+  );
+}
+</pre>
+<pre class="solucao" data-file="main.dart">abstract class Widget {
+  const Widget();
+  String desenhar();
+}
+
+class Texto extends Widget {
+  final String texto;
+  const Texto(this.texto);
+
+  @override
+  String desenhar() =&gt; texto;
+}
+
+class Centro extends Widget {
+  final Widget child;
+  const Centro({required this.child});
+
+  @override
+  String desenhar() =&gt; '[ centro: ${child.desenhar()} ]';
+}
+
+class Coluna extends Widget {
+  final List&lt;Widget&gt; children;
+  const Coluna({required this.children});
+
+  @override
+  String desenhar() =&gt; children.map((w) =&gt; w.desenhar()).join('\n');
+}
+
+void runApp(Widget app) {
+  print(app.desenhar());
+}
+
+void main() {
+  runApp(
+    const Coluna(
+      children: [
+        Texto('Padaria da Ana'),
+        Centro(child: Texto('Pão francês: R\$ 0.75')),
+        Texto('Sonho: R\$ 2.50'),
+      ],
+    ),
+  );
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Widgets que mudam: <code>StatefulWidget</code> e <code>setState</code></h2>
+<p>Os widgets do Flutter se dividem em dois tipos:</p>
+<ul>
+  <li><strong><code>StatelessWidget</code></strong> ("sem estado"): só mostra o que recebeu do pai, guardado em campos <code>final</code>. Um título, um ícone.</li>
+  <li><strong><code>StatefulWidget</code></strong> ("com estado"): tem um objeto <code>State</code> que <strong>lembra</strong> informações entre um desenho e outro. Um contador, um campo de texto, uma lista de tarefas.</li>
+</ul>
+<p>Todo widget tem um método <code>build</code> ("construir"), que diz como ele é <strong>agora</strong>. Quando o dado muda, o widget chama <code>setState</code> ("defina o estado"): isso avisa o Flutter "mudou algo aqui", e o Flutter roda o <code>build</code> de novo para atualizar a tela. Este é o contador da documentação do Flutter (ilustrativo; os comentários em inglês foram tirados):</p>
+
+<pre class="file" data-file="lib/main.dart">import 'package:flutter/material.dart';
+
+class Counter extends StatefulWidget {
+  const Counter({super.key});
+
+  @override
+  State&lt;Counter&gt; createState() =&gt; _CounterState();
+}
+
+class _CounterState extends State&lt;Counter&gt; {
+  int _counter = 0;
+
+  void _increment() {
+    setState(() {
+      _counter++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: &lt;Widget&gt;[
+        ElevatedButton(onPressed: _increment, child: const Text('Increment')),
+        const SizedBox(width: 16),
+        Text('Count: $_counter'),
+      ],
+    );
+  }
+}
+
+void main() {
+  runApp(
+    const MaterialApp(
+      home: Scaffold(body: Center(child: Counter())),
+    ),
+  );
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class Counter extends StatefulWidget</dt><dd>O widget "contador", do tipo com estado. Ele só cria o seu <code>State</code> em <code>createState()</code>.</dd>
+  <dt>_CounterState</dt><dd>Onde mora o dado (<code>_counter</code>). O <code>_</code> no começo do nome quer dizer <strong>privado</strong>: só este arquivo enxerga (veja <a href="privado.html">Privacidade</a>).</dd>
+  <dt>setState(() { _counter++; })</dt><dd>Recebe uma <strong>função anônima</strong> que muda o dado. Depois de rodá-la, o Flutter agenda um novo <code>build</code>.</dd>
+  <dt>onPressed: _increment</dt><dd>"Ao apertar": passa a <strong>função</strong> <code>_increment</code> (sem parênteses) para o botão chamar depois. É uma função usada como valor, um <em>callback</em>.</dd>
+  <dt>Text('Count: $_counter')</dt><dd>A interpolação de sempre: cada <code>build</code> mostra o valor atual.</dd>
+</dl>
+
+<h3>O mesmo mecanismo, em Dart puro</h3>
+<pre class="file" data-file="contador.dart">// Um "setState de mentira": muda o dado e redesenha a tela.
+class TelaContador {
+  int _cliques = 0;
+
+  void setState(void Function() mudanca) {
+    mudanca();
+    build();
+  }
+
+  void build() {
+    print('Tela: Cliques: $_cliques');
+  }
+
+  void apertarBotao() {
+    setState(() {
+      _cliques++;
+    });
+  }
+}
+
+void main() {
+  final tela = TelaContador();
+  tela.build();
+  tela.apertarBotao();
+  tela.apertarBotao();
+}
+</pre>
+
+<pre class="term">$ dart run contador.dart
+Tela: Cliques: 0
+Tela: Cliques: 1
+Tela: Cliques: 2
+</pre>
+<p>O primeiro <code>build</code> desenha a tela com 0; cada aperto muda o dado <strong>dentro</strong> do <code>setState</code>, e o <code>setState</code> redesenha. No Flutter de verdade o redesenho não é imediato (fica agendado para o próximo quadro da tela), mas a ideia é a mesma.</p>
+
+<hr>
+
+<h2>5. <em>Hot reload</em> e os dois jeitos de compilar</h2>
+<p>Enquanto você programa um app, o comando <code>flutter run</code> deixa o app aberto no celular (ou no emulador). Você muda o código, salva, e em menos de um segundo a tela muda, <strong>sem perder o estado</strong>: o contador continua no número em que estava. Isso é o <strong>hot reload</strong> ("recarga a quente").</p>
+<p>Ele é possível porque o Dart sabe compilar de dois jeitos (veja <a href="compilar.html">Compilando</a>):</p>
+<ul>
+  <li><strong>JIT</strong> (<em>just-in-time</em>, na hora) durante o desenvolvimento: o Dart consegue trocar pedaços do programa enquanto ele roda.</li>
+  <li><strong>AOT</strong> (<em>ahead-of-time</em>, antes) para publicar: <code>flutter build</code> gera código de máquina, que abre rápido no celular de quem baixou.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando (ilustrativo)</th><th>O que faz</th></tr>
+<tr><td><code>flutter create meu_app</code></td><td>Cria um projeto de app (como o <code>dart create</code>).</td></tr>
+<tr><td><code>flutter run</code></td><td>Roda o app no aparelho ou emulador, com hot reload (tecla <kbd>r</kbd>).</td></tr>
+<tr><td><code>flutter build apk</code> / <code>flutter build web</code></td><td>Gera o app final para Android / para a web.</td></tr>
+<tr><td><code>flutter pub add pacote</code></td><td>O mesmo <code>pub</code> do Dart, dentro do Flutter.</td></tr>
+<tr><td><code>flutter analyze</code></td><td>O mesmo analisador do <code>dart analyze</code>, com as regras do <code>flutter_lints</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>6. O que do guia você mais vai usar no Flutter</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No Flutter</th><th>Aula do Dart</th></tr>
+<tr><td>Cada widget é uma classe com construtor <code>const</code></td><td><a href="classes.html">Classes</a>, <a href="construtores.html">Construtores</a></td></tr>
+<tr><td><code>child:</code>, <code>children:</code>, <code>onPressed:</code>, <code>required</code></td><td><a href="parametros-nomeados.html">Parâmetros Nomeados</a></td></tr>
+<tr><td><code>extends StatelessWidget</code>, <code>@override</code></td><td><a href="heranca.html">Herança</a></td></tr>
+<tr><td><code>setState(() { … })</code>, <code>onPressed: () =&gt; …</code></td><td><a href="funcoes-anonimas.html">Funções Anônimas</a></td></tr>
+<tr><td><code>children: [for (final item in itens) Text(item)]</code></td><td><a href="list.html">Listas</a>, <a href="collection-if-for.html">if e for Dentro de Coleções</a></td></tr>
+<tr><td>Buscar dados da internet sem travar a tela</td><td><a href="async-await.html">async e await</a></td></tr>
+<tr><td><code>String?</code>, <code>!</code>, <code>??</code> em todo canto</td><td><a href="null-safety.html">Null Safety</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Mudou o dado e esqueceu o <code>setState</code></strong>
+<p>É o erro mais comum de quem começa no Flutter: o número muda por dentro, mas a tela não. O Flutter não dá mensagem nenhuma; ele simplesmente não sabe que precisa redesenhar. A documentação avisa: "se você esquecer de chamar <code>setState</code> ao mudar o estado de um widget, o framework não saberá que ele mudou e talvez não chame o <code>build()</code>". No nosso Flutter de mentira:</p>
+<pre class="file" data-file="esqueceu.dart">class TelaContador {
+  int _cliques = 0;
+
+  void build() {
+    print('Tela: Cliques: $_cliques');
+  }
+
+  void apertarBotao() {
+    _cliques++;
+  }
+}
+
+void main() {
+  final tela = TelaContador();
+  tela.build();
+  tela.apertarBotao();
+  tela.apertarBotao();
+  print('(por dentro, _cliques vale ${tela._cliques})');
+}
+</pre>
+<pre class="term">$ dart run esqueceu.dart
+Tela: Cliques: 0
+(por dentro, _cliques vale 2)
+</pre>
+<p>A "tela" ficou parada no 0, embora o dado valha 2. <strong>Como consertar:</strong> faça a mudança <strong>dentro</strong> do <code>setState(() { … })</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Rodar app Flutter com <code>dart run</code></strong>
+<p>Como você viu na seção 2, o <code>dart run</code> não conhece o pacote <code>flutter</code> (<code>Couldn't resolve the package 'flutter'</code>) e termina com o código 254. Apps Flutter rodam com <code>flutter run</code>, de dentro da pasta do projeto.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete a frase:</p>
+<div class="ex-code">No Flutter, cada peça da tela é um <input data-answer="widget" aria-label="nome da peça">, e o método que diz como ele é chama-se <input data-answer="build" aria-label="nome do método">.</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual tipo?</h3>
+<p>Um widget com uma caixa de marcar que lembra se está marcada ou não é <code>StatelessWidget</code> ou <code>StatefulWidget</code>?</p>
+<div class="ex-code"><input data-answer="StatefulWidget" aria-label="tipo de widget"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual a relação entre Dart e Flutter?</p>
+<label><input type="radio" name="q3"> São duas linguagens diferentes</label>
+<label><input type="radio" name="q3"> O Dart é feito em Flutter</label>
+<label><input type="radio" name="q3"> O Flutter é um kit para fazer telas, escrito em Dart, e os apps são programas Dart</label>
+<label><input type="radio" name="q3"> O Flutter só funciona na web</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que o <code>setState</code> faz?</p>
+<label><input type="radio" name="q4"> Salva o app no celular</label>
+<label><input type="radio" name="q4"> Roda a mudança e avisa o Flutter para chamar o <code>build</code> de novo</label>
+<label><input type="radio" name="q4"> Cria um widget novo</label>
+<label><input type="radio" name="q4"> Compila o app</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que torna o <em>hot reload</em> possível?</p>
+<label><input type="radio" name="q5"> A compilação JIT do Dart durante o desenvolvimento</label>
+<label><input type="radio" name="q5"> O <code>dart format</code></label>
+<label><input type="radio" name="q5"> O <code>const</code> nos widgets</label>
+<label><input type="radio" name="q5"> Rodar com <code>dart run</code></label>
+</div>
+
+<h3>Missão final: o botão de menos</h3>
+
+<div class="trydart" data-goal="outre:^Tela: Cliques: 0\nTela: Cliques: 1\nTela: Cliques: 2\nTela: Cliques: 1\n?$;;src:setState">
+<p class="try-task"><strong>Missão:</strong> a Ana pôs um botão "menos" no contador, mas a tela não atualiza quando ele é apertado. Conserte o <code>apertarMenos</code> do jeito do Flutter, para a saída terminar em <code>Tela: Cliques: 1</code>.</p>
+<pre class="script" data-file="main.dart">class TelaContador {
+  int _cliques = 0;
+
+  void setState(void Function() mudanca) {
+    mudanca();
+    build();
+  }
+
+  void build() {
+    print('Tela: Cliques: $_cliques');
+  }
+
+  void apertarMais() {
+    setState(() {
+      _cliques++;
+    });
+  }
+
+  void apertarMenos() {
+    _cliques--;
+  }
+}
+
+void main() {
+  final tela = TelaContador();
+  tela.build();
+  tela.apertarMais();
+  tela.apertarMais();
+  tela.apertarMenos();
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class TelaContador {
+  int _cliques = 0;
+
+  void setState(void Function() mudanca) {
+    mudanca();
+    build();
+  }
+
+  void build() {
+    print('Tela: Cliques: $_cliques');
+  }
+
+  void apertarMais() {
+    setState(() {
+      _cliques++;
+    });
+  }
+
+  void apertarMenos() {
+    setState(() {
+      _cliques--;
+    });
+  }
+}
+
+void main() {
+  final tela = TelaContador();
+  tela.build();
+  tela.apertarMais();
+  tela.apertarMais();
+  tela.apertarMenos();
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>Flutter</strong> é um kit do Google, escrito em Dart, para fazer apps com tela (Android, iOS, web, Windows, macOS, Linux) com um código só. Instala-se à parte e traz o próprio Dart.</li>
+  <li>Tudo é <strong>widget</strong>, e os widgets se encaixam numa <strong>árvore</strong> (<code>child:</code>, <code>children:</code>); <code>runApp</code> põe a raiz na tela.</li>
+  <li><code>StatelessWidget</code> só mostra; <code>StatefulWidget</code> lembra dados num <code>State</code>. Mude os dados <strong>dentro</strong> do <code>setState</code> para a tela se redesenhar com o <code>build</code>.</li>
+  <li><em>Hot reload</em> usa a compilação JIT; o app final usa AOT (<code>flutter build</code>).</li>
+  <li>Classes, construtores <code>const</code>, parâmetros nomeados, funções anônimas, listas, null safety e <code>async</code> são o Dart que você mais vai usar no Flutter.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
