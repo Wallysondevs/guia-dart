@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Funções — dando nome a um pedaço de código | Guia Dart</title>
+<meta name="description" content="Funções no Dart para quem nunca programou: criar e chamar uma função, void, o caminho que o programa faz, devolver um valor com return e o tipo de retorno, return antecipado, variáveis que só existem dentro da função e os erros reais do Dart 3 (return esquecido, tipo de retorno errado, usar o valor de uma função void, acento no nome).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Funções</span></h1>
+
+<p class="intro">Desde o primeiro programa você escreve uma função: o <code>main</code>. E usa outras o tempo todo: <code>print</code>, <code>int.tryParse</code>. Agora é a sua vez de <strong>criar</strong> funções. Uma função é um pedaço de código com um <strong>nome</strong>: você escreve uma vez e, sempre que precisar, chama pelo nome. Ela também pode <strong>receber</strong> valores e <strong>devolver</strong> um resultado, como uma pequena máquina.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Por que criar funções: escrever uma vez, usar muitas.</li>
+  <li>Como criar (<strong>declarar</strong>) e chamar uma função, e o que é <code>void</code>.</li>
+  <li>O caminho que o programa faz quando chama uma função, e volta.</li>
+  <li>Como uma função devolve um valor com <code>return</code>, e o <strong>tipo de retorno</strong>.</li>
+  <li>O <code>return</code> antecipado, que sai da função no meio.</li>
+  <li>Por que as variáveis de dentro da função não existem fora dela.</li>
+  <li>Os erros reais: <code>return</code> esquecido, tipo errado, usar o "nada" de uma função <code>void</code>, acento no nome.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a receita de bolo</h2>
+<p>Na cozinha da padaria há um caderno de receitas. A receita "massa de pão" está escrita <strong>uma vez</strong>, com um nome no topo. Quando o padeiro precisa de massa, ele não reescreve a receita: ele diz "faz a massa de pão" e segue os passos. Às vezes a receita pede <strong>ingredientes</strong> ("quantos quilos de farinha?") e entrega um <strong>resultado</strong> (a massa pronta).</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No Dart</th></tr>
+<tr><td>Escrever a receita no caderno, com um nome</td><td><strong>Declarar</strong> a função: <code>void mostrarCabecalho() { … }</code></td></tr>
+<tr><td>"Faz a massa de pão"</td><td><strong>Chamar</strong> a função: <code>mostrarCabecalho();</code></td></tr>
+<tr><td>Os ingredientes que a receita pede</td><td>Os <strong>parâmetros</strong>: <code>dobro(int numero)</code></td></tr>
+<tr><td>A massa pronta que ela entrega</td><td>O <strong>valor de retorno</strong>: <code>return numero * 2;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. O problema: código repetido</h2>
+<p>A Ana quer imprimir o cabeçalho da padaria antes de cada produto:</p>
+
+<pre class="file" data-file="repetido.dart">void main() {
+  print('=====================');
+  print(' PADARIA DO BAIRRO');
+  print('=====================');
+  print('Pão francês: R\$ 0,75');
+  print('=====================');
+  print(' PADARIA DO BAIRRO');
+  print('=====================');
+  print('Leite: R\$ 5,49');
+}
+</pre>
+
+<p>Funciona, mas as três linhas do cabeçalho estão escritas duas vezes. Se o nome da padaria mudar, a Ana tem de lembrar de trocar em todos os lugares; se esquecer um, o cupom sai com dois nomes diferentes. Com uma função, o cabeçalho fica escrito em <strong>um lugar só</strong>.</p>
+
+<h2>2. A primeira função</h2>
+
+<pre class="file" data-file="cabecalho.dart">void mostrarCabecalho() {
+  print('=====================');
+  print(' PADARIA DO BAIRRO');
+  print('=====================');
+}
+
+void main() {
+  mostrarCabecalho();
+  print('Pão francês: R\$ 0,75');
+  mostrarCabecalho();
+  print('Leite: R\$ 5,49');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>void</dt><dd>O <strong>tipo de retorno</strong>: o que a função devolve. <code>void</code> ("vazio") quer dizer "não devolve nada": ela só faz alguma coisa (aqui, mostrar linhas). É o mesmo <code>void</code> do <code>void main()</code>.</dd>
+  <dt>mostrarCabecalho</dt><dd>O <strong>nome</strong> da função. Use um verbo que diga o que ela faz, em <code>lowerCamelCase</code> (primeira palavra minúscula, as outras com maiúscula), como as variáveis. Sem acento e sem espaço.</dd>
+  <dt>()</dt><dd>Os parênteses dos <strong>parâmetros</strong>. Aqui estão vazios: a função não precisa de nenhum valor para trabalhar.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong>: as instruções que rodam cada vez que a função é chamada.</dd>
+  <dt>mostrarCabecalho();</dt><dd>A <strong>chamada</strong>: o nome, os parênteses (obrigatórios, mesmo vazios) e o <code>;</code>. "Execute o corpo de <code>mostrarCabecalho</code> agora."</dd>
+</dl>
+
+<pre class="term">$ dart run cabecalho.dart
+=====================
+ PADARIA DO BAIRRO
+=====================
+Pão francês: R$ 0,75
+=====================
+ PADARIA DO BAIRRO
+=====================
+Leite: R$ 5,49
+</pre>
+
+<p>A saída é idêntica à do programa repetido, mas agora o cabeçalho existe uma vez só. Declarar a função <strong>não roda nada</strong>: ela só roda quando alguém a chama. O programa sempre começa pelo <code>main</code>.</p>
+
+<h3>O caminho do programa</h3>
+<p>Quando o Dart encontra uma chamada, ele <strong>pula</strong> para dentro da função, roda o corpo inteiro e <strong>volta</strong> para a linha seguinte à chamada. Os números no texto mostram a ordem:</p>
+
+<pre class="file" data-file="ordem.dart">void main() {
+  print('1. main começou');
+  cumprimentar();
+  print('3. main voltou e terminou');
+}
+
+void cumprimentar() {
+  print('2. dentro de cumprimentar');
+}
+</pre>
+
+<pre class="term">$ dart run ordem.dart
+1. main começou
+2. dentro de cumprimentar
+3. main voltou e terminou
+</pre>
+
+<p>Repare que <code>cumprimentar</code> está escrita <strong>depois</strong> do <code>main</code>, e funcionou. No Dart, as funções do arquivo podem ficar em qualquer ordem: o Dart lê o arquivo inteiro antes de começar. (Muita gente põe o <code>main</code> no topo, para quem abre o arquivo ver logo por onde o programa começa.)</p>
+
+<div class="trydart" data-goal="out:Café: R$ 4,00;;outre:^(=+\n PADARIA DO BAIRRO\n=+\n[^\n]+\n){3}$">
+<p class="try-task"><strong>Missão:</strong> acrescente um terceiro produto, <code>Café: R$ 4,00</code>, também com o cabeçalho antes dele (chame a função mais uma vez).</p>
+<pre class="script" data-file="main.dart">void mostrarCabecalho() {
+  print('=====================');
+  print(' PADARIA DO BAIRRO');
+  print('=====================');
+}
+
+void main() {
+  mostrarCabecalho();
+  print('Pão francês: R\$ 0,75');
+  mostrarCabecalho();
+  print('Leite: R\$ 5,49');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void mostrarCabecalho() {
+  print('=====================');
+  print(' PADARIA DO BAIRRO');
+  print('=====================');
+}
+
+void main() {
+  mostrarCabecalho();
+  print('Pão francês: R\$ 0,75');
+  mostrarCabecalho();
+  print('Leite: R\$ 5,49');
+  mostrarCabecalho();
+  print('Café: R\$ 4,00');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Devolver um valor: <code>return</code></h2>
+<p>Funções como <code>mostrarCabecalho</code> <strong>fazem</strong> algo. Outras <strong>calculam</strong> algo e entregam o resultado para quem chamou. Para isso: um tipo no lugar do <code>void</code>, e a palavra <code>return</code> ("devolver").</p>
+
+<pre class="file" data-file="dobro.dart">int dobro(int numero) {
+  return numero * 2;
+}
+
+void main() {
+  final resultado = dobro(21);
+  print(resultado);
+  print(dobro(5) + dobro(10));
+  print('O dobro de 7 é ${dobro(7)}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>int dobro</dt><dd>O tipo de retorno agora é <code>int</code>: a função promete devolver um número inteiro.</dd>
+  <dt>(int numero)</dt><dd>Um <strong>parâmetro</strong>: um valor que a função recebe, aqui chamado <code>numero</code>, do tipo <code>int</code>. Dentro da função, ele funciona como uma variável. Os parâmetros têm aula própria: <a href="parametros.html">Parâmetros Posicionais</a>.</dd>
+  <dt>return numero * 2;</dt><dd>Calcula o dobro e o <strong>devolve</strong> para quem chamou. O <code>return</code> também <strong>encerra</strong> a função na hora.</dd>
+  <dt>dobro(21)</dt><dd>Chama a função com <code>21</code> no lugar de <code>numero</code>. A chamada inteira "vira" o valor devolvido, <code>42</code>, que vai para a variável <code>resultado</code>.</dd>
+  <dt>dobro(5) + dobro(10)</dt><dd>Como cada chamada vira um número, dá para usar em contas: <code>10 + 20</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run dobro.dart
+42
+30
+O dobro de 7 é 14
+</pre>
+
+<p>Um exemplo da padaria, com dois parâmetros e uma variável de apoio dentro da função:</p>
+
+<pre class="file" data-file="total.dart">double totalDaCompra(double preco, int quantidade) {
+  final total = preco * quantidade;
+  return total;
+}
+
+void main() {
+  final paes = totalDaCompra(0.75, 10);
+  final leites = totalDaCompra(5.49, 2);
+  print('Pães: R\$ ${paes.toStringAsFixed(2)}');
+  print('Leites: R\$ ${leites.toStringAsFixed(2)}');
+  print('Total: R\$ ${(paes + leites).toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run total.dart
+Pães: R$ 7.50
+Leites: R$ 10.98
+Total: R$ 18.48
+</pre>
+
+<p>A conta <code>preco * quantidade</code> foi escrita uma vez e usada duas. Se amanhã a padaria der desconto, só a função muda.</p>
+
+<div class="trydart" data-goal="out:O triplo de 7 é 21;;src:\bint\s+triplo\s*\(">
+<p class="try-task"><strong>Missão:</strong> crie uma função <code>int triplo(int numero)</code>, parecida com <code>dobro</code>, e mostre <code>O triplo de 7 é 21</code>.</p>
+<pre class="script" data-file="main.dart">int dobro(int numero) {
+  return numero * 2;
+}
+
+void main() {
+  print('O dobro de 7 é ${dobro(7)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int dobro(int numero) {
+  return numero * 2;
+}
+
+int triplo(int numero) {
+  return numero * 3;
+}
+
+void main() {
+  print('O dobro de 7 é ${dobro(7)}');
+  print('O triplo de 7 é ${triplo(7)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Vários <code>return</code>, e o <code>return</code> antecipado</h2>
+<p>Uma função pode ter vários <code>return</code>, em caminhos diferentes. O primeiro que for alcançado encerra a função:</p>
+
+<pre class="file" data-file="situacao.dart">String situacao(double media) {
+  if (media &gt;= 7) {
+    return 'aprovada';
+  }
+  if (media &gt;= 5) {
+    return 'recuperação';
+  }
+  return 'reprovada';
+}
+
+void main() {
+  print(situacao(8.5));
+  print(situacao(6.0));
+  print(situacao(3.2));
+}
+</pre>
+
+<pre class="term">$ dart run situacao.dart
+aprovada
+recuperação
+reprovada
+</pre>
+
+<p>Com <code>8.5</code>, o primeiro <code>return</code> já devolve <code>'aprovada'</code> e a função acaba: os outros <code>if</code>s nem são testados. Por isso não precisa de <code>else</code>. E o último <code>return</code> garante que a função <strong>sempre</strong> devolve alguma coisa, qualquer que seja a média.</p>
+
+<p>Numa função <code>void</code>, um <code>return;</code> sozinho (sem valor) serve para <strong>sair mais cedo</strong>, quando não dá para continuar:</p>
+
+<pre class="file" data-file="retorno_cedo.dart">void dividir(int a, int b) {
+  if (b == 0) {
+    print('Não dá para dividir por zero.');
+    return;
+  }
+  print('$a / $b = ${a ~/ b}');
+}
+
+void main() {
+  dividir(10, 2);
+  dividir(7, 0);
+  print('Fim do programa.');
+}
+</pre>
+
+<pre class="term">$ dart run retorno_cedo.dart
+10 / 2 = 5
+Não dá para dividir por zero.
+Fim do programa.
+</pre>
+
+<p>O <code>return;</code> saiu só da função <code>dividir</code>; o <code>main</code> continuou normalmente. Esse estilo (testar o problema no começo e sair) é a mesma <strong>cláusula de guarda</strong> que você viu com o <code>continue</code> em <a href="break-continue.html">break e continue</a>.</p>
+
+<hr>
+
+<h2>5. O que nasce na função, fica na função</h2>
+<p>Uma variável criada dentro de uma função é <strong>local</strong>: só existe ali dentro, enquanto a função roda.</p>
+
+<pre class="file" data-file="escopo.dart">void calcular() {
+  final segredo = 42;
+  print('Dentro: $segredo');
+}
+
+void main() {
+  calcular();
+  print('Fora: $segredo');
+}
+</pre>
+
+<pre class="term">$ dart run escopo.dart
+escopo.dart:8:17: Error: Undefined name 'segredo'.
+  print('Fora: $segredo');
+                ^^^^^^^
+</pre>
+
+<p>"Nome não definido: <code>segredo</code>". Para o <code>main</code>, essa variável não existe. Isso é bom: cada função tem as suas próprias variáveis, e duas funções podem ter uma variável <code>total</code> cada uma, sem uma atrapalhar a outra. <strong>Para levar um valor para fora, use <code>return</code></strong>; para levar um valor para dentro, use um parâmetro.</p>
+
+<div class="note">
+<strong>Função dentro de função</strong>
+<p>Também dá para declarar uma função <strong>dentro</strong> do <code>main</code> (ou de outra função). Ela é local, como uma variável: só pode ser chamada ali dentro.</p>
+<pre class="file" data-file="dentro_main.dart">void main() {
+  void linha() {
+    print('-' * 20);
+  }
+
+  linha();
+  print('Cupom');
+  linha();
+}
+</pre>
+<pre class="term">$ dart run dentro_main.dart
+--------------------
+Cupom
+--------------------
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>A função <code>dobro</code> pode ser escrita de três jeitos que dão o mesmo resultado:</p>
+
+<pre class="file" data-file="formas.dart">// 1) corpo com chaves e return
+int dobro1(int numero) {
+  return numero * 2;
+}
+
+// 2) com uma variável de apoio (bom quando a conta é longa)
+int dobro2(int numero) {
+  final resultado = numero * 2;
+  return resultado;
+}
+
+// 3) numa linha só, com =&gt; (aula "Funções de Uma Linha")
+int dobro3(int numero) =&gt; numero * 2;
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>A função só <strong>faz</strong> algo (mostrar, gravar)</td><td><code>void nome() { … }</code></td></tr>
+<tr><td>A função <strong>calcula</strong> e entrega um resultado</td><td><code>Tipo nome(…) { … return valor; }</code></td></tr>
+<tr><td>O corpo é uma única expressão</td><td><code>Tipo nome(…) =&gt; expressão;</code> (veja <a href="arrow.html">Funções de Uma Linha</a>)</td></tr>
+<tr><td>A função só serve dentro de outra</td><td>Função local, declarada dentro dela</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Boa prática: uma função, uma tarefa</strong>
+<p>Uma função boa faz <strong>uma coisa</strong>, e o nome diz qual: <code>calcularTotal</code>, <code>mostrarCabecalho</code>, <code>situacao</code>. Prefira devolver o valor (<code>return</code>) a mostrá-lo com <code>print</code> lá dentro: quem chamou decide o que fazer com ele (mostrar, somar, guardar). E escreva sempre o tipo de retorno: o Effective Dart recomenda, e o Dart avisa você quando a função não cumpre a promessa.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>return</code></strong>
+<pre class="file" data-file="semreturn.dart">int dobro(int numero) {
+  numero * 2;
+}
+
+void main() {
+  print(dobro(21));
+}
+</pre>
+<pre class="term">$ dart run semreturn.dart
+semreturn.dart:1:5: Error: A non-null value must be returned since the return type 'int' doesn't allow null.
+int dobro(int numero) {
+    ^
+</pre>
+<dl class="anatomy">
+  <dt>semreturn.dart:1:5</dt><dd>Linha 1, coluna 5: o nome da função.</dd>
+  <dt>A non-null value must be returned since the return type 'int' doesn't allow null.</dt><dd>"Um valor não nulo tem de ser devolvido, já que o tipo de retorno <code>int</code> não aceita <code>null</code>." A função calcula <code>numero * 2</code> e joga fora: chega ao <code>}</code> sem devolver nada. Uma função que termina sem <code>return</code> devolve <code>null</code>, e o <code>int</code> prometeu que isso nunca aconteceria (veja <a href="null-safety.html">Null Safety</a>).</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>return numero * 2;</code>. O mesmo erro aparece quando só <strong>alguns</strong> caminhos têm <code>return</code> (um <code>if</code> com <code>return</code> e nenhum no fim).</p>
+</div>
+
+<div class="cenario">
+<strong>Devolveu um valor do tipo errado</strong>
+<pre class="file" data-file="tipoerrado.dart">int dobro(int numero) {
+  return 'o dobro é ${numero * 2}';
+}
+
+void main() {
+  print(dobro(21));
+}
+</pre>
+<pre class="term">$ dart run tipoerrado.dart
+tipoerrado.dart:2:10: Error: A value of type 'String' can't be returned from a function with return type 'int'.
+  return 'o dobro é ${numero * 2}';
+         ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser devolvido por uma função com tipo de retorno <code>int</code>." <strong>Como consertar:</strong> devolva o número (<code>return numero * 2;</code>) e monte o texto em quem chamou, ou mude o tipo de retorno para <code>String</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o resultado de uma função <code>void</code></strong>
+<pre class="file" data-file="usavoid.dart">void mostrarCabecalho() {
+  print('PADARIA DO BAIRRO');
+}
+
+void main() {
+  final texto = mostrarCabecalho();
+  print(texto);
+}
+</pre>
+<pre class="term">$ dart run usavoid.dart
+usavoid.dart:7:9: Error: This expression has type 'void' and can't be used.
+  print(texto);
+        ^
+</pre>
+<p>"Esta expressão tem tipo <code>void</code> e não pode ser usada." A função não devolve nada, então não há o que guardar nem mostrar. <strong>Como consertar:</strong> chame a função sozinha (<code>mostrarCabecalho();</code>), ou, se você precisa do texto, faça ela devolver uma <code>String</code> com <code>return</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Acento (ou erro de digitação) no nome</strong>
+<pre class="file" data-file="nomeerrado.dart">void mostrarCabecalho() {
+  print('PADARIA DO BAIRRO');
+}
+
+void main() {
+  mostrarCabeçalho();
+}
+</pre>
+<pre class="term">$ dart run nomeerrado.dart
+nomeerrado.dart:6:14: Error: The non-ASCII character 'ç' (U+00E7) can't be used in identifiers, only in strings and comments.
+Try using an US-ASCII letter, a digit, '_' (an underscore), or '$' (a dollar sign).
+  mostrarCabeçalho();
+             ^
+nomeerrado.dart:6:3: Error: Method not found: 'mostrarCabeçalho'.
+  mostrarCabeçalho();
+  ^^^^^^^^^^^^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>The non-ASCII character 'ç' (U+00E7) can't be used in identifiers…</dt><dd>"O caractere <code>ç</code> não pode ser usado em nomes, só em textos e comentários." Nomes de funções e variáveis só aceitam letras sem acento, algarismos, <code>_</code> e <code>$</code> (veja <a href="nomes-variaveis.html">Nomes de Variáveis</a>).</dd>
+  <dt>Method not found: 'mostrarCabeçalho'.</dt><dd>"Função não encontrada." Mesmo sem o acento, um nome digitado diferente (<code>mostrarCabecaho</code>) dá este erro: para o Dart, é outra função, que não existe.</dd>
+</dl>
+<p><strong>Como consertar:</strong> chame com o nome exatamente igual ao da declaração: <code>mostrarCabecalho();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou sem passar o valor que a função pede</strong>
+<pre class="file" data-file="argfalta.dart">int dobro(int numero) {
+  return numero * 2;
+}
+
+void main() {
+  print(dobro());
+}
+</pre>
+<pre class="term">$ dart run argfalta.dart
+argfalta.dart:6:14: Error: Too few positional arguments: 1 required, 0 given.
+  print(dobro());
+             ^
+argfalta.dart:1:5: Context: Found this candidate, but the arguments don't match.
+int dobro(int numero) {
+    ^^^^^
+</pre>
+<p>"Argumentos de menos: 1 obrigatório, 0 dados." A linha <code>Context:</code> mostra a declaração da função, para você ver o que ela pede. <strong>Como consertar:</strong> <code>dobro(21)</code>. Mais sobre isso em <a href="parametros.html">Parâmetros Posicionais</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses da chamada</strong>
+<pre class="term">$ dart run semparen.dart
+Fim
+</pre>
+<p>Com <code>mostrarCabecalho;</code> (sem <code>()</code>) no <code>main</code>, o programa roda, mas o cabeçalho <strong>não aparece</strong>: sem os parênteses, você só citou o nome da função, sem mandá-la rodar. O Dart não reclama (nem o <code>dart analyze</code> acusou nada no lab). <strong>Como consertar:</strong> <code>mostrarCabecalho();</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Total: R$ 18.48;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. Leia a mensagem de erro e conserte a função, para aparecer <code>Total: R$ 18.48</code>.</p>
+<pre class="script" data-file="main.dart">double totalDaCompra(double preco, int quantidade) {
+  final total = preco * quantidade;
+}
+
+void main() {
+  final soma = totalDaCompra(0.75, 10) + totalDaCompra(5.49, 2);
+  print('Total: R\$ ${soma.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double totalDaCompra(double preco, int quantidade) {
+  final total = preco * quantidade;
+  return total;
+}
+
+void main() {
+  final soma = totalDaCompra(0.75, 10) + totalDaCompra(5.49, 2);
+  print('Total: R\$ ${soma.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>void nome() { … }</code></td><td>Declara uma função que não devolve nada</td></tr>
+<tr><td><code>int nome(int x) { return …; }</code></td><td>Declara uma função que recebe um <code>int</code> e devolve um <code>int</code></td></tr>
+<tr><td><code>nome();</code></td><td>Chama a função (os parênteses são obrigatórios)</td></tr>
+<tr><td><code>final r = nome(21);</code></td><td>Chama e guarda o valor devolvido</td></tr>
+<tr><td><code>return valor;</code></td><td>Devolve o valor e encerra a função</td></tr>
+<tr><td><code>return;</code></td><td>Numa função <code>void</code>, sai mais cedo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A non-null value must be returned since the return type '…' doesn't allow null.</code></td><td>Faltou o <code>return</code> (em algum caminho)</td></tr>
+<tr><td><code>A value of type '…' can't be returned from a function with return type '…'.</code></td><td>O valor devolvido não é do tipo prometido</td></tr>
+<tr><td><code>This expression has type 'void' and can't be used.</code></td><td>Usou o resultado de uma função <code>void</code></td></tr>
+<tr><td><code>Method not found: '…'.</code></td><td>Nome da função digitado diferente (ou com acento)</td></tr>
+<tr><td><code>Too few positional arguments</code></td><td>Faltou passar um valor que a função pede</td></tr>
+<tr><td><code>Undefined name '…'</code> fora da função</td><td>A variável é local da função: devolva com <code>return</code></td></tr>
+<tr><td>A função "não rodou", sem erro</td><td>Faltaram os <code>()</code> da chamada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete a função que devolve o quadrado de um número:</p>
+<div class="ex-code"><input data-answer="int" aria-label="tipo de retorno"> quadrado(int n) {<br>&nbsp;&nbsp;<input data-answer="return" aria-label="palavra-chave"> n * n;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<p>Com <code>int soma(int a, int b) { return a + b; }</code>, o que <code>print(soma(2, 3) * 2);</code> mostra?</p>
+<div class="ex-code"><input data-answer="10" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>void</code> quer dizer em <code>void mostrarCabecalho()</code>?</p>
+<label><input type="radio" name="q3"> Que a função está vazia, sem instruções</label>
+<label><input type="radio" name="q3"> Que a função não devolve nenhum valor</label>
+<label><input type="radio" name="q3"> Que a função não recebe parâmetros</label>
+<label><input type="radio" name="q3"> Que a função nunca é chamada</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Uma função tem <code>return 'aprovada';</code> dentro de um <code>if</code>, e linhas depois dele. Quando o <code>return</code> roda, o que acontece com as linhas de baixo?</p>
+<label><input type="radio" name="q4"> Rodam normalmente</label>
+<label><input type="radio" name="q4"> Dão erro</label>
+<label><input type="radio" name="q4"> Rodam só se forem <code>print</code></label>
+<label><input type="radio" name="q4"> Não rodam: o <code>return</code> encerra a função na hora</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma variável criada dentro de uma função pode ser usada no <code>main</code>?</p>
+<label><input type="radio" name="q5"> Não: ela é local; para levar o valor para fora, use <code>return</code></label>
+<label><input type="radio" name="q5"> Sim, sempre</label>
+<label><input type="radio" name="q5"> Sim, se for <code>final</code></label>
+<label><input type="radio" name="q5"> Só depois que a função for chamada</label>
+</div>
+
+<h3>Missão final: a média da Ana</h3>
+
+<div class="trydart" data-goal="out:Média: 7.5 (aprovada);;src:\bdouble\s+media\s*\(">
+<p class="try-task"><strong>Missão:</strong> crie a função <code>double media(double nota1, double nota2)</code>, que devolve a média das duas notas (<code>(nota1 + nota2) / 2</code>). O programa deve mostrar <code>Média: 7.5 (aprovada)</code>.</p>
+<pre class="script" data-file="main.dart">String situacao(double m) {
+  if (m &gt;= 7) return 'aprovada';
+  return 'reprovada';
+}
+
+// crie aqui a função media
+
+void main() {
+  final m = 0.0; // troque por: media(8.0, 7.0)
+  print('Média: $m (${situacao(m)})');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String situacao(double m) {
+  if (m &gt;= 7) return 'aprovada';
+  return 'reprovada';
+}
+
+double media(double nota1, double nota2) {
+  return (nota1 + nota2) / 2;
+}
+
+void main() {
+  final m = media(8.0, 7.0);
+  print('Média: $m (${situacao(m)})');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma função é um pedaço de código com nome: <strong>declare</strong> uma vez (<code>void nome() { … }</code>), <strong>chame</strong> quantas vezes quiser (<code>nome();</code>).</li>
+  <li>Ao chamar, o programa pula para dentro da função, roda o corpo e volta para a linha seguinte.</li>
+  <li>O tipo antes do nome é o <strong>tipo de retorno</strong>: <code>void</code> não devolve nada; <code>int</code>, <code>double</code>, <code>String</code>… obrigam a função a devolver um valor desse tipo com <code>return</code>.</li>
+  <li><code>return</code> devolve o valor e encerra a função; numa <code>void</code>, <code>return;</code> sai mais cedo.</li>
+  <li>Variáveis criadas dentro da função são locais: não existem fora dela.</li>
+  <li>Os valores que a função recebe são os <strong>parâmetros</strong>: próxima aula, <a href="parametros.html">Parâmetros Posicionais</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
