@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart import e export — bibliotecas e vários arquivos | Guia Dart</title>
+<meta name="description" content="import, export e bibliotecas no Dart para quem nunca programou: cada arquivo é uma biblioteca, os três tipos de import (dart:, package: e caminho relativo), o prefixo as, show e hide, nomes privados com _, export para juntar arquivos, e os erros reais do Dart 3 (nome importado de dois lugares, show que esconde, _ privado, arquivo que não existe, import depois do código).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">import, export e Bibliotecas</span></h1>
+
+<p class="intro">Você já escreveu <code>import 'dart:io';</code> e <code>import 'package:intl/intl.dart';</code> várias vezes. Nesta aula, o <code>import</code> ("importar", trazer de fora) ganha explicação completa: de onde ele traz as coisas, como trazer só uma parte, como resolver dois arquivos com o mesmo nome de função, o que fica escondido com <code>_</code>, e como o <code>export</code> junta vários arquivos num só.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que cada arquivo <code>.dart</code> é uma <strong>biblioteca</strong>.</li>
+  <li>Os três tipos de <code>import</code>: <code>dart:</code>, <code>package:</code> e o caminho de um arquivo.</li>
+  <li>Como dar um apelido com <code>as</code> e como trazer só algumas coisas com <code>show</code> ou deixar algumas de fora com <code>hide</code>.</li>
+  <li>Por que um nome que começa com <code>_</code> não sai do arquivo.</li>
+  <li>Como o <code>export</code> junta vários arquivos numa porta de entrada só.</li>
+  <li>Os erros reais: nome importado de dois lugares, o <code>show</code> que esconde, o <code>_</code> privado, o arquivo que não existe e o <code>import</code> fora do lugar.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>loja</code> com vários arquivos <code>.dart</code> lado a lado, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: as gavetas da loja</h2>
+<p>A lojinha da Ana tem um armário com gavetas etiquetadas: "preços", "estoque", "dinheiro". Quando ela precisa calcular um troco, abre a gaveta "dinheiro" e pega a calculadora. Ela não despeja todas as gavetas no balcão.</p>
+<ul>
+  <li>Cada <strong>arquivo</strong> <code>.dart</code> é uma gaveta. No Dart, o nome técnico é <strong>biblioteca</strong> (<em>library</em>).</li>
+  <li><code>import</code> é abrir uma gaveta e pôr o conteúdo dela ao seu alcance.</li>
+  <li>Algumas coisas ficam no fundo da gaveta, só para uso interno: são os nomes com <code>_</code>.</li>
+  <li><code>export</code> é a etiqueta "kit": uma gaveta que, ao ser aberta, entrega o conteúdo de outras.</li>
+</ul>
+
+<hr>
+
+<h2>1. Importando um arquivo seu</h2>
+<p>O arquivo <code>precos.dart</code> tem as contas da loja:</p>
+
+<pre class="file" data-file="precos.dart">const taxaEntrega = 5.0;
+
+double comEntrega(double valor) =&gt; valor + taxaEntrega;
+
+double _arredondar(double valor) =&gt; (valor * 100).round() / 100;
+
+double comDesconto(double valor, double porcento) =&gt;
+    _arredondar(valor * (1 - porcento / 100));
+</pre>
+
+<p>O <code>main.dart</code>, na mesma pasta, usa essas contas:</p>
+
+<pre class="file" data-file="main.dart">import 'precos.dart';
+
+void main() {
+  print('Pedido de R\$ 30 com entrega: R\$ ${comEntrega(30)}');
+  print('Bolo de R\$ 58.90 com 10% de desconto: R\$ ${comDesconto(58.90, 10)}');
+}
+</pre>
+
+<pre class="term">$ dart run main.dart
+Pedido de R$ 30 com entrega: R$ 35.0
+Bolo de R$ 58.90 com 10% de desconto: R$ 53.01
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'precos.dart';</dt><dd>Um caminho <strong>relativo</strong>: "o arquivo <code>precos.dart</code> que está na mesma pasta que este". Para um arquivo numa subpasta: <code>import 'contas/precos.dart';</code>.</dd>
+  <dt>comEntrega(30), comDesconto(…)</dt><dd>As funções de <code>precos.dart</code> são usadas como se fossem deste arquivo. A constante <code>taxaEntrega</code> também veio.</dd>
+  <dt>_arredondar</dt><dd>Usada <strong>dentro</strong> de <code>precos.dart</code> (pelo <code>comDesconto</code>), mas o <code>main.dart</code> não pode chamá-la: o <code>_</code> a deixa privada (seção 4).</dd>
+</dl>
+
+<h3>Os três tipos de import</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Começa com</th><th>De onde vem</th><th>Exemplo</th></tr>
+<tr><td><code>dart:</code></td><td>as bibliotecas que vêm com o Dart</td><td><code>import 'dart:math';</code></td></tr>
+<tr><td><code>package:</code></td><td>um pacote do pub.dev (aula <a href="pacotes.html">Pacotes</a>) ou a pasta <code>lib/</code> do seu projeto (aula <a href="dart-create.html">dart create</a>)</td><td><code>import 'package:intl/intl.dart';</code></td></tr>
+<tr><td>nada disso</td><td>um arquivo, pelo caminho a partir deste</td><td><code>import 'precos.dart';</code></td></tr>
+</table>
+</div>
+
+<p>A biblioteca <code>dart:core</code> (com <code>print</code>, <code>String</code>, <code>List</code>…) é a única importada sozinha, em todo arquivo.</p>
+
+<div class="tip">
+<strong>Ordem dos imports (Effective Dart)</strong>
+<p>Os <code>import</code> vêm sempre no <strong>topo</strong> do arquivo, antes de qualquer código. O estilo recomendado põe primeiro os <code>dart:</code>, depois os <code>package:</code>, depois os relativos, cada grupo em ordem alfabética e separado por uma linha em branco. As regras que o <code>dart create</code> liga não conferem essa ordem (no lab, um <code>package:</code> antes de um <code>dart:</code> deu <code>No issues found!</code> no <code>dart analyze</code>); para o <code>dart analyze</code> cobrar, ligue a regra <code>directives_ordering</code> no <code>analysis_options.yaml</code> (veja <a href="analise.html">Análise e Formatação</a>).</p>
+</div>
+
+<div class="trydart" data-goal="out:R$ 25.0;;src:import\s+'precos\.dart'">
+<p class="try-task"><strong>Missão:</strong> esta caixa tem duas abas. O <code>main.dart</code> quer usar o <code>comEntrega</code> do <code>precos.dart</code>, mas falta o <code>import</code>. Acrescente-o na primeira linha (e veja o erro antes, clicando em Rodar).</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Pedido de R\$ 20 com entrega: R\$ ${comEntrega(20)}');
+}
+</pre>
+<pre class="script" data-file="precos.dart">const taxaEntrega = 5.0;
+
+double comEntrega(double valor) =&gt; valor + taxaEntrega;
+</pre>
+<pre class="solucao" data-file="main.dart">import 'precos.dart';
+
+void main() {
+  print('Pedido de R\$ 20 com entrega: R\$ ${comEntrega(20)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Apelido: <code>as</code></h2>
+<p>Com <code>as</code>, tudo o que vem da biblioteca passa a ser usado com um <strong>prefixo</strong>, como um sobrenome. Fica claro, no meio do código, de onde veio cada coisa:</p>
+
+<pre class="file" data-file="com_as.dart">import 'dart:math' as math;
+
+void main() {
+  final raio = 10;
+  final area = math.pi * math.pow(raio, 2);
+  print('Área da pizza de raio $raio cm: ${area.toStringAsFixed(1)} cm²');
+}
+</pre>
+
+<pre class="term">$ dart run com_as.dart
+Área da pizza de raio 10 cm: 314.2 cm²
+</pre>
+
+<p><code>math.pi</code> é o π e <code>math.pow(raio, 2)</code> é "raio ao quadrado". Sem o <code>as</code>, seria só <code>pi</code> e <code>pow</code>. O apelido segue a regra dos nomes de arquivo: minúsculas e <code>_</code>.</p>
+
+<hr>
+
+<h2>3. Só uma parte: <code>show</code> e <code>hide</code></h2>
+<p>A <code>dart:math</code> tem dezenas de coisas. Com <code>show</code> ("mostrar"), você traz só as que vai usar; com <code>hide</code> ("esconder"), traz tudo, menos as citadas.</p>
+
+<pre class="file" data-file="matematica.dart">import 'dart:math';
+
+void main() {
+  print('Raiz de 2: ${sqrt(2)}');
+  print('Pi: $pi');
+  print('Maior: ${max(7, 12)}');
+}
+</pre>
+
+<pre class="term">$ dart run matematica.dart
+Raiz de 2: 1.4142135623730951
+Pi: 3.141592653589793
+Maior: 12
+</pre>
+
+<p>Agora com <code>show sqrt, pi</code>, e a mesma chamada ao <code>max</code>:</p>
+
+<pre class="file" data-file="com_show.dart">import 'dart:math' show sqrt, pi;
+
+void main() {
+  print(sqrt(16));
+  print(pi);
+  print(max(1, 2));
+}
+</pre>
+
+<pre class="term">$ dart run com_show.dart
+com_show.dart:6:9: Error: Method not found: 'max'.
+  print(max(1, 2));
+        ^^^
+$ echo $?
+254
+</pre>
+
+<p>"Método não encontrado: <code>max</code>". O <code>show</code> deixou entrar só o <code>sqrt</code> e o <code>pi</code>; o <code>max</code> ficou na gaveta. Para consertar, acrescente-o à lista: <code>show sqrt, pi, max</code>.</p>
+
+<div class="trydart" data-goal="out:12;;src:show[^;]*\bmax\b">
+<p class="try-task"><strong>Missão:</strong> conserte o <code>import</code> para o <code>max</code> funcionar, <strong>mantendo</strong> o <code>show</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:math' show sqrt, pi;
+
+void main() {
+  print(sqrt(16));
+  print(max(7, 12));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:math' show sqrt, pi, max;
+
+void main() {
+  print(sqrt(16));
+  print(max(7, 12));
+}
+</pre>
+</div>
+
+<h3>Dois arquivos, o mesmo nome</h3>
+<p>Onde <code>as</code>, <code>show</code> e <code>hide</code> mais ajudam é quando duas bibliotecas têm algo com o <strong>mesmo nome</strong>. A Ana tem uma função <code>formatar</code> em <code>dinheiro.dart</code> e outra em <code>estoque.dart</code>:</p>
+
+<pre class="file" data-file="dinheiro.dart">String formatar(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+</pre>
+<pre class="file" data-file="estoque.dart">String formatar(int quantidade) =&gt; '$quantidade unidades';
+</pre>
+
+<p>Importando as duas normalmente, o Dart não sabe qual usar (veja <a href="#errado">Quando dá errado</a>). Com <code>as</code>, cada uma ganha o seu sobrenome:</p>
+
+<pre class="file" data-file="conflito_as.dart">import 'dinheiro.dart' as dinheiro;
+import 'estoque.dart' as estoque;
+
+void main() {
+  print(dinheiro.formatar(12));
+  print(estoque.formatar(12));
+}
+</pre>
+
+<pre class="term">$ dart run conflito_as.dart
+R$ 12.00
+12 unidades
+</pre>
+
+<p>Se você só precisa de uma delas, esconda a outra com <code>hide</code>:</p>
+
+<pre class="file" data-file="conflito_hide.dart">import 'dinheiro.dart';
+import 'estoque.dart' hide formatar;
+
+void main() {
+  print(formatar(12));
+}
+</pre>
+
+<pre class="term">$ dart run conflito_hide.dart
+R$ 12.00
+</pre>
+
+<hr>
+
+<h2>4. O que começa com <code>_</code> é privado</h2>
+<p>No Dart, não existe palavra <code>private</code>: um nome que começa com <code>_</code> (sublinhado) só pode ser usado <strong>dentro do próprio arquivo</strong> (da própria biblioteca). Vale para funções, variáveis, classes e membros de classes (veja <a href="privado.html">Privacidade (_)</a>). O <code>_arredondar</code> de <code>precos.dart</code> é um detalhe interno; quem importa <code>precos.dart</code> não o vê:</p>
+
+<pre class="file" data-file="privado.dart">import 'precos.dart';
+
+void main() {
+  print(_arredondar(3.14159));
+}
+</pre>
+
+<pre class="term">$ dart run privado.dart
+privado.dart:4:9: Error: Method not found: '_arredondar'.
+  print(_arredondar(3.14159));
+        ^^^^^^^^^^^
+</pre>
+
+<p>Para o <code>privado.dart</code>, é como se <code>_arredondar</code> não existisse. Isso é bom: quem escreveu <code>precos.dart</code> pode mudar ou apagar o <code>_arredondar</code> sem quebrar o código de ninguém.</p>
+
+<hr>
+
+<h2>5. <code>export</code>: uma porta de entrada para vários arquivos</h2>
+<p>Quando o código cresce, quem usa precisa de muitos <code>import</code>. Um arquivo com <code>export</code> ("exportar", repassar) reúne os outros:</p>
+
+<pre class="file" data-file="tudo.dart">export 'dinheiro.dart';
+export 'precos.dart';
+</pre>
+
+<pre class="file" data-file="usa_tudo.dart">import 'tudo.dart';
+
+void main() {
+  print(formatar(comEntrega(30)));
+}
+</pre>
+
+<pre class="term">$ dart run usa_tudo.dart
+R$ 35.00
+</pre>
+
+<p>O <code>usa_tudo.dart</code> importou um arquivo só e recebeu o <code>formatar</code> (de <code>dinheiro.dart</code>) e o <code>comEntrega</code> (de <code>precos.dart</code>). É assim que os pacotes se organizam: num projeto, o arquivo <code>lib/padaria.dart</code> costuma ter só <code>export</code>s dos arquivos de <code>lib/src/</code>, e quem usa escreve um único <code>import 'package:padaria/padaria.dart';</code>. O <code>export</code> também aceita <code>show</code> e <code>hide</code>.</p>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>usar uma biblioteca normalmente</td><td><code>import 'x.dart';</code></td></tr>
+<tr><td>deixar claro de onde vem cada coisa, ou a biblioteca tem nomes genéricos</td><td><code>import 'x.dart' as x;</code></td></tr>
+<tr><td>usar só uma ou duas coisas</td><td><code>import 'x.dart' show a, b;</code></td></tr>
+<tr><td>um nome atrapalha (conflito)</td><td><code>import 'x.dart' hide a;</code> ou <code>as</code></td></tr>
+<tr><td>esconder um detalhe interno</td><td>comece o nome com <code>_</code></td></tr>
+<tr><td>oferecer vários arquivos como um só</td><td>um arquivo com <code>export</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O mesmo nome importado de dois lugares</strong>
+<pre class="file" data-file="conflito.dart">import 'dinheiro.dart';
+import 'estoque.dart';
+
+void main() {
+  print(formatar(12));
+}
+</pre>
+<pre class="term">$ dart run conflito.dart
+conflito.dart:5:9: Error: 'formatar' is imported from both 'dinheiro.dart' and 'estoque.dart'.
+  print(formatar(12));
+        ^^^^^^^^
+</pre>
+<p>"<code>formatar</code> é importado tanto de <code>dinheiro.dart</code> quanto de <code>estoque.dart</code>." Repare: o erro aparece na linha que <strong>usa</strong> o nome (linha 5), não nos <code>import</code>. Importar os dois é permitido; ambíguo é chamar. <strong>Como consertar:</strong> <code>as</code> nos dois (e chame <code>dinheiro.formatar</code> / <code>estoque.formatar</code>) ou <code>hide formatar</code> no que você não quer.</p>
+</div>
+
+<div class="cenario">
+<strong>O arquivo importado não existe</strong>
+<pre class="file" data-file="naoachou.dart">import 'preco.dart';
+
+void main() {
+  print(comEntrega(30));
+}
+</pre>
+<pre class="term">$ dart run naoachou.dart
+naoachou.dart:1:8: Error: Error when reading 'preco.dart': No such file or directory
+import 'preco.dart';
+       ^
+naoachou.dart:4:9: Error: Method not found: 'comEntrega'.
+  print(comEntrega(30));
+        ^^^^^^^^^^
+</pre>
+<ul>
+  <li><code>Error when reading 'preco.dart': No such file or directory</code> — "erro ao ler <code>preco.dart</code>: arquivo ou diretório inexistente". Faltou o <code>s</code>: o arquivo é <code>precos.dart</code>.</li>
+  <li><code>Method not found: 'comEntrega'</code> — consequência do primeiro erro. Conserte o primeiro, e este some.</li>
+</ul>
+<p><strong>Como consertar:</strong> confira o nome e a pasta. O caminho é relativo ao arquivo que faz o <code>import</code>, não à pasta onde você está no terminal.</p>
+</div>
+
+<div class="cenario">
+<strong><code>import</code> depois do código</strong>
+<pre class="file" data-file="ordem.dart">void main() {
+  print('oi');
+}
+
+import 'dart:math';
+</pre>
+<pre class="term">$ dart run ordem.dart
+ordem.dart:5:1: Error: Directives must appear before any declarations.
+Try moving the directive before any declarations.
+import 'dart:math';
+^^^^^^
+</pre>
+<p>"Diretivas precisam aparecer antes de qualquer declaração. Tente mover a diretiva para antes das declarações." <strong>Diretiva</strong> é o nome técnico de <code>import</code> e <code>export</code>; <strong>declaração</strong> é uma função, classe ou variável. <strong>Como consertar:</strong> todos os <code>import</code>/<code>export</code> no topo do arquivo.</p>
+</div>
+
+<p>Os outros dois erros desta aula já apareceram acima: o nome deixado de fora pelo <code>show</code> (<code>Method not found: 'max'</code>) e o nome privado (<code>Method not found: '_arredondar'</code>). Repare que, nos três casos, a mensagem é "não encontrado": para o arquivo que importa, esses nomes simplesmente não existem.</p>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>import 'dart:math';</code></td><td>biblioteca do Dart</td></tr>
+<tr><td><code>import 'package:nome/arquivo.dart';</code></td><td>pacote ou <code>lib/</code> do projeto</td></tr>
+<tr><td><code>import 'precos.dart';</code></td><td>arquivo pelo caminho relativo</td></tr>
+<tr><td><code>import '…' as m;</code></td><td>usa tudo com o prefixo <code>m.</code></td></tr>
+<tr><td><code>import '…' show a, b;</code></td><td>traz só <code>a</code> e <code>b</code></td></tr>
+<tr><td><code>import '…' hide a;</code></td><td>traz tudo, menos <code>a</code></td></tr>
+<tr><td><code>export 'x.dart';</code></td><td>quem importar este arquivo recebe também o <code>x.dart</code></td></tr>
+<tr><td><code>_nome</code></td><td>privado: só dentro do próprio arquivo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Traga a <code>dart:math</code> com o apelido <code>m</code>, e só o <code>sqrt</code> do <code>dart:math</code> numa segunda linha:</p>
+<div class="ex-code">import 'dart:math' <input data-answer="as" aria-label="palavra do apelido"> m;<br>import 'dart:math' <input data-answer="show" aria-label="palavra para trazer só alguns"> sqrt;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual palavra?</h3>
+<p>Que palavra faz um arquivo repassar o conteúdo de outro para quem o importar?</p>
+<div class="ex-code"><input data-answer="export" aria-label="palavra-chave"> 'precos.dart';</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>contas.dart</code> tem a função <code>_calcularTaxa</code>. O que acontece se <code>main.dart</code> importar <code>contas.dart</code> e chamar <code>_calcularTaxa()</code>?</p>
+<label><input type="radio" name="q3"> Funciona normalmente</label>
+<label><input type="radio" name="q3"> Funciona, mas com um aviso</label>
+<label><input type="radio" name="q3"> Erro: <code>Method not found: '_calcularTaxa'</code></label>
+<label><input type="radio" name="q3"> Exceção na hora de rodar</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Qual biblioteca é importada sozinha em todo arquivo Dart?</p>
+<label><input type="radio" name="q4"> <code>dart:core</code></label>
+<label><input type="radio" name="q4"> <code>dart:io</code></label>
+<label><input type="radio" name="q4"> <code>dart:math</code></label>
+<label><input type="radio" name="q4"> Nenhuma</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O erro diz <code>'formatar' is imported from both 'a.dart' and 'b.dart'</code>. Qual destas soluções funciona?</p>
+<label><input type="radio" name="q5"> Mudar a ordem dos dois <code>import</code></label>
+<label><input type="radio" name="q5"> <code>import 'b.dart' hide formatar;</code></label>
+<label><input type="radio" name="q5"> Apagar o <code>pubspec.yaml</code></label>
+<label><input type="radio" name="q5"> Escrever <code>import</code> duas vezes</label>
+</div>
+
+<h3>Missão final: os dois <code>formatar</code></h3>
+
+<div class="trydart" data-goal="out:R$ 12.00;;out:12 unidades;;src:\bas\s+\w+">
+<p class="try-task"><strong>Missão:</strong> o <code>main.dart</code> importa os dois arquivos e dá erro de conflito. Dê um apelido a cada <code>import</code> (<code>as dinheiro</code> e <code>as estoque</code>) e chame <code>dinheiro.formatar(12)</code> e <code>estoque.formatar(12)</code>.</p>
+<pre class="script" data-file="main.dart">import 'dinheiro.dart';
+import 'estoque.dart';
+
+void main() {
+  print(formatar(12));
+}
+</pre>
+<pre class="script" data-file="dinheiro.dart">String formatar(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+</pre>
+<pre class="script" data-file="estoque.dart">String formatar(int quantidade) =&gt; '$quantidade unidades';
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dinheiro.dart' as dinheiro;
+import 'estoque.dart' as estoque;
+
+void main() {
+  print(dinheiro.formatar(12));
+  print(estoque.formatar(12));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Cada arquivo <code>.dart</code> é uma <strong>biblioteca</strong>; <code>import</code> traz o que ela oferece.</li>
+  <li><code>dart:</code> = bibliotecas do Dart; <code>package:</code> = pacotes e <code>lib/</code> do projeto; sem prefixo = caminho relativo de um arquivo.</li>
+  <li><code>as</code> dá um prefixo; <code>show</code> traz só alguns nomes; <code>hide</code> deixa alguns de fora. Os três resolvem conflitos de nomes.</li>
+  <li>Nomes com <code>_</code> são privados do arquivo.</li>
+  <li><code>export</code> repassa outras bibliotecas: um <code>import</code> só traz várias.</li>
+  <li><code>import</code> e <code>export</code> vêm no topo do arquivo, antes de qualquer código.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
