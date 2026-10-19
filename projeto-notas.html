@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Projeto Notas da Turma — Map, funções, records, sort e um CSV passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto passo a passo em Dart 3: as notas de uma turma num Map, médias e situação com funções, um relatório em colunas ordenado com sort e records, e por fim a leitura de um arquivo CSV com dart:io e a gravação de um relatório novo. Quatro versões com saídas reais, missões no editor e os erros que aparecem no caminho.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Notas da Turma</span></h1>
+
+<p class="intro">A Ana é professora. No fim do bimestre, ela tem três notas de prova para cada aluno e precisa responder sempre as mesmas perguntas: qual a média de cada um, quem passou, quem ficou de recuperação e qual a média da turma. Neste projeto você vai escrever, aos poucos, o programa que faz isso por ela: primeiro com as notas escritas no próprio código, depois lendo o arquivo que a planilha da escola exporta.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Guardar a turma num <a href="map.html">Map</a> de nome para <a href="list.html">lista</a> de notas.</li>
+  <li>Percorrer o mapa com <a href="for-in.html">for-in</a> e <code>entries</code> (veja <a href="map-metodos.html">Percorrendo Mapas</a>).</li>
+  <li>Escrever <a href="funcoes.html">funções</a> que devolvem um valor: <code>media</code> e <code>situacao</code>.</li>
+  <li>Juntar os dados de cada aluno num <a href="records.html">record</a> e ordenar com <code>sort</code> (veja <a href="list-metodos.html">Métodos de Lista</a>).</li>
+  <li>Alinhar colunas com <code>padLeft</code>, <code>padRight</code> e <code>toStringAsFixed</code> (veja <a href="strings-metodos.html">Métodos de String</a>).</li>
+  <li>Ler e gravar arquivos com <a href="arquivos.html">dart:io</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>O programa pronto, no terminal da Ana, mostra um relatório com os alunos da maior para a menor média e grava um arquivo novo, o <code>relatorio.csv</code>, que a planilha abre de volta:</p>
+
+<pre class="term">$ dart run notas.dart
+Aluno         P1    P2    P3   Média  Situação
+------------------------------------------------
+Elisa       10.0   9.5   9.0    9.50  aprovado(a)
+Ana Clara    8.5   7.0   9.0    8.17  aprovado(a)
+Carla        7.0   7.0   7.5    7.17  aprovado(a)
+Bruno        5.0   6.5   4.0    5.17  recuperação
+Diego        3.5   5.0   6.0    4.83  reprovado(a)
+------------------------------------------------
+Média da turma: 6.97
+Aprovados: 3 de 5
+Relatório gravado em relatorio.csv.
+$ cat relatorio.csv
+nome,media,situacao
+Elisa,9.50,aprovado(a)
+Ana Clara,8.17,aprovado(a)
+Carla,7.17,aprovado(a)
+Bruno,5.17,recuperação
+Diego,4.83,reprovado(a)
+</pre>
+
+<p>A regra da escola da Ana: média <strong>7 ou mais</strong>, aprovado; <strong>de 5 até menos de 7</strong>, recuperação; <strong>abaixo de 5</strong>, reprovado. Vamos chegar lá em quatro versões, uma novidade por vez:</p>
+
+<ol class="passo">
+  <li><a href="#versao1">A turma num Map</a> e um laço que mostra as notas.</li>
+  <li><a href="#versao2">Média e situação</a> com duas funções.</li>
+  <li><a href="#versao3">O relatório</a>: records, <code>sort</code> e colunas alinhadas.</li>
+  <li><a href="#versao4">Lendo o CSV e gravando o relatório</a> com <code>dart:io</code>.</li>
+</ol>
+<p>E, no fim, <a href="#errado">o que dá errado com um arquivo de verdade</a>.</p>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · A turma num Map</h2>
+<p>Pense na caderneta da Ana: cada linha tem o nome do aluno e, ao lado, as notas dele. Em Dart, "um nome que leva a uma coisa" é um <strong>Map</strong> (mapa). A chave é o nome (<code>String</code>) e o valor é a lista de notas (<code>List&lt;double&gt;</code>).</p>
+
+<pre class="file" data-file="notas.dart">void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  print('${turma.length} alunos na turma.');
+  for (final entrada in turma.entries) {
+    print('${entrada.key}: ${entrada.value.join(' ')}');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>&lt;String, List&lt;double&gt;&gt;{ … }</dt><dd>Um mapa literal com os tipos escritos na frente: as chaves são <code>String</code> e os valores são listas de <code>double</code>. Escrever os tipos deixa claro o que cabe ali; o Dart recusa, já na compilação, um <code>'Bruno': 'sete'</code>.</dd>
+  <dt>'Elisa': [10, 9.5, 9.0]</dt><dd>O <code>10</code> está sem ponto, mas a lista é de <code>double</code>: o Dart transforma o literal inteiro em <code>10.0</code> sozinho (veja <a href="int-double.html">Números</a>).</dd>
+  <dt>vírgula depois do último aluno</dt><dd>A "vírgula no fim" é a boa prática para listas longas: acrescentar um aluno novo mexe numa linha só, e o <code>dart format</code> mantém um por linha.</dd>
+  <dt>turma.length</dt><dd>Quantas chaves o mapa tem.</dd>
+  <dt>for (final entrada in turma.entries)</dt><dd><code>entries</code> = "as entradas": cada volta entrega um par, com <code>.key</code> (a chave, o nome) e <code>.value</code> (o valor, a lista). O <code>Map</code> literal guarda a ordem em que os alunos foram escritos.</dd>
+  <dt>entrada.value.join(' ')</dt><dd><code>join</code> = "juntar": cola os itens da lista num texto só, com um espaço entre eles.</dd>
+</dl>
+
+<pre class="term">$ dart run notas.dart
+5 alunos na turma.
+Ana Clara: 8.5 7.0 9.0
+Bruno: 5.0 6.5 4.0
+Carla: 7.0 7.0 7.5
+Diego: 3.5 5.0 6.0
+Elisa: 10.0 9.5 9.0
+</pre>
+
+<p>Repare na Elisa: no código está <code>10</code>, mas sai <code>10.0</code>. É a prova de que ele virou <code>double</code>.</p>
+
+<div class="trydart" data-goal="out:Elisa: 10.0 9.5 9.0;;out:5 alunos na turma.">
+<p class="try-task"><strong>Missão (versão 1):</strong> o programa só mostra quantos alunos há. No lugar do comentário, escreva o <code>for (final entrada in turma.entries)</code> que mostra cada aluno e as notas dele, como na saída acima.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  print('${turma.length} alunos na turma.');
+  // mostre "Nome: nota nota nota" de cada aluno
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  print('${turma.length} alunos na turma.');
+  for (final entrada in turma.entries) {
+    print('${entrada.key}: ${entrada.value.join(' ')}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Média e situação</h2>
+<p>Agora as contas. Duas perguntas, duas funções: "qual a média destas notas?" e "com essa média, qual a situação?". Cada uma recebe um valor e <strong>devolve</strong> outro com <code>return</code>.</p>
+
+<pre class="file" data-file="notas.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  for (final entrada in turma.entries) {
+    final m = media(entrada.value);
+    print('${entrada.key}: média ${m.toStringAsFixed(2)}, ${situacao(m)}');
+  }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>double media(List&lt;double&gt; notas)</code></td><td>A função recebe uma lista de notas e promete devolver um <code>double</code>.</td></tr>
+<tr><td><code>var soma = 0.0;</code></td><td>O acumulador: começa em zero e cada nota é somada a ele. O <code>.0</code> é importante (veja o erro logo abaixo).</td></tr>
+<tr><td><code>soma += nota;</code></td><td>O mesmo que <code>soma = soma + nota;</code> (veja <a href="atribuicao.html">Atribuição</a>).</td></tr>
+<tr><td><code>soma / notas.length</code></td><td>A média: a soma dividida pela quantidade. A barra <code>/</code> sempre dá <code>double</code>.</td></tr>
+<tr><td><code>if (m &gt;= 7) return …;</code></td><td>Se a condição vale, a função devolve e <strong>termina ali</strong>. Por isso o segundo <code>if</code> não precisa de <code>else</code>: só chega nele quem tem menos de 7.</td></tr>
+<tr><td><code>m.toStringAsFixed(2)</code></td><td>Transforma o número em texto com 2 casas decimais, arredondando: <code>8.1666…</code> vira <code>8.17</code>.</td></tr>
+</table>
+</div>
+
+<pre class="term">$ dart run notas.dart
+Ana Clara: média 8.17, aprovado(a)
+Bruno: média 5.17, recuperação
+Carla: média 7.17, aprovado(a)
+Diego: média 4.83, reprovado(a)
+Elisa: média 9.50, aprovado(a)
+</pre>
+
+<div class="cenario">
+<strong>O acumulador que começou em <code>0</code> em vez de <code>0.0</code></strong>
+<p>A Ana escreveu <code>var soma = 0;</code>, sem o <code>.0</code>. O programa nem chega a rodar:</p>
+<pre class="term">$ dart run notas.dart
+notas.dart:4:10: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+    soma += nota;
+         ^
+$ echo $?
+254
+</pre>
+<ul>
+  <li><code>notas.dart:4:10</code>: o arquivo, a linha 4 e a coluna 10, onde está o <code>+=</code>.</li>
+  <li><code>Error: A value of type 'double' can't be assigned to a variable of type 'int'.</code> = "um valor do tipo <code>double</code> não pode ser guardado numa variável do tipo <code>int</code>".</li>
+  <li>A linha do código e o <code>^</code> embaixo apontam o lugar exato.</li>
+  <li>O código de saída <code>254</code> é o do erro de compilação.</li>
+</ul>
+<p>Com <code>var soma = 0;</code>, o Dart decide que <code>soma</code> é <code>int</code> para sempre (veja <a href="variaveis.html">Variáveis</a>). Somar uma nota <code>double</code> daria um <code>double</code>, que não cabe ali. <strong>Conserto:</strong> <code>var soma = 0.0;</code> (ou <code>double soma = 0;</code>).</p>
+</div>
+
+<h3>Outras formas de escrever as duas funções</h3>
+<p>As mesmas funções, mais curtas: a média com <code>reduce</code> ("reduzir": soma os itens dois a dois, veja <a href="iterables.html">map, where, reduce e Outros</a>) e a situação com uma <a href="switch.html">expressão switch</a> com padrões relacionais (<code>&gt;= 7</code>):</p>
+
+<pre class="file" data-file="curtas.dart">double media(List&lt;double&gt; notas) =&gt;
+    notas.reduce((a, b) =&gt; a + b) / notas.length;
+
+String situacao(double m) =&gt; switch (m) {
+      &gt;= 7 =&gt; 'aprovado(a)',
+      &gt;= 5 =&gt; 'recuperação',
+      _ =&gt; 'reprovado(a)',
+    };
+
+void main() {
+  print(media([8.5, 7.0, 9.0]).toStringAsFixed(2));
+  print(situacao(5.17));
+  print(media([]));
+}
+</pre>
+
+<pre class="term">$ dart run curtas.dart
+8.17
+recuperação
+Unhandled exception:
+Bad state: No element
+#0      ListBase.reduce (dart:collection/list.dart:187:22)
+#1      media (file:///home/ana/curtas.dart:2:11)
+#2      main (file:///home/ana/curtas.dart:13:9)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>As duas primeiras linhas deram certo. A terceira mostra o ponto fraco do <code>reduce</code>: com a lista <strong>vazia</strong>, não há o que reduzir, e ele lança <code>Bad state: No element</code> ("estado inválido: nenhum elemento"). O stack trace conta o caminho de baixo para cima: o <code>main</code> (linha 13) chamou o <code>media</code> (linha 2), que chamou o <code>reduce</code>, onde estourou. As linhas <code>#3</code> e <code>#4</code> são do próprio Dart, que chama o <code>main</code>; pode ignorar.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Quando usar</th></tr>
+<tr><td><code>for</code> com acumulador</td><td>A mais fácil de ler para quem começa. Com lista vazia, dá <code>0.0 / 0</code> = <code>NaN</code> ("não é um número"), sem exceção.</td></tr>
+<tr><td><code>reduce</code></td><td>Curta, mas lança exceção com lista vazia.</td></tr>
+<tr><td><code>fold(0.0, (soma, n) =&gt; soma + n)</code></td><td>Curta e aceita lista vazia: começa do valor que você deu. A versão 3 usa.</td></tr>
+<tr><td><code>if</code> com <code>return</code></td><td>Regras simples, uma por linha.</td></tr>
+<tr><td>expressão <code>switch</code></td><td>Várias faixas de valores; a <code>_</code> é o "qualquer outro caso".</td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:Ana Clara: média 8.17, aprovado(a);;out:Diego: média 4.83, reprovado(a)">
+<p class="try-task"><strong>Missão (versão 2):</strong> a função <code>media</code> devolve sempre 0, e todo mundo sai reprovado. Complete: some as notas com um <code>for</code> e devolva a soma dividida por <code>notas.length</code>.</p>
+<pre class="script" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  // some as notas e divida pela quantidade
+  return 0;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  for (final entrada in turma.entries) {
+    final m = media(entrada.value);
+    print('${entrada.key}: média ${m.toStringAsFixed(2)}, ${situacao(m)}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  for (final entrada in turma.entries) {
+    final m = media(entrada.value);
+    print('${entrada.key}: média ${m.toStringAsFixed(2)}, ${situacao(m)}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · O relatório</h2>
+<p>A Ana quer uma tabela bonita, da maior para a menor média, com a média da turma e quantos passaram. Para ordenar, cada aluno precisa carregar <strong>junto</strong> o nome, as notas e a média. Um <a href="records.html">record</a> faz isso sem precisar criar uma classe: <code>(nome: …, notas: …, media: …)</code>. As funções <code>media</code> e <code>situacao</code> continuam as mesmas; o <code>main</code> muda:</p>
+
+<pre class="file" data-file="notas.dart">void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  // Um record por aluno: nome, notas e média.
+  final alunos = [
+    for (final entrada in turma.entries)
+      (nome: entrada.key, notas: entrada.value, media: media(entrada.value)),
+  ];
+
+  // Da maior média para a menor.
+  alunos.sort((a, b) =&gt; b.media.compareTo(a.media));
+
+  print('Aluno         P1    P2    P3   Média  Situação');
+  print('-' * 48);
+  for (final aluno in alunos) {
+    final colunas = aluno.notas.map((n) =&gt; n.toStringAsFixed(1).padLeft(6));
+    print('${aluno.nome.padRight(10)}${colunas.join()}'
+        '${aluno.media.toStringAsFixed(2).padLeft(8)}  ${situacao(aluno.media)}');
+  }
+  print('-' * 48);
+
+  final somaDasMedias = alunos.fold(0.0, (soma, a) =&gt; soma + a.media);
+  final aprovados = alunos.where((a) =&gt; a.media &gt;= 7).length;
+  print('Média da turma: ${(somaDasMedias / alunos.length).toStringAsFixed(2)}');
+  print('Aprovados: $aprovados de ${alunos.length}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>[ for (…) (nome: …, notas: …, media: …), ]</dt><dd>Um <a href="collection-if-for.html">for dentro da lista</a>: para cada entrada do mapa, a lista ganha um record. O tipo da lista é deduzido: <code>List&lt;({String nome, List&lt;double&gt; notas, double media})&gt;</code>.</dd>
+  <dt>alunos.sort((a, b) =&gt; b.media.compareTo(a.media))</dt><dd><code>sort</code> = "ordenar", e muda a própria lista. A função recebe dois alunos e diz qual vem antes: <code>compareTo</code> dá negativo, zero ou positivo. Com <code>b</code> na frente, a ordem fica <strong>decrescente</strong> (para crescente, <code>a.media.compareTo(b.media)</code>).</dd>
+  <dt>'-' * 48</dt><dd>Um texto multiplicado por um número se repete: 48 tracinhos.</dd>
+  <dt>padRight(10) e padLeft(6)</dt><dd>"Encher à direita/à esquerda": completa o texto com espaços até ter aquele tamanho. Nome à esquerda da coluna, números alinhados à direita.</dd>
+  <dt>'…' '…' em duas linhas</dt><dd>Dois textos lado a lado, sem nada no meio, viram um só. Serve para quebrar uma linha comprida.</dd>
+  <dt>fold(0.0, (soma, a) =&gt; soma + a.media)</dt><dd>Começa com <code>0.0</code> e vai somando a média de cada aluno.</dd>
+  <dt>where((a) =&gt; a.media &gt;= 7).length</dt><dd><code>where</code> = "onde": fica só com os aprovados; <code>.length</code> conta quantos.</dd>
+</dl>
+
+<pre class="term">$ dart run notas.dart
+Aluno         P1    P2    P3   Média  Situação
+------------------------------------------------
+Elisa       10.0   9.5   9.0    9.50  aprovado(a)
+Ana Clara    8.5   7.0   9.0    8.17  aprovado(a)
+Carla        7.0   7.0   7.5    7.17  aprovado(a)
+Bruno        5.0   6.5   4.0    5.17  recuperação
+Diego        3.5   5.0   6.0    4.83  reprovado(a)
+------------------------------------------------
+Média da turma: 6.97
+Aprovados: 3 de 5
+</pre>
+
+<div class="cenario">
+<strong><code>sort()</code> sem dizer o que comparar</strong>
+<p>A Ana tentou o atalho <code>alunos.sort();</code>. Compila, mas estoura na hora de rodar:</p>
+<pre class="term">$ dart run notas.dart
+Unhandled exception:
+type '({double media, String nome, List&lt;double&gt; notas})' is not a subtype of type 'Comparable&lt;dynamic&gt;' in type cast
+#0      ListBase._compareAny (dart:collection/list.dart:325:33)
+#1      Sort._insertionSort (dart:_internal/sort.dart:77:36)
+#2      Sort._doSort (dart:_internal/sort.dart:62:7)
+#3      Sort.sort (dart:_internal/sort.dart:33:5)
+#4      ListBase.sort (dart:collection/list.dart:321:10)
+#5      main (file:///home/ana/notas.dart:31:10)
+#6      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#7      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>"O tipo do record não é um subtipo de <code>Comparable</code>": o <code>sort()</code> sem argumento só sabe ordenar coisas que se comparam sozinhas (números, textos). Um aluno tem nome, notas e média: ordenar pelo quê? A linha <code>#5</code> aponta o seu código (linha 31, o <code>sort</code>); as de cima são o caminho dentro do Dart. O <code>255</code> é o código de uma exceção não tratada. <strong>Conserto:</strong> passe a função que compara, como na versão 3.</p>
+</div>
+
+<div class="trydart" data-goal="outre:-\nElisa +10\.0;;semerro">
+<p class="try-task"><strong>Missão (versão 3):</strong> o relatório sai na ordem do mapa, e a Elisa, a melhor média, ficou por último. Acrescente, antes do cabeçalho, o <code>alunos.sort(…)</code> que põe a maior média primeiro.</p>
+<pre class="script" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  final alunos = [
+    for (final entrada in turma.entries)
+      (nome: entrada.key, notas: entrada.value, media: media(entrada.value)),
+  ];
+
+  // ordene aqui: da maior média para a menor
+
+  print('Aluno         P1    P2    P3   Média');
+  print('-' * 36);
+  for (final aluno in alunos) {
+    final colunas = aluno.notas.map((n) =&gt; n.toStringAsFixed(1).padLeft(6));
+    print('${aluno.nome.padRight(10)}${colunas.join()}'
+        '${aluno.media.toStringAsFixed(2).padLeft(8)}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+  };
+
+  final alunos = [
+    for (final entrada in turma.entries)
+      (nome: entrada.key, notas: entrada.value, media: media(entrada.value)),
+  ];
+
+  alunos.sort((a, b) =&gt; b.media.compareTo(a.media));
+
+  print('Aluno         P1    P2    P3   Média');
+  print('-' * 36);
+  for (final aluno in alunos) {
+    final colunas = aluno.notas.map((n) =&gt; n.toStringAsFixed(1).padLeft(6));
+    print('${aluno.nome.padRight(10)}${colunas.join()}'
+        '${aluno.media.toStringAsFixed(2).padLeft(8)}');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · Lendo o CSV e gravando o relatório</h2>
+<p>Escrever as notas no código serve para testar, mas todo bimestre elas mudam. A secretaria da escola exporta a planilha como <strong>CSV</strong> (<em>comma-separated values</em>, "valores separados por vírgula"): cada linha da planilha vira uma linha de texto, e as vírgulas separam as colunas. A primeira linha é o <strong>cabeçalho</strong>, com os nomes das colunas. As notas usam ponto (<code>8.5</code>), porque a vírgula já separa as colunas.</p>
+
+<pre class="file" data-file="notas.csv">nome,prova1,prova2,prova3
+Ana Clara,8.5,7.0,9.0
+Bruno,5.0,6.5,4.0
+Carla,7.0,7.0,7.5
+Diego,3.5,5.0,6.0
+Elisa,10,9.5,9.0
+</pre>
+
+<p>O programa final troca o mapa escrito à mão pela leitura do arquivo e, no fim, grava o <code>relatorio.csv</code>. As funções <code>media</code> e <code>situacao</code> e o trecho que mostra o relatório são os mesmos da versão 3:</p>
+
+<pre class="file" data-file="notas.dart">import 'dart:io';
+
+double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final linhas = File('notas.csv').readAsLinesSync();
+
+  final alunos = &lt;({String nome, List&lt;double&gt; notas, double media})&gt;[];
+  for (final linha in linhas.skip(1)) {
+    final campos = linha.split(',');
+    final notas = [for (final campo in campos.skip(1)) double.parse(campo)];
+    alunos.add((nome: campos[0], notas: notas, media: media(notas)));
+  }
+
+  alunos.sort((a, b) =&gt; b.media.compareTo(a.media));
+
+  print('Aluno         P1    P2    P3   Média  Situação');
+  print('-' * 48);
+  for (final aluno in alunos) {
+    final colunas = aluno.notas.map((n) =&gt; n.toStringAsFixed(1).padLeft(6));
+    print('${aluno.nome.padRight(10)}${colunas.join()}'
+        '${aluno.media.toStringAsFixed(2).padLeft(8)}  ${situacao(aluno.media)}');
+  }
+  print('-' * 48);
+
+  final somaDasMedias = alunos.fold(0.0, (soma, a) =&gt; soma + a.media);
+  final aprovados = alunos.where((a) =&gt; a.media &gt;= 7).length;
+  print('Média da turma: ${(somaDasMedias / alunos.length).toStringAsFixed(2)}');
+  print('Aprovados: $aprovados de ${alunos.length}');
+
+  // Grava o relatório num CSV novo.
+  final saida = StringBuffer('nome,media,situacao\n');
+  for (final aluno in alunos) {
+    saida.writeln(
+        '${aluno.nome},${aluno.media.toStringAsFixed(2)},${situacao(aluno.media)}');
+  }
+  File('relatorio.csv').writeAsStringSync(saida.toString());
+  print('Relatório gravado em relatorio.csv.');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Peça nova</th><th>O que faz</th></tr>
+<tr><td><code>import 'dart:io';</code></td><td>Traz a biblioteca de entrada e saída, onde mora a classe <code>File</code> ("arquivo").</td></tr>
+<tr><td><code>File('notas.csv').readAsLinesSync()</code></td><td>Lê o arquivo inteiro e devolve uma <code>List&lt;String&gt;</code>, uma linha por item, já sem a quebra de linha. O <code>Sync</code> quer dizer que o programa espera a leitura terminar (veja <a href="arquivos.html">Lendo e Escrevendo Arquivos</a>).</td></tr>
+<tr><td><code>linhas.skip(1)</code></td><td>"Pular 1": percorre as linhas a partir da segunda, deixando o cabeçalho de fora.</td></tr>
+<tr><td><code>linha.split(',')</code></td><td>"Dividir": corta o texto em cada vírgula. <code>'Bruno,5.0,6.5,4.0'</code> vira <code>['Bruno', '5.0', '6.5', '4.0']</code>.</td></tr>
+<tr><td><code>double.parse(campo)</code></td><td>Transforma o texto <code>'8.5'</code> no número <code>8.5</code> (veja <a href="conversao.html">Conversão de Tipos</a>).</td></tr>
+<tr><td><code>&lt;({String nome, …})&gt;[]</code></td><td>Uma lista vazia de records. Aqui o tipo precisa ser escrito, porque a lista começa vazia e o Dart não teria de onde deduzir.</td></tr>
+<tr><td><code>StringBuffer</code> e <code>writeln</code></td><td>Monta o texto do arquivo aos poucos, uma linha por aluno (veja <a href="string-buffer.html">StringBuffer</a>).</td></tr>
+<tr><td><code>File('relatorio.csv').writeAsStringSync(…)</code></td><td>Cria o arquivo (ou apaga o que havia nele) e grava o texto.</td></tr>
+</table>
+</div>
+
+<p>A saída é a do começo da página: o relatório na tela e o <code>relatorio.csv</code> na pasta.</p>
+
+<div class="trydart" data-goal="arquivo:relatorio.csv~Elisa,9.50,aprovado(a);;semerro">
+<p class="try-task"><strong>Missão (versão 4):</strong> o programa lê o <code>notas.csv</code> (a segunda aba) e mostra as médias, mas não grava nada. No lugar do comentário, monte um <code>StringBuffer</code> com o cabeçalho <code>nome,media,situacao</code> e uma linha por aluno, e grave em <code>relatorio.csv</code> com <code>writeAsStringSync</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final linhas = File('notas.csv').readAsLinesSync();
+
+  final alunos = &lt;({String nome, List&lt;double&gt; notas, double media})&gt;[];
+  for (final linha in linhas.skip(1)) {
+    final campos = linha.split(',');
+    final notas = [for (final campo in campos.skip(1)) double.parse(campo)];
+    alunos.add((nome: campos[0], notas: notas, media: media(notas)));
+  }
+  alunos.sort((a, b) =&gt; b.media.compareTo(a.media));
+
+  for (final aluno in alunos) {
+    print('${aluno.nome}: ${aluno.media.toStringAsFixed(2)}');
+  }
+
+  // grave o relatorio.csv aqui
+}
+</pre>
+<pre class="script" data-file="notas.csv">nome,prova1,prova2,prova3
+Ana Clara,8.5,7.0,9.0
+Bruno,5.0,6.5,4.0
+Carla,7.0,7.0,7.5
+Diego,3.5,5.0,6.0
+Elisa,10,9.5,9.0
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+String situacao(double m) {
+  if (m &gt;= 7) return 'aprovado(a)';
+  if (m &gt;= 5) return 'recuperação';
+  return 'reprovado(a)';
+}
+
+void main() {
+  final linhas = File('notas.csv').readAsLinesSync();
+
+  final alunos = &lt;({String nome, List&lt;double&gt; notas, double media})&gt;[];
+  for (final linha in linhas.skip(1)) {
+    final campos = linha.split(',');
+    final notas = [for (final campo in campos.skip(1)) double.parse(campo)];
+    alunos.add((nome: campos[0], notas: notas, media: media(notas)));
+  }
+  alunos.sort((a, b) =&gt; b.media.compareTo(a.media));
+
+  for (final aluno in alunos) {
+    print('${aluno.nome}: ${aluno.media.toStringAsFixed(2)}');
+  }
+
+  final saida = StringBuffer('nome,media,situacao\n');
+  for (final aluno in alunos) {
+    saida.writeln(
+        '${aluno.nome},${aluno.media.toStringAsFixed(2)},${situacao(aluno.media)}');
+  }
+  File('relatorio.csv').writeAsStringSync(saida.toString());
+  print('Relatório gravado em relatorio.csv.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errado">O que dá errado com um arquivo de verdade</h2>
+
+<div class="cenario">
+<strong>O arquivo não está na pasta</strong>
+<pre class="term">$ dart run notas.dart
+Unhandled exception:
+PathNotFoundException: Cannot open file, path = 'notas.csv' (OS Error: No such file or directory, errno = 2)
+#0      _File.throwIfError (dart:io/file_impl.dart:779:7)
+#1      _File.openSync (dart:io/file_impl.dart:572:5)
+#2      _File.readAsBytesSync (dart:io/file_impl.dart:660:18)
+#3      _File.readAsStringSync (dart:io/file_impl.dart:715:18)
+#4      _File.readAsLinesSync (dart:io/file_impl.dart:721:36)
+#5      main (file:///home/ana/notas.dart:18:36)
+#6      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#7      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p><code>PathNotFoundException</code> = "caminho não encontrado": "não consigo abrir o arquivo <code>notas.csv</code> (erro do sistema: nenhum arquivo ou diretório com esse nome)". A linha <code>#5</code> mostra onde foi no seu código: linha 18, o <code>readAsLinesSync</code>. O <code>File('notas.csv')</code> procura o arquivo na pasta <strong>de onde você rodou</strong> o <code>dart run</code>. Rode de dentro da pasta do projeto, ou confira antes com <code>File('notas.csv').existsSync()</code>; para tratar o erro com uma mensagem sua, veja <a href="excecoes.html">try, catch e finally</a>.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma nota em branco</strong>
+<p>Alguém apagou a segunda nota do Bruno na planilha, e a linha ficou <code>Bruno,5.0,,4.0</code> (duas vírgulas seguidas). O <code>split</code> entrega um campo vazio, <code>''</code>, e o <code>double.parse('')</code> não tem número para ler:</p>
+<pre class="term">$ dart run notas.dart
+Unhandled exception:
+FormatException: Invalid double
+
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      main (file:///home/ana/notas.dart:23:63)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p><code>FormatException: Invalid double</code> = "erro de formato: double inválido". A linha em branco logo abaixo não é defeito: o Dart mostra ali o texto que tentou converter, e ele estava vazio. Com <code>abc</code> no lugar da nota, apareceria <code>abc</code>.</p>
+<p><strong>Conserto:</strong> use <code>double.tryParse</code>, que devolve <code>null</code> em vez de lançar exceção, e decida o que fazer com a linha ruim. Este trecho avisa e pula o aluno:</p>
+<pre class="file" data-file="tolerante.dart">import 'dart:io';
+
+double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+void main() {
+  final linhas = File('notas.csv').readAsLinesSync();
+  for (final (i, linha) in linhas.indexed.skip(1)) {
+    if (linha.trim().isEmpty) continue; // linha em branco: pula
+    final campos = linha.split(',');
+    final notas = &lt;double&gt;[];
+    for (final campo in campos.skip(1)) {
+      final nota = double.tryParse(campo.trim());
+      if (nota == null) {
+        print('Linha ${i + 1}: nota inválida "$campo" (${campos[0]} ficou de fora)');
+        notas.clear();
+        break;
+      }
+      notas.add(nota);
+    }
+    if (notas.isEmpty) continue;
+    print('${campos[0]}: ${media(notas).toStringAsFixed(2)}');
+  }
+}
+</pre>
+<p>Com um <code>notas.csv</code> de três alunos em que o do meio é o <code>Bruno,5.0,,4.0</code>:</p>
+<pre class="term">$ dart run tolerante.dart
+Ana Clara: 8.17
+Linha 3: nota inválida "" (Bruno ficou de fora)
+Carla: 7.17
+</pre>
+<p>O <code>indexed</code> entrega cada linha junto com a posição dela (começando em 0), num record <code>(i, linha)</code> que o <code>for</code> desmonta (veja <a href="patterns.html">Patterns</a>). Por isso o aviso usa <code>i + 1</code>: a contagem humana começa em 1. O <code>trim()</code> tira espaços das pontas, e a primeira linha do laço aproveita para pular linhas em branco, comuns no fim de arquivos.</p>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A média do Bruno</h3>
+<p>As notas do Bruno são 5.0, 6.5 e 4.0. O que <code>media([5.0, 6.5, 4.0]).toStringAsFixed(2)</code> devolve?</p>
+<div class="ex-code">Resultado: <input data-answer="5.17" aria-label="resultado"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Ordem crescente</h3>
+<p>Complete para ordenar os alunos da <strong>menor</strong> para a maior média:</p>
+<div class="ex-code">alunos.sort((a, b) =&gt; <input data-answer="a.media.compareTo(b.media)" aria-label="comparação">);</div>
+</div>
+
+<div class="exercise">
+<h3>3. Dividindo a linha</h3>
+<p>Quantos itens tem a lista que <code>'Bruno,5.0,,4.0'.split(',')</code> devolve?</p>
+<div class="ex-code">Itens: <input data-answer="4" aria-label="quantidade"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que <code>var soma = 0;</code> não serve para somar notas <code>double</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>var</code> não pode mudar de valor</label>
+<label><input type="radio" name="q4"> Porque zero não pode ser somado</label>
+<label><input type="radio" name="q4"> Porque <code>soma</code> fica do tipo <code>int</code>, e um <code>double</code> não cabe nela</label>
+<label><input type="radio" name="q4"> Porque falta o <code>final</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. O que acontece com <code>double.tryParse('')</code>?</p>
+<label><input type="radio" name="q5"> Lança <code>FormatException</code></label>
+<label><input type="radio" name="q5"> Devolve <code>null</code></label>
+<label><input type="radio" name="q5"> Devolve <code>0.0</code></label>
+<label><input type="radio" name="q5"> Não compila</label>
+</div>
+
+<h3>Missão final: quem ficou de recuperação</h3>
+
+<div class="trydart" data-goal="out:Recuperação: Bruno, Fábio;;semerro">
+<p class="try-task"><strong>Missão:</strong> a coordenação quer a lista de quem ficou de recuperação (média de 5 até menos de 7), numa linha só, com os nomes separados por vírgula: <code>Recuperação: Bruno, Fábio</code>. Use <code>where</code> e <code>join(', ')</code>.</p>
+<pre class="script" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+    'Fábio': [6.0, 6.5, 5.5],
+  };
+
+  // monte a lista de nomes com média &gt;= 5 e &lt; 7
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double media(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final nota in notas) {
+    soma += nota;
+  }
+  return soma / notas.length;
+}
+
+void main() {
+  final turma = &lt;String, List&lt;double&gt;&gt;{
+    'Ana Clara': [8.5, 7.0, 9.0],
+    'Bruno': [5.0, 6.5, 4.0],
+    'Carla': [7.0, 7.0, 7.5],
+    'Diego': [3.5, 5.0, 6.0],
+    'Elisa': [10, 9.5, 9.0],
+    'Fábio': [6.0, 6.5, 5.5],
+  };
+
+  final recuperacao = turma.entries
+      .where((e) =&gt; media(e.value) &gt;= 5 &amp;&amp; media(e.value) &lt; 7)
+      .map((e) =&gt; e.key);
+  print('Recuperação: ${recuperacao.join(', ')}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Map&lt;String, List&lt;double&gt;&gt;</code> guarda "nome → notas"; <code>entries</code> percorre os pares com <code>.key</code> e <code>.value</code>.</li>
+  <li>Funções pequenas com nome (<code>media</code>, <code>situacao</code>) deixam o <code>main</code> fácil de ler.</li>
+  <li>O acumulador de <code>double</code> começa em <code>0.0</code>; com <code>0</code>, o Dart recusa: <code>A value of type 'double' can't be assigned to a variable of type 'int'</code>.</li>
+  <li>Um record junta nome, notas e média; <code>sort</code> precisa de uma função de comparação (<code>b.media.compareTo(a.media)</code> = decrescente).</li>
+  <li><code>padLeft</code>, <code>padRight</code> e <code>toStringAsFixed</code> alinham colunas.</li>
+  <li><code>File(…).readAsLinesSync()</code>, <code>split(',')</code> e <code>double.parse</code> leem o CSV; <code>writeAsStringSync</code> grava. Arquivo ausente: <code>PathNotFoundException</code>; campo vazio: <code>FormatException</code>, que o <code>double.tryParse</code> evita.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
