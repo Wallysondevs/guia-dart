@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart spread (...) — espalhando uma coleção dentro de outra | Guia Dart</title>
+<meta name="description" content="O operador spread do Dart para quem nunca programou: juntar listas com ..., pôr uma lista no meio de outra, copiar uma lista, o ...? para listas que podem ser null, spread em Map e Set, junto com o collection if, as outras formas (+ e addAll) e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">spread (...)</span></h1>
+
+<p class="intro">Na aula anterior, você pôs <code>if</code> e <code>for</code> dentro dos colchetes de uma lista (veja <a href="collection-if-for.html">if e for Dentro de Coleções</a>). Falta uma peça: como pôr <strong>uma lista inteira</strong> dentro de outra, item por item? Para isso existem os três pontinhos <code>...</code>, o operador <strong>spread</strong> (em inglês, "espalhar"). Ele pega a coleção e "espalha" os itens dela no lugar onde está escrito.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como juntar duas listas numa só com <code>[...a, ...b]</code>.</li>
+  <li>A diferença entre pôr a lista <strong>com</strong> e <strong>sem</strong> os três pontos.</li>
+  <li>Como fazer uma <strong>cópia</strong> de uma lista com <code>[...lista]</code>, e por que <code>final copia = lista;</code> não copia.</li>
+  <li>O <code>...?</code>, para espalhar uma lista que pode ser <code>null</code>.</li>
+  <li>Spread em <code>Map</code> e <code>Set</code>, e junto com o <code>if</code> de coleção.</li>
+  <li>As outras formas (<code>+</code> e <code>addAll</code>) e os erros reais que o Dart mostra.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: esvaziar a sacola no carrinho</h2>
+<p>A Ana chega ao caixa com o carrinho e com uma sacola de frutas que pegou na feira. Ela pode fazer duas coisas:</p>
+<ul>
+  <li>pôr a <strong>sacola fechada</strong> no carrinho: o carrinho fica com o pão, o leite e <strong>uma sacola</strong> (que tem frutas dentro);</li>
+  <li><strong>esvaziar a sacola</strong> no carrinho: o carrinho fica com o pão, o leite, a maçã e a banana, cada uma solta.</li>
+</ul>
+<p>Os três pontos <code>...</code> são o "esvaziar a sacola". Sem eles, a lista vai inteira, fechada, como um item só.</p>
+
+<hr>
+
+<h2>1. Juntar duas listas</h2>
+
+<pre class="file" data-file="juntar.dart">void main() {
+  final frutas = ['maçã', 'banana'];
+  final legumes = ['cenoura', 'abobrinha'];
+  final feira = [...frutas, ...legumes];
+  print(feira);
+  print('Itens: ${feira.length}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>[ … ]</dt><dd>Uma lista nova, como sempre.</dd>
+  <dt>...frutas</dt><dd>"Espalhe aqui os itens de <code>frutas</code>": entram <code>'maçã'</code> e <code>'banana'</code>, um de cada vez, na ordem. Os três pontos ficam <strong>colados</strong> no nome.</dd>
+  <dt>, ...legumes</dt><dd>Depois da vírgula, espalhe também os itens de <code>legumes</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run juntar.dart
+[maçã, banana, cenoura, abobrinha]
+Itens: 4
+</pre>
+
+<p>A lista nova tem <strong>4</strong> itens soltos. As listas <code>frutas</code> e <code>legumes</code> continuam como estavam.</p>
+
+<h3>No meio de outros itens</h3>
+<p>O spread pode ficar em qualquer posição, junto com itens comuns:</p>
+
+<pre class="file" data-file="meio.dart">void main() {
+  final frutas = ['maçã', 'banana'];
+  final feira = ['pão', ...frutas, 'leite'];
+  print(feira);
+}
+</pre>
+
+<pre class="term">$ dart run meio.dart
+[pão, maçã, banana, leite]
+</pre>
+
+<h3>E sem os três pontos?</h3>
+<p>Olhe o que acontece com a "sacola fechada":</p>
+
+<pre class="file" data-file="semspread.dart">void main() {
+  final frutas = ['maçã', 'banana'];
+  final feira = ['pão', frutas, 'leite'];
+  print(feira);
+  print('Itens: ${feira.length}');
+}
+</pre>
+
+<pre class="term">$ dart run semspread.dart
+[pão, [maçã, banana], leite]
+Itens: 3
+</pre>
+
+<p>Os colchetes de dentro, <code>[maçã, banana]</code>, mostram que a lista entrou <strong>inteira</strong>, como um item só: são 3 itens, não 4. O Dart aceitou porque a variável <code>feira</code> não tinha tipo declarado, então ele a fez uma lista de "qualquer objeto" (<code>List&lt;Object&gt;</code>). Com o tipo <code>List&lt;String&gt;</code>, ele recusaria (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<div class="trydart" data-goal="out:[pão, leite, maçã, banana, uva];;src:\.\.\.">
+<p class="try-task"><strong>Missão:</strong> a lista <code>compras</code> ficou com a sacola fechada dentro. Use o spread para que as frutas entrem soltas. O resultado deve ser <code>[pão, leite, maçã, banana, uva]</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final frutas = ['maçã', 'banana', 'uva'];
+  final compras = ['pão', 'leite', frutas];
+  print(compras);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final frutas = ['maçã', 'banana', 'uva'];
+  final compras = ['pão', 'leite', ...frutas];
+  print(compras);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Copiar uma lista</h2>
+<p>Este é um dos usos mais importantes do spread, e ele resolve uma surpresa que pega todo iniciante. Compare <code>mesma</code> e <code>copia</code>:</p>
+
+<pre class="file" data-file="copia.dart">void main() {
+  final original = ['pão', 'leite'];
+  final mesma = original;
+  final copia = [...original];
+
+  original.add('café');
+
+  print('original: $original');
+  print('mesma:    $mesma');
+  print('copia:    $copia');
+}
+</pre>
+
+<pre class="term">$ dart run copia.dart
+original: [pão, leite, café]
+mesma:    [pão, leite, café]
+copia:    [pão, leite]
+</pre>
+
+<dl class="anatomy">
+  <dt>final mesma = original;</dt><dd><strong>Não copia.</strong> Uma variável de lista guarda o <strong>endereço</strong> da lista, e não os itens. Aqui, <code>mesma</code> recebeu o mesmo endereço: são dois nomes para <strong>a mesma lista</strong>. Por isso o <code>café</code> apareceu nas duas.</dd>
+  <dt>final copia = [...original];</dt><dd><strong>Copia.</strong> Os colchetes criam uma lista <strong>nova</strong>, e o spread põe nela os itens que a original tinha naquele momento. Depois disso, as duas vivem separadas: o <code>café</code> não chegou à cópia.</dd>
+</dl>
+
+<div class="tip">
+<strong>Quando copiar</strong>
+<p>Copie antes de mexer numa lista que não é sua: por exemplo, a lista que uma função recebeu. Assim, quem chamou a função não leva um susto. A lista também tem o método <code>toList()</code>, que faz a mesma cópia: <code>original.toList()</code>.</p>
+</div>
+
+<hr>
+
+<h2>3. <code>...?</code>: quando a lista pode ser <code>null</code></h2>
+<p>Às vezes a lista pode nem existir. O pedido da padaria tem os "extras" (manteiga, geleia…), que podem ser <code>null</code> quando o cliente não pede nada (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>). O <code>...?</code> espalha a lista se ela existir e não faz nada se ela for <code>null</code>:</p>
+
+<pre class="file" data-file="nulo.dart">void main() {
+  final List&lt;String&gt;? extras = null;
+  final pedido = ['pão', ...?extras];
+  print(pedido);
+
+  final List&lt;String&gt;? extras2 = ['manteiga', 'geleia'];
+  final pedido2 = ['pão', ...?extras2];
+  print(pedido2);
+}
+</pre>
+
+<pre class="term">$ dart run nulo.dart
+[pão]
+[pão, manteiga, geleia]
+</pre>
+
+<p>O <code>List&lt;String&gt;?</code> quer dizer "uma lista de textos <strong>ou</strong> <code>null</code>". Com <code>null</code>, o pedido ficou só com o pão; com a lista, os dois extras entraram. Sem o <code>?</code>, o Dart nem compila (você vai ver a mensagem em <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>4. Em mapas e conjuntos</h2>
+
+<pre class="file" data-file="mapas.dart">void main() {
+  final precos = {'pão': 1.0, 'leite': 5.5};
+  final novos = {'café': 18.9, 'pão': 1.2};
+  final tabela = {...precos, ...novos};
+  print(tabela);
+
+  final turmaA = {'Ana', 'Bia'};
+  final turmaB = {'Bia', 'Caio'};
+  print({...turmaA, ...turmaB});
+}
+</pre>
+
+<pre class="term">$ dart run mapas.dart
+{pão: 1.2, leite: 5.5, café: 18.9}
+{Ana, Bia, Caio}
+</pre>
+
+<ul>
+  <li><strong>No <a href="map.html">Map</a></strong>, o spread copia os pares <code>chave: valor</code>. A chave <code>pão</code> estava nos dois mapas: vale o que veio <strong>por último</strong> (<code>1.2</code>, o preço novo). A posição continua a da primeira vez que a chave apareceu.</li>
+  <li><strong>No <a href="set.html">Set</a></strong>, a <code>Bia</code>, que está nas duas turmas, aparece uma vez só, como todo conjunto.</li>
+</ul>
+
+<hr>
+
+<h2>5. Spread + <code>if</code>: vários itens de uma vez</h2>
+<p>O <code>if</code> de coleção põe <strong>um</strong> item. Para pôr <strong>vários</strong> sob a mesma condição, espalhe uma lista depois do <code>if</code>:</p>
+
+<pre class="file" data-file="comif.dart">void main() {
+  final temVisita = true;
+  final compras = [
+    'pão',
+    'leite',
+    if (temVisita) ...['bolo', 'refrigerante', 'guardanapo'],
+  ];
+  print(compras);
+}
+</pre>
+
+<pre class="term">$ dart run comif.dart
+[pão, leite, bolo, refrigerante, guardanapo]
+</pre>
+
+<p>Lê-se: "se tem visita, espalhe aqui o bolo, o refrigerante e o guardanapo". Com <code>temVisita = false</code>, nenhum dos três entra.</p>
+
+<div class="trydart" data-goal="out:[caderno, lápis, guarda-chuva, capa];;src:if\s*\(.*\.\.\.">
+<p class="try-task"><strong>Missão:</strong> quando chove, a Ana leva o guarda-chuva <strong>e</strong> a capa. Acrescente à mochila, com um <code>if</code> e um spread, os itens de <code>paraChuva</code> só se <code>chovendo</code> for verdadeiro.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final chovendo = true;
+  final paraChuva = ['guarda-chuva', 'capa'];
+  final mochila = [
+    'caderno',
+    'lápis',
+  ];
+  print(mochila);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final chovendo = true;
+  final paraChuva = ['guarda-chuva', 'capa'];
+  final mochila = [
+    'caderno',
+    'lápis',
+    if (chovendo) ...paraChuva,
+  ];
+  print(mochila);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+
+<pre class="file" data-file="formas.dart">void main() {
+  final frutas = ['maçã', 'banana'];
+  final legumes = ['cenoura'];
+
+  final a = [...frutas, ...legumes];
+
+  final b = frutas + legumes;
+
+  final c = &lt;String&gt;[];
+  c.addAll(frutas);
+  c.addAll(legumes);
+
+  print(a);
+  print(b);
+  print(c);
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+[maçã, banana, cenoura]
+[maçã, banana, cenoura]
+[maçã, banana, cenoura]
+</pre>
+
+<ol class="passo">
+  <li><strong>Spread:</strong> a lista nasce pronta e aceita itens soltos, <code>if</code> e <code>for</code> no meio.</li>
+  <li><strong><code>+</code>:</strong> soma duas listas e devolve uma nova. Curto, mas só junta listas (não dá para pôr um item solto no meio) e não existe para <code>Map</code> nem <code>Set</code>.</li>
+  <li><strong><code>addAll</code></strong> ("acrescentar todos"): acrescenta os itens numa lista que <strong>já existe</strong>, mudando-a (veja <a href="list-metodos.html">Métodos de Lista</a>).</li>
+</ol>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Montar uma lista nova com partes de outras e itens soltos</td><td><code>[...a, 'x', ...b]</code></td></tr>
+<tr><td>Só juntar duas listas</td><td><code>[...a, ...b]</code> ou <code>a + b</code></td></tr>
+<tr><td>Acrescentar itens numa lista que já existe</td><td><code>lista.addAll(outra)</code></td></tr>
+<tr><td>Copiar uma lista</td><td><code>[...lista]</code> ou <code>lista.toList()</code></td></tr>
+<tr><td>A lista pode ser <code>null</code></td><td><code>[...?talvez]</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Espalhou uma lista que pode ser <code>null</code>, sem o <code>?</code></strong>
+<pre class="file" data-file="nuloerro.dart">void main() {
+  final List&lt;String&gt;? extras = null;
+  final pedido = ['pão', ...extras];
+  print(pedido);
+}
+</pre>
+<pre class="term">$ dart run nuloerro.dart
+nuloerro.dart:3:29: Error: An expression whose value can be 'null' must be null-checked before it can be dereferenced.
+  final pedido = ['pão', ...extras];
+                            ^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>nuloerro.dart:3:29</dt><dd>Arquivo, linha 3, coluna 29: o <code>^</code> aponta para o <code>extras</code>.</dd>
+  <dt>An expression whose value can be 'null' must be null-checked before it can be dereferenced.</dt><dd>"Uma expressão que pode valer <code>null</code> precisa ser conferida antes de ser usada." O tipo <code>List&lt;String&gt;?</code> avisa que <code>extras</code> pode ser <code>null</code>, e não dá para espalhar "nada". O Dart barra isso <strong>antes</strong> de rodar: é a <a href="null-safety.html">null safety</a> trabalhando.</dd>
+  <dt>echo $? → 254</dt><dd>Código de saída de erro de compilação.</dd>
+</dl>
+<p><strong>Como consertar:</strong> use <code>...?extras</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>!</code> e a lista era mesmo <code>null</code></strong>
+<p>O <code>!</code> diz ao Dart "confie em mim, não é <code>null</code>" (veja <a href="late.html">late e o Operador !</a>). Se for, o erro só aparece na hora de rodar:</p>
+<pre class="file" data-file="bang.dart">void main() {
+  final List&lt;String&gt;? extras = null;
+  final pedido = ['pão', ...extras!];
+  print(pedido);
+}
+</pre>
+<pre class="term">$ dart run bang.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/bang.dart:3:35)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": compilou, começou a rodar e falhou no meio.</dd>
+  <dt>Null check operator used on a null value</dt><dd>"O operador de checagem de nulo (o <code>!</code>) foi usado num valor <code>null</code>." Você prometeu que não era <code>null</code>, e era.</dd>
+  <dt>#0 main (file:///home/ana/bang.dart:3:35)</dt><dd>Onde: na função <code>main</code>, linha 3, coluna 35 (o <code>!</code>). As linhas <code>#1</code> e <code>#2</code> são o Dart preparando o programa.</dd>
+  <dt>echo $? → 255</dt><dd>Código de saída de exceção não tratada.</dd>
+</dl>
+<p><strong>Como consertar:</strong> troque <code>...extras!</code> por <code>...?extras</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Os tipos não combinam</strong>
+<pre class="file" data-file="tipo.dart">void main() {
+  final nomes = ['Ana', 'Bia'];
+  final idades = [30, 25];
+  final List&lt;String&gt; tudo = [...nomes, ...idades];
+  print(tudo);
+}
+</pre>
+<pre class="term">$ dart run tipo.dart
+tipo.dart:4:43: Error: Can't assign spread elements of type 'int' to collection elements of type 'String'.
+  final List&lt;String&gt; tudo = [...nomes, ...idades];
+                                          ^
+</pre>
+<p>"Não dá para pôr itens espalhados do tipo <code>int</code> numa coleção de <code>String</code>." A lista <code>tudo</code> só aceita textos, e <code>idades</code> tem números. <strong>Como consertar:</strong> converta os números (<code>...[for (final i in idades) '$i']</code>) ou mude o tipo da lista.</p>
+</div>
+
+<div class="cenario">
+<strong>Espalhou algo que não é uma coleção</strong>
+<pre class="file" data-file="numero.dart">void main() {
+  final quantidade = 3;
+  final lista = ['pão', ...quantidade];
+  print(lista);
+}
+</pre>
+<pre class="term">$ dart run numero.dart
+numero.dart:3:28: Error: Unexpected type 'int' of a spread.  Expected 'dynamic' or an Iterable.
+  final lista = ['pão', ...quantidade];
+                           ^
+</pre>
+<p>"Tipo inesperado <code>int</code> num spread. Era esperado um <code>Iterable</code>" (algo que se percorre item por item, como uma lista ou um conjunto). Um número não tem itens para espalhar. O mesmo acontece ao espalhar um <strong>mapa dentro de uma lista</strong>: sai <code>Unexpected type 'Map&lt;String, double&gt;' of a spread.</code>. Para levar só as chaves de um mapa para uma lista, espalhe <code>...precos.keys</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os três pontos numa lista com tipo</strong>
+<pre class="file" data-file="tipada.dart">void main() {
+  final frutas = ['maçã', 'banana'];
+  final List&lt;String&gt; feira = ['pão', frutas, 'leite'];
+  print(feira);
+}
+</pre>
+<pre class="term">$ dart run tipada.dart
+tipada.dart:3:38: Error: A value of type 'List&lt;String&gt;' can't be assigned to a variable of type 'String'.
+ - 'List' is from 'dart:core'.
+  final List&lt;String&gt; feira = ['pão', frutas, 'leite'];
+                                     ^
+</pre>
+<p>"Um valor do tipo <code>List&lt;String&gt;</code> não pode ser guardado onde se espera um <code>String</code>." É a sacola fechada da seção 1, agora barrada porque a lista diz que só aceita textos. <strong>Como consertar:</strong> <code>...frutas</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>[...a, ...b]</code></td><td>Lista nova com os itens de <code>a</code> e depois os de <code>b</code></td></tr>
+<tr><td><code>['x', ...a, 'y']</code></td><td>Itens de <code>a</code> no meio de itens soltos</td></tr>
+<tr><td><code>[...lista]</code></td><td>Cópia independente da lista</td></tr>
+<tr><td><code>[...?talvez]</code></td><td>Espalha se não for <code>null</code>; se for, não põe nada</td></tr>
+<tr><td><code>{...m1, ...m2}</code></td><td>Junta mapas; chave repetida fica com o valor do último</td></tr>
+<tr><td><code>{...s1, ...s2}</code></td><td>Junta conjuntos, sem repetidos</td></tr>
+<tr><td><code>[if (cond) ...outra]</code></td><td>Vários itens sob uma condição</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>[pão, [maçã, banana], leite]</code></td><td>Faltaram os <code>...</code>: a lista entrou fechada</td></tr>
+<tr><td><code>must be null-checked before it can be dereferenced</code></td><td>Espalhou uma lista anulável: use <code>...?</code></td></tr>
+<tr><td><code>Null check operator used on a null value</code></td><td>Usou <code>...lista!</code> e ela era <code>null</code></td></tr>
+<tr><td><code>Can't assign spread elements of type …</code></td><td>Os itens espalhados não são do tipo da lista</td></tr>
+<tr><td><code>Unexpected type '…' of a spread</code></td><td>Espalhou algo que não é lista/conjunto (um número, um mapa numa lista)</td></tr>
+<tr><td>A "cópia" muda junto com a original</td><td>Fez <code>final b = a;</code> (mesma lista); copie com <code>[...a]</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para juntar as duas turmas numa lista só:</p>
+<div class="ex-code">final todos = [<input data-answer="..." aria-label="operador">turmaA, <input data-answer="..." aria-label="operador">turmaB];</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos itens?</h3>
+<p><code>final a = [1, 2];</code> e <code>final b = [0, a, 3];</code>. Quantos itens tem <code>b</code>?</p>
+<div class="ex-code"><input data-answer="3" aria-label="número de itens"> itens</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>final a = ['x'];</code>, <code>final b = a;</code>, <code>final c = [...a];</code>, depois <code>a.add('y');</code>. Quem ficou com <code>[x, y]</code>?</p>
+<label><input type="radio" name="q3"> Só <code>a</code></label>
+<label><input type="radio" name="q3"> <code>a</code> e <code>b</code></label>
+<label><input type="radio" name="q3"> <code>a</code>, <code>b</code> e <code>c</code></label>
+<label><input type="radio" name="q3"> <code>a</code> e <code>c</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. <code>extras</code> é do tipo <code>List&lt;String&gt;?</code>. Qual escrita compila e não quebra se ele for <code>null</code>?</p>
+<label><input type="radio" name="q4"> <code>['pão', ...extras]</code></label>
+<label><input type="radio" name="q4"> <code>['pão', ...extras!]</code></label>
+<label><input type="radio" name="q4"> <code>['pão', extras]</code></label>
+<label><input type="radio" name="q4"> <code>['pão', ...?extras]</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>{...{'pão': 1.0}, ...{'pão': 1.5}}</code> dá o quê?</p>
+<label><input type="radio" name="q5"> <code>{pão: 1.5}</code></label>
+<label><input type="radio" name="q5"> <code>{pão: 1.0}</code></label>
+<label><input type="radio" name="q5"> <code>{pão: 1.0, pão: 1.5}</code></label>
+<label><input type="radio" name="q5"> Erro: chave repetida</label>
+</div>
+
+<h3>Missão final: o pedido completo</h3>
+
+<div class="trydart" data-goal="out:[café, pão de queijo, bolo, suco, manteiga];;src:\.\.\.\?">
+<p class="try-task"><strong>Missão:</strong> monte <code>pedido</code> com: os itens de <code>bebidas</code> e de <code>comidas</code> (spread), mais os de <code>extras</code>, que é anulável (use <code>...?</code>). O resultado deve ser <code>[café, pão de queijo, bolo, suco, manteiga]</code>. Depois, troque <code>extras</code> para <code>null</code> e veja o programa continuar funcionando.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final bebidas = ['café'];
+  final comidas = ['pão de queijo', 'bolo', 'suco'];
+  final List&lt;String&gt;? extras = ['manteiga'];
+  final pedido = [];
+  print(pedido);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final bebidas = ['café'];
+  final comidas = ['pão de queijo', 'bolo', 'suco'];
+  final List&lt;String&gt;? extras = ['manteiga'];
+  final pedido = [...bebidas, ...comidas, ...?extras];
+  print(pedido);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Os três pontos <code>...</code> espalham os itens de uma coleção dentro de outra: <code>[...a, ...b]</code>.</li>
+  <li>Sem eles, a lista entra inteira, como um item só.</li>
+  <li><code>final b = a;</code> não copia (são dois nomes para a mesma lista); <code>[...a]</code> copia.</li>
+  <li><code>...?</code> espalha uma coleção que pode ser <code>null</code>; se for, não põe nada.</li>
+  <li>Funciona em <code>Map</code> (a chave repetida fica com o último valor) e em <code>Set</code>, e combina com o <code>if</code> e o <code>for</code> de coleção.</li>
+  <li>Próxima aula: <a href="records.html">Records</a>, um jeito de juntar valores <strong>diferentes</strong> num só.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
