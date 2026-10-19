@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Instalar — o Dart SDK no Windows, no macOS e no Linux | Guia Dart</title>
+<meta name="description" content="Como instalar o Dart SDK para quem nunca programou: winget e Chocolatey no Windows, Homebrew no macOS, o repositório apt do Google no Linux, o arquivo zip em qualquer sistema, o Dart que já vem com o Flutter, como conferir com dart --version e o que significa 'Comando dart não encontrado'.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Instalar</span></h1>
+
+<p class="intro">Para rodar programas Dart no seu computador, você precisa do <strong>Dart SDK</strong>: o kit que traz o comando <code>dart</code>. Ele é gratuito e oficial, feito pelo time do Dart no Google. Nesta aula você vê como instalá-lo no Windows, no macOS e no Linux, como conferir se deu certo e o que fazer quando o terminal responde que não conhece o <code>dart</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é o Dart SDK e o que vem dentro dele.</li>
+  <li>A instalar no <strong>Windows</strong> (winget ou Chocolatey), no <strong>macOS</strong> (Homebrew) e no <strong>Linux</strong> (o <code>apt</code> com o repositório do Google).</li>
+  <li>O jeito que funciona em qualquer sistema: o arquivo <strong>zip</strong>.</li>
+  <li>Por que, se você já tem o <strong>Flutter</strong>, já tem o Dart.</li>
+  <li>A conferir a instalação com <code>dart --version</code>.</li>
+  <li>O que quer dizer <code>Comando 'dart' não encontrado</code> e como resolver.</li>
+</ul>
+</div>
+
+<div class="tip">
+<strong>Não quer instalar nada agora?</strong>
+<p>Pode pular esta aula por enquanto. As caixas "Experimente" deste guia rodam no navegador, sem instalação (aula <a href="simulador.html">O Editor do Guia</a>). Volte aqui quando quiser rodar programas no seu computador.</p>
+</div>
+
+<p>Os comandos de instalação abaixo são os da página oficial <a href="https://dart.dev/get-dart">dart.dev/get-dart</a> (conferidos em outubro de 2026). As saídas de terminal foram colhidas na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>, Ubuntu), que tem o <strong>Dart SDK 3.13.5</strong>. O que não deu para rodar lá (Windows, macOS e o próprio processo de instalação) está marcado como <strong>ilustrativo</strong>.</p>
+
+<hr>
+
+<h2>A ideia: a caixa de ferramentas</h2>
+<p>Um marceneiro não faz uma mesa só com a vontade: ele precisa da caixa de ferramentas. O <strong>SDK</strong> (<em>Software Development Kit</em>, "kit de desenvolvimento de software") é a caixa de ferramentas do programador Dart. Tudo nela é usado pelo mesmo comando, o <code>dart</code>, seguido do nome da ferramenta:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ferramenta</th><th>Para que serve</th><th>Aula</th></tr>
+<tr><td><code>dart run</code></td><td>Rodar um programa</td><td><a href="executar.html">Rodando um Programa</a></td></tr>
+<tr><td><code>dart format</code> / <code>dart analyze</code></td><td>Arrumar o código e procurar problemas</td><td><a href="analise.html">Análise e Formatação</a></td></tr>
+<tr><td><code>dart create</code></td><td>Criar um projeto novo</td><td><a href="dart-create.html">Criando um Projeto</a></td></tr>
+<tr><td><code>dart pub</code></td><td>Baixar pacotes de outras pessoas</td><td><a href="pacotes.html">Pacotes do pub.dev</a></td></tr>
+<tr><td><code>dart compile</code></td><td>Transformar o programa num executável</td><td><a href="compilar.html">Compilando</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Antes de instalar: o computador sem Dart</h2>
+<p>Abra o terminal (no Windows, o <strong>PowerShell</strong>; no macOS e no Linux, o <strong>Terminal</strong>) e digite <code>dart --version</code>. Num computador que ainda não tem o Dart, o Ubuntu responde assim:</p>
+
+<pre class="term">$ dart --version
+Comando 'dart' não encontrado, você quis dizer:
+  comando 'zart' do deb gmic-zart (2.9.4-4.2)
+  comando 'art' do deb artemis (18.2.0+dfsg-5)
+  comando 'tart' do deb tart (3.10-3build1)
+  comando 'bart' do deb bart (0.9.00-3build1)
+  comando 'dirt' do deb dput-ng (1.44ubuntu3)
+  comando 'dat' do deb liballegro4-dev (2:4.4.3.1-7)
+  comando 'dact' do deb dact (0.8.42-6)
+  comando 'dar' do deb dar (2.8.3-1build1)
+  comando 'darts' do deb darts (0.32-20build1)
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+
+<dl class="anatomy">
+  <dt>Comando 'dart' não encontrado</dt><dd>O terminal procurou um programa chamado <code>dart</code> nas pastas de programas do sistema e não achou. Quer dizer: o Dart não está instalado (ou está, mas numa pasta que o terminal não conhece; veja a seção 6).</dd>
+  <dt>você quis dizer: …</dt><dd>O Ubuntu sugere programas com nome parecido (<code>dar</code>, <code>darts</code>, <code>tart</code>…). <strong>Nenhum deles é o Dart.</strong> Não instale nada dessa lista: o Dart SDK não vem dos pacotes comuns do Ubuntu, e sim do repositório do Google (seção 4).</dd>
+</dl>
+
+<p>No Windows, o PowerShell responde com uma mensagem parecida (ilustrativo): <code>dart : O termo 'dart' não é reconhecido como nome de cmdlet, função, arquivo de script ou programa operável.</code> No macOS, o terminal diz <code>zsh: command not found: dart</code> (ilustrativo). As três querem dizer a mesma coisa.</p>
+
+<hr>
+
+<h2>2. Windows</h2>
+<p>O Dart roda no Windows 10 e no Windows 11 (processadores x64 ou Arm64). Escolha <strong>um</strong> dos dois jeitos abaixo, no PowerShell.</p>
+
+<h3>Com o winget (já vem no Windows)</h3>
+<p>O <code>winget</code> é o instalador de programas da própria Microsoft. Ilustrativo:</p>
+<pre class="file" data-file="PowerShell">winget install --id=Google.DartSDK -e
+</pre>
+<dl class="anatomy">
+  <dt>winget install</dt><dd>"Instale um programa".</dd>
+  <dt>--id=Google.DartSDK</dt><dd>O nome exato do pacote do Dart SDK no catálogo do winget.</dd>
+  <dt>-e</dt><dd>De <em>exact</em>, "exato": instale esse id e nenhum de nome parecido.</dd>
+</dl>
+
+<h3>Com o Chocolatey</h3>
+<p>Se você já usa o Chocolatey (outro instalador de programas, que precisa ser instalado antes), abra o PowerShell <strong>como administrador</strong> e digite (ilustrativo):</p>
+<pre class="file" data-file="PowerShell">choco install dart-sdk
+</pre>
+
+<p>Depois de qualquer um dos dois, <strong>feche e abra o PowerShell de novo</strong> (o terminal só enxerga programas novos quando é aberto de novo) e confira com <code>dart --version</code> (seção 7).</p>
+
+<hr>
+
+<h2>3. macOS</h2>
+<p>No macOS, o jeito oficial é o <strong>Homebrew</strong>, o instalador de programas mais usado no Mac (instale-o antes, em <a href="https://brew.sh">brew.sh</a>). No Terminal (ilustrativo):</p>
+<pre class="file" data-file="Terminal">brew tap dart-lang/dart
+brew trust dart-lang/dart
+brew install dart
+</pre>
+<dl class="anatomy">
+  <dt>brew tap dart-lang/dart</dt><dd>Acrescenta ao Homebrew a "prateleira" (<em>tap</em>) mantida pelo time do Dart, onde fica o pacote.</dd>
+  <dt>brew trust dart-lang/dart</dt><dd>Diz ao Homebrew que você confia nessa prateleira (passo pedido pela página oficial).</dd>
+  <dt>brew install dart</dt><dd>Baixa e instala o Dart SDK.</dd>
+</dl>
+
+<hr>
+
+<h2>4. Linux (Ubuntu, Debian): o <code>apt</code> com o repositório do Google</h2>
+<p>O Dart SDK não está nos pacotes normais do Ubuntu e do Debian. O time do Dart mantém um <strong>repositório</strong> (um "armazém" de pacotes) próprio, e você precisa avisar o <code>apt</code> que ele existe. Os passos 1 a 3 são feitos <strong>só uma vez</strong>; o passo 4 instala. Ilustrativo (a máquina da Ana já veio com o Dart):</p>
+
+<pre class="file" data-file="Terminal">sudo apt-get update &amp;&amp; sudo apt-get install apt-transport-https gpg
+wget -qO- https://dl-ssl.google.com/linux/linux_signing_key.pub \
+  | sudo gpg --dearmor -o /usr/share/keyrings/dart.gpg
+echo 'deb [signed-by=/usr/share/keyrings/dart.gpg arch=amd64] https://storage.googleapis.com/download.dartlang.org/linux/debian stable main' \
+  | sudo tee /etc/apt/sources.list.d/dart_stable.list
+sudo apt-get update &amp;&amp; sudo apt-get install dart
+</pre>
+
+<ol class="passo">
+  <li><strong>Prepara o <code>apt</code>:</strong> atualiza a lista de pacotes e instala duas ferramentas que os próximos passos usam (<code>gpg</code> confere assinaturas digitais).</li>
+  <li><strong>Baixa a chave do Google:</strong> o <code>wget</code> baixa a chave pública de assinatura e o <code>gpg --dearmor</code> a guarda em <code>/usr/share/keyrings/dart.gpg</code>. Com ela, o <code>apt</code> confere que os pacotes vieram mesmo do Google e não foram trocados no caminho.</li>
+  <li><strong>Cadastra o repositório:</strong> cria o arquivo <code>/etc/apt/sources.list.d/dart_stable.list</code> com o endereço do armazém do Dart, canal <code>stable</code> (estável). O <code>arch=amd64</code> é o tipo de processador: troque por <code>arm64</code>, <code>armhf</code> ou <code>riscv64</code> se o seu for outro.</li>
+  <li><strong>Instala:</strong> atualiza a lista de novo (agora com o repositório do Dart) e instala o pacote <code>dart</code>.</li>
+</ol>
+
+<p>O pacote coloca o SDK em <code>/usr/lib/dart</code> e cria o atalho <code>/usr/bin/dart</code>. Na máquina da Ana, o Dart está exatamente nesses lugares:</p>
+
+<pre class="term">$ which dart
+/usr/bin/dart
+$ readlink -f /usr/bin/dart
+/usr/lib/dart/bin/dart
+$ cat /usr/lib/dart/version
+3.13.5
+</pre>
+
+<dl class="anatomy">
+  <dt>which dart</dt><dd>"Qual <code>dart</code>?": mostra onde está o programa que o terminal roda quando você digita <code>dart</code>.</dd>
+  <dt>readlink -f /usr/bin/dart</dt><dd>O <code>/usr/bin/dart</code> é um <strong>atalho</strong> (link); o <code>readlink -f</code> mostra para onde ele aponta: o programa de verdade, dentro de <code>/usr/lib/dart/bin</code>.</dd>
+  <dt>/usr/lib/dart/version</dt><dd>Um arquivo de texto com a versão do SDK instalado.</dd>
+</dl>
+
+<p>Para <strong>atualizar</strong> o Dart mais tarde, basta o passo 4 de novo: <code>sudo apt-get update &amp;&amp; sudo apt-get install dart</code>.</p>
+
+<hr>
+
+<h2>5. O jeito que funciona em qualquer sistema: o arquivo zip</h2>
+<p>Sem instalador nenhum: você baixa o SDK compactado da página oficial do arquivo de versões (<a href="https://dart.dev/get-dart/archive">dart.dev/get-dart/archive</a>), escolhendo o sistema e o processador, e descompacta numa pasta sua. Ele vem numa pasta chamada <code>dart-sdk</code>, com os programas dentro de <code>dart-sdk/bin</code>. É também o jeito de ter versões de teste (<em>beta</em> e <em>dev</em>) ou várias versões lado a lado.</p>
+
+<p>O único trabalho extra é avisar o terminal onde está o <code>dart</code>, colocando a pasta <code>bin</code> no <strong>PATH</strong>: a lista de pastas onde o terminal procura programas. No Linux, se você descompactou em <code>/home/ana/dart-sdk</code>, acrescente esta linha ao fim do arquivo <code>~/.bashrc</code> e abra um terminal novo (ilustrativo):</p>
+
+<pre class="file" data-file=".bashrc">export PATH="$PATH:$HOME/dart-sdk/bin"
+</pre>
+
+<p>No Windows, o caminho é parecido: descompacte, por exemplo, em <code>C:\dart-sdk</code> e acrescente <code>C:\dart-sdk\bin</code> à variável <strong>Path</strong> em "Editar as variáveis de ambiente do sistema" (ilustrativo).</p>
+
+<hr>
+
+<h2>6. Já tem o Flutter? Então já tem o Dart</h2>
+<p>O <strong>Flutter SDK</strong> traz o <strong>Dart SDK completo</strong> dentro dele: o comando <code>dart</code> fica na pasta <code>bin</code> do Flutter, ao lado do comando <code>flutter</code>. Se você instalou o Flutter e o <code>flutter --version</code> funciona, o <code>dart --version</code> também funciona e você <strong>não</strong> precisa instalar o Dart separado.</p>
+
+<p>O contrário não vale: instalar o Dart não instala o Flutter. A máquina da Ana tem só o Dart SDK:</p>
+
+<pre class="term">$ flutter --version
+Comando 'flutter' não encontrado, você quis dizer:
+  comando 'fluster' do deb fluster (1.0.1+really0.6.0-2)
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+
+<p>Mais sobre a dupla em <a href="flutter.html">Dart e Flutter</a>.</p>
+
+<div class="warning">
+<strong>Dois Darts no mesmo computador</strong>
+<p>Se você instalar o Dart sozinho <strong>e</strong> o Flutter, vai ter dois Darts, possivelmente de versões diferentes. O terminal usa o que achar primeiro no PATH. Na dúvida, <code>which dart</code> (Linux e macOS) ou <code>where.exe dart</code> (Windows) mostra qual está sendo usado.</p>
+</div>
+
+<hr>
+
+<h2>7. Conferindo: <code>dart --version</code></h2>
+<p>Em qualquer sistema, abra um terminal <strong>novo</strong> e digite:</p>
+
+<pre class="term">$ dart --version
+Dart SDK version: 3.13.5 (stable) (Tue Sep 29 01:00:52 2026 -0700) on "linux_x64"
+</pre>
+
+<dl class="anatomy">
+  <dt>Dart SDK version: 3.13.5</dt><dd>A versão instalada. A sua pode ser mais nova; qualquer Dart <strong>3.x</strong> serve para este guia.</dd>
+  <dt>(stable)</dt><dd>O <strong>canal</strong>: <code>stable</code> é a versão estável, a recomendada.</dd>
+  <dt>(Tue Sep 29 01:00:52 2026 -0700)</dt><dd>Quando essa versão foi gerada pelo time do Dart.</dd>
+  <dt>on "linux_x64"</dt><dd>Para qual sistema e processador ela foi feita: Linux, processador x64. No Windows aparece <code>windows_x64</code>; num Mac com chip Apple, <code>macos_arm64</code> (ilustrativo).</dd>
+</dl>
+
+<p>Se apareceu uma linha assim, o Dart está instalado. Digitar só <code>dart</code>, sem nada depois, mostra a lista de ferramentas da seção "A ideia":</p>
+
+<pre class="term">$ dart
+A command-line utility for Dart development.
+
+Usage: dart &lt;command|dart-file&gt; [arguments]
+
+Global options:
+-v, --verbose               Show additional command output.
+    --version               Print the Dart SDK version.
+    --enable-analytics      Enable analytics.
+    --disable-analytics     Disable analytics.
+    --suppress-analytics    Disallow analytics for this `dart *` run without changing the analytics configuration.
+-h, --help                  Print this usage information.
+
+Available commands:
+
+Global
+  install     Install or upgrade a Dart CLI tool for global use.
+  installed   List globally installed Dart CLI tools.
+  uninstall   Remove a globally installed Dart CLI tool.
+
+Project
+  build       Build a Dart application including code assets.
+  compile     Compile Dart to various formats.
+  create      Create a new Dart project.
+  pub         Work with packages.
+  run         Run a Dart program from a file or a local or remote package.
+  test        Run tests for a project.
+
+Source code
+  analyze     Analyze Dart code in a directory.
+  doc         Generate API documentation for Dart projects.
+  fix         Apply automated fixes to Dart source code.
+  format      Idiomatically format Dart source code.
+
+Tools
+  devtools    Open DevTools (optionally connecting to an existing application).
+  info        Show diagnostic information about the installed tooling.
+
+Run "dart help &lt;command&gt;" for more information about a command.
+See https://dart.dev/tools/dart-tool for detailed documentation.
+</pre>
+
+<p>A primeira linha diz "uma ferramenta de linha de comando para desenvolvimento em Dart". Embaixo vêm as opções gerais e os comandos disponíveis, cada um com uma frase explicando. Não precisa decorar nada disso: o guia apresenta cada comando na hora certa.</p>
+
+<div class="trydart" data-goal="out:O Dart está pronto!">
+<p class="try-task"><strong>Missão:</strong> enquanto o Dart não chega ao seu computador, use o editor do guia. Mude o texto para <code>O Dart está pronto!</code> e clique em Rodar.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Instalando...');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('O Dart está pronto!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Formas diferentes de instalar: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sistema</th><th>Recomendado</th><th>Alternativa</th><th>Atualizar</th></tr>
+<tr><td>Windows</td><td><code>winget install --id=Google.DartSDK -e</code></td><td><code>choco install dart-sdk</code> ou zip</td><td><code>winget upgrade --id=Google.DartSDK -e</code> / <code>choco upgrade dart-sdk</code></td></tr>
+<tr><td>macOS</td><td><code>brew install dart</code> (depois do <code>tap</code> e do <code>trust</code>)</td><td>zip</td><td><code>brew upgrade dart</code></td></tr>
+<tr><td>Linux</td><td><code>apt</code> com o repositório do Google</td><td>zip</td><td><code>sudo apt-get update &amp;&amp; sudo apt-get install dart</code></td></tr>
+<tr><td>Quem vai usar Flutter</td><td>Instale só o Flutter: o Dart vem junto</td><td>—</td><td>O Dart atualiza com o Flutter</td></tr>
+</table>
+</div>
+
+<p>Para escrever os programas, qualquer editor de texto serve. O mais usado com Dart é o <strong>VS Code</strong> com a extensão oficial <strong>Dart</strong>, que colore o código e mostra os erros enquanto você digita.</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>"Comando 'dart' não encontrado" depois de instalar</strong>
+<p>Você instalou, mas o terminal continua sem achar o <code>dart</code>. As causas, da mais comum para a menos comum:</p>
+<ol>
+  <li><strong>O terminal estava aberto durante a instalação.</strong> Feche e abra de novo.</li>
+  <li><strong>Instalou pelo zip e não pôs a pasta <code>bin</code> no PATH</strong> (seção 5), ou pôs a pasta errada: tem de ser a <code>dart-sdk/bin</code>, não a <code>dart-sdk</code>.</li>
+  <li><strong>O <code>apt</code> não instalou</strong> porque faltou um dos passos 1 a 3 (aí o <code>apt-get install dart</code> responde que não encontrou o pacote).</li>
+</ol>
+</div>
+
+<div class="cenario">
+<strong><code>Dart</code> com D maiúsculo</strong>
+<pre class="term">$ Dart --version
+Comando 'Dart' não encontrado, você quis dizer:
+  comando 'tart' do deb tart (3.10-3build1)
+  comando 'art' do deb artemis (18.2.0+dfsg-5)
+  comando 'zart' do deb gmic-zart (2.9.4-4.2)
+  comando 'bart' do deb bart (0.9.00-3build1)
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+<p>No Linux e no macOS, maiúsculas e minúsculas fazem diferença nos nomes de comandos: <code>Dart</code> e <code>dart</code> são nomes diferentes, e só o segundo existe. Aqui o Dart <strong>está</strong> instalado; o erro é só de digitação. <strong>Como consertar:</strong> tudo minúsculo, <code>dart --version</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Opção escrita errado</strong>
+<pre class="term">$ dart --verson
+Could not find an option named "--verson".
+
+Usage: dart &lt;command|dart-file&gt; [arguments]
+…
+$ echo $?
+64
+</pre>
+<p>"Não encontrei uma opção chamada <code>--verson</code>". Desta vez o <code>dart</code> foi achado (então está instalado), mas ele não conhece a opção, que tem uma letra faltando. Depois da mensagem ele mostra a mesma ajuda do <code>dart</code> sozinho (cortada aqui com <code>…</code>), para você achar a opção certa. O código de saída <code>64</code> é o jeito de o <code>dart</code> dizer "você usou o comando errado". <strong>Como consertar:</strong> <code>dart --version</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart --version</code></td><td>Mostra a versão instalada (e prova que o Dart está no PATH)</td></tr>
+<tr><td><code>dart</code> ou <code>dart --help</code></td><td>Lista as ferramentas do SDK</td></tr>
+<tr><td><code>which dart</code> / <code>where.exe dart</code></td><td>Mostra onde está o <code>dart</code> que o terminal usa</td></tr>
+<tr><td><code>winget install --id=Google.DartSDK -e</code></td><td>Instala no Windows</td></tr>
+<tr><td><code>choco install dart-sdk</code></td><td>Instala no Windows com o Chocolatey</td></tr>
+<tr><td><code>brew install dart</code></td><td>Instala no macOS (depois do <code>tap</code> e do <code>trust</code>)</td></tr>
+<tr><td><code>sudo apt-get install dart</code></td><td>Instala no Linux (depois de cadastrar o repositório)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Comando 'dart' não encontrado</code></td><td>Dart não instalado, terminal aberto antes da instalação ou <code>bin</code> fora do PATH</td></tr>
+<tr><td><code>Comando 'Dart' não encontrado</code></td><td>Letra maiúscula no nome do comando</td></tr>
+<tr><td><code>Could not find an option named "--verson"</code></td><td>Opção escrita errado</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Conferindo</h3>
+<p>Complete o comando que mostra a versão do Dart instalada:</p>
+<div class="ex-code">dart <input data-answer="--version" aria-label="opção"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Linux</h3>
+<p>No Linux, depois de cadastrar o repositório do Google, qual é o nome do pacote que você instala?</p>
+<div class="ex-code">sudo apt-get install <input data-answer="dart" aria-label="pacote"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A Bia já usa o Flutter e o <code>flutter --version</code> funciona. O que ela precisa fazer para ter o Dart?</p>
+<label><input type="radio" name="q3"> Instalar o Dart SDK separado, pelo winget</label>
+<label><input type="radio" name="q3"> Nada: o Flutter já traz o Dart SDK completo</label>
+<label><input type="radio" name="q3"> Instalar um dos pacotes que o Ubuntu sugere, como <code>darts</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. A Ana acabou de instalar o Dart pelo winget e, no mesmo PowerShell que já estava aberto, o <code>dart --version</code> diz que <code>dart</code> não é reconhecido. O que ela deve tentar primeiro?</p>
+<label><input type="radio" name="q4"> Desinstalar e instalar de novo</label>
+<label><input type="radio" name="q4"> Trocar para o Chocolatey</label>
+<label><input type="radio" name="q4"> Fechar e abrir o PowerShell de novo</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Na saída <code>Dart SDK version: 3.13.5 (stable) … on "linux_x64"</code>, o que é <code>stable</code>?</p>
+<label><input type="radio" name="q5"> O canal da versão: a estável, recomendada</label>
+<label><input type="radio" name="q5"> O nome do computador</label>
+<label><input type="radio" name="q5"> O tipo de processador</label>
+</div>
+
+<h3>Missão final: o recado da instalação</h3>
+
+<div class="trydart" data-goal="outre:^Dart instalado\nAgora é só programar\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa abaixo tem um erro (rode e veja). Conserte-o para mostrar exatamente <code>Dart instalado</code> e, na linha de baixo, <code>Agora é só programar</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Dart instalado')
+  print('Agora é só programar');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Dart instalado');
+  print('Agora é só programar');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O <strong>Dart SDK</strong> é a caixa de ferramentas do Dart; todas as ferramentas se usam pelo comando <code>dart</code>.</li>
+  <li><strong>Windows:</strong> <code>winget install --id=Google.DartSDK -e</code> ou <code>choco install dart-sdk</code>.</li>
+  <li><strong>macOS:</strong> <code>brew tap dart-lang/dart</code>, <code>brew trust dart-lang/dart</code> e <code>brew install dart</code>.</li>
+  <li><strong>Linux:</strong> cadastre o repositório do Google uma vez e instale com <code>sudo apt-get install dart</code>; ele fica em <code>/usr/lib/dart</code>, com o atalho <code>/usr/bin/dart</code>.</li>
+  <li><strong>Zip:</strong> funciona em qualquer sistema; ponha a pasta <code>dart-sdk/bin</code> no PATH.</li>
+  <li>Quem tem o <strong>Flutter</strong> já tem o Dart.</li>
+  <li>Confira com <code>dart --version</code> num terminal novo. <code>Comando 'dart' não encontrado</code> = não instalado, terminal antigo ou fora do PATH.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
