@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Future — um valor que fica pronto depois | Guia Dart</title>
+<meta name="description" content="Future no Dart para quem nunca programou: o que é um Future&lt;String&gt;, Future.delayed, a ordem real de execução (o código de baixo roda antes), then, encadeamento, whenComplete, catchError, Future.wait, o Instance of 'Future&lt;String&gt;' e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Future</span></h1>
+
+<p class="intro">Até aqui, cada linha dos seus programas terminava antes de a próxima começar. Mas algumas tarefas <strong>demoram</strong>: baixar uma página da internet, ler um arquivo grande, esperar o servidor responder. Se o programa ficasse parado esperando, tudo travaria. Em vez disso, o Dart entrega na hora um <strong>Future</strong> (em inglês, "futuro"): uma promessa de que o valor vai ficar pronto <strong>depois</strong>. Esta é a primeira aula do <strong>código assíncrono</strong>, o código que não acontece tudo de uma vez, em ordem.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um <code>Future&lt;String&gt;</code> e por que o <code>print</code> dele mostra <code>Instance of 'Future&lt;String&gt;'</code>.</li>
+  <li>Como simular uma tarefa demorada com <code>Future.delayed</code>.</li>
+  <li>A <strong>ordem real</strong> em que as coisas acontecem (a linha de baixo roda antes do Future ficar pronto).</li>
+  <li>Como usar o valor quando ele chegar: <code>then</code>, encadeado, e <code>whenComplete</code>.</li>
+  <li>Como tratar um erro que acontece "no futuro" com <code>catchError</code>, e como esperar vários Futures com <code>Future.wait</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. As tarefas "demoradas" aqui são de mentira: um <code>Future.delayed</code> que só espera alguns segundos. Nas aulas <a href="arquivos.html">Arquivos</a> e <a href="pacotes.html">Pacotes</a> você vê Futures de verdade (ler arquivo, acessar a internet).</p>
+
+<hr>
+
+<h2>A ideia: a senha da lanchonete</h2>
+<p>Na lanchonete, a Ana pede um sanduíche no caixa. A atendente não faz a Ana esperar parada no balcão enquanto o sanduíche fica pronto: ela entrega <strong>uma senha</strong> na hora. A Ana vai pegar um suco, senta, conversa. Quando o sanduíche fica pronto, chamam a senha dela, e aí ela pega o sanduíche.</p>
+<ul>
+  <li>A <strong>senha</strong> é o <code>Future</code>. Ela chega na hora, mas ainda não é o sanduíche: é a promessa de um sanduíche.</li>
+  <li>Enquanto espera, a Ana faz outras coisas: o programa <strong>continua</strong> rodando as linhas seguintes.</li>
+  <li>"Quando chamarem a senha, pegue o sanduíche" é o <code>then</code> ("então").</li>
+  <li>A senha pode ser chamada com uma má notícia ("acabou o pão"): o Future termina com um <strong>erro</strong>.</li>
+</ul>
+<p>O tipo diz o que a senha promete: <code>Future&lt;String&gt;</code> é "um texto que vai ficar pronto depois"; <code>Future&lt;int&gt;</code>, um número (o <code>&lt;…&gt;</code> é um <a href="genericos.html">genérico</a>).</p>
+
+<hr>
+
+<h2>1. O primeiro Future, e a ordem real</h2>
+
+<pre class="file" data-file="f1.dart">Future&lt;String&gt; assarPao() {
+  return Future.delayed(Duration(seconds: 2), () =&gt; 'pão quentinho');
+}
+
+void main() {
+  print('1. Ana pede um pão');
+  final pedido = assarPao();
+  print('2. Ela recebe o comprovante: $pedido');
+  pedido.then((pao) {
+    print('4. Ficou pronto: $pao');
+  });
+  print('3. Enquanto isso, ela paga o café');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Future&lt;String&gt; assarPao()</dt><dd>A função não devolve um <code>String</code>: devolve a <strong>promessa</strong> de um <code>String</code>.</dd>
+  <dt>Future.delayed(Duration(seconds: 2), () =&gt; 'pão quentinho')</dt><dd>"Futuro atrasado": cria um Future que espera 2 segundos (<code>Duration</code> = "duração") e depois roda a função <code>() =&gt; 'pão quentinho'</code>; o resultado dela vira o valor do Future. É o jeito de <strong>fingir</strong> uma tarefa demorada.</dd>
+  <dt>final pedido = assarPao();</dt><dd>Volta <strong>na hora</strong>, sem esperar os 2 segundos. O <code>pedido</code> é a senha.</dd>
+  <dt>pedido.then((pao) { … })</dt><dd>"Quando ficar pronto, então faça isto". O <code>then</code> recebe uma <a href="funcoes-anonimas.html">função anônima</a>; o Dart a chama mais tarde, passando o valor pronto em <code>pao</code>. O <code>then</code> também volta na hora.</dd>
+</dl>
+
+<pre class="term">$ dart run f1.dart
+1. Ana pede um pão
+2. Ela recebe o comprovante: Instance of 'Future&lt;String&gt;'
+3. Enquanto isso, ela paga o café
+4. Ficou pronto: pão quentinho
+</pre>
+
+<p>Siga a ordem com calma, porque ela é o coração do assíncrono:</p>
+<ol class="passo">
+  <li>O <code>main</code> roda de cima a baixo <strong>sem parar</strong>: mostra o 1, pede o pão (recebe a senha na hora), mostra o 2, registra o <code>then</code> e mostra o 3. Aí o <code>main</code> acaba.</li>
+  <li>O programa <strong>não</strong> termina ainda: há um Future pendente. O Dart espera.</li>
+  <li>Dois segundos depois, o pão fica pronto, e o Dart chama a função do <code>then</code>: aparece o 4.</li>
+  <li>Nada mais pendente: agora sim o programa termina.</li>
+</ol>
+<p>Repare na linha 2: <code>Instance of 'Future&lt;String&gt;'</code>. Mostrar a senha não mostra o pão; para pegar o valor, é preciso esperar por ele (com <code>then</code>, ou com o <code>await</code> da próxima aula).</p>
+
+<div class="trydart" data-goal="out:Pronto: bolo de cenoura;;src:\.then\(">
+<p class="try-task"><strong>Missão:</strong> rode e veja <code>Pronto: Instance of 'Future&lt;String&gt;'</code>: o programa mostrou a senha, não o bolo. Use o <code>then</code> para mostrar o bolo quando ele ficar pronto: <code>assarBolo().then((bolo) { print('Pronto: $bolo'); });</code></p>
+<pre class="script" data-file="main.dart">Future&lt;String&gt; assarBolo() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'bolo de cenoura');
+
+void main() {
+  final bolo = assarBolo();
+  print('Pronto: $bolo');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;String&gt; assarBolo() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'bolo de cenoura');
+
+void main() {
+  assarBolo().then((bolo) {
+    print('Pronto: $bolo');
+  });
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Quem vai primeiro? A fila de tarefas</h2>
+<p>O Dart roda <strong>uma coisa de cada vez</strong>. O que é síncrono (as linhas normais do <code>main</code>) vai até o fim primeiro; só depois o Dart olha a fila de tarefas que ficaram para depois. A Ana colocou várias tarefas na fila de propósito, para ver a ordem:</p>
+
+<pre class="file" data-file="f2.dart">void main() {
+  print('A');
+  Future.delayed(Duration(seconds: 1), () =&gt; print('B (1 segundo)'));
+  Future.delayed(Duration.zero, () =&gt; print('C (zero segundos)'));
+  Future(() =&gt; print('D (Future comum)'));
+  Future.value('E').then((v) =&gt; print('$v (Future.value + then)'));
+  print('F');
+}
+</pre>
+
+<pre class="term">$ dart run f2.dart
+A
+F
+E (Future.value + then)
+C (zero segundos)
+D (Future comum)
+B (1 segundo)
+</pre>
+
+<ul>
+  <li><strong>A e F</strong> vieram primeiro: são as linhas normais do <code>main</code>. Nenhum Future "fura a fila" do código síncrono.</li>
+  <li><strong>E</strong>: <code>Future.value('E')</code> é um Future que <strong>já nasce pronto</strong>. Mesmo assim, o <code>then</code> dele só roda depois que o <code>main</code> acaba, mas antes das tarefas com tempo (é uma tarefa "urgente", que o Dart chama de <em>microtask</em>).</li>
+  <li><strong>C e D</strong>: <code>Duration.zero</code> ("zero segundos") e <code>Future(…)</code> não esperam nada, mas também vão para o fim da fila. Saíram na ordem em que foram criados.</li>
+  <li><strong>B</strong> por último: esperou 1 segundo.</li>
+</ul>
+
+<div class="tip">
+<strong>A regra que basta lembrar</strong>
+<p>Tudo o que está num <code>then</code> ou dentro de um Future roda <strong>depois</strong> do código normal que vem em seguida, mesmo com zero segundos de espera. Se uma linha precisa do valor do Future, ela tem de estar <strong>dentro</strong> do <code>then</code> (ou depois de um <code>await</code>).</p>
+</div>
+
+<hr>
+
+<h2>3. Encadeando: <code>then</code> depois de <code>then</code></h2>
+<p>O <code>then</code> também devolve um Future, com o valor que a função dele devolveu. Por isso dá para encadear vários passos:</p>
+
+<pre class="file" data-file="f3.dart">Future&lt;int&gt; contarPaes() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 24);
+
+void main() {
+  contarPaes()
+      .then((qtd) =&gt; qtd * 2)
+      .then((dobro) =&gt; 'Amanhã: $dobro pães')
+      .then(print)
+      .whenComplete(() =&gt; print('Contagem encerrada'));
+  print('Contando...');
+}
+</pre>
+
+<pre class="term">$ dart run f3.dart
+Contando...
+Amanhã: 48 pães
+Contagem encerrada
+</pre>
+
+<dl class="anatomy">
+  <dt>.then((qtd) =&gt; qtd * 2)</dt><dd>Recebe o 24 e devolve 48: o resultado é um <code>Future&lt;int&gt;</code> com 48.</dd>
+  <dt>.then((dobro) =&gt; 'Amanhã: $dobro pães')</dt><dd>Recebe o 48 e devolve um texto: agora é um <code>Future&lt;String&gt;</code>.</dd>
+  <dt>.then(print)</dt><dd>Passa a própria função <code>print</code> (veja <a href="funcoes-valores.html">Funções como Valores</a>): o texto pronto é mostrado.</dd>
+  <dt>.whenComplete(…)</dt><dd>"Quando completar": roda no fim, dando certo ou errado. É o <code>finally</code> dos Futures (veja <a href="excecoes.html">Exceções</a>).</dd>
+</dl>
+
+<hr>
+
+<h2>4. Quando o Future dá errado: <code>catchError</code></h2>
+<p>Uma tarefa demorada também pode falhar. Se a função dentro do <code>Future.delayed</code> lança uma exceção, o Future termina <strong>com erro</strong>, e o <code>then</code> não roda. Para tratar, existe o <code>catchError</code> ("pegue o erro"):</p>
+
+<pre class="file" data-file="f4.dart">Future&lt;int&gt; lerEstoque(String produto) {
+  return Future.delayed(Duration(seconds: 1), () {
+    if (produto == 'pizza') {
+      throw StateError('não vendemos $produto');
+    }
+    return 30;
+  });
+}
+
+void main() {
+  lerEstoque('pão').then((n) =&gt; print('pão: $n'));
+  lerEstoque('pizza')
+      .then((n) =&gt; print('pizza: $n'))
+      .catchError((e) =&gt; print('Erro: $e'));
+  print('Pedidos enviados');
+}
+</pre>
+
+<pre class="term">$ dart run f4.dart
+Pedidos enviados
+pão: 30
+Erro: Bad state: não vendemos pizza
+</pre>
+
+<p>O pão chegou normalmente. A pizza falhou: o <code>then</code> dela foi pulado e o <code>catchError</code> recebeu a exceção (o <code>StateError</code> mostra <code>Bad state: …</code>; veja <a href="throw.html">throw</a>). O <code>try</code>/<code>catch</code> normal <strong>não</strong> pegaria esse erro, porque ele acontece depois que o <code>main</code> já passou do <code>try</code>. Os detalhes ficam para a aula <a href="erros-async.html">Erros em Código Assíncrono</a>.</p>
+
+<hr>
+
+<h2>5. Esperando vários: <code>Future.wait</code></h2>
+<p>O forno da padaria assa várias coisas ao mesmo tempo. Com <code>Future.wait</code> ("espere"), você junta vários Futures num só, que fica pronto quando <strong>todos</strong> ficarem:</p>
+
+<pre class="file" data-file="f6.dart">Future&lt;String&gt; assar(String item, int segundos) =&gt;
+    Future.delayed(Duration(seconds: segundos), () =&gt; item);
+
+void main() {
+  final relogio = Stopwatch()..start();
+  Future.wait([assar('pão', 2), assar('bolo', 3), assar('broa', 1)])
+      .then((prontos) {
+    print('Prontos: $prontos');
+    print('Levou ${relogio.elapsed.inSeconds} segundos');
+  });
+}
+</pre>
+
+<pre class="term">$ dart run f6.dart
+Prontos: [pão, bolo, broa]
+Levou 3 segundos
+</pre>
+
+<ul>
+  <li>O resultado é uma lista com os valores <strong>na ordem da lista de pedidos</strong>, não na ordem em que ficaram prontos (a broa ficou pronta primeiro, mas está em terceiro).</li>
+  <li>Levou 3 segundos, e não 2 + 3 + 1 = 6: as três esperas aconteceram <strong>ao mesmo tempo</strong>, e o total é o da mais demorada. O <code>Stopwatch</code> ("cronômetro") mediu o tempo; num computador mais lento o número pode mudar.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Existem vários jeitos de criar um Future e de esperar por ele:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Para</th><th>Use</th></tr>
+<tr><td>Simular uma tarefa que demora</td><td><code>Future.delayed(Duration(seconds: n), () =&gt; valor)</code></td></tr>
+<tr><td>Um Future que já nasce pronto</td><td><code>Future.value(valor)</code></td></tr>
+<tr><td>Um Future que já nasce com erro</td><td><code>Future.error(StateError('…'))</code></td></tr>
+<tr><td>Usar o valor quando chegar</td><td><code>.then((v) { … })</code>, ou <code>await</code> (próxima aula: <a href="async-await.html">async e await</a>, o jeito mais usado hoje)</td></tr>
+<tr><td>Tratar erro</td><td><code>.catchError((e) { … })</code>, ou <code>try</code>/<code>catch</code> com <code>await</code></td></tr>
+<tr><td>Algo que roda no fim, com ou sem erro</td><td><code>.whenComplete(() { … })</code></td></tr>
+<tr><td>Esperar vários ao mesmo tempo</td><td><code>Future.wait([f1, f2, f3])</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tratou o Future como se fosse o valor</strong>
+<pre class="file" data-file="f7.dart">Future&lt;String&gt; assarPao() =&gt;
+    Future.delayed(Duration(seconds: 1), () =&gt; 'pão quentinho');
+
+void main() {
+  String pao = assarPao();
+  print(pao);
+}
+</pre>
+<pre class="term">$ dart run f7.dart
+f7.dart:5:16: Error: A value of type 'Future&lt;String&gt;' can't be assigned to a variable of type 'String'.
+ - 'Future' is from 'dart:async'.
+  String pao = assarPao();
+               ^
+</pre>
+<p>"Um valor do tipo <code>Future&lt;String&gt;</code> não pode ir numa variável do tipo <code>String</code>". A segunda linha diz de onde vem o <code>Future</code>: da biblioteca <code>dart:async</code> (você não precisa importá-la: o Dart já deixa o <code>Future</code> disponível). A senha não é o pão. <strong>Como consertar:</strong> use o valor dentro de um <code>then</code>: <code>assarPao().then((pao) =&gt; print(pao));</code>, ou espere com <code>await</code> (próxima aula).</p>
+</div>
+
+<div class="cenario">
+<strong>Mostrou o Future em vez do valor</strong>
+<p>Com <code>final</code> ou <code>var</code> no lugar de <code>String</code>, o Dart não reclama (a variável vira um <code>Future&lt;String&gt;</code>), mas o <code>print</code> mostra <code>Instance of 'Future&lt;String&gt;'</code>, como na seção 1 e na primeira missão. <strong>Como consertar:</strong> o mesmo do caso acima.</p>
+</div>
+
+<div class="cenario">
+<strong>Um erro no futuro que ninguém tratou</strong>
+<pre class="file" data-file="f5.dart">Future&lt;int&gt; lerEstoque(String produto) {
+  return Future.delayed(Duration(seconds: 1), () {
+    if (produto == 'pizza') {
+      throw StateError('não vendemos $produto');
+    }
+    return 30;
+  });
+}
+
+void main() {
+  lerEstoque('pizza').then((n) =&gt; print('pizza: $n'));
+  print('Pedido enviado');
+}
+</pre>
+<pre class="term">$ dart run f5.dart
+Pedido enviado
+Unhandled exception:
+Bad state: não vendemos pizza
+#0      lerEstoque.&lt;anonymous closure&gt; (file:///home/ana/f5.dart:4:7)
+#1      new Future.delayed.&lt;anonymous closure&gt; (dart:async/future.dart:448:42)
+#2      Timer._createTimer.&lt;anonymous closure&gt; (dart:async-patch/timer_patch.dart:18:15)
+#3      _Timer._runTimers (dart:isolate-patch/timer_impl.dart:423:19)
+#4      _Timer._handleMessage (dart:isolate-patch/timer_impl.dart:454:5)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>Pedido enviado</dt><dd>O <code>main</code> terminou normalmente. O erro só aconteceu 1 segundo depois.</dd>
+  <dt>Unhandled exception: Bad state: não vendemos pizza</dt><dd>O Future terminou com erro, e não havia <code>catchError</code>: o programa morre, com código 255, como qualquer exceção não tratada.</dd>
+  <dt>#0 lerEstoque.&lt;anonymous closure&gt; (…f5.dart:4:7)</dt><dd>"Uma função anônima dentro de <code>lerEstoque</code>", linha 4: o <code>throw</code> dentro do <code>Future.delayed</code>.</dd>
+  <dt>#1 … #5 (Future.delayed, Timer…)</dt><dd>Quem chamou essa função foi o <strong>relógio</strong> do Dart (<code>Timer</code>), quando os segundos passaram. Repare que o <code>main</code> nem aparece: ele já tinha terminado.</dd>
+</dl>
+<p><strong>Como consertar:</strong> é a missão final.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Future&lt;T&gt;</code></td><td>A promessa de um valor do tipo <code>T</code>, que fica pronto depois</td></tr>
+<tr><td><code>Future.delayed(Duration(seconds: 2), () =&gt; v)</code></td><td>Espera 2 segundos e fica pronto com <code>v</code></td></tr>
+<tr><td><code>f.then((v) { … })</code></td><td>Roda quando <code>f</code> ficar pronto, com o valor; devolve outro Future</td></tr>
+<tr><td><code>f.catchError((e) { … })</code></td><td>Roda se <code>f</code> (ou um <code>then</code> antes) terminar com erro</td></tr>
+<tr><td><code>f.whenComplete(() { … })</code></td><td>Roda no fim, com ou sem erro</td></tr>
+<tr><td><code>Future.wait([f1, f2])</code></td><td>Fica pronto quando todos ficarem; o valor é a lista dos resultados</td></tr>
+<tr><td><code>Future.value(v)</code> / <code>Future.error(e)</code></td><td>Future já pronto / já com erro</td></tr>
+<tr><td><code>print(f)</code></td><td>Mostra <code>Instance of 'Future&lt;…&gt;'</code>, não o valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O tipo</h3>
+<p>Complete o tipo de retorno de uma função que vai devolver, no futuro, um número inteiro:</p>
+<div class="ex-code"><input data-answer="Future&lt;int&gt;" aria-label="tipo de retorno"> contarClientes() { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quando ficar pronto</h3>
+<div class="ex-code">contarClientes().<input data-answer="then" aria-label="método">((n) =&gt; print('Clientes: $n'));</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Em que ordem aparecem as letras? <code>print('X'); Future.delayed(Duration.zero, () =&gt; print('Y')); print('Z');</code></p>
+<label><input type="radio" name="q3"> X Y Z</label>
+<label><input type="radio" name="q3"> Y X Z</label>
+<label><input type="radio" name="q3"> X Z Y</label>
+<label><input type="radio" name="q3"> Depende do computador</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>Future.wait</code> com três tarefas de 2, 3 e 1 segundos leva mais ou menos quanto?</p>
+<label><input type="radio" name="q4"> 6 segundos</label>
+<label><input type="radio" name="q4"> 3 segundos: elas esperam ao mesmo tempo</label>
+<label><input type="radio" name="q4"> 1 segundo</label>
+<label><input type="radio" name="q4"> 2 segundos</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O que <code>print(assarPao())</code> mostra, se <code>assarPao</code> devolve <code>Future&lt;String&gt;</code>?</p>
+<label><input type="radio" name="q5"> <code>Instance of 'Future&lt;String&gt;'</code></label>
+<label><input type="radio" name="q5"> O texto do pão, depois de esperar</label>
+<label><input type="radio" name="q5"> <code>null</code></label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+</div>
+
+<h3>Missão final: a pizza que não existe</h3>
+
+<div class="trydart" data-goal="out:Erro: Bad state: não vendemos pizza;;semerro;;src:catchError">
+<p class="try-task"><strong>Missão:</strong> este é o programa do último "Quando dá errado": a pizza falha e o programa morre com <code>Unhandled exception</code>. Acrescente um <code>.catchError((e) =&gt; print('Erro: $e'))</code> depois do <code>then</code>, para o erro ser tratado e o programa terminar bem.</p>
+<pre class="script" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) {
+  return Future.delayed(Duration(seconds: 1), () {
+    if (produto == 'pizza') {
+      throw StateError('não vendemos $produto');
+    }
+    return 30;
+  });
+}
+
+void main() {
+  lerEstoque('pizza').then((n) =&gt; print('pizza: $n'));
+  print('Pedido enviado');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;int&gt; lerEstoque(String produto) {
+  return Future.delayed(Duration(seconds: 1), () {
+    if (produto == 'pizza') {
+      throw StateError('não vendemos $produto');
+    }
+    return 30;
+  });
+}
+
+void main() {
+  lerEstoque('pizza')
+      .then((n) =&gt; print('pizza: $n'))
+      .catchError((e) =&gt; print('Erro: $e'));
+  print('Pedido enviado');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Pedido enviado</code> e, um segundo depois, <code>Erro: Bad state: não vendemos pizza</code>, com código de saída 0.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Future&lt;T&gt;</code> é a senha da lanchonete: chega na hora e promete um valor do tipo <code>T</code> para depois.</li>
+  <li>O código normal roda até o fim primeiro; o que está num <code>then</code> ou num Future roda depois, mesmo com zero segundos de espera. O programa só termina quando não há mais nada pendente.</li>
+  <li><code>then</code> usa o valor quando ele chega e pode ser encadeado; <code>whenComplete</code> roda no fim; <code>catchError</code> trata o erro.</li>
+  <li>Um Future que falha sem tratamento derruba o programa com <code>Unhandled exception</code> (código 255), mesmo depois de o <code>main</code> ter acabado.</li>
+  <li><code>Future.wait</code> espera vários ao mesmo tempo.</li>
+  <li>Na próxima aula, <a href="async-await.html">async e await</a>, você escreve tudo isso de um jeito que parece código normal, de cima para baixo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
