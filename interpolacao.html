@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Interpolação — pondo valores dentro do texto com $ | Guia Dart</title>
+<meta name="description" content="Interpolação de strings no Dart para quem nunca programou: 'Olá, $nome', contas e métodos com ${...}, a armadilha do $nome.length, o cifrão do real (R\$), interpolação em textos de várias linhas, a comparação com o +, e os erros reais do Dart 3 (nome errado, chave que não fecha, $ solto).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Interpolação</span></h1>
+
+<p class="intro">Na aula <a href="strings.html">Strings</a>, você juntou textos com o <code>+</code>. Funciona, mas fica feio rápido: <code>'Olá, ' + nome + '! Você tem ' + idade.toString() + ' anos.'</code>. O Dart tem um jeito muito mais limpo: escrever o texto inteiro de uma vez e marcar com um <code>$</code> o lugar onde entra cada valor. Isso se chama <strong>interpolação</strong> (do latim, "pôr no meio").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como pôr uma variável no texto: <code>'Olá, $nome!'</code>.</li>
+  <li>Como pôr uma conta ou um método: <code>'${paes * preco}'</code>, <code>'${nome.length}'</code>.</li>
+  <li>A armadilha do <code>'$nome.length'</code>, e quando as chaves <code>{}</code> são obrigatórias.</li>
+  <li>Como mostrar o cifrão de verdade: <code>'R\$ $total'</code>.</li>
+  <li>Interpolação com números, <code>bool</code>, <code>null</code>, listas e textos de várias linhas.</li>
+  <li>Os erros reais: o nome digitado errado, a chave que não fecha e o <code>$</code> solto.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário com espaços em branco</h2>
+<p>Lembra das fichas da escola? "Nome: ______. Idade: ____ anos." O texto já vem pronto; você só preenche os espaços. A interpolação é isso: você escreve o texto pronto e, no lugar de cada espaço em branco, põe <code>$</code> e o nome da variável. Na hora de rodar, o Dart troca cada <code>$nome</code> pelo valor que está na variável.</p>
+
+<hr>
+
+<h2>1. <code>$variavel</code>: o caso mais simples</h2>
+
+<pre class="file" data-file="ola.dart">void main() {
+  var nome = 'Ana';
+  var idade = 30;
+  print('Olá, $nome!');
+  print('$nome tem $idade anos.');
+  print("Bom dia, $nome");
+}
+</pre>
+
+<pre class="term">$ dart run ola.dart
+Olá, Ana!
+Ana tem 30 anos.
+Bom dia, Ana
+</pre>
+
+<dl class="anatomy">
+  <dt>'Olá, $nome!'</dt><dd>O <code>$</code> avisa: "o que vem agora é o nome de uma variável". O Dart lê o nome até onde ele pode continuar (letras, números e <code>_</code>), por isso o <code>!</code> não entra no nome. Na saída, <code>$nome</code> virou <code>Ana</code>.</dd>
+  <dt>'$nome tem $idade anos.'</dt><dd>Quantas variáveis quiser, em qualquer lugar do texto. <code>idade</code> é um <code>int</code>, e o Dart o transformou em texto sozinho: com interpolação, não precisa de <code>toString()</code>.</dd>
+  <dt>"Bom dia, $nome"</dt><dd>Funciona igual com aspas duplas.</dd>
+</dl>
+
+<p>Compare com o <code>+</code>; as duas linhas mostram a mesma coisa:</p>
+<pre class="file" data-file="comparar.dart">void main() {
+  var nome = 'Ana';
+  var idade = 30;
+  print('Nome: ' + nome + ', idade: ' + idade.toString());
+  print('Nome: $nome, idade: $idade');
+}
+</pre>
+<pre class="term">$ dart run comparar.dart
+Nome: Ana, idade: 30
+Nome: Ana, idade: 30
+</pre>
+<p>A segunda é mais curta, mais fácil de ler e não esquece espaço. O guia de estilo oficial (Effective Dart) recomenda: <strong>use interpolação, não <code>+</code>, para montar textos</strong>.</p>
+
+<div class="trydart" data-goal="out:Olá, Ana! Você tem 30 anos.;;src:\$nome;;src:\$idade">
+<p class="try-task"><strong>Missão:</strong> reescreva o <code>print</code> sem nenhum <code>+</code>, usando <code>$nome</code> e <code>$idade</code> dentro de um texto só. A saída tem de continuar <code>Olá, Ana! Você tem 30 anos.</code></p>
+<pre class="script" data-file="main.dart">void main() {
+  var nome = 'Ana';
+  var idade = 30;
+  print('Olá, ' + nome + '! Você tem ' + idade.toString() + ' anos.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var nome = 'Ana';
+  var idade = 30;
+  print('Olá, $nome! Você tem $idade anos.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>${expressão}</code>: contas e métodos dentro do texto</h2>
+<p>Quando o que vai no espaço em branco é mais que um nome (uma conta, um método, uma propriedade), ponha entre chaves: <code>${…}</code>.</p>
+
+<pre class="file" data-file="chaves.dart">void main() {
+  var nome = 'Ana';
+  var paes = 7;
+  var preco = 0.8;
+  print('Daqui a 5 anos: ${30 + 5}');
+  print('Total: R\$ ${paes * preco}');
+  print('Total: R\$ ${(paes * preco).toStringAsFixed(2)}');
+  print('Em maiúsculas: ${nome.toUpperCase()}');
+  print('O nome tem ${nome.length} letras');
+  print('Ele tem $nome.length letras');
+}
+</pre>
+
+<pre class="term">$ dart run chaves.dart
+Daqui a 5 anos: 35
+Total: R$ 5.6000000000000005
+Total: R$ 5.60
+Em maiúsculas: ANA
+O nome tem 3 letras
+Ele tem Ana.length letras
+</pre>
+
+<dl class="anatomy">
+  <dt>${30 + 5}</dt><dd>O Dart faz a conta e põe o <strong>resultado</strong> no texto: <code>35</code>.</dd>
+  <dt>${paes * preco}</dt><dd>7 × 0,8. Saiu <code>5.6000000000000005</code>: é o errinho do <code>double</code> que você viu em <a href="int-double.html">int e double</a>.</dd>
+  <dt>${(paes * preco).toStringAsFixed(2)}</dt><dd>A conta, e depois o método que deixa com 2 casas. Tudo dentro das chaves. É assim que se mostra dinheiro.</dd>
+  <dt>${nome.toUpperCase()} e ${nome.length}</dt><dd>Métodos e propriedades da variável: <strong>precisam</strong> das chaves.</dd>
+  <dt>$nome.length (sem chaves)</dt><dd>A armadilha da última linha: sem chaves, o <code>$</code> pega só o nome <code>nome</code>. O <code>.length</code> ficou como texto comum, e saiu <code>Ana.length</code>. O Dart <strong>não avisa</strong>: o programa roda e mostra o texto errado.</dd>
+</dl>
+
+<div class="tip">
+<strong>Chaves: quando sim, quando não</strong>
+<p>Só um nome de variável? <code>$nome</code>, <strong>sem</strong> chaves (o Effective Dart considera <code>${nome}</code> excesso). Qualquer coisa além do nome (ponto, parênteses, conta)? <code>${…}</code>, <strong>com</strong> chaves.</p>
+</div>
+
+<hr>
+
+<h2>3. O que pode ir no espaço em branco</h2>
+<p>Qualquer valor. O Dart chama o <code>toString()</code> dele por você:</p>
+
+<pre class="file" data-file="tipos.dart">void main() {
+  var inteiro = 7;
+  var decimal = 4.5;
+  var aberto = true;
+  String? apelido;
+  var compras = ['pão', 'leite'];
+  print('int: $inteiro, double: $decimal, bool: $aberto');
+  print('apelido: $apelido');
+  print('compras: $compras');
+}
+</pre>
+
+<pre class="term">$ dart run tipos.dart
+int: 7, double: 4.5, bool: true
+apelido: null
+compras: [pão, leite]
+</pre>
+
+<p>Números e <code>bool</code> aparecem como você espera. A variável <code>apelido</code> é um <code>String?</code>, um texto que pode estar vazio de vez, sem valor nenhum; aí ela vale <code>null</code> e o texto mostra a palavra <code>null</code> (isso é assunto de <a href="null-safety.html">Null Safety</a>). Uma lista aparece com colchetes (veja <a href="list.html">Listas</a>).</p>
+
+<hr>
+
+<h2>4. O cifrão do real</h2>
+<p>A Ana trabalha com reais, e o símbolo do real tem um <code>$</code>. Cuidado:</p>
+
+<pre class="file" data-file="cifrao.dart">void main() {
+  var total = 20;
+  print('Total: R$total');
+  print('Total: R\$$total');
+  print('Total: R\$ $total');
+  print(r'Sem trocar: $total');
+  print('$total' == '20');
+}
+</pre>
+
+<pre class="term">$ dart run cifrao.dart
+Total: R20
+Total: R$20
+Total: R$ 20
+Sem trocar: $total
+true
+</pre>
+
+<dl class="anatomy">
+  <dt>'R$total'</dt><dd>O Dart leu <code>$total</code> como interpolação: o cifrão <strong>sumiu</strong>, e saiu <code>R20</code>. Sem erro, sem aviso.</dd>
+  <dt>'R\$$total'</dt><dd><code>\$</code> é um cifrão de verdade; o <code>$total</code> seguinte é a interpolação. Saiu <code>R$20</code>.</dd>
+  <dt>'R\$ $total'</dt><dd>O mesmo, com espaço: <code>R$ 20</code>, o jeito brasileiro.</dd>
+  <dt>r'Sem trocar: $total'</dt><dd>Num texto cru (<code>r</code>), não há interpolação: o <code>$total</code> sai como está escrito.</dd>
+  <dt>'$total' == '20'</dt><dd>O resultado de uma interpolação é uma <code>String</code> comum: <code>'$total'</code> é o texto <code>'20'</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>5. Interpolação em textos de várias linhas</h2>
+<p>Com <code>'''</code>, dá para montar um recibo inteiro de uma vez:</p>
+
+<pre class="file" data-file="linhas.dart">void main() {
+  var cliente = 'Bia';
+  var itens = 3;
+  var total = 12.4;
+  var recibo = '''
+Cliente: $cliente
+Itens:   $itens
+Total:   R\$ ${total.toStringAsFixed(2)}''';
+  print(recibo);
+}
+</pre>
+
+<pre class="term">$ dart run linhas.dart
+Cliente: Bia
+Itens:   3
+Total:   R$ 12.40
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>A mesma frase, <code>Ana tem 30 anos.</code>, de quatro jeitos:</p>
+<pre class="file" data-file="formas.dart">print(nome + ' tem ' + idade.toString() + ' anos.');   // + e toString()
+print('$nome tem $idade anos.');                        // interpolação
+print('${nome} tem ${idade} anos.');                    // chaves sem necessidade
+print([nome, 'tem', idade, 'anos.'].join(' '));         // juntar uma lista
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Pôr variáveis num texto</td><td><code>'$nome'</code></td></tr>
+<tr><td>Pôr contas, métodos, propriedades</td><td><code>'${conta}'</code>, <code>'${nome.length}'</code></td></tr>
+<tr><td>Juntar dois textos que já são <code>String</code>, sem nada no meio</td><td><code>a + b</code> ainda serve, mas <code>'$a$b'</code> também</td></tr>
+<tr><td>Juntar muitos pedaços com o mesmo separador</td><td><code>join</code> (aula <a href="list-metodos.html">Métodos de Lista</a>)</td></tr>
+<tr><td>Montar um texto aos poucos, num laço</td><td><code>StringBuffer</code> (aula <a href="string-buffer.html">Montando Textos</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Digitou o nome da variável errado</strong>
+<pre class="file" data-file="err_nome.dart">void main() {
+  var nome = 'Ana';
+  print('Olá, $nmoe!');
+}
+</pre>
+<pre class="term">$ dart run err_nome.dart
+err_nome.dart:3:16: Error: Undefined name 'nmoe'.
+  print('Olá, $nmoe!');
+               ^^^^
+</pre>
+<dl class="anatomy">
+  <dt>err_nome.dart:3:16:</dt><dd>Arquivo, linha 3, coluna 16: bem em cima do nome depois do <code>$</code>.</dd>
+  <dt>Error: Undefined name 'nmoe'.</dt><dd>"Nome não definido: <code>nmoe</code>." Não existe variável com esse nome. O Dart confere os nomes <strong>dentro</strong> do texto também, antes de rodar.</dd>
+  <dt>^^^^</dt><dd>Sublinha o nome culpado.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>$nome</code>. (É uma vantagem sobre o <code>+</code>? Não: com <code>+ nmoe +</code> daria o mesmo erro. A vantagem é que o Dart <strong>sempre</strong> confere.)</p>
+</div>
+
+<div class="cenario">
+<strong>Método sem chaves: o texto sai errado, sem erro</strong>
+<pre class="file" data-file="err_metodo.dart">void main() {
+  var nome = 'ana';
+  print('Nome: $nome.toUpperCase()');
+}
+</pre>
+<pre class="term">$ dart run err_metodo.dart
+Nome: ana.toUpperCase()
+</pre>
+<p>Nenhuma mensagem de erro: o programa rodou e mostrou o texto errado. O <code>$</code> pegou só <code>nome</code>; o resto virou texto. <strong>Como consertar:</strong> <code>'Nome: ${nome.toUpperCase()}'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A chave não fecha</strong>
+<pre class="file" data-file="err_chave.dart">void main() {
+  var preco = 4.5;
+  print('Preço: ${preco');
+}
+</pre>
+<pre class="term">$ dart run err_chave.dart
+err_chave.dart:3:24: Error: String starting with ' must end with '.
+  print('Preço: ${preco');
+                       ^^^
+err_chave.dart:3:9: Error: String starting with ' must end with '.
+  print('Preço: ${preco');
+        ^^^^^^^^^^^^^^^^^^^...
+err_chave.dart:3:8: Error: Can't find ')' to match '('.
+  print('Preço: ${preco');
+       ^
+err_chave.dart:1:13: Error: Can't find '}' to match '{'.
+void main() {
+            ^
+err_chave.dart:3:24: Error: Expected '}' before this.
+  print('Preço: ${preco');
+                       ^^^
+err_chave.dart:5:1: Error: Expected ';' after this.
+</pre>
+<p>Uma chave esquecida, seis mensagens. Dentro de <code>${</code>, o Dart está lendo <strong>código</strong>, não texto; então a aspa depois de <code>preco</code> abriu um <strong>texto novo</strong>, que nunca fecha. A pista mais útil está na quinta mensagem: <code>Expected '}' before this.</code> ("era esperado um <code>}</code> antes disto"), na coluna 24, logo depois de <code>preco</code>. <strong>Como consertar:</strong> <code>'Preço: ${preco}'</code>, ou melhor ainda, sem chaves: <code>'Preço: $preco'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um <code>$</code> com espaço depois</strong>
+<pre class="file" data-file="err_espaco.dart">void main() {
+  var paes = 7;
+  print('Faltam $ paes pães');
+}
+</pre>
+<pre class="term">$ dart run err_espaco.dart
+err_espaco.dart:3:18: Error: A '$' has special meaning inside a string, and must be followed by an identifier or an expression in curly braces ({}).
+Try adding a backslash (\) to escape the '$'.
+  print('Faltam $ paes pães');
+                 ^
+</pre>
+<p>"Um <code>$</code> tem significado especial num texto e precisa vir seguido de um nome (<em>identifier</em>, "identificador") ou de uma expressão entre chaves." O <code>$</code> e o nome têm de estar <strong>colados</strong>. <strong>Como consertar:</strong> <code>'Faltam $paes pães'</code>. Se você queria mesmo um cifrão, escreva <code>\$</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O cifrão do real sumiu</strong>
+<p>Você viu na seção 4: <code>'Total: R$total'</code> mostra <code>Total: R20</code>, sem erro. Sempre que o texto tiver <code>R$</code>, escreva <code>R\$</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:O nome tem 3 letras;;semerro">
+<p class="try-task"><strong>Missão:</strong> o programa mostra <code>O nome tem Ana.length letras</code>. Conserte a interpolação para mostrar <code>O nome tem 3 letras</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var nome = 'Ana';
+  print('O nome tem $nome.length letras');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var nome = 'Ana';
+  print('O nome tem ${nome.length} letras');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>'Olá, $nome'</code></td><td>Põe o valor da variável no texto</td></tr>
+<tr><td><code>'${a + b}'</code></td><td>Põe o resultado de uma conta</td></tr>
+<tr><td><code>'${nome.length}'</code>, <code>'${nome.toUpperCase()}'</code></td><td>Propriedades e métodos: sempre com chaves</td></tr>
+<tr><td><code>'${valor.toStringAsFixed(2)}'</code></td><td>Número com 2 casas</td></tr>
+<tr><td><code>'R\$ $total'</code></td><td>Cifrão de verdade, depois a variável</td></tr>
+<tr><td><code>r'$nome'</code></td><td>Texto cru: sem interpolação</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Undefined name '…'</code></td><td>Nome errado depois do <code>$</code></td></tr>
+<tr><td><code>Ana.length</code> ou <code>ana.toUpperCase()</code> na saída</td><td>Faltaram as chaves: <code>${…}</code></td></tr>
+<tr><td><code>R20</code> em vez de <code>R$ 20</code></td><td>Faltou a barra: <code>R\$</code></td></tr>
+<tr><td><code>A '$' has special meaning inside a string</code></td><td><code>$</code> seguido de espaço ou sinal</td></tr>
+<tr><td><code>Expected '}' before this.</code> e várias outras</td><td>Abriu <code>${</code> e não fechou</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar <code>Bia tem 12 anos</code>:</p>
+<div class="ex-code">var nome = 'Bia';<br>var idade = 12;<br>print('<input data-answer="$nome" aria-label="interpolação do nome"> tem <input data-answer="$idade" aria-label="interpolação da idade"> anos');</div>
+</div>
+
+<div class="exercise">
+<h3>2. Com chaves</h3>
+<p>Complete para mostrar quantas letras tem a variável <code>cidade</code>:</p>
+<div class="ex-code">print('Letras: <input data-answer="${cidade.length}" aria-label="interpolação do tamanho">');</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>var x = 4;</code>, o que mostra <code>print('Dobro: ${x * 2}');</code>?</p>
+<label><input type="radio" name="q3"> <code>Dobro: x * 2</code></label>
+<label><input type="radio" name="q3"> <code>Dobro: 4 * 2</code></label>
+<label><input type="radio" name="q3"> <code>Dobro: 8</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Com <code>var total = 50;</code>, qual linha mostra <code>R$ 50</code>?</p>
+<label><input type="radio" name="q4"> <code>print('R$ total');</code></label>
+<label><input type="radio" name="q4"> <code>print('R\$ $total');</code></label>
+<label><input type="radio" name="q4"> <code>print('R$total');</code></label>
+<label><input type="radio" name="q4"> <code>print(r'R$ $total');</code></label>
+</div>
+
+<h3>Missão final: a linha do pedido</h3>
+
+<div class="trydart" data-goal="out:6 x Pão de queijo = R$ 15.00;;src:\$\{">
+<p class="try-task"><strong>Missão:</strong> monte num <code>print</code> só a linha do pedido: <code>6 x Pão de queijo = R$ 15.00</code>. Use <code>$quantidade</code>, <code>$produto</code>, o cifrão de verdade (<code>R\$</code>) e, para o total, a conta com <code>toStringAsFixed(2)</code> dentro de <code>${…}</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var produto = 'Pão de queijo';
+  var quantidade = 6;
+  var preco = 2.5;
+  // escreva o print aqui
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var produto = 'Pão de queijo';
+  var quantidade = 6;
+  var preco = 2.5;
+  print('$quantidade x $produto = R\$ ${(quantidade * preco).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run missao.dart
+6 x Pão de queijo = R$ 15.00
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Interpolação põe valores dentro do texto: <code>'Olá, $nome!'</code>. É o jeito recomendado de montar textos no Dart, no lugar do <code>+</code>.</li>
+  <li>Qualquer valor serve; o Dart converte para texto sozinho (sem <code>toString()</code>).</li>
+  <li>Só um nome: <code>$nome</code>. Conta, método ou propriedade: <code>${…}</code>. Sem as chaves, <code>'$nome.length'</code> mostra <code>Ana.length</code>, sem aviso.</li>
+  <li>O cifrão de verdade é <code>\$</code>: <code>'R\$ $total'</code>. Num texto cru (<code>r'…'</code>) não há interpolação.</li>
+  <li>Nome errado depois do <code>$</code> não compila (<code>Undefined name</code>); <code>${</code> sem <code>}</code> gera várias mensagens: procure o <code>Expected '}'</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
