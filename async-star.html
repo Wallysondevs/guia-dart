@@ -534,7 +534,7 @@ $ echo $?
   <li><code>&lt;asynchronous suspension&gt;</code> — "suspensão assíncrona": entre esses passos houve uma espera (o código é assíncrono).</li>
   <li>O <code>fim</code> não apareceu, e o código de saída foi <code>255</code> (exceção não tratada).</li>
 </ul>
-<p><strong>Como consertar:</strong> o erro do gerador "sai" pelo <code>await for</code>, então é ali que se põe o <code>try</code> (veja <a href="erros-async.html">Erros em Código Assíncrono</a>):</p>
+<p><strong>Como consertar:</strong> o erro do gerador "sai" pelo <code>await for</code>, então é ali que se põe o <code>try</code> (veja <a href="erros-async.html">Erros em Código Assíncrono</a>). O gerador <code>estoque()</code> continua o mesmo, no começo do arquivo; só o <code>main</code> mudou:</p>
 <pre class="file" data-file="excecao_tratada.dart">Future&lt;void&gt; main() async {
   try {
     await for (final n in estoque()) {
