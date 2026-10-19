@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart arquivos — lendo e escrevendo com dart:io | Guia Dart</title>
+<meta name="description" content="Arquivos no Dart para quem nunca programou: a classe File do dart:io, writeAsStringSync e readAsStringSync, ler linha por linha, acrescentar com FileMode.append, as versões assíncronas com await, existsSync e deleteSync, pastas com Directory, openWrite, e os erros reais do Dart 3 (PathNotFoundException, PathAccessException, import esquecido, await esquecido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Arquivos</span></h1>
+
+<p class="intro">Tudo o que seus programas guardaram até agora em variáveis <strong>some</strong> quando o programa termina. Para a lista de compras da Ana estar lá amanhã, ela precisa ir para um <strong>arquivo</strong> no disco. No Dart, quem cuida disso é a classe <code>File</code> ("arquivo"), da biblioteca <code>dart:io</code> (<em>io</em> = <em>input/output</em>, "entrada e saída").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um texto num arquivo e ler de volta (<code>writeAsStringSync</code> e <code>readAsStringSync</code>).</li>
+  <li>Como ler um arquivo <strong>linha por linha</strong> e como <strong>acrescentar</strong> no fim sem apagar o que já estava lá.</li>
+  <li>A diferença entre as versões <code>…Sync</code> e as versões com <code>await</code>.</li>
+  <li>Como saber se um arquivo existe, apagar, criar pastas e listar o que tem nelas.</li>
+  <li>Como escrever aos pouquinhos com <code>openWrite</code>.</li>
+  <li>Os erros reais: arquivo que não existe, sem permissão, <code>import</code> esquecido e <code>await</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), na pasta pessoal dela (<code>/home/ana</code>), com <code>dart run arquivo.dart</code>. O comando <code>cat</code>, que aparece algumas vezes, é do terminal do Linux: ele mostra o conteúdo de um arquivo.</p>
+
+<hr>
+
+<h2>A ideia: o caderno da padaria</h2>
+<p>A memória do programa é como um quadro-negro: rápido de escrever, mas alguém apaga tudo no fim do dia. Um arquivo é o <strong>caderno</strong>: o que está escrito fica lá até alguém rasgar a página. Com um caderno você faz quatro coisas:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No caderno</th><th>No Dart</th></tr>
+<tr><td>escrever numa página nova (ou passar a borracha e reescrever)</td><td><code>writeAsStringSync(texto)</code></td></tr>
+<tr><td>ler a página inteira</td><td><code>readAsStringSync()</code></td></tr>
+<tr><td>ler linha por linha</td><td><code>readAsLinesSync()</code></td></tr>
+<tr><td>escrever mais uma linha no fim</td><td><code>writeAsStringSync(texto, mode: FileMode.append)</code></td></tr>
+</table>
+</div>
+<p>Antes de qualquer uma delas, você cria um objeto <code>File</code> com o <strong>caminho</strong> do arquivo: <code>File('compras.txt')</code>. Isso <strong>não</strong> cria nem abre nada; é só um "endereço". O nome sem pasta quer dizer "na pasta onde o programa foi rodado" (aqui, <code>/home/ana</code>).</p>
+
+<hr>
+
+<h2>1. Escrever e ler um arquivo</h2>
+
+<pre class="file" data-file="escrever.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('compras.txt');
+  arquivo.writeAsStringSync('pão\nleite\ncafé\n');
+  print('Lista salva em ${arquivo.path}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:io';</dt><dd>Traz <code>File</code>, <code>Directory</code> e companhia. Sem ele, o Dart não conhece <code>File</code> (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>File('compras.txt')</dt><dd>O endereço do arquivo. Guardado em <code>arquivo</code>, para usar várias vezes.</dd>
+  <dt>writeAsStringSync(…)</dt><dd>"Escrever como texto, de forma síncrona": cria o arquivo (ou <strong>apaga o conteúdo antigo</strong>, se já existia) e escreve o texto. O <code>\n</code> é a quebra de linha. <em>Sync</em> quer dizer que o programa espera terminar antes de ir para a próxima linha.</dd>
+  <dt>arquivo.path</dt><dd>O caminho que você deu, como texto.</dd>
+</dl>
+
+<pre class="term">$ dart run escrever.dart
+Lista salva em compras.txt
+$ cat compras.txt
+pão
+leite
+café
+</pre>
+
+<p>O arquivo existe de verdade: o <code>cat</code> mostrou o conteúdo, e ele continua lá depois que o programa acabou. Agora, outro programa lê esse arquivo:</p>
+
+<pre class="file" data-file="ler.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('compras.txt');
+  final conteudo = arquivo.readAsStringSync();
+  print('O arquivo tem ${conteudo.length} caracteres:');
+  print(conteudo);
+}
+</pre>
+
+<pre class="term">$ dart run ler.dart
+O arquivo tem 15 caracteres:
+pão
+leite
+café
+
+</pre>
+
+<p><code>readAsStringSync()</code> devolve o arquivo inteiro numa única <code>String</code>, com as quebras de linha dentro (os três <code>\n</code> contam nos 15 caracteres). A linha em branco no fim é a última quebra do arquivo somada à do <code>print</code>.</p>
+
+<hr>
+
+<h2>2. Linha por linha</h2>
+<p>Quase sempre é mais útil ter cada linha separada. <code>readAsLinesSync()</code> devolve uma <code>List&lt;String&gt;</code>, sem os <code>\n</code>:</p>
+
+<pre class="file" data-file="linhas.dart">import 'dart:io';
+
+void main() {
+  final linhas = File('compras.txt').readAsLinesSync();
+  print('São ${linhas.length} itens.');
+  for (var i = 0; i &lt; linhas.length; i++) {
+    print('${i + 1}. ${linhas[i]}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run linhas.dart
+São 3 itens.
+1. pão
+2. leite
+3. café
+</pre>
+
+<p>Como é uma lista comum, valem todos os métodos de <a href="list-metodos.html">Métodos de Lista</a>: <code>length</code>, <code>contains</code>, <code>where</code>…</p>
+
+<hr>
+
+<h2>3. Acrescentar × sobrescrever</h2>
+<p>Para pôr mais um item na lista <strong>sem perder</strong> os outros, passe <code>mode: FileMode.append</code> ("modo: acrescentar"):</p>
+
+<pre class="file" data-file="acrescentar.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('compras.txt');
+  arquivo.writeAsStringSync('manteiga\n', mode: FileMode.append);
+  print(arquivo.readAsLinesSync());
+}
+</pre>
+
+<pre class="term">$ dart run acrescentar.dart
+[pão, leite, café, manteiga]
+</pre>
+
+<p>Sem o <code>mode</code>, o padrão é <strong>sobrescrever</strong>: tudo o que havia some.</p>
+
+<pre class="file" data-file="sobrescrever.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('compras.txt');
+  arquivo.writeAsStringSync('ovos\n');
+  print(arquivo.readAsLinesSync());
+}
+</pre>
+
+<pre class="term">$ dart run sobrescrever.dart
+[ovos]
+</pre>
+
+<div class="warning">
+<strong>O Dart não pergunta "tem certeza?"</strong>
+<p><code>writeAsStringSync</code> sem <code>FileMode.append</code> apaga o conteúdo anterior sem aviso e sem lixeira. Sempre que for escrever num arquivo que já tem dados importantes, pense: quero <strong>trocar</strong> ou <strong>acrescentar</strong>?</p>
+</div>
+
+<div class="trydart" data-goal="out:3. pagar a luz;;arquivo:tarefas.txt~regar as plantas">
+<p class="try-task"><strong>Missão:</strong> o programa deveria guardar as três tarefas, mas só a última sobra. Conserte as duas últimas gravações para <strong>acrescentarem</strong> em vez de sobrescrever.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('tarefas.txt');
+  arquivo.writeAsStringSync('lavar a louça\n');
+  arquivo.writeAsStringSync('regar as plantas\n');
+  arquivo.writeAsStringSync('pagar a luz\n');
+  final linhas = arquivo.readAsLinesSync();
+  for (var i = 0; i &lt; linhas.length; i++) {
+    print('${i + 1}. ${linhas[i]}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('tarefas.txt');
+  arquivo.writeAsStringSync('lavar a louça\n');
+  arquivo.writeAsStringSync('regar as plantas\n', mode: FileMode.append);
+  arquivo.writeAsStringSync('pagar a luz\n', mode: FileMode.append);
+  final linhas = arquivo.readAsLinesSync();
+  for (var i = 0; i &lt; linhas.length; i++) {
+    print('${i + 1}. ${linhas[i]}');
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>1. lavar a louça</code>, <code>2. regar as plantas</code> e <code>3. pagar a luz</code>, e o <code>cat tarefas.txt</code> mostrou as três linhas.</p>
+
+<hr>
+
+<h2>4. As versões assíncronas (com <code>await</code>)</h2>
+<p>Cada método <code>…Sync</code> tem um irmão sem o <code>Sync</code> que devolve um <a href="future.html">Future</a>: <code>writeAsString</code>, <code>readAsString</code>, <code>readAsLines</code>, <code>exists</code>, <code>delete</code>. Com <code>await</code>, o resultado é o mesmo, mas o programa fica livre enquanto o disco trabalha. Aqui, as notas da turma, separadas por <code>;</code>:</p>
+
+<pre class="file" data-file="assincrono.dart">import 'dart:io';
+
+Future&lt;void&gt; main() async {
+  final arquivo = File('notas.txt');
+  await arquivo.writeAsString('Ana;9.5\nBia;7.0\nCaio;8.25\n');
+  final linhas = await arquivo.readAsLines();
+  for (final linha in linhas) {
+    final partes = linha.split(';');
+    final nota = double.parse(partes[1]);
+    print('${partes[0]} tirou $nota');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run assincrono.dart
+Ana tirou 9.5
+Bia tirou 7.0
+Caio tirou 8.25
+$ cat notas.txt
+Ana;9.5
+Bia;7.0
+Caio;8.25
+</pre>
+
+<p><code>split(';')</code> corta a linha em pedaços (veja <a href="strings-metodos.html">Métodos de String</a>) e <code>double.parse</code> transforma o texto em número (veja <a href="conversao.html">Conversão de Tipos</a>). Para guardar dados com mais estrutura que "nome;nota", a próxima aula usa <a href="json.html">JSON</a>.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>síncrona</td><td><code>final t = f.readAsStringSync();</code></td><td>scripts pequenos de terminal, que não fazem mais nada enquanto leem</td></tr>
+<tr><td>assíncrona</td><td><code>final t = await f.readAsString();</code></td><td>programas que fazem várias coisas ao mesmo tempo (servidores, aplicativos com tela); é a recomendada no Flutter</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>5. Existe? Apagar. Pastas.</h2>
+
+<pre class="file" data-file="existe.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('recados.txt');
+  if (arquivo.existsSync()) {
+    print('Recados: ${arquivo.readAsStringSync()}');
+  } else {
+    print('Ainda não há recados.');
+  }
+  arquivo.writeAsStringSync('Comprar fermento');
+  print('Existe agora? ${arquivo.existsSync()}');
+  arquivo.deleteSync();
+  print('E depois de apagar? ${arquivo.existsSync()}');
+}
+</pre>
+
+<pre class="term">$ dart run existe.dart
+Ainda não há recados.
+Existe agora? true
+E depois de apagar? false
+</pre>
+
+<p><code>existsSync()</code> ("existe?") devolve <code>true</code> ou <code>false</code>; <code>deleteSync()</code> apaga o arquivo (de vez, sem lixeira). Para pastas, a classe é <code>Directory</code> ("diretório", outro nome para pasta):</p>
+
+<pre class="file" data-file="pastas.dart">import 'dart:io';
+
+void main() {
+  final pasta = Directory('receitas');
+  pasta.createSync();
+  File('receitas/bolo.txt').writeAsStringSync('farinha, ovos, açúcar');
+  File('receitas/pao.txt').writeAsStringSync('farinha, água, fermento');
+  final nomes = pasta.listSync().map((item) =&gt; item.path).toList()..sort();
+  for (final nome in nomes) {
+    print(nome);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run pastas.dart
+receitas/bolo.txt
+receitas/pao.txt
+$ ls receitas
+bolo.txt
+pao.txt
+</pre>
+
+<dl class="anatomy">
+  <dt>Directory('receitas').createSync()</dt><dd>Cria a pasta. Se ela já existe, não faz nada (e não dá erro).</dd>
+  <dt>'receitas/bolo.txt'</dt><dd>Caminho com pasta: no Linux e no macOS, as pastas se separam com <code>/</code>.</dd>
+  <dt>pasta.listSync()</dt><dd>A lista do que tem dentro da pasta (arquivos e subpastas). Cada item tem o <code>.path</code>.</dd>
+  <dt>..sort()</dt><dd>Põe em ordem alfabética. O sistema não garante em que ordem devolve os itens; ordenar deixa a saída sempre igual.</dd>
+</dl>
+
+<hr>
+
+<h2>6. Escrevendo aos poucos: <code>openWrite</code></h2>
+<p>Quando o texto é montado em muitas partes (um relatório, um registro), em vez de juntar tudo numa <code>String</code> você pode abrir o arquivo uma vez e ir escrevendo, como no <code>print</code>:</p>
+
+<pre class="file" data-file="sink.dart">import 'dart:io';
+
+Future&lt;void&gt; main() async {
+  final saida = File('relatorio.txt').openWrite();
+  saida.writeln('Vendas da semana');
+  for (var dia = 1; dia &lt;= 3; dia++) {
+    saida.writeln('Dia $dia: ${dia * 10} pães');
+  }
+  await saida.close();
+  print(File('relatorio.txt').readAsStringSync());
+}
+</pre>
+
+<pre class="term">$ dart run sink.dart
+Vendas da semana
+Dia 1: 10 pães
+Dia 2: 20 pães
+Dia 3: 30 pães
+
+</pre>
+
+<p><code>openWrite()</code> devolve um <code>IOSink</code> ("escoadouro"): <code>write</code> escreve, <code>writeln</code> escreve e pula linha. O <code>await saida.close()</code> é <strong>obrigatório</strong>: é ele que garante que tudo foi parar no disco e fecha o arquivo.</p>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>gravar um texto inteiro de uma vez</td><td><code>writeAsStringSync</code> / <code>await writeAsString</code></td></tr>
+<tr><td>acrescentar no fim</td><td>o mesmo, com <code>mode: FileMode.append</code></td></tr>
+<tr><td>ler tudo num texto só</td><td><code>readAsStringSync</code> / <code>await readAsString</code></td></tr>
+<tr><td>ler uma lista de linhas</td><td><code>readAsLinesSync</code> / <code>await readAsLines</code></td></tr>
+<tr><td>escrever em muitas partes</td><td><code>openWrite()</code> + <code>writeln</code> + <code>await close()</code></td></tr>
+<tr><td>conferir antes de ler</td><td><code>existsSync()</code> (ou tente ler e trate o erro com <code>try</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>O arquivo não existe</strong>
+<pre class="file" data-file="erro_naoexiste.dart">import 'dart:io';
+
+void main() {
+  final texto = File('agenda.txt').readAsStringSync();
+  print(texto);
+}
+</pre>
+<pre class="term">$ dart run erro_naoexiste.dart
+Unhandled exception:
+PathNotFoundException: Cannot open file, path = 'agenda.txt' (OS Error: No such file or directory, errno = 2)
+#0      _File.throwIfError (dart:io/file_impl.dart:779:7)
+#1      _File.openSync (dart:io/file_impl.dart:572:5)
+#2      _File.readAsBytesSync (dart:io/file_impl.dart:660:18)
+#3      _File.readAsStringSync (dart:io/file_impl.dart:715:18)
+#4      main (file:///home/ana/erro_naoexiste.dart:4:36)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<ul>
+  <li><code>Unhandled exception:</code> — "exceção não tratada": o programa parou aqui.</li>
+  <li><code>PathNotFoundException</code> — "caminho não encontrado". <code>Cannot open file, path = 'agenda.txt'</code> — "não foi possível abrir o arquivo <code>agenda.txt</code>".</li>
+  <li><code>(OS Error: No such file or directory, errno = 2)</code> — a explicação do sistema operacional (OS): "arquivo ou diretório inexistente", erro número 2.</li>
+  <li><code>#0</code> a <code>#3</code> — o caminho dentro do <code>dart:io</code> (o <code>readAsStringSync</code> abre o arquivo com <code>openSync</code>). <code>#4 main (…:4:36)</code> — a <strong>sua</strong> linha: linha 4, coluna 36, o <code>readAsStringSync</code>.</li>
+</ul>
+<p><strong>Como consertar:</strong> confira o nome e a pasta onde você rodou o programa (o caminho é relativo a ela), ou trate o erro. Toda exceção de arquivo é um <code>FileSystemException</code> (o <code>PathNotFoundException</code> é um tipo dela):</p>
+<pre class="file" data-file="erro_tratado.dart">import 'dart:io';
+
+void main() {
+  try {
+    final texto = File('agenda.txt').readAsStringSync();
+    print(texto);
+  } on FileSystemException catch (e) {
+    print('Não consegui ler: ${e.message}');
+    print('Arquivo: ${e.path}');
+    print('Motivo: ${e.osError?.message}');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_tratado.dart
+Não consegui ler: Cannot open file
+Arquivo: agenda.txt
+Motivo: No such file or directory
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Sem permissão para ler</strong>
+<p>Aqui a Ana tirou todas as permissões de um arquivo com o comando <code>chmod 000</code> (assunto do Linux, não do Dart):</p>
+<pre class="file" data-file="erro_permissao.dart">import 'dart:io';
+
+void main() {
+  print(File('segredo.txt').readAsStringSync());
+}
+</pre>
+<pre class="term">$ echo "senha do cofre" &gt; segredo.txt
+$ chmod 000 segredo.txt
+$ dart run erro_permissao.dart
+Unhandled exception:
+PathAccessException: Cannot open file, path = 'segredo.txt' (OS Error: Permission denied, errno = 13)
+#0      _File.throwIfError (dart:io/file_impl.dart:779:7)
+#1      _File.openSync (dart:io/file_impl.dart:572:5)
+#2      _File.readAsBytesSync (dart:io/file_impl.dart:660:18)
+#3      _File.readAsStringSync (dart:io/file_impl.dart:715:18)
+#4      main (file:///home/ana/erro_permissao.dart:4:29)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p><code>PathAccessException</code> — "erro de acesso ao caminho"; <code>Permission denied, errno = 13</code> — "permissão negada". O arquivo existe, mas o sistema não deixa a Ana lê-lo. O mesmo <code>on FileSystemException</code> do exemplo anterior também pega este erro. <strong>Como consertar:</strong> o problema está nas permissões do arquivo, não no código.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>import 'dart:io';</code></strong>
+<pre class="file" data-file="erro_import.dart">void main() {
+  final arquivo = File('compras.txt');
+  print(arquivo.readAsStringSync());
+}
+</pre>
+<pre class="term">$ dart run erro_import.dart
+erro_import.dart:2:19: Error: Method not found: 'File'.
+  final arquivo = File('compras.txt');
+                  ^^^^
+</pre>
+<p>"Linha 2, coluna 19: método não encontrado: <code>File</code>". Como o Dart não conhece a classe <code>File</code>, ele achou que <code>File(…)</code> era a chamada de uma função com esse nome, e ela também não existe. <strong>Como consertar:</strong> <code>import 'dart:io';</code> na primeira linha.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou a versão assíncrona sem <code>await</code></strong>
+<pre class="file" data-file="erro_await.dart">import 'dart:io';
+
+Future&lt;void&gt; main() async {
+  final texto = File('compras.txt').readAsString();
+  print(texto.toUpperCase());
+}
+</pre>
+<pre class="term">$ dart run erro_await.dart
+erro_await.dart:5:15: Error: The method 'toUpperCase' isn't defined for the type 'Future&lt;String&gt;'.
+ - 'Future' is from 'dart:async'.
+Try correcting the name to the name of an existing method, or defining a method named 'toUpperCase'.
+  print(texto.toUpperCase());
+              ^^^^^^^^^^^
+</pre>
+<p>"O método <code>toUpperCase</code> não está definido para o tipo <code>Future&lt;String&gt;</code>". Sem <code>await</code>, <code>texto</code> é a <strong>promessa</strong> de um texto, e promessa não tem letras para pôr em maiúsculas. A linha <code>Try correcting…</code> é uma sugestão genérica ("tente corrigir o nome"); aqui, o nome está certo. <strong>Como consertar:</strong> <code>final texto = await File('compras.txt').readAsString();</code>, ou use <code>readAsStringSync()</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>File('a.txt')</code></td><td>o endereço do arquivo (não abre nada)</td></tr>
+<tr><td><code>.writeAsStringSync(t)</code></td><td>cria ou sobrescreve com o texto <code>t</code></td></tr>
+<tr><td><code>.writeAsStringSync(t, mode: FileMode.append)</code></td><td>acrescenta no fim</td></tr>
+<tr><td><code>.readAsStringSync()</code></td><td>o arquivo inteiro como <code>String</code></td></tr>
+<tr><td><code>.readAsLinesSync()</code></td><td>uma <code>List&lt;String&gt;</code>, uma linha por item</td></tr>
+<tr><td><code>.existsSync()</code> / <code>.deleteSync()</code></td><td>existe? / apagar</td></tr>
+<tr><td><code>await .readAsString()</code> etc.</td><td>as versões assíncronas (sem <code>Sync</code>)</td></tr>
+<tr><td><code>.openWrite()</code> → <code>writeln</code> → <code>await close()</code></td><td>escrever em várias partes</td></tr>
+<tr><td><code>Directory('p').createSync()</code></td><td>cria a pasta</td></tr>
+<tr><td><code>Directory('p').listSync()</code></td><td>o que tem dentro da pasta</td></tr>
+<tr><td><code>on FileSystemException catch (e)</code></td><td>trata qualquer erro de arquivo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para acrescentar <code>açúcar</code> no fim da lista de compras:</p>
+<div class="ex-code">File('compras.txt').writeAsStringSync('açúcar\n', mode: FileMode.<input data-answer="append" aria-label="modo">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual biblioteca?</h3>
+<p>Que <code>import</code> o programa precisa para usar <code>File</code>?</p>
+<div class="ex-code">import '<input data-answer="dart:io" aria-label="biblioteca">';</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O arquivo <code>a.txt</code> tem 10 linhas. O programa roda <code>File('a.txt').writeAsStringSync('oi\n');</code>. Quantas linhas o arquivo tem depois?</p>
+<label><input type="radio" name="q3"> 11</label>
+<label><input type="radio" name="q3"> 1</label>
+<label><input type="radio" name="q3"> 10</label>
+<label><input type="radio" name="q3"> Dá erro, porque o arquivo já existe</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que <code>readAsLinesSync()</code> devolve?</p>
+<label><input type="radio" name="q4"> Uma <code>String</code> com o arquivo inteiro</label>
+<label><input type="radio" name="q4"> Um <code>Future&lt;String&gt;</code></label>
+<label><input type="radio" name="q4"> Uma <code>List&lt;String&gt;</code>, uma linha por item</label>
+<label><input type="radio" name="q4"> O número de linhas</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O programa terminou com <code>PathNotFoundException: Cannot open file, path = 'notas.txt'</code>. O que aconteceu?</p>
+<label><input type="radio" name="q5"> O arquivo <code>notas.txt</code> não existe na pasta onde o programa rodou</label>
+<label><input type="radio" name="q5"> Faltou o <code>import 'dart:io';</code></label>
+<label><input type="radio" name="q5"> O arquivo está vazio</label>
+<label><input type="radio" name="q5"> Faltou o <code>await</code></label>
+</div>
+
+<h3>Missão final: o diário de vendas</h3>
+
+<div class="trydart" data-goal="arquivo:vendas.txt~bolo: 12;;out:Total: 30;;src:readAsLines">
+<p class="try-task"><strong>Missão:</strong> o programa já grava as vendas em <code>vendas.txt</code>. Complete a segunda parte: leia o arquivo com <code>readAsLinesSync()</code>, separe cada linha no <code>': '</code> com <code>split</code>, some as quantidades (com <code>int.parse</code>) e mostre <code>Total: 30</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('vendas.txt');
+  arquivo.writeAsStringSync('pão: 15\nbolo: 12\nsonho: 3\n');
+
+  var total = 0;
+  // leia as linhas e some as quantidades aqui
+
+  print('Total: $total');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  final arquivo = File('vendas.txt');
+  arquivo.writeAsStringSync('pão: 15\nbolo: 12\nsonho: 3\n');
+
+  var total = 0;
+  for (final linha in arquivo.readAsLinesSync()) {
+    final partes = linha.split(': ');
+    total += int.parse(partes[1]);
+  }
+
+  print('Total: $total');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Arquivos guardam dados depois que o programa termina. A classe <code>File</code> vem de <code>import 'dart:io';</code>.</li>
+  <li><code>writeAsStringSync</code> cria ou <strong>sobrescreve</strong>; com <code>mode: FileMode.append</code>, acrescenta no fim.</li>
+  <li><code>readAsStringSync</code> lê tudo num texto; <code>readAsLinesSync</code> lê uma lista de linhas.</li>
+  <li>Os métodos sem <code>Sync</code> devolvem <code>Future</code> e pedem <code>await</code>.</li>
+  <li><code>existsSync</code>, <code>deleteSync</code>, <code>Directory</code> (<code>createSync</code>, <code>listSync</code>) cuidam de existência e pastas.</li>
+  <li>Os erros de arquivo são <code>FileSystemException</code> (<code>PathNotFoundException</code>, <code>PathAccessException</code>…), com a explicação do sistema no <code>OS Error</code>. Trate com <code>on FileSystemException catch (e)</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
