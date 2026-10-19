@@ -388,20 +388,21 @@ class Sorvete extends Produto, Gelado {}
 
 <div class="cenario">
 <strong>Pediu à mãe um campo que só a filha tem</strong>
-<pre class="file" data-file="erro_filho.dart">// (Produto e Bebida iguais aos da seção 1)
+<pre class="file" data-file="erro_filho.dart">// (Produto e Bebida iguais aos da seção 1, nas linhas 1 a 14)
+
 void main() {
   final pao = Produto('Pão francês', 0.75);
   print(pao.volumeMl);
 }
 </pre>
 <pre class="term">$ dart run erro_filho.dart
-erro_filho.dart:16:13: Error: The getter 'volumeMl' isn't defined for the type 'Produto'.
+erro_filho.dart:18:13: Error: The getter 'volumeMl' isn't defined for the type 'Produto'.
  - 'Produto' is from 'erro_filho.dart'.
 Try correcting the name to the name of an existing getter, or defining a getter or field named 'volumeMl'.
   print(pao.volumeMl);
             ^^^^^^^^
 </pre>
-<p>"O <em>getter</em> <code>volumeMl</code> não está definido para o tipo <code>Produto</code>." (Um <em>getter</em> é o que lê um campo; veja <a href="getters-setters.html">get e set</a>.) A linha <code>- 'Produto' is from 'erro_filho.dart'.</code> só conta em que arquivo a classe foi declarada. Os <code>^^^^^^^^</code> sublinham o nome inteiro. O pão é só <code>Produto</code>, e produto não tem volume. (Os números 16:13 são do arquivo completo, com as classes; aqui elas foram resumidas no comentário.)</p>
+<p>"O <em>getter</em> <code>volumeMl</code> não está definido para o tipo <code>Produto</code>." (Um <em>getter</em> é o que lê um campo; veja <a href="getters-setters.html">get e set</a>.) A linha <code>- 'Produto' is from 'erro_filho.dart'.</code> só conta em que arquivo a classe foi declarada. Os <code>^^^^^^^^</code> sublinham o nome inteiro. O pão é só <code>Produto</code>, e produto não tem volume. (Os números 18:13 são do arquivo completo, com as classes; aqui elas foram resumidas no comentário.)</p>
 </div>
 
 <div class="cenario">
