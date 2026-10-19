@@ -27,7 +27,7 @@
   <li>A instalar no <strong>Windows</strong> (winget ou Chocolatey), no <strong>macOS</strong> (Homebrew) e no <strong>Linux</strong> (o <code>apt</code> com o repositório do Google).</li>
   <li>O jeito que funciona em qualquer sistema: o arquivo <strong>zip</strong>.</li>
   <li>Por que, se você já tem o <strong>Flutter</strong>, já tem o Dart.</li>
-  <li>A conferir a instalação com <code>dart --version</code>.</li>
+  <li>A conferir a instalação com <code>dart --version</code>, e o aviso de telemetria da primeira vez.</li>
   <li>O que quer dizer <code>Comando 'dart' não encontrado</code> e como resolver.</li>
 </ul>
 </div>
@@ -260,6 +260,38 @@ See https://dart.dev/tools/dart-tool for detailed documentation.
 }
 </pre>
 </div>
+
+<hr>
+
+<h2>8. A primeira vez: o aviso de telemetria</h2>
+<p>No <strong>primeiro</strong> comando <code>dart</code> que você digitar num terminal, antes da resposta normal, aparece um texto longo, em inglês, uma vez só. Na máquina da Ana, numa pasta pessoal nova, o primeiro comando foi justamente o que desliga o envio:</p>
+
+<pre class="term">$ dart --disable-analytics
+The Dart CLI developer tool uses Google Analytics to report usage and diagnostic
+data along with package dependencies, and crash reporting to send basic crash
+reports. This data is used to help improve the Dart platform, Flutter framework,
+and related tools.
+
+Telemetry is not sent on the very first run. To disable reporting of telemetry,
+run this terminal command:
+
+    dart --disable-analytics
+
+If you opt out of telemetry, an opt-out event will be sent, and then no further
+information will be sent. This data is collected in accordance with the Google
+Privacy Policy (https://policies.google.com/privacy).
+
+Analytics reporting disabled. In order to enable it, run: dart --enable-analytics
+</pre>
+
+<dl class="anatomy">
+  <dt>uses Google Analytics to report usage…</dt><dd>"A ferramenta usa o Google Analytics para informar dados de uso e de diagnóstico […] e relatórios de falhas". É a <strong>telemetria</strong>: estatísticas que o Dart manda para o Google para ajudar a melhorar a ferramenta.</dd>
+  <dt>Telemetry is not sent on the very first run.</dt><dd>"Na primeiríssima execução, nada é enviado." Você tem tempo de decidir.</dd>
+  <dt>dart --disable-analytics</dt><dd>O comando que <strong>desliga</strong> o envio. "Se você desligar, um aviso de desligamento é enviado e depois mais nada."</dd>
+  <dt>Analytics reporting disabled. In order to enable it, run: dart --enable-analytics</dt><dd>A última linha é a resposta do comando: "envio desligado; para religar, rode <code>dart --enable-analytics</code>".</dd>
+</dl>
+
+<p>Ligar ou desligar é escolha sua; o Dart funciona igual dos dois jeitos. Se o seu primeiro comando for outro (um <code>dart --version</code>, um <code>dart run</code>), o mesmo aviso aparece antes da resposta dele, e nas vezes seguintes não aparece mais. A máquina da Ana já está com a telemetria desligada, por isso nenhum outro terminal deste guia mostra o aviso.</p>
 
 <hr>
 
