@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart while e do-while — repetindo enquanto a condição for verdadeira | Guia Dart</title>
+<meta name="description" content="Os laços while e do-while do Dart para quem nunca programou: contar com uma variável contadora, contagem regressiva, juntar dinheiro até a meta, zero voltas, o do-while que roda pelo menos uma vez, o laço infinito (Ctrl+C) e os erros reais do Dart 3 (parênteses esquecidos, ponto e vírgula do do-while, condição que não é bool).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">while e do-while</span></h1>
+
+<p class="intro">O <a href="for.html">for</a> é ótimo quando você sabe quantas voltas o laço vai dar: de 1 a 10, um aluno por vez. Mas muitas repetições do dia a dia não têm número certo: juntar dinheiro <strong>até</strong> chegar à meta, perguntar <strong>até</strong> a resposta prestar. Para isso existe o <code>while</code>, que em inglês quer dizer "<strong>enquanto</strong>": enquanto a condição for verdadeira, repita. E o seu irmão, o <code>do-while</code> ("faça … enquanto"), que roda o bloco pelo menos uma vez antes de perguntar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como se escreve um <code>while</code>: a condição entre parênteses e o bloco entre chaves.</li>
+  <li>Como contar para a frente e para trás com uma variável <strong>contadora</strong>.</li>
+  <li>Como repetir quando você <strong>não sabe</strong> quantas voltas vão ser, e por que um <code>while</code> pode dar zero voltas.</li>
+  <li>O <code>do { … } while (…);</code>, que testa a condição <strong>no fim</strong>, e quando ele é a escolha certa.</li>
+  <li>O <strong>laço infinito</strong>: como ele acontece e como pará-lo (<kbd>Ctrl</kbd>+<kbd>C</kbd>).</li>
+  <li>Os erros reais do Dart: parênteses esquecidos, o <code>;</code> do <code>do-while</code>, condição que não é <code>bool</code> e variável que não existe.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>). Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: "enquanto tiver pão no cesto, atenda o próximo"</h2>
+<p>A padaria do bairro abre com um cesto de pães. O dono deixa um bilhete: <em>"Enquanto tiver pão no cesto, atenda o próximo cliente."</em> O bilhete não diz quantos clientes serão. Mesmo assim, funciona:</p>
+<ol class="passo">
+  <li>O funcionário olha o cesto: tem pão? <strong>Sim</strong> → atende um cliente.</li>
+  <li>Olha de novo: tem pão? <strong>Sim</strong> → atende mais um.</li>
+  <li>… e assim por diante …</li>
+  <li>Olha de novo: tem pão? <strong>Não</strong> → para de atender e vai fazer outra coisa.</li>
+</ol>
+<p>Três detalhes valem para <strong>todo</strong> <code>while</code>:</p>
+<ul>
+  <li>A <strong>pergunta vem antes</strong> de cada atendimento. Se o cesto começar vazio, ninguém é atendido.</li>
+  <li>Cada volta <strong>muda alguma coisa</strong> (sai pão do cesto). Sem isso, a resposta seria sempre a mesma e o funcionário atenderia para sempre.</li>
+  <li>Quando a resposta vira <strong>não</strong>, ele sai da repetição e continua o resto do dia.</li>
+</ul>
+<p>No Dart, a "pergunta" é uma <strong>condição</strong> do tipo <code>bool</code>, a mesma do <a href="if-else.html">if</a>: uma expressão como <code>contador &lt;= 5</code> (veja <a href="operadores-comparacao.html">Comparação</a>). A diferença é que o <code>if</code> roda o bloco <strong>uma vez</strong>; o <code>while</code> roda <strong>de novo e de novo</strong>, enquanto a condição continuar <code>true</code>.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>while</code>: contar de 1 a 5</h2>
+
+<pre class="file" data-file="contador.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+    contador++;
+  }
+  print('Fim! contador agora vale $contador');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>var contador = 1;</dt><dd>A variável <strong>contadora</strong>, criada <strong>antes</strong> do laço, com o valor inicial. Ela é <code>var</code> (e não <code>final</code>) porque vai mudar a cada volta. Poderia se chamar <code>volta</code> ou <code>i</code> (de "índice", nome tradicional de contador).</dd>
+  <dt>while</dt><dd>A palavra-chave do laço: "enquanto".</dd>
+  <dt>(contador &lt;= 5)</dt><dd>A <strong>condição</strong>, testada <strong>antes de cada volta</strong>: "enquanto o contador for menor ou igual a 5". No Dart os <strong>parênteses são obrigatórios</strong>, como no <code>if</code>.</dd>
+  <dt>{ … }</dt><dd>O <strong>corpo</strong> do laço: as linhas que se repetem. Os 2 espaços a mais mostram que elas estão dentro dele.</dd>
+  <dt>print('Volta $contador');</dt><dd>Mostra o valor atual do contador dentro do texto (veja <a href="strings.html">Strings</a>).</dd>
+  <dt>contador++;</dt><dd>"Some 1 ao contador" (o mesmo que <code>contador = contador + 1</code> ou <code>contador += 1</code>; veja <a href="atribuicao.html">Atribuição e Incremento</a>). É esta linha que faz o laço <strong>andar</strong>: sem ela, o contador seria 1 para sempre.</dd>
+  <dt>}</dt><dd>Fecha o bloco. Quando o Dart chega aqui, ele <strong>volta lá para cima</strong> e testa a condição de novo.</dd>
+  <dt>print('Fim! …');</dt><dd>Depois do bloco, fora do laço: roda uma vez só, quando o laço termina.</dd>
+</dl>
+
+<pre class="term">$ dart run contador.dart
+Volta 1
+Volta 2
+Volta 3
+Volta 4
+Volta 5
+Fim! contador agora vale 6
+</pre>
+
+<p>Cada execução do corpo se chama uma <strong>volta</strong> (ou <strong>iteração</strong>). Aqui foram 5.</p>
+
+<h3>Passo a passo: o que o Dart fez</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Momento</th><th><code>contador</code></th><th><code>contador &lt;= 5</code>?</th><th>O que acontece</th></tr>
+<tr><td>1º teste</td><td>1</td><td><code>true</code></td><td>Mostra <code>Volta 1</code>; o contador vira 2</td></tr>
+<tr><td>2º teste</td><td>2</td><td><code>true</code></td><td>Mostra <code>Volta 2</code>; o contador vira 3</td></tr>
+<tr><td>3º teste</td><td>3</td><td><code>true</code></td><td>Mostra <code>Volta 3</code>; o contador vira 4</td></tr>
+<tr><td>4º teste</td><td>4</td><td><code>true</code></td><td>Mostra <code>Volta 4</code>; o contador vira 5</td></tr>
+<tr><td>5º teste</td><td>5</td><td><code>true</code></td><td>Mostra <code>Volta 5</code>; o contador vira 6</td></tr>
+<tr><td>6º teste</td><td>6</td><td><strong><code>false</code></strong></td><td>Sai do laço e vai para a linha depois do <code>}</code></td></tr>
+</table>
+</div>
+<p>Por isso a última linha diz <code>contador agora vale 6</code>: a condição foi testada <strong>6 vezes</strong> para o corpo rodar <strong>5 vezes</strong>.</p>
+
+<div class="tip">
+<strong>As três peças de todo laço com contador</strong>
+<p>1) o <strong>início</strong>: <code>var contador = 1;</code> · 2) a <strong>condição</strong>: <code>contador &lt;= 5</code> · 3) o <strong>passo</strong>: <code>contador++;</code>. O <a href="for.html">for</a> junta as três numa linha só; no <code>while</code>, quem cuida delas é você.</p>
+</div>
+
+<div class="trydart" data-goal="out:Volta 10;;src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão:</strong> faça o programa contar até <strong>10</strong> em vez de 5. Depois, por curiosidade, troque o valor inicial para 8 e veja quantas voltas sobram.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+    contador++;
+  }
+  print('Fim! contador agora vale $contador');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 10) {
+    print('Volta $contador');
+    contador++;
+  }
+  print('Fim! contador agora vale $contador');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Contar para trás</h2>
+<p>O passo não precisa ser "mais 1". Para uma contagem regressiva, comece do maior número, <strong>diminua</strong> com <code>--</code> e troque a condição para "maior que zero":</p>
+
+<pre class="file" data-file="regressiva.dart">void main() {
+  var segundos = 5;
+  while (segundos &gt; 0) {
+    print('$segundos...');
+    segundos--;
+  }
+  print('Já!');
+}
+</pre>
+
+<pre class="term">$ dart run regressiva.dart
+5...
+4...
+3...
+2...
+1...
+Já!
+</pre>
+
+<p>Quando <code>segundos</code> chega a 0, a pergunta <code>0 &gt; 0</code> dá <code>false</code> e o laço termina. O passo também pode ser de 2 em 2 (<code>contador += 2</code>) ou uma multiplicação (<code>valor *= 2</code>), como na missão final.</p>
+
+<hr>
+
+<h2>3. Quando você não sabe quantas voltas vão ser</h2>
+<p>A Ana quer juntar R$ 1000 para um notebook novo. Ela guarda R$ 150 por mês. Quantos meses vai levar? Ninguém disse; o programa descobre:</p>
+
+<pre class="file" data-file="poupanca.dart">void main() {
+  var saldo = 0;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    saldo += 150;
+    meses++;
+    print('Mês $meses: R\$ $saldo');
+  }
+  print('A Ana juntou R\$ $saldo em $meses meses.');
+}
+</pre>
+
+<pre class="term">$ dart run poupanca.dart
+Mês 1: R$ 150
+Mês 2: R$ 300
+Mês 3: R$ 450
+Mês 4: R$ 600
+Mês 5: R$ 750
+Mês 6: R$ 900
+Mês 7: R$ 1050
+A Ana juntou R$ 1050 em 7 meses.
+</pre>
+
+<ul>
+  <li><code>saldo</code> é um <strong>acumulador</strong>: começa em 0 e, a cada volta, recebe mais um pouco (<code>saldo += 150</code>). É ele que a condição olha.</li>
+  <li><code>meses</code> é um <strong>contador</strong>: conta as voltas.</li>
+  <li>O <code>R\$</code> tem uma barra porque, num texto do Dart, o <code>$</code> sozinho anuncia uma variável. <code>\$</code> quer dizer "o cifrão mesmo" (veja <a href="strings.html">Strings</a>).</li>
+</ul>
+<p>No mês 6 o saldo era 900, ainda menor que 1000: mais uma volta. No mês 7 virou 1050, a condição <code>1050 &lt; 1000</code> deu <code>false</code>, e o laço parou.</p>
+
+<h3>Zero voltas também é possível</h3>
+<p>Como a pergunta vem <strong>antes</strong> da primeira volta, o corpo pode não rodar nenhuma vez. Se a Ana já tivesse R$ 1200:</p>
+
+<pre class="file" data-file="nunca.dart">void main() {
+  var saldo = 1200;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    saldo += 150;
+    meses++;
+  }
+  print('Meses de espera: $meses');
+}
+</pre>
+
+<pre class="term">$ dart run nunca.dart
+Meses de espera: 0
+</pre>
+
+<p>Logo no primeiro teste, <code>1200 &lt; 1000</code> deu <code>false</code>: o Dart pulou o bloco inteiro. Isso não é erro; é o cesto que já começou vazio.</p>
+
+<div class="trydart" data-goal="out:em 5 meses;;src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão:</strong> a Ana conseguiu um aumento e agora guarda <strong>R$ 200</strong> por mês. Mude o programa e descubra em quantos meses ela junta os R$ 1000.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var saldo = 0;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    saldo += 150;
+    meses++;
+  }
+  print('A Ana juntou R\$ $saldo em $meses meses.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var saldo = 0;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    saldo += 200;
+    meses++;
+  }
+  print('A Ana juntou R\$ $saldo em $meses meses.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O <code>do-while</code>: primeiro faz, depois pergunta</h2>
+<p>Às vezes o bloco tem de rodar <strong>pelo menos uma vez</strong>, antes de qualquer pergunta. Pense no provador da loja: você <strong>prova</strong> a roupa e só depois pergunta "serviu?"; se não serviu, prova outra. Para isso o Dart tem o <code>do-while</code> ("faça … enquanto"), que testa a condição <strong>no fim</strong> de cada volta.</p>
+<p>Exemplo: contar quantos dígitos tem um número. A cada volta, o programa conta um dígito e "corta" o último com a divisão inteira por 10 (<code>~/</code>, veja <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>): 4096 → 409 → 40 → 4 → 0.</p>
+
+<pre class="file" data-file="digitos.dart">void main() {
+  var numero = 4096;
+  var digitos = 0;
+  do {
+    digitos++;
+    numero ~/= 10;
+  } while (numero &gt; 0);
+  print('O número tem $digitos dígito(s).');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>do {</dt><dd>"Faça": o bloco começa direto, sem condição nenhuma antes.</dd>
+  <dt>digitos++; numero ~/= 10;</dt><dd>O corpo: conta um dígito e tira o último do número.</dd>
+  <dt>} while (numero &gt; 0);</dt><dd>Só aqui, <strong>depois</strong> da volta, vem a pergunta: "ainda sobrou número?". Se sim, volta para o <code>do</code>. Repare no <strong><code>;</code> no fim</strong>: no <code>do-while</code> ele é obrigatório (no <code>while</code> comum, não tem).</dd>
+</dl>
+
+<pre class="term">$ dart run digitos.dart
+O número tem 4 dígito(s).
+</pre>
+
+<h3>Por que não um <code>while</code> comum?</h3>
+<p>Com 4096 os dois dariam 4. A diferença aparece no número <strong>0</strong>, que tem 1 dígito. Este programa conta os dígitos do 0 dos dois jeitos:</p>
+
+<pre class="file" data-file="digitos_zero.dart">void main() {
+  var numero = 0;
+  var comWhile = 0;
+  var n = numero;
+  while (n &gt; 0) {
+    comWhile++;
+    n ~/= 10;
+  }
+  var comDo = 0;
+  n = numero;
+  do {
+    comDo++;
+    n ~/= 10;
+  } while (n &gt; 0);
+  print('while contou $comWhile dígito(s) no 0');
+  print('do-while contou $comDo dígito(s) no 0');
+}
+</pre>
+
+<pre class="term">$ dart run digitos_zero.dart
+while contou 0 dígito(s) no 0
+do-while contou 1 dígito(s) no 0
+</pre>
+
+<p>O <code>while</code> perguntou primeiro (<code>0 &gt; 0</code>? não) e não rodou nenhuma vez: resposta errada. O <code>do-while</code> rodou a primeira volta sem perguntar e acertou. Esse é o critério: <strong>se a primeira volta tem de acontecer sempre, use <code>do-while</code></strong>. O uso mais comum dele é pedir uma resposta ao usuário e repetir se ela for inválida; você vai ver isso na aula <a href="stdin.html">Lendo o Teclado</a>.</p>
+
+<div class="trydart" data-goal="out:O número tem 1 dígito(s).;;src:\bdo\s*\{">
+<p class="try-task"><strong>Missão:</strong> este programa usa <code>while</code> e diz que o número 7 tem... rode e veja. Troque o laço por um <code>do { … } while (…);</code> para ele responder certo para o 7 (e para o 0, se quiser testar).</p>
+<pre class="script" data-file="main.dart">void main() {
+  var numero = 7;
+  var digitos = 0;
+  while (numero &gt; 9) {
+    digitos++;
+    numero ~/= 10;
+  }
+  print('O número tem $digitos dígito(s).');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var numero = 7;
+  var digitos = 0;
+  do {
+    digitos++;
+    numero ~/= 10;
+  } while (numero &gt; 0);
+  print('O número tem $digitos dígito(s).');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. O laço infinito, e como pará-lo</h2>
+<p>Um laço cuja condição <strong>nunca</strong> fica falsa não termina nunca: é um <strong>laço infinito</strong>. O jeito mais comum de criar um sem querer é esquecer o passo. Olhe o contador da seção 1 sem o <code>contador++</code>:</p>
+
+<pre class="file" data-file="infinito.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+  }
+  print('Fim!');
+}
+</pre>
+
+<p>O contador fica em 1 para sempre, e o programa mostra <code>Volta 1</code> sem parar. A Ana deixou ele rodar só 2 segundos (com o comando <code>timeout 2</code>) e contou as linhas com o <code>wc -l</code>:</p>
+
+<pre class="term">$ timeout 1 dart run infinito.dart | head -3
+Volta 1
+Volta 1
+Volta 1
+$ timeout 2 dart run infinito.dart | wc -l
+1262286
+</pre>
+
+<p>Mais de <strong>um milhão</strong> de linhas em 2 segundos (o número muda de um computador para outro). O <code>Fim!</code> nunca chega.</p>
+
+<h3>No terminal: <kbd>Ctrl</kbd>+<kbd>C</kbd></h3>
+<p>Para interromper um programa que não termina, segure <kbd>Ctrl</kbd> e aperte <kbd>C</kbd>. Um laço infinito também pode ser silencioso; aqui a Ana esqueceu de somar o dinheiro no saldo e o programa ficou parado, "pensando":</p>
+
+<pre class="file" data-file="esqueceu.dart">void main() {
+  var saldo = 0;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    meses++;
+  }
+  print('A Ana juntou R\$ $saldo em $meses meses.');
+}
+</pre>
+
+<pre class="term">$ dart run esqueceu.dart
+^C
+$ echo $?
+130
+</pre>
+
+<dl class="anatomy">
+  <dt>^C</dt><dd>O terminal mostrando que você apertou <kbd>Ctrl</kbd>+<kbd>C</kbd>. O Dart não escreve mensagem nenhuma: o programa simplesmente para.</dd>
+  <dt>echo $? → 130</dt><dd>O código de saída do último programa. 0 seria "terminou bem"; <strong>130</strong> é o código que o terminal usa para "interrompido pelo <kbd>Ctrl</kbd>+<kbd>C</kbd>". Não é defeito do seu código: foi você que mandou parar.</dd>
+</dl>
+
+<h3>No editor do guia</h3>
+<p>A caixa "Experimente" também roda o programa de verdade, então um laço infinito lá também não termina sozinho: enquanto ele roda, o botão <strong>▶ Rodar</strong> vira <strong>■ Parar</strong>, que faz o papel do <kbd>Ctrl</kbd>+<kbd>C</kbd>. Os detalhes (e o limite de tempo do editor) estão em <a href="simulador.html">O Editor do Guia</a>.</p>
+
+<div class="trydart" data-sem-fim>
+<p class="try-task"><strong>Experimente:</strong> este é o programa da Ana que esqueceu de somar no saldo. Clique em Rodar e depois em <strong>■ Parar</strong>. Depois, conserte: acrescente <code>saldo += 150;</code> dentro do laço e rode de novo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var saldo = 0;
+  var meses = 0;
+  while (saldo &lt; 1000) {
+    meses++;
+  }
+  print('A Ana juntou R\$ $saldo em $meses meses.');
+}
+</pre>
+</div>
+
+<h3>Quando o infinito é de propósito: <code>while (true)</code></h3>
+<p>Às vezes o laço infinito é <strong>proposital</strong>: um programa que fica esperando pedidos até alguém mandar parar. Escreve-se <code>while (true)</code>, uma condição sempre verdadeira, e a saída fica no meio do bloco, com o <code>break</code> ("quebrar"). É o assunto da próxima aula: <a href="break-continue.html">break e continue</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Contar de 1 a 5 pode ser escrito com os três laços. Todos mostram <code>Volta 1</code> a <code>Volta 5</code>:</p>
+
+<pre class="file" data-file="tres_lacos.dart">void main() {
+  // 1) while: as três peças espalhadas
+  var i = 1;
+  while (i &lt;= 5) {
+    print('Volta $i');
+    i++;
+  }
+
+  // 2) do-while: testa no fim
+  var j = 1;
+  do {
+    print('Volta $j');
+    j++;
+  } while (j &lt;= 5);
+
+  // 3) for: as três peças numa linha só
+  for (var k = 1; k &lt;= 5; k++) {
+    print('Volta $k');
+  }
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Contar um número conhecido de voltas (de 1 a 10, de 10 a 0…)</td><td><code>for</code> (aula <a href="for.html">for</a>): fica tudo numa linha e é difícil esquecer o passo</td></tr>
+<tr><td>Passar por todos os itens de uma lista</td><td><code>for-in</code> (aula <a href="for-in.html">for-in</a>)</td></tr>
+<tr><td>Não se sabe quantas voltas vão ser (até a meta, até a resposta ser válida)</td><td><code>while (condição) { … }</code></td></tr>
+<tr><td>O bloco tem de rodar pelo menos uma vez</td><td><code>do { … } while (condição);</code></td></tr>
+<tr><td>A saída fica no meio do bloco</td><td><code>while (true)</code> com <code>break</code> (aula <a href="break-continue.html">break e continue</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses da condição</strong>
+<pre class="file" data-file="semparen.dart">void main() {
+  var contador = 1;
+  while contador &lt;= 5 {
+    print('Volta $contador');
+    contador++;
+  }
+}
+</pre>
+<pre class="term">$ dart run semparen.dart
+semparen.dart:3:9: Error: Expected to find '('.
+  while contador &lt;= 5 {
+        ^^^^^^^^
+semparen.dart:3:9: Error: Expected an identifier, but got 'contador'.
+Try inserting an identifier before 'contador'.
+  while contador &lt;= 5 {
+        ^^^^^^^^
+semparen.dart:3:21: Error: Expected ';' after this.
+  while contador &lt;= 5 {
+                    ^
+$ echo $?
+254
+</pre>
+<p>Linha por linha:</p>
+<dl class="anatomy">
+  <dt>semparen.dart:3:9: Error: Expected to find '('.</dt><dd>"No arquivo <code>semparen.dart</code>, linha 3, coluna 9: era esperado encontrar um <code>(</code>." É o erro de verdade: depois do <code>while</code> o Dart quer um parêntese. O <code>^^^^^^^^</code> marca onde ele esperava: bem em cima do <code>contador</code>.</dd>
+  <dt>Expected an identifier… / Expected ';' after this.</dt><dd>Erros "em cascata": confuso com a falta do parêntese, o Dart tenta entender o resto da linha de outro jeito e reclama de mais coisas. <strong>Conserte sempre o primeiro erro</strong>; os outros costumam sumir junto.</dd>
+  <dt>echo $? → 254</dt><dd>Com erro de compilação o programa nem começa (nenhum <code>Volta</code> apareceu) e o <code>dart run</code> termina com o código 254.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>while (contador &lt;= 5) {</code>. Quem vem do Python ou do Lua estranha, mas no Dart a condição do <code>while</code>, do <code>if</code> e do <code>do-while</code> vai sempre entre parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>;</code> do <code>do-while</code></strong>
+<pre class="file" data-file="semponto.dart">void main() {
+  var n = 0;
+  do {
+    print(n);
+    n++;
+  } while (n &lt; 3)
+}
+</pre>
+<pre class="term">$ dart run semponto.dart
+semponto.dart:6:17: Error: Expected ';' after this.
+  } while (n &lt; 3)
+                ^
+</pre>
+<p>"Era esperado <code>;</code> depois disto", com o <code>^</code> no <code>)</code>. O <code>do-while</code> termina com <code>;</code>, como uma instrução comum. <strong>Como consertar:</strong> <code>} while (n &lt; 3);</code>. (No <code>while</code> comum é o contrário: um <code>;</code> logo depois do <code>while (…)</code> cria um laço vazio, um erro silencioso que trava o programa.)</p>
+</div>
+
+<div class="cenario">
+<strong>A condição não é <code>bool</code></strong>
+<pre class="file" data-file="condint.dart">void main() {
+  var n = 3;
+  while (n) {
+    print(n);
+    n--;
+  }
+}
+</pre>
+<pre class="term">$ dart run condint.dart
+condint.dart:3:10: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  while (n) {
+         ^
+</pre>
+<p>"Um valor do tipo <code>int</code> não pode ser atribuído a uma variável do tipo <code>bool</code>." Em C ou JavaScript, <code>while (n)</code> quer dizer "enquanto n não for zero". O Dart <strong>não aceita</strong>: a condição tem de ser um <code>true</code> ou <code>false</code> de verdade. <strong>Como consertar:</strong> escreva a comparação inteira: <code>while (n &gt; 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável não existia antes do laço</strong>
+<pre class="file" data-file="seminicio.dart">void main() {
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+    contador++;
+  }
+}
+</pre>
+<pre class="term">$ dart run seminicio.dart
+seminicio.dart:2:10: Error: Undefined name 'contador'.
+  while (contador &lt;= 5) {
+         ^^^^^^^^
+seminicio.dart:3:19: Error: Undefined name 'contador'.
+    print('Volta $contador');
+                  ^^^^^^^^
+seminicio.dart:4:5: Error: Getter not found: 'contador'.
+    contador++;
+    ^^^^^^^^
+</pre>
+<p>"Nome não definido: <code>contador</code>." O Dart avisa em cada lugar onde a variável aparece (na linha 4 ele diz <em>getter not found</em>, "não achei como ler <code>contador</code>", que é o mesmo problema). <strong>Como consertar:</strong> crie a variável <strong>antes</strong> do <code>while</code>: <code>var contador = 1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Criou a variável dentro do laço e quis usar fora</strong>
+<pre class="file" data-file="dentro.dart">void main() {
+  var nota = 15;
+  while (nota &gt; 10) {
+    var tentativas = 1;
+    nota -= 5;
+  }
+  print('Tentativas: $tentativas');
+}
+</pre>
+<pre class="term">$ dart run dentro.dart
+dentro.dart:7:23: Error: Undefined name 'tentativas'.
+  print('Tentativas: $tentativas');
+                      ^^^^^^^^^^
+</pre>
+<p>Uma variável criada <strong>dentro</strong> das chaves só existe ali dentro: no <code>}</code>, ela some. Além disso, ela seria recriada valendo 1 a cada volta. <strong>Como consertar:</strong> crie <code>var tentativas = 0;</code> <strong>antes</strong> do laço e, dentro, só some: <code>tentativas++;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O passo ficou fora do laço: laço infinito</strong>
+<p>Este é traiçoeiro, porque o Dart não reclama de nada:</p>
+<pre class="file" data-file="fora.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+  }
+  contador++;
+}
+</pre>
+<p>O <code>contador++</code> está <strong>depois</strong> do <code>}</code>: só rodaria quando o laço terminasse, e o laço nunca termina. O resultado é o da seção 5: <code>Volta 1</code> sem parar, até o <kbd>Ctrl</kbd>+<kbd>C</kbd>. <strong>Como consertar:</strong> ponha o passo dentro das chaves.</p>
+</div>
+
+<div class="trydart" data-goal="out:Volta 5;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. Leia a mensagem de erro, conserte, e rode de novo até aparecer <code>Volta 5</code>. (São dois problemas.)</p>
+<pre class="script" data-file="main.dart">void main() {
+  var contador = 1;
+  while contador &lt;= 5 {
+    print('Volta $contador');
+    contador++;
+  }
+  print('Fim! Foram $voltas voltas.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var contador = 1;
+  while (contador &lt;= 5) {
+    print('Volta $contador');
+    contador++;
+  }
+  print('Fim! Foram ${contador - 1} voltas.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>while (condição) { … }</code></td><td>Repete o bloco enquanto a condição for <code>true</code>; testa <strong>antes</strong> de cada volta (pode dar zero voltas)</td></tr>
+<tr><td><code>do { … } while (condição);</code></td><td>Roda o bloco e depois testa; dá <strong>pelo menos uma</strong> volta. Termina com <code>;</code></td></tr>
+<tr><td><code>var contador = 1;</code> … <code>contador++;</code></td><td>Início e passo de um laço com contador</td></tr>
+<tr><td><code>contador--;</code></td><td>Passo para contar para trás</td></tr>
+<tr><td><code>total += valor;</code></td><td>Acumular: juntar um valor a cada volta</td></tr>
+<tr><td><code>while (true) { … break; … }</code></td><td>Laço "infinito" de propósito, com saída no meio (aula <a href="break-continue.html">break e continue</a>)</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>C</kbd></td><td>No terminal, interrompe o programa (código de saída 130)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Expected to find '('.</code></td><td>Faltaram os parênteses da condição</td></tr>
+<tr><td><code>Expected ';' after this.</code> no <code>} while (…)</code></td><td>Faltou o <code>;</code> do <code>do-while</code></td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td>A condição não é uma comparação: escreva <code>n &gt; 0</code>, não só <code>n</code></td></tr>
+<tr><td><code>Undefined name '…'</code></td><td>A variável não foi criada, ou foi criada dentro do laço e usada fora</td></tr>
+<tr><td>A mesma linha sem parar, ou o programa "travado"</td><td>Laço infinito: faltou o passo, ou ele ficou fora das chaves</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<p>Complete para o programa mostrar os números de 1 a 3:</p>
+<div class="ex-code">var n = 1;<br><input data-answer="while" aria-label="palavra-chave do laço"> (n &lt;= 3) {<br>&nbsp;&nbsp;print(n);<br>&nbsp;&nbsp;n<input data-answer="++" aria-label="operador de incremento">;<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantas vezes?</h3>
+<p>Quantas vezes este laço mostra <code>Oi</code>? Responda com um número.</p>
+<pre class="file" data-file="oi.dart">var x = 10;
+while (x &gt; 4) {
+  print('Oi');
+  x -= 2;
+}
+</pre>
+<div class="ex-code">Mostra <input data-answer="3" aria-label="número de vezes"> vezes.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Quantas vezes este <code>do-while</code> mostra <code>Oi</code>? <code>var x = 100;</code> / <code>do { print('Oi'); } while (x &lt; 10);</code></p>
+<label><input type="radio" name="q3"> Nenhuma: a condição é falsa</label>
+<label><input type="radio" name="q3"> Uma: o <code>do-while</code> roda o bloco antes de testar</label>
+<label><input type="radio" name="q3"> Infinitas</label>
+<label><input type="radio" name="q3"> Dá erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas linhas está certa no Dart?</p>
+<label><input type="radio" name="q4"> <code>while n &gt; 0 {</code></label>
+<label><input type="radio" name="q4"> <code>while (n) {</code></label>
+<label><input type="radio" name="q4"> <code>} while (n &gt; 0)</code> (fim de um <code>do-while</code>)</label>
+<label><input type="radio" name="q4"> <code>while (n &gt; 0) {</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual o valor de <code>contador</code> depois de <code>var contador = 1; while (contador &lt;= 5) { contador++; }</code>?</p>
+<label><input type="radio" name="q5"> 6</label>
+<label><input type="radio" name="q5"> 5</label>
+<label><input type="radio" name="q5"> 1</label>
+<label><input type="radio" name="q5"> O laço nunca termina</label>
+</div>
+
+<h3>Missão final: o dinheiro que dobra</h3>
+
+<div class="trydart" data-goal="out:em 10 dias: R$ 1024;;src:\bwhile\s*\(">
+<p class="try-task"><strong>Missão:</strong> alguém começa com R$ 1 e, a cada dia, o dinheiro <strong>dobra</strong>. Em quantos dias passa de R$ 1000? Escreva o <code>while</code> no lugar do comentário: enquanto o <code>valor</code> for menor ou igual a 1000, dobre o valor (<code>valor *= 2;</code>) e some 1 em <code>dias</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var valor = 1;
+  var dias = 0;
+  // escreva o while aqui
+
+  print('Passou de R\$ 1000 em $dias dias: R\$ $valor');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var valor = 1;
+  var dias = 0;
+  while (valor &lt;= 1000) {
+    valor *= 2;
+    dias++;
+  }
+  print('Passou de R\$ 1000 em $dias dias: R\$ $valor');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Passou de R$ 1000 em 10 dias: R$ 1024</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>while (condição) { … }</code> repete o bloco enquanto a condição for <code>true</code>. Ela é testada <strong>antes</strong> de cada volta; se for falsa logo de cara, o bloco não roda nenhuma vez.</li>
+  <li><code>do { … } while (condição);</code> testa <strong>no fim</strong>: o bloco roda pelo menos uma vez. Não esqueça o <code>;</code>.</li>
+  <li>Laço com contador tem três peças: <strong>início</strong> (antes), <strong>condição</strong> e <strong>passo</strong> (dentro do bloco: <code>contador++</code>, <code>saldo += 150</code>).</li>
+  <li>A condição vai entre parênteses e tem de ser <code>bool</code>: <code>while (n &gt; 0)</code>, nunca <code>while (n)</code>.</li>
+  <li>Sem o passo, o laço é infinito. No terminal, <kbd>Ctrl</kbd>+<kbd>C</kbd> o interrompe (código 130); no editor, o botão ■ Parar.</li>
+  <li>Use <code>for</code> quando souber o número de voltas; <code>while</code> quando não souber; <code>do-while</code> quando a primeira volta tiver de acontecer sempre.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
