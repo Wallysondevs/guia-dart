@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart ?. , ?? e ??= — os operadores do null | Guia Dart</title>
+<meta name="description" content="Os operadores de null do Dart para quem nunca programou: ?. (só chama se não for null), ?? (valor padrão), ??= (só preenche se estiver vazio), a dupla ?. + ??, ?[] e os elementos ?x em listas, a precedência do ??, os avisos do dart analyze e os erros reais do Dart 3 (int? em int, + em int?, 'texto' + anulável).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">?. , ?? e ??=</span></h1>
+
+<p class="intro">Na aula <a href="tipos-anulaveis.html">Tipos Anuláveis</a>, você usou um <code>String?</code> conferindo com <code>if (x != null)</code>. Funciona, mas ocupa quatro ou cinco linhas para uma coisa simples como "mostre o apelido, ou <code>cliente</code> se não tiver". O Dart tem três operadores feitos para isso: <code>?.</code>, <code>??</code> e <code>??=</code>. Com eles, cada uma dessas conferências cabe em uma linha.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li><code>?.</code>: chama o método só se o valor não for <code>null</code>.</li>
+  <li><code>??</code>: usa um valor padrão quando o da esquerda é <code>null</code>.</li>
+  <li><code>??=</code>: preenche a variável só se ela estiver vazia.</li>
+  <li>A dupla <code>x?.metodo() ?? padrao</code>, a mais usada de todas.</li>
+  <li>Os parentes: <code>?[0]</code> e o <code>?x</code> dentro de listas.</li>
+  <li>Os erros reais: o resultado do <code>?.</code> ainda é anulável, a ordem das operações com <code>??</code>, e os avisos do <code>dart analyze</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: três bilhetes para o funcionário da padaria</h2>
+<ul>
+  <li><strong><code>?.</code> — "Se tiver encomenda, embrulhe."</strong> Se não tiver, não faça nada (e o resultado é "nada").</li>
+  <li><strong><code>??</code> — "Entregue a encomenda; se não tiver, entregue um pão francês."</strong> Sempre sai alguma coisa.</li>
+  <li><strong><code>??=</code> — "Se a vitrine estiver vazia, ponha 10 pães."</strong> Se já tiver pão, não mexa.</li>
+</ul>
+<p>Todos os três têm o <code>?</code>, o sinal do "talvez seja <code>null</code>" que você já conhece.</p>
+
+<hr>
+
+<h2>1. <code>?.</code>: chamar só se não for <code>null</code></h2>
+
+<pre class="file" data-file="ponto.dart">void main() {
+  String? apelido = 'Aninha';
+  String? outro;
+  print(apelido?.length);
+  print(outro?.length);
+  print(apelido?.toUpperCase());
+  print(outro?.toUpperCase());
+  print(outro?.toUpperCase().length);
+}
+</pre>
+
+<pre class="term">$ dart run ponto.dart
+6
+null
+ANINHA
+null
+null
+</pre>
+
+<dl class="anatomy">
+  <dt>apelido?.length</dt><dd>Lê-se "apelido, <strong>se existir</strong>, ponto length". Como <code>apelido</code> tem texto, funciona como o ponto comum: <code>6</code>.</dd>
+  <dt>outro?.length</dt><dd><code>outro</code> é <code>null</code>: o Dart <strong>não chama</strong> o <code>length</code> e o resultado de tudo é <code>null</code>. Sem erro.</dd>
+  <dt>outro?.toUpperCase().length</dt><dd>Quando o <code>?.</code> encontra <code>null</code>, ele pula <strong>o resto da corrente</strong> inteira: nem o <code>toUpperCase()</code> nem o <code>.length</code> rodam. Por isso só precisa de um <code>?.</code> no começo.</dd>
+</dl>
+
+<p>O nome técnico é <strong>acesso condicional</strong> (<em>null-aware access</em>, "acesso que sabe do <code>null</code>"). Ele é o que a mensagem de erro sugere quando você usa um anulável direto: <code>Try accessing using ?. instead.</code></p>
+
+<div class="warning">
+<strong>O resultado do <code>?.</code> também é anulável</strong>
+<p><code>apelido?.length</code> pode dar um número <strong>ou</strong> <code>null</code>; o tipo dele é <code>int?</code>, não <code>int</code>. O <code>?.</code> não faz o <code>null</code> sumir: só evita o erro. Para ter um valor garantido, junte com o <code>??</code> (seção 4).</p>
+</div>
+
+<hr>
+
+<h2>2. <code>??</code>: o valor padrão</h2>
+
+<pre class="file" data-file="padrao.dart">void main() {
+  String? apelido;
+  String nome = apelido ?? 'cliente';
+  print('Olá, $nome!');
+  apelido = 'Aninha';
+  print('Olá, ${apelido ?? 'cliente'}!');
+  int quantidade = int.tryParse('doze') ?? 1;
+  print(quantidade);
+  String? outro;
+  print(outro?.length ?? 0);
+  String? a;
+  String? b;
+  print(a ?? b ?? 'ninguém');
+}
+</pre>
+
+<pre class="term">$ dart run padrao.dart
+Olá, cliente!
+Olá, Aninha!
+1
+0
+ninguém
+</pre>
+
+<dl class="anatomy">
+  <dt>apelido ?? 'cliente'</dt><dd>"O apelido; <strong>se for <code>null</code></strong>, <code>'cliente'</code>." O resultado <strong>nunca</strong> é <code>null</code>, então cabe numa variável <code>String</code> comum. O <code>??</code> se chama <strong>operador de coalescência nula</strong> (<em>if-null operator</em>); a maioria das pessoas fala só "o <code>??</code>".</dd>
+  <dt>${apelido ?? 'cliente'}</dt><dd>Dentro da <a href="interpolacao.html">interpolação</a>, entre chaves. Agora o apelido existe, e saiu <code>Aninha</code>.</dd>
+  <dt>int.tryParse('doze') ?? 1</dt><dd>O par clássico da aula <a href="conversao.html">Conversão</a>: se o texto não for número, use 1.</dd>
+  <dt>a ?? b ?? 'ninguém'</dt><dd>Em fila: o primeiro que não for <code>null</code>. Como <code>a</code> e <code>b</code> estavam vazios, sobrou <code>'ninguém'</code>.</dd>
+</dl>
+
+<p>O <code>??</code> também resolve a busca no mapa que pode não achar a chave:</p>
+
+<pre class="file" data-file="mapa.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  int preco = precos['torta'] ?? 0;
+  print('Torta: R\$ $preco');
+  var estoque = {'pão': 30};
+  estoque['café'] ??= 0;
+  estoque['pão'] ??= 0;
+  print(estoque);
+  estoque['bolo'] = (estoque['bolo'] ?? 0) + 2;
+  print(estoque);
+}
+</pre>
+
+<pre class="term">$ dart run mapa.dart
+Torta: R$ 0
+{pão: 30, café: 0}
+{pão: 30, café: 0, bolo: 2}
+</pre>
+
+<p>Lembra do erro <code>A value of type 'int?' can't be assigned to a variable of type 'int'.</code> com <code>precos['torta']</code>, na aula <a href="null-safety.html">Null Safety</a>? O <code>?? 0</code> é o conserto. As linhas com <code>??=</code> são da próxima seção, e mapas têm aula própria: <a href="map.html">Mapas</a>.</p>
+
+<div class="trydart" data-goal="out:Cupom: nenhum;;semerro;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> troque as seis linhas do <code>if</code>/<code>else</code> por um <code>print</code> só, usando <code>??</code>: <code>print('Cupom: ${cupom ?? 'nenhum'}');</code>. A saída tem de continuar <code>Cupom: nenhum</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  String? cupom;
+  String texto;
+  if (cupom != null) {
+    texto = cupom;
+  } else {
+    texto = 'nenhum';
+  }
+  print('Cupom: $texto');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String? cupom;
+  print('Cupom: ${cupom ?? 'nenhum'}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. <code>??=</code>: preencher só se estiver vazio</h2>
+
+<pre class="file" data-file="atribui.dart">void main() {
+  int? desconto;
+  print(desconto);
+  desconto ??= 10;
+  print(desconto);
+  desconto ??= 50;
+  print(desconto);
+}
+</pre>
+
+<pre class="term">$ dart run atribui.dart
+null
+10
+10
+</pre>
+
+<dl class="anatomy">
+  <dt>desconto ??= 10;</dt><dd>"Se <code>desconto</code> for <code>null</code>, passe a valer 10." Ele era <code>null</code>: virou 10.</dd>
+  <dt>desconto ??= 50;</dt><dd>Agora ele já tem valor, então <strong>nada muda</strong>: continua 10. É o mesmo que <code>desconto = desconto ?? 50;</code>, mais curto.</dd>
+</dl>
+
+<p>No mapa da seção 2, <code>estoque['café'] ??= 0</code> criou a chave <code>café</code> com 0 (ela não existia), e <code>estoque['pão'] ??= 0</code> não mexeu no pão, que já tinha 30. É o jeito de dizer "garanta que existe, sem estragar o que já estava lá".</p>
+
+<hr>
+
+<h2>4. A dupla mais usada: <code>?.</code> + <code>??</code></h2>
+<p>Juntos, os dois transformam um anulável num valor garantido, em uma linha:</p>
+<pre class="file" data-file="dupla.dart">String? apelido;
+print(apelido?.toUpperCase() ?? 'SEM APELIDO');   // SEM APELIDO
+print(apelido?.length ?? 0);                     // 0
+</pre>
+<p>Lê-se: "o apelido em maiúsculas, se existir; senão, <code>SEM APELIDO</code>". O <code>?.</code> evita o erro; o <code>??</code> troca o <code>null</code> resultante por um valor de verdade. A seção 2 mostrou a segunda linha rodando no lab (<code>outro?.length ?? 0</code> deu <code>0</code>); a missão final usa a primeira.</p>
+
+<hr>
+
+<h2>5. Os parentes: <code>?[ ]</code> e <code>?x</code> nas listas</h2>
+
+<pre class="file" data-file="extras.dart">void main() {
+  List&lt;String&gt;? pedidos;
+  print(pedidos?[0]);
+  pedidos = ['pão', 'café'];
+  print(pedidos?[0]);
+  String? brinde;
+  var sacola = ['pão', ?brinde, 'leite'];
+  print(sacola);
+  brinde = 'bala';
+  var sacola2 = ['pão', ?brinde, 'leite'];
+  print(sacola2);
+}
+</pre>
+
+<pre class="term">$ dart run extras.dart
+null
+pão
+[pão, leite]
+[pão, bala, leite]
+</pre>
+
+<dl class="anatomy">
+  <dt>pedidos?[0]</dt><dd>O <code>?.</code> dos colchetes: pega o item 0 se a <strong>lista</strong> existir; se ela for <code>null</code>, dá <code>null</code>.</dd>
+  <dt>['pão', ?brinde, 'leite'] <span class="versao">Dart 3.8</span></dt><dd>Um <strong>elemento condicional</strong>: o <code>?</code> antes de <code>brinde</code> quer dizer "ponha na lista só se não for <code>null</code>". Sem brinde, a lista ficou com 2 itens; com <code>'bala'</code>, com 3. (Listas em <a href="list.html">Listas</a>.)</dd>
+</dl>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>"Mostre o apelido em maiúsculas, ou <code>SEM APELIDO</code>":</p>
+<pre class="file" data-file="formas.dart">// 1. if/else: claro, mas longo
+if (apelido != null) {
+  print(apelido.toUpperCase());
+} else {
+  print('SEM APELIDO');
+}
+
+// 2. ?. e ??: uma linha
+print(apelido?.toUpperCase() ?? 'SEM APELIDO');
+
+// 3. ?? antes, depois o método (repare nos parênteses)
+print((apelido ?? 'sem apelido').toUpperCase());
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Um valor padrão para um anulável</td><td><code>x ?? padrao</code></td></tr>
+<tr><td>Chamar um método/propriedade só se existir</td><td><code>x?.metodo()</code> (o resultado continua anulável)</td></tr>
+<tr><td>Chamar e ter um valor garantido</td><td><code>x?.metodo() ?? padrao</code></td></tr>
+<tr><td>Preencher uma variável ou chave de mapa só se estiver vazia</td><td><code>x ??= valor</code></td></tr>
+<tr><td>Várias linhas de trabalho quando o valor existe</td><td><code>if (x != null) { … }</code></td></tr>
+<tr><td>O valor <strong>com certeza</strong> não é <code>null</code></td><td>Tipo comum, sem <code>?</code>; ou <code>!</code> (aula <a href="late.html">late e o Operador !</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Achou que o <code>?.</code> devolve um valor comum</strong>
+<pre class="file" data-file="err_resultado.dart">void main() {
+  String? apelido = 'Aninha';
+  int tamanho = apelido?.length;
+  print(tamanho);
+}
+</pre>
+<pre class="term">$ dart run err_resultado.dart
+err_resultado.dart:3:17: Error: A value of type 'int?' can't be assigned to a variable of type 'int'.
+  int tamanho = apelido?.length;
+                ^
+</pre>
+<dl class="anatomy">
+  <dt>err_resultado.dart:3:17:</dt><dd>Linha 3, coluna 17: o começo da expressão <code>apelido?.length</code>.</dd>
+  <dt>A value of type 'int?' can't be assigned to a variable of type 'int'.</dt><dd>"Um valor do tipo <code>int?</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O <code>?.</code> pode dar <code>null</code>, então o resultado é <code>int?</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>int tamanho = apelido?.length ?? 0;</code>, ou declare <code>int? tamanho</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Fez conta com o resultado do <code>?.</code></strong>
+<pre class="file" data-file="err_conta.dart">void main() {
+  String? apelido = 'Aninha';
+  print(apelido?.length + 1);
+}
+</pre>
+<pre class="term">$ dart run err_conta.dart
+err_conta.dart:3:25: Error: Operator '+' cannot be called on 'int?' because it is potentially null.
+  print(apelido?.length + 1);
+                        ^
+</pre>
+<p>O mesmo motivo: <code>apelido?.length</code> é <code>int?</code>, e "nada + 1" não existe. <strong>Como consertar:</strong> <code>(apelido?.length ?? 0) + 1</code>, com parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>A ordem das operações com <code>??</code></strong>
+<pre class="file" data-file="err_ordem.dart">void main() {
+  String? apelido;
+  print('Olá, ' + apelido ?? 'cliente');
+}
+</pre>
+<pre class="term">$ dart run err_ordem.dart
+err_ordem.dart:3:19: Error: A value of type 'String?' can't be assigned to a variable of type 'String'.
+  print('Olá, ' + apelido ?? 'cliente');
+                  ^
+</pre>
+<p>O <code>??</code> é um dos <strong>últimos</strong> a ser feito numa expressão. O Dart tentou primeiro <code>'Olá, ' + apelido</code>, e o <code>+</code> de texto não aceita um <code>String?</code>. O <code>?? 'cliente'</code> ficaria para depois. <strong>Como consertar:</strong> parênteses, <code>'Olá, ' + (apelido ?? 'cliente')</code>, ou, melhor, interpolação: <code>'Olá, ${apelido ?? 'cliente'}'</code>.</p>
+<p>A ordem também engana sem dar erro. Veja onde fica o <code>toUpperCase()</code>:</p>
+<pre class="file" data-file="ordem2.dart">void main() {
+  String? apelido;
+  print(apelido ?? 'cliente'.toUpperCase());
+  apelido = 'aninha';
+  print(apelido ?? 'cliente'.toUpperCase());
+  print((apelido ?? 'cliente').toUpperCase());
+}
+</pre>
+<pre class="term">$ dart run ordem2.dart
+CLIENTE
+aninha
+ANINHA
+</pre>
+<p>Sem parênteses, o <code>.toUpperCase()</code> vale só para o <code>'cliente'</code>: o apelido <code>aninha</code> saiu em minúsculas. Com os parênteses da última linha, o método vale para o resultado do <code>??</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>??</code> e <code>?.</code> num valor que nunca é <code>null</code></strong>
+<pre class="file" data-file="err_inutil.dart">void main() {
+  String nome = 'Ana';
+  print(nome ?? 'cliente');
+  print(nome?.length);
+}
+</pre>
+<pre class="term">$ dart run err_inutil.dart
+Ana
+3
+$ dart analyze err_inutil.dart
+Analyzing err_inutil.dart...
+
+warning - err_inutil.dart:3:14 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - err_inutil.dart:3:17 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - err_inutil.dart:4:13 - The receiver can't be null, so the null-aware operator '?.' is unnecessary. Try replacing the operator '?.' with '.'. - invalid_null_aware_operator
+
+3 issues found.
+</pre>
+<p>O <code>dart run</code> rodou sem reclamar. Mas o <code>dart analyze</code> (o "revisor" do Dart, que procura problemas sem rodar o programa; veja <a href="analise.html">Análise e Formatação</a>) deu três avisos (<em>warning</em>):</p>
+<dl class="anatomy">
+  <dt>Dead code.</dt><dd>"Código morto": o <code>'cliente'</code> nunca vai ser usado.</dd>
+  <dt>The left operand can't be null, so the right operand is never executed.</dt><dd>"O lado esquerdo não pode ser <code>null</code>, então o lado direito nunca roda." <code>nome</code> é <code>String</code>, sem <code>?</code>.</dd>
+  <dt>The receiver can't be null, so the null-aware operator '?.' is unnecessary.</dt><dd>"O receptor não pode ser <code>null</code>, então o <code>?.</code> é desnecessário. Troque por <code>.</code>."</dd>
+</dl>
+<p>Não é erro, mas é sinal de confusão: ou o tipo devia ter <code>?</code>, ou o operador sobrou. <strong>Como consertar:</strong> tire o <code>?? 'cliente'</code> e troque <code>?.</code> por <code>.</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Lê-se</th><th>Resultado</th></tr>
+<tr><td><code>x?.metodo()</code></td><td>"chame, se <code>x</code> existir"</td><td>O resultado, ou <code>null</code> (tipo anulável)</td></tr>
+<tr><td><code>x ?? y</code></td><td>"<code>x</code>; se for <code>null</code>, <code>y</code>"</td><td>Nunca <code>null</code> (se <code>y</code> não for)</td></tr>
+<tr><td><code>x ??= y</code></td><td>"se <code>x</code> for <code>null</code>, passe a valer <code>y</code>"</td><td>Muda <code>x</code> só se estava vazio</td></tr>
+<tr><td><code>x?.metodo() ?? y</code></td><td>"chame, se existir; senão, <code>y</code>"</td><td>Valor garantido</td></tr>
+<tr><td><code>lista?[0]</code></td><td>"item 0, se a lista existir"</td><td>O item, ou <code>null</code></td></tr>
+<tr><td><code>[a, ?b, c]</code></td><td>"ponha <code>b</code> só se não for <code>null</code>"</td><td>Lista sem os <code>null</code> marcados (<span class="versao">Dart 3.8</span>)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'int?' can't be assigned to a variable of type 'int'.</code></td><td>Guardou o resultado de <code>?.</code> sem <code>??</code></td></tr>
+<tr><td><code>Operator '+' cannot be called on 'int?'</code></td><td>Conta com o resultado de <code>?.</code>: <code>(x?.length ?? 0) + 1</code></td></tr>
+<tr><td><code>A value of type 'String?' can't be assigned…</code> numa linha com <code>+</code> e <code>??</code></td><td>Ordem: o <code>+</code> vem antes do <code>??</code>; use parênteses</td></tr>
+<tr><td>O método só valeu para o valor padrão</td><td><code>x ?? 'a'.metodo()</code>: use <code>(x ?? 'a').metodo()</code></td></tr>
+<tr><td><code>dead_null_aware_expression</code>, <code>invalid_null_aware_operator</code> no <code>dart analyze</code></td><td><code>??</code> ou <code>?.</code> num tipo sem <code>?</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para mostrar o nome, ou <code>visitante</code> se ele for <code>null</code>:</p>
+<div class="ex-code">String? nome;<br>print(nome <input data-answer="??" aria-label="operador"> 'visitante');</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale?</h3>
+<p><code>int? vagas = 3;</code> / <code>vagas ??= 10;</code> / <code>print(vagas);</code></p>
+<div class="ex-code">Mostra <input data-answer="3" aria-label="valor"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Com <code>String? s;</code> (vale <code>null</code>), o que mostra <code>print(s?.length);</code>?</p>
+<label><input type="radio" name="q3"> <code>0</code></label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> <code>NoSuchMethodError</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Qual destas linhas compila, com <code>String? s;</code>?</p>
+<label><input type="radio" name="q4"> <code>int n = s?.length;</code></label>
+<label><input type="radio" name="q4"> <code>int n = s.length;</code></label>
+<label><input type="radio" name="q4"> <code>print(s?.length + 1);</code></label>
+<label><input type="radio" name="q4"> <code>int n = s?.length ?? 0;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>String? a = 'oi';</code>. O que mostra <code>print(a ?? 'tchau'.toUpperCase());</code>?</p>
+<label><input type="radio" name="q5"> <code>oi</code></label>
+<label><input type="radio" name="q5"> <code>OI</code></label>
+<label><input type="radio" name="q5"> <code>TCHAU</code></label>
+<label><input type="radio" name="q5"> Erro de compilação</label>
+</div>
+
+<h3>Missão final: os apelidos da turma</h3>
+
+<div class="trydart" data-goal="out:Ana: ANINHA;;out:Bia: SEM APELIDO;;out:Caio: CAIO;;semerro;;src:\?\.;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> o cadastro tem um apelido para cada pessoa, mas a Bia não tem (<code>null</code>). O programa não compila. Use <code>?.</code> e <code>??</code> na interpolação para mostrar o apelido em maiúsculas, ou <code>SEM APELIDO</code>: <code>${apelido?.toUpperCase() ?? 'SEM APELIDO'}</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var cadastro = {'Ana': 'Aninha', 'Bia': null, 'Caio': 'Caio'};
+  for (var nome in cadastro.keys) {
+    String? apelido = cadastro[nome];
+    print('$nome: ${apelido.toUpperCase()}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var cadastro = {'Ana': 'Aninha', 'Bia': null, 'Caio': 'Caio'};
+  for (var nome in cadastro.keys) {
+    String? apelido = cadastro[nome];
+    print('$nome: ${apelido?.toUpperCase() ?? 'SEM APELIDO'}');
+  }
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run missao.dart
+Ana: ANINHA
+Bia: SEM APELIDO
+Caio: CAIO
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>x?.metodo()</code> chama só se <code>x</code> não for <code>null</code>; se for, a corrente inteira dá <code>null</code>. O resultado continua anulável.</li>
+  <li><code>x ?? y</code> dá <code>x</code>, ou <code>y</code> quando <code>x</code> é <code>null</code>. É o conserto para <code>tryParse</code> e mapas.</li>
+  <li><code>x ??= y</code> preenche <code>x</code> só se estava vazio.</li>
+  <li><code>x?.metodo() ?? padrao</code> transforma um anulável num valor garantido, em uma linha.</li>
+  <li>O <code>??</code> é feito por último: use parênteses (<code>(a ?? b).metodo()</code>, <code>'…' + (x ?? y)</code>).</li>
+  <li><code>??</code> e <code>?.</code> em tipos sem <code>?</code> rodam, mas o <code>dart analyze</code> avisa: tem algo sobrando.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
