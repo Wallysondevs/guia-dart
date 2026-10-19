@@ -463,7 +463,7 @@ $ echo $?
 </div>
 
 <div class="trydart" data-goal="out:Pago: 20;;semerro">
-<p class="try-task"><strong>Missão:</strong> este programa não compila. São dois problemas: o <code>catch</code> sem parênteses e a variável <code>pago</code> que só existe dentro do <code>try</code>. Conserte os dois (crie <code>var pago = 0;</code> antes do <code>try</code>) até aparecer <code>Pago: 20</code>.</p>
+<p class="try-task"><strong>Missão:</strong> este programa não compila. São dois problemas: o <code>catch</code> sem parênteses e a variável <code>pago</code> que só existe dentro do <code>try</code>. Conserte os dois (crie <code>var pago = 0;</code> antes do <code>try</code>) até aparecer <code>Pago: 20</code>. (O editor do guia mostra só o primeiro erro de sintaxe, o do <code>catch</code>; depois de consertá-lo, rode de novo para ver o do <code>pago</code>.)</p>
 <pre class="script" data-file="main.dart">void main() {
   try {
     final pago = int.parse('20');
