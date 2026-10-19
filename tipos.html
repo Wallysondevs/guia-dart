@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Tipos — int, double, String, bool e companhia | Guia Dart</title>
+<meta name="description" content="Os tipos básicos do Dart para quem nunca programou: int, double, num, String e bool, um primeiro olhar em List, Map e Null, como ver o tipo de um valor com runtimeType e is, por que '5' e 5 são diferentes, e os erros reais do Dart 3 (A value of type 'double' can't be assigned to a variable of type 'int', 'string' isn't a type, The getter 'length' isn't defined for the type 'int') explicados.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Os Tipos Básicos</span></h1>
+
+<p class="intro">Na aula <a href="variaveis.html">Variáveis</a>, você viu que toda variável tem um <strong>tipo</strong>, e que o Dart não deixa guardar um texto num pote de números. Esta aula apresenta os tipos que você vai usar o tempo todo: números inteiros, números com vírgula, textos e verdadeiro/falso. Cada um deles tem uma aula própria mais adiante; aqui é o mapa geral, para você reconhecer cada tipo e saber escolher.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um tipo e por que o Dart se importa tanto com eles.</li>
+  <li>Os quatro tipos básicos: <code>int</code>, <code>double</code>, <code>String</code> e <code>bool</code>, e o <code>num</code>, que junta os dois números.</li>
+  <li>Um primeiro olhar em <code>List</code>, <code>Map</code> e no <code>Null</code>.</li>
+  <li>A descobrir o tipo de um valor com <code>runtimeType</code> e a perguntar com <code>is</code>.</li>
+  <li>Por que <code>'5'</code> e <code>5</code> são coisas diferentes.</li>
+  <li>Os erros reais de tipo errado, de tipo escrito errado e de usar algo que o tipo não tem.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>tp</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: cada coisa na sua forma</h2>
+<p>Na cozinha da padaria, cada forma serve para uma coisa: a forma de pão de forma, a de bolo redondo, a de pudim com furo no meio. Ninguém assa pudim na forma de pão. E dá para saber o que vai sair só de olhar para a forma.</p>
+
+<p>Os <strong>tipos</strong> são as formas dos valores. Um número inteiro, um preço com centavos, um nome, um "sim ou não": cada um tem o seu tipo, e cada tipo sabe fazer coisas diferentes (dá para somar números; dá para pôr um texto em maiúsculas). Como o Dart confere os tipos <strong>antes</strong> de rodar o programa, um valor na forma errada é descoberto na hora, e não quando a cliente já está no caixa.</p>
+
+<hr>
+
+<h2>1. Os quatro tipos básicos</h2>
+
+<pre class="file" data-file="basicos.dart">void main() {
+  int paes = 30;
+  double preco = 0.9;
+  String padaria = 'Padaria do Bairro';
+  bool aberta = true;
+  print(paes);
+  print(preco);
+  print(padaria);
+  print(aberta);
+}
+</pre>
+
+<pre class="term">$ dart run basicos.dart
+30
+0.9
+Padaria do Bairro
+true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Guarda</th><th>Exemplos</th><th>Aula</th></tr>
+<tr><td><code>int</code></td><td>Números <strong>inteiros</strong> (de <em>integer</em>, "inteiro"), positivos ou negativos</td><td><code>30</code>, <code>0</code>, <code>-5</code></td><td><a href="int-double.html">Números</a></td></tr>
+<tr><td><code>double</code></td><td>Números com <strong>casas decimais</strong> (o nome vem de "precisão dupla"). Separador: ponto</td><td><code>0.9</code>, <code>18.5</code>, <code>3.0</code></td><td><a href="int-double.html">Números</a></td></tr>
+<tr><td><code>String</code></td><td><strong>Textos</strong>, entre aspas</td><td><code>'Ana'</code>, <code>'pão'</code>, <code>''</code> (vazio)</td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td><code>bool</code></td><td><strong>Verdadeiro ou falso</strong> (de <em>boolean</em>), e só isso</td><td><code>true</code>, <code>false</code></td><td><a href="bool.html">Booleanos</a></td></tr>
+</table>
+</div>
+
+<p>Repare na escrita: <code>String</code> com <strong>S maiúsculo</strong>; <code>int</code>, <code>double</code> e <code>bool</code> todos <strong>minúsculos</strong>. E <code>true</code>/<code>false</code> sem aspas, em minúsculas: são valores, não textos.</p>
+
+<h3>Os números: <code>int</code>, <code>double</code> e <code>num</code></h3>
+
+<pre class="file" data-file="numeros.dart">void main() {
+  double peso = 3;
+  print(peso);
+  print(7 / 2);
+  print(8 / 2);
+  print((8 / 2).runtimeType);
+  num qualquer = 5;
+  print(qualquer);
+  qualquer = 2.5;
+  print(qualquer);
+}
+</pre>
+
+<pre class="term">$ dart run numeros.dart
+3.0
+3.5
+4.0
+double
+5
+2.5
+</pre>
+
+<dl class="anatomy">
+  <dt>double peso = 3;</dt><dd>Um inteiro cabe numa variável <code>double</code>: o Dart guarda <code>3.0</code>. O contrário não vale (veja "Quando dá errado").</dd>
+  <dt>7 / 2 → 3.5 e 8 / 2 → 4.0</dt><dd>A divisão com <code>/</code> sempre dá <code>double</code>, mesmo quando a conta é "exata". Por isso aparece <code>4.0</code>, e não <code>4</code>.</dd>
+  <dt>num</dt><dd>De <em>number</em>, "número": aceita <strong>tanto</strong> <code>int</code> quanto <code>double</code>. A variável <code>qualquer</code> guardou 5 e depois 2.5. É útil de vez em quando, mas na maioria das vezes você sabe se o número é inteiro ou não.</dd>
+</dl>
+
+<div class="trydart" data-goal="outre:^Lojinha da Ana\n12\n4.5\nfalse\n$;;src:\bString\s+\w+\s*=;;src:\bint\s+\w+\s*=;;src:\bdouble\s+\w+\s*=;;src:\bbool\s+\w+\s*=">
+<p class="try-task"><strong>Missão:</strong> troque cada <code>var</code> pelo tipo certo (<code>String</code>, <code>int</code>, <code>double</code> ou <code>bool</code>). Se errar, o Dart avisa. A saída não muda.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var loja = 'Lojinha da Ana';
+  var cadernos = 12;
+  var precoCaneta = 4.5;
+  var fechada = false;
+  print(loja);
+  print(cadernos);
+  print(precoCaneta);
+  print(fechada);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String loja = 'Lojinha da Ana';
+  int cadernos = 12;
+  double precoCaneta = 4.5;
+  bool fechada = false;
+  print(loja);
+  print(cadernos);
+  print(precoCaneta);
+  print(fechada);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Descobrindo o tipo: <code>runtimeType</code> e <code>is</code></h2>
+<p>Quando você cria a variável com <code>var</code>, o Dart descobre o tipo pelo valor. Para ver qual foi, todo valor tem o <code>.runtimeType</code> ("tipo durante a execução"):</p>
+
+<pre class="file" data-file="runtime.dart">void main() {
+  var paes = 30;
+  var preco = 0.9;
+  var padaria = 'Padaria do Bairro';
+  var aberta = true;
+  print(paes.runtimeType);
+  print(preco.runtimeType);
+  print(padaria.runtimeType);
+  print(aberta.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run runtime.dart
+int
+double
+String
+bool
+</pre>
+
+<p>E para <strong>perguntar</strong> se um valor é de um tipo, use <code>is</code> ("é"). A resposta é um <code>bool</code>:</p>
+
+<pre class="file" data-file="is.dart">void main() {
+  var troco = 2.5;
+  print(troco is double);
+  print(troco is int);
+  print(troco is num);
+}
+</pre>
+
+<pre class="term">$ dart run is.dart
+true
+false
+true
+</pre>
+
+<p><code>2.5</code> é <code>double</code>, não é <code>int</code>, e é <code>num</code> (todo <code>double</code> é um <code>num</code>). O <code>runtimeType</code> serve para estudar e investigar; para decidir coisas no programa, o certo é o <code>is</code>, que tem aula própria: <a href="operadores-tipo.html">is, is! e as</a>.</p>
+
+<hr>
+
+<h2>3. <code>'5'</code> não é <code>5</code></h2>
+<p>Aspas fazem toda a diferença. Na tela, os dois parecem iguais; para o Dart, um é texto e o outro é número:</p>
+
+<pre class="file" data-file="texto_numero.dart">void main() {
+  var a = '5';
+  var b = 5;
+  print(a);
+  print(b);
+  print(a.runtimeType);
+  print(b.runtimeType);
+  print(a == b);
+}
+</pre>
+
+<pre class="term">$ dart run texto_numero.dart
+5
+5
+String
+int
+false
+</pre>
+
+<p>As duas primeiras linhas saem iguais, mas <code>a</code> é <code>String</code> e <code>b</code> é <code>int</code>, e a comparação <code>a == b</code> ("<code>a</code> é igual a <code>b</code>?") responde <code>false</code>. Não dá para fazer conta com <code>'5'</code>: primeiro é preciso converter o texto em número, com <code>int.parse('5')</code> (aula <a href="conversao.html">Conversão de Tipos</a>). Isso vai importar muito quando o programa ler o que a pessoa digita, porque o teclado sempre entrega texto (aula <a href="stdin.html">Lendo o Teclado</a>).</p>
+
+<hr>
+
+<h2>4. Outros tipos que você vai encontrar</h2>
+<p>Os quatro básicos guardam <strong>um</strong> valor. Logo você vai querer guardar vários de uma vez: a lista de compras inteira, a tabela de preços. Um primeiro olhar:</p>
+
+<pre class="file" data-file="colecoes.dart">void main() {
+  var compras = ['pão', 'leite'];
+  var precos = {'pão': 0.9, 'leite': 5.5};
+  print(compras.runtimeType);
+  print(precos.runtimeType);
+  print(null.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run colecoes.dart
+List&lt;String&gt;
+_Map&lt;String, double&gt;
+Null
+</pre>
+
+<dl class="anatomy">
+  <dt>List&lt;String&gt;</dt><dd>Uma <strong>lista</strong> de textos. O que está entre <code>&lt; &gt;</code> é o tipo de cada item. Aula <a href="list.html">Listas</a>.</dd>
+  <dt>_Map&lt;String, double&gt;</dt><dd>Um <strong>mapa</strong>: cada nome (<code>String</code>) aponta para um preço (<code>double</code>). No seu código, o tipo se escreve <code>Map&lt;String, double&gt;</code>; o <code>_Map</code> com sublinhado é o nome interno que o Dart usa por baixo. Aula <a href="map.html">Mapas</a>.</dd>
+  <dt>Null</dt><dd>O tipo do <code>null</code>, o "nada": a ausência de valor. Ele tem um grupo de aulas inteiro, começando por <a href="null-safety.html">Null Safety</a>.</dd>
+</dl>
+
+<p>Há ainda <code>Set</code> (<a href="set.html">conjuntos</a>), <code>dynamic</code> e <code>Object</code> (<a href="dynamic-object.html">dynamic e Object</a>) e os tipos que você mesmo cria com <a href="classes.html">classes</a>.</p>
+
+<hr>
+
+<h2>Qual tipo usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>O que guardar</th><th>Tipo</th><th>Exemplo</th></tr>
+<tr><td>Quantidades, contagens, idades</td><td><code>int</code></td><td><code>int paes = 30;</code></td></tr>
+<tr><td>Preços, pesos, médias, medidas</td><td><code>double</code></td><td><code>double preco = 0.9;</code></td></tr>
+<tr><td>Nomes, recados, endereços</td><td><code>String</code></td><td><code>String cliente = 'Bia';</code></td></tr>
+<tr><td>Sim ou não, ligado ou desligado</td><td><code>bool</code></td><td><code>bool aberta = true;</code></td></tr>
+<tr><td>Números que podem ser de um tipo ou do outro</td><td><code>num</code></td><td><code>num medida = 5;</code></td></tr>
+<tr><td>Telefone, CEP, CPF (números que não entram em conta)</td><td><code>String</code></td><td><code>String cep = '01001-000';</code></td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Escrever o tipo ou usar <code>var</code>?</strong>
+<p>Os dois produzem o mesmo programa. O guia de estilo oficial (<em>Effective Dart</em>) sugere deixar o Dart descobrir o tipo nas variáveis de dentro das funções, quando o valor deixa o tipo óbvio (<code>var paes = 30;</code>), e escrever o tipo quando ele não é óbvio. Neste começo, escrever o tipo ajuda você a pensar nele: use os dois e veja qual fica mais claro.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Decimal num <code>int</code></strong>
+<pre class="file" data-file="int_decimal.dart">void main() {
+  int paes = 2.5;
+  print(paes);
+}
+</pre>
+<pre class="term">$ dart run int_decimal.dart
+int_decimal.dart:2:14: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+  int paes = 2.5;
+             ^
+$ echo $?
+254
+</pre>
+<p>"Um valor do tipo <code>double</code> não pode ser atribuído a uma variável do tipo <code>int</code>." O Dart não corta as casas decimais sozinho, porque isso perderia o meio pão sem avisar. <strong>Como consertar:</strong> se o valor pode ter decimais, <code>double paes = 2.5;</code>. Se queria um inteiro, escreva um inteiro.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto onde vai número ou <code>bool</code></strong>
+<pre class="file" data-file="int_texto.dart">void main() {
+  int quantidade = '5';
+  print(quantidade);
+}
+</pre>
+<pre class="term">$ dart run int_texto.dart
+int_texto.dart:2:20: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int quantidade = '5';
+                   ^
+$ dart run bool_texto.dart
+bool_texto.dart:2:17: Error: A value of type 'String' can't be assigned to a variable of type 'bool'.
+  bool aberta = 'sim';
+                ^
+</pre>
+<p>As aspas fazem do <code>'5'</code> um texto (seção 3). E <code>bool</code> só aceita <code>true</code> ou <code>false</code>: <code>'sim'</code> é texto. <strong>Como consertar:</strong> <code>int quantidade = 5;</code> e <code>bool aberta = true;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tipo escrito com a letra errada</strong>
+<pre class="file" data-file="maiuscula.dart">void main() {
+  string nome = 'Ana';
+  Int idade = 30;
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run maiuscula.dart
+maiuscula.dart:2:3: Error: 'string' isn't a type.
+  string nome = 'Ana';
+  ^^^^^^
+maiuscula.dart:3:3: Error: 'Int' isn't a type.
+  Int idade = 30;
+  ^^^
+</pre>
+<p>"<code>string</code> não é um tipo" e "<code>Int</code> não é um tipo". Quem vem de outras linguagens erra muito isto: em Dart é <code>String</code> (maiúsculo) e <code>int</code> (minúsculo). O mesmo com os valores do <code>bool</code>:</p>
+<pre class="term">$ dart run bool_maiusc.dart
+bool_maiusc.dart:2:17: Error: Undefined name 'True'.
+  bool aberta = True;
+                ^^^^
+</pre>
+<p><code>True</code> com T maiúsculo é, para o Dart, o nome de uma variável que não existe. <strong>Como consertar:</strong> <code>String</code>, <code>int</code>, <code>double</code>, <code>bool</code>, <code>true</code>, <code>false</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pedir a um tipo o que ele não tem</strong>
+<pre class="file" data-file="length.dart">void main() {
+  var nome = 'Ana';
+  var paes = 30;
+  print(nome.length);
+  print(paes.length);
+}
+</pre>
+<pre class="term">$ dart run length.dart
+length.dart:5:14: Error: The getter 'length' isn't defined for the type 'int'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'length'.
+  print(paes.length);
+             ^^^^^^
+</pre>
+<p>Cada tipo sabe fazer coisas diferentes. Um texto tem <code>.length</code> (o comprimento, quantas letras tem), mas um número não. A mensagem diz: "o <em>getter</em> <code>length</code> não está definido para o tipo <code>int</code>" (um <strong>getter</strong> é uma informação que se pede a um valor com o ponto, como <code>.length</code> e <code>.runtimeType</code>; aula <a href="getters-setters.html">get e set</a>). A segunda linha sugere corrigir o nome ou criar esse getter. Repare: o erro está na linha 5, e mesmo assim a linha 4, que estava certa, não rodou. Aqui o tipo protegeu você: o Dart sabe que <code>paes</code> é <code>int</code> e avisa antes de rodar. <strong>Como consertar:</strong> use <code>.length</code> só com textos (e listas).</p>
+</div>
+
+<div class="trydart" data-goal="semerro;;outre:^Bia\n10\n2.5\ntrue\n$">
+<p class="try-task"><strong>Missão:</strong> cada linha de declaração tem um erro de tipo. Conserte trocando o <strong>tipo</strong> ou o <strong>valor</strong>, para a saída ser <code>Bia</code>, <code>10</code>, <code>2.5</code> e <code>true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  string cliente = 'Bia';
+  int pedidos = '10';
+  int troco = 2.5;
+  bool pagou = True;
+  print(cliente);
+  print(pedidos);
+  print(troco);
+  print(pagou);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  String cliente = 'Bia';
+  int pedidos = 10;
+  double troco = 2.5;
+  bool pagou = true;
+  print(cliente);
+  print(pedidos);
+  print(troco);
+  print(pagou);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Valores</th><th>Observação</th></tr>
+<tr><td><code>int</code></td><td><code>30</code>, <code>-5</code>, <code>0</code></td><td>Inteiros; minúsculo</td></tr>
+<tr><td><code>double</code></td><td><code>0.9</code>, <code>3.0</code></td><td>Decimais, com ponto; aceita inteiro (<code>double x = 3;</code> → <code>3.0</code>)</td></tr>
+<tr><td><code>num</code></td><td><code>5</code> ou <code>2.5</code></td><td><code>int</code> ou <code>double</code></td></tr>
+<tr><td><code>String</code></td><td><code>'Ana'</code>, <code>''</code></td><td>Textos, entre aspas; S maiúsculo</td></tr>
+<tr><td><code>bool</code></td><td><code>true</code>, <code>false</code></td><td>Sem aspas, minúsculos</td></tr>
+<tr><td><code>List&lt;T&gt;</code>, <code>Map&lt;K, V&gt;</code></td><td><code>['pão']</code>, <code>{'pão': 0.9}</code></td><td>Coleções (Nível 2)</td></tr>
+<tr><td><code>Null</code></td><td><code>null</code></td><td>Ausência de valor</td></tr>
+<tr><td><code>valor.runtimeType</code></td><td colspan="2">Mostra o tipo de um valor</td></tr>
+<tr><td><code>valor is int</code></td><td colspan="2">Pergunta se é de um tipo: <code>true</code> ou <code>false</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'double' can't be assigned to a variable of type 'int'.</code></td><td>Decimal numa variável <code>int</code></td></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'int'.</code></td><td>Número entre aspas</td></tr>
+<tr><td><code>'string' isn't a type.</code> / <code>'Int' isn't a type.</code></td><td>Maiúscula/minúscula trocada no nome do tipo</td></tr>
+<tr><td><code>Undefined name 'True'.</code></td><td><code>true</code> e <code>false</code> são minúsculos</td></tr>
+<tr><td><code>The getter 'length' isn't defined for the type 'int'.</code></td><td>Usou algo que só outro tipo tem</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual tipo?</h3>
+<p>Que tipo guarda o preço <code>12.90</code>?</p>
+<div class="ex-code">Tipo: <input data-answer="double" aria-label="tipo"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>O que mostra <code>print(9 / 3);</code>?</p>
+<div class="ex-code">Saída: <input data-answer="3.0" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. Complete</h3>
+<p>Complete com o tipo do texto:</p>
+<div class="ex-code"><input data-answer="String" aria-label="tipo"> recado = 'Volto já';</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. O que mostra <code>print('7'.runtimeType);</code>?</p>
+<label><input type="radio" name="q4"> <code>int</code></label>
+<label><input type="radio" name="q4"> <code>7</code></label>
+<label><input type="radio" name="q4"> <code>String</code></label>
+<label><input type="radio" name="q4"> <code>num</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Qual destas linhas compila sem erro?</p>
+<label><input type="radio" name="q5"> <code>int x = 1.5;</code></label>
+<label><input type="radio" name="q5"> <code>double x = 1;</code></label>
+<label><input type="radio" name="q5"> <code>bool x = 'false';</code></label>
+<label><input type="radio" name="q5"> <code>string x = 'oi';</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">6. Qual tipo é melhor para guardar um número de telefone, como <code>(81) 99999-0000</code>?</p>
+<label><input type="radio" name="q6"> <code>int</code></label>
+<label><input type="radio" name="q6"> <code>double</code></label>
+<label><input type="radio" name="q6"> <code>bool</code></label>
+<label><input type="radio" name="q6"> <code>String</code></label>
+</div>
+
+<h3>Missão final: a ficha do produto</h3>
+
+<div class="trydart" data-goal="outre:^Caderno\nString\n25\nint\n12.5\ndouble\ntrue\nbool\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> a ficha de um produto da lojinha: o nome <code>Caderno</code>, o estoque <code>25</code>, o preço <code>12.5</code> e se está à venda (<code>true</code>). Crie as quatro variáveis e, para cada uma, mostre o valor e, na linha de baixo, o tipo dela com <code>.runtimeType</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var produto = 'Caderno';
+  print(produto);
+  print(produto.runtimeType);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var produto = 'Caderno';
+  var estoque = 25;
+  var preco = 12.5;
+  var aVenda = true;
+  print(produto);
+  print(produto.runtimeType);
+  print(estoque);
+  print(estoque.runtimeType);
+  print(preco);
+  print(preco.runtimeType);
+  print(aVenda);
+  print(aVenda.runtimeType);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Todo valor tem um <strong>tipo</strong>, e o Dart confere os tipos antes de rodar.</li>
+  <li><code>int</code> para inteiros, <code>double</code> para decimais (com ponto), <code>num</code> para os dois, <code>String</code> para textos, <code>bool</code> para <code>true</code>/<code>false</code>.</li>
+  <li><code>String</code> com maiúscula; <code>int</code>, <code>double</code>, <code>bool</code>, <code>true</code> e <code>false</code> com minúscula.</li>
+  <li>A divisão <code>/</code> sempre dá <code>double</code>. Um <code>int</code> cabe num <code>double</code>, mas não o contrário.</li>
+  <li><code>'5'</code> é texto e <code>5</code> é número: não são iguais.</li>
+  <li><code>.runtimeType</code> mostra o tipo; <code>is</code> pergunta se é de um tipo.</li>
+  <li>Vêm aí: <code>List</code>, <code>Map</code>, <code>Set</code> e o <code>Null</code> da null safety.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
