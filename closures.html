@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Closures — funções que lembram de onde nasceram | Guia Dart</title>
+<meta name="description" content="Closures no Dart para quem nunca programou: uma função que usa variáveis de fora dela, o contador de senhas com criarContador, a fábrica de descontos, a closure que vê a variável mudar, somar dentro do forEach, o for que cria uma variável nova a cada volta e os erros reais do Dart 3 (Undefined name, Can't assign to the final variable, LateInitializationError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Closures</span></h1>
+
+<p class="intro">Você já viu que o <code>print</code> de uma função anônima mostra <code>Closure: …</code>. Esta aula explica o nome. Uma <strong>closure</strong> (em inglês, algo como "fechamento") é uma função que <strong>lembra das variáveis do lugar onde foi criada</strong>, e continua podendo usá-las e mudá-las mesmo depois que esse lugar terminou. Parece mágica, mas é uma das ferramentas mais usadas do Dart (no Flutter, então, está em toda tela).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Que uma função pode usar as variáveis do bloco em volta dela.</li>
+  <li>O exemplo clássico: uma "fábrica" de contadores, em que cada contador guarda a sua própria contagem.</li>
+  <li>Como criar funções sob medida: a fábrica de descontos.</li>
+  <li>Que a closure guarda a <strong>variável</strong>, não uma cópia do valor: se a variável muda, a closure vê.</li>
+  <li>Como somar dentro de um <code>forEach</code> e por que o <code>for</code> do Dart cria uma variável nova a cada volta.</li>
+  <li>Os erros reais: <code>Undefined name</code>, <code>Can't assign to the final variable</code> e o <code>LateInitializationError</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Antes, convém ter visto <a href="funcoes-anonimas.html">Funções Anônimas</a> e <a href="funcoes-valores.html">Funções como Valores</a>.</p>
+
+<hr>
+
+<h2>A ideia: a máquina de senhas da padaria</h2>
+<p>Na padaria, cada balcão tem uma <strong>maquininha de senhas</strong>. Você aperta o botão e sai a próxima senha: 1, 2, 3… A maquininha não precisa que ninguém diga "a última foi a 2": ela <strong>guarda o número lá dentro</strong>. E a maquininha do balcão de frios conta separado da do balcão de pães: cada uma tem o seu número guardado.</p>
+<p>Uma closure é essa maquininha: uma função (o botão) mais as variáveis que ela carrega junto (o número guardado dentro dela).</p>
+
+<hr>
+
+<h2>1. A função enxerga as variáveis em volta</h2>
+<p>Comece pelo mais simples. Uma função anônima criada dentro do <code>main</code> pode usar as variáveis do <code>main</code>:</p>
+
+<pre class="file" data-file="lembra.dart">void main() {
+  final nome = 'Ana';
+  final saudar = () =&gt; print('Olá, $nome!');
+  saudar();
+}
+</pre>
+
+<pre class="term">$ dart run lembra.dart
+Olá, Ana!
+</pre>
+
+<p>A função <code>saudar</code> não tem parâmetro nenhum, e mesmo assim usou <code>nome</code>. Ela <strong>enxerga</strong> as variáveis do bloco onde foi escrita, porque está dentro dele. Essa regra se chama <strong>escopo léxico</strong>: o que uma função enxerga depende de <strong>onde ela está escrita</strong> no código (veja também <a href="funcoes.html">Funções</a>).</p>
+
+<p>Até aqui, nada demais. A parte interessante vem quando a função <strong>sai</strong> do lugar onde nasceu.</p>
+
+<hr>
+
+<h2>2. A fábrica de contadores</h2>
+
+<pre class="file" data-file="contador.dart">int Function() criarContador() {
+  var senha = 0;
+  return () {
+    senha = senha + 1;
+    return senha;
+  };
+}
+
+void main() {
+  final caixa1 = criarContador();
+  final caixa2 = criarContador();
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 2 chamou a senha ${caixa2()}');
+  print('Caixa 1 chamou a senha ${caixa1()}');
+}
+</pre>
+
+<pre class="term">$ dart run contador.dart
+Caixa 1 chamou a senha 1
+Caixa 1 chamou a senha 2
+Caixa 2 chamou a senha 1
+Caixa 1 chamou a senha 3
+</pre>
+
+<dl class="anatomy">
+  <dt>int Function() criarContador()</dt><dd>Uma função que <strong>devolve uma função</strong> (que, por sua vez, não recebe nada e devolve <code>int</code>). É a "fábrica de maquininhas".</dd>
+  <dt>var senha = 0;</dt><dd>Uma variável local da <code>criarContador</code>. Normalmente, uma variável local some quando a função termina.</dd>
+  <dt>return () { senha = senha + 1; return senha; };</dt><dd>A função devolvida usa e <strong>muda</strong> a <code>senha</code>. Por isso, a <code>senha</code> não some: ela fica <strong>presa à closure</strong>, viva enquanto a closure existir. (O <code>;</code> depois da <code>}</code> fecha o <code>return</code>.)</dd>
+  <dt>final caixa1 = criarContador();</dt><dd>Chama a fábrica: cria uma <code>senha</code> nova, valendo 0, e devolve uma maquininha presa a ela.</dd>
+  <dt>final caixa2 = criarContador();</dt><dd>Chama a fábrica <strong>de novo</strong>: outra <code>senha</code>, outra maquininha. Por isso a caixa 2 começa do 1, enquanto a caixa 1 segue sozinha para o 3.</dd>
+</dl>
+
+<p>Repare: depois que <code>criarContador()</code> terminou, ninguém consegue mais escrever <code>senha</code> no <code>main</code>. A única forma de mexer nela é apertar o botão (<code>caixa1()</code>). A closure <strong>protege</strong> a variável.</p>
+
+<div class="trydart" data-goal="out:Caixa 2 chamou a senha 2;;src:caixa2\(\)">
+<p class="try-task"><strong>Missão:</strong> acrescente no fim do <code>main</code> mais uma chamada da caixa 2, para aparecer <code>Caixa 2 chamou a senha 2</code>. Antes de rodar, pense: qual número sai?</p>
+<pre class="script" data-file="main.dart">int Function() criarContador() {
+  var senha = 0;
+  return () {
+    senha = senha + 1;
+    return senha;
+  };
+}
+
+void main() {
+  final caixa1 = criarContador();
+  final caixa2 = criarContador();
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 2 chamou a senha ${caixa2()}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">int Function() criarContador() {
+  var senha = 0;
+  return () {
+    senha = senha + 1;
+    return senha;
+  };
+}
+
+void main() {
+  final caixa1 = criarContador();
+  final caixa2 = criarContador();
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 1 chamou a senha ${caixa1()}');
+  print('Caixa 2 chamou a senha ${caixa2()}');
+  print('Caixa 2 chamou a senha ${caixa2()}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Funções sob medida: a fábrica de descontos</h2>
+<p>A closure também lembra dos <strong>parâmetros</strong> da função onde nasceu. A lojinha da Ana tem vários descontos; em vez de escrever uma função para cada um, ela escreve uma fábrica:</p>
+
+<pre class="file" data-file="multiplicador.dart">double Function(double) criarDesconto(double porcento) {
+  return (preco) =&gt; preco * (1 - porcento / 100);
+}
+
+void main() {
+  final desconto10 = criarDesconto(10);
+  final desconto25 = criarDesconto(25);
+  print(desconto10(200.0));
+  print(desconto25(200.0));
+  print(desconto10(50.0));
+}
+</pre>
+
+<pre class="term">$ dart run multiplicador.dart
+180.0
+150.0
+45.0
+</pre>
+
+<p><code>desconto10</code> é uma função que lembra de <code>porcento = 10</code>; <code>desconto25</code> lembra de <code>porcento = 25</code>. As duas foram feitas pela mesma fábrica, mas cada uma carrega o seu valor. R$ 200 com 10% dá 180; com 25%, 150.</p>
+
+<hr>
+
+<h2>4. A closure guarda a variável, não uma foto dela</h2>
+<p>Uma dúvida comum: a closure guarda o <strong>valor</strong> que a variável tinha quando ela nasceu, ou a <strong>própria variável</strong>? Teste:</p>
+
+<pre class="file" data-file="muda.dart">void main() {
+  var taxa = 2.0;
+  final comTaxa = (double preco) =&gt; preco + taxa;
+  print(comTaxa(10.0));
+  taxa = 5.0;
+  print(comTaxa(10.0));
+}
+</pre>
+
+<pre class="term">$ dart run muda.dart
+12.0
+15.0
+</pre>
+
+<p>A segunda chamada usou a taxa nova. A closure guarda a <strong>variável</strong> (a "caixinha"), e olha o que tem dentro na hora em que é chamada. Se você quer que o valor não mude, declare a variável com <code>final</code> (veja <a href="final-const.html">final e const</a>).</p>
+
+<h3>Somar dentro de um <code>forEach</code></h3>
+<p>É por guardar a variável que este programa funciona: a função anônima muda o <code>total</code> que mora no <code>main</code>:</p>
+
+<pre class="file" data-file="total.dart">void main() {
+  final compras = [4.5, 12.9, 3.25];
+  var total = 0.0;
+  compras.forEach((preco) {
+    total = total + preco;
+  });
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run total.dart
+Total: R$ 20.65
+</pre>
+
+<p>(Para somar uma lista, há caminhos mais diretos, como o <code>for-in</code> ou o <code>fold</code> de <a href="iterables.html">map, where, reduce e Outros</a>. Aqui o objetivo é ver a closure mudando uma variável de fora.)</p>
+
+<hr>
+
+<h2>5. Closures criadas num laço</h2>
+<p>A Ana guarda três avisos numa lista, cada um criado numa volta do <code>for</code>, e só depois chama todos:</p>
+
+<pre class="file" data-file="laco.dart">void main() {
+  final avisos = &lt;void Function()&gt;[];
+  for (var i = 1; i &lt;= 3; i++) {
+    avisos.add(() =&gt; print('Aviso número $i'));
+  }
+  for (final aviso in avisos) {
+    aviso();
+  }
+}
+</pre>
+
+<pre class="term">$ dart run laco.dart
+Aviso número 1
+Aviso número 2
+Aviso número 3
+</pre>
+
+<p>Cada aviso lembrou o seu próprio número. Isso acontece porque, no Dart, o <code>for (var i = …)</code> cria uma <strong>variável <code>i</code> nova a cada volta</strong>, e cada closure ficou presa à sua. (Em linguagens mais antigas, como o JavaScript com <code>var</code>, as três funções dividiriam a mesma variável e mostrariam o mesmo número. O Dart foi feito para evitar essa armadilha.)</p>
+
+<div class="trydart" data-goal="out:Aviso número 4;;src:i\s*&lt;=\s*4|i\s*&lt;\s*5">
+<p class="try-task"><strong>Experimente:</strong> faça o laço criar <strong>4</strong> avisos e confira que cada um lembra do seu número.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final avisos = &lt;void Function()&gt;[];
+  for (var i = 1; i &lt;= 3; i++) {
+    avisos.add(() =&gt; print('Aviso número $i'));
+  }
+  for (final aviso in avisos) {
+    aviso();
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final avisos = &lt;void Function()&gt;[];
+  for (var i = 1; i &lt;= 4; i++) {
+    avisos.add(() =&gt; print('Aviso número $i'));
+  }
+  for (final aviso in avisos) {
+    aviso();
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<p>Para "uma coisa que conta e lembra da contagem", há dois caminhos no Dart:</p>
+
+<pre class="file" data-file="formas.dart">// 1) closure: a fábrica devolve o botão
+int Function() criarContador() {
+  var senha = 0;
+  return () =&gt; ++senha;
+}
+
+// 2) classe: um objeto com a contagem e um método
+class Contador {
+  var senha = 0;
+  int proxima() =&gt; ++senha;
+}
+</pre>
+
+<p>(<code>++senha</code> soma 1 e devolve o valor novo; veja <a href="atribuicao.html">Atribuição e Incremento</a>.)</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma ação só (um "botão"), com pouca coisa guardada, ou uma função sob medida (<code>criarDesconto(10)</code>)</td><td>Closure</td></tr>
+<tr><td>Várias ações sobre os mesmos dados (próxima senha, zerar, mostrar), ou dados que outras partes precisam ler</td><td>Classe (veja <a href="classes.html">Classes</a>)</td></tr>
+<tr><td>Passar uma regra que usa um valor do momento para um método (<code>where</code>, <code>sort</code>…)</td><td>Closure anônima, escrita ali mesmo: <code>notas.where((n) =&gt; n &gt;= minima)</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A função está fora do bloco da variável</strong>
+<p>A Ana tentou separar a soma numa função com nome, escrita <strong>fora</strong> do <code>main</code>:</p>
+<pre class="file" data-file="err_fora.dart">void somar(double preco) {
+  total = total + preco;
+}
+
+void main() {
+  var total = 0.0;
+  somar(4.5);
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run err_fora.dart
+err_fora.dart:2:11: Error: Undefined name 'total'.
+  total = total + preco;
+          ^^^^^
+err_fora.dart:2:3: Error: Setter not found: 'total'.
+  total = total + preco;
+  ^^^^^
+</pre>
+<dl class="anatomy">
+  <dt>Error: Undefined name 'total'.</dt><dd>"Nome não definido: <code>total</code>", na leitura (coluna 11, o <code>total</code> da direita).</dd>
+  <dt>Error: Setter not found: 'total'.</dt><dd>"Não encontrei como atribuir a <code>total</code>", na escrita (coluna 3, o <code>total</code> da esquerda). O mesmo problema, visto dos dois lados do <code>=</code>.</dd>
+</dl>
+<p>O <code>total</code> mora dentro do <code>main</code>, e a <code>somar</code> está escrita fora dele: ela não enxerga. O que conta é onde a função está <strong>escrita</strong>, não de onde é chamada. <strong>Como consertar:</strong> escreva a função dentro do <code>main</code> (como a função anônima do <code>forEach</code>, na seção 4), ou faça a <code>somar</code> receber e devolver o total: <code>double somar(double total, double preco) =&gt; total + preco;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A variável guardada é <code>final</code></strong>
+<pre class="file" data-file="err_final.dart">int Function() criarContador() {
+  final senha = 0;
+  return () {
+    senha = senha + 1;
+    return senha;
+  };
+}
+
+void main() {
+  final caixa = criarContador();
+  print(caixa());
+}
+</pre>
+<pre class="term">$ dart run err_final.dart
+err_final.dart:4:5: Error: Can't assign to the final variable 'senha'.
+    senha = senha + 1;
+    ^^^^^
+</pre>
+<p>"Não dá para atribuir à variável final <code>senha</code>." O hábito de usar <code>final</code> por padrão é bom, mas a contagem <strong>precisa</strong> mudar. <strong>Como consertar:</strong> <code>var senha = 0;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses: mostrou a maquininha, não a senha</strong>
+<p>Com a mesma <code>criarContador</code> da seção 2 no começo do arquivo:</p>
+<pre class="file" data-file="err_chamou.dart">void main() {
+  print(criarContador());
+  print(criarContador());
+}
+</pre>
+<pre class="term">$ dart run err_chamou.dart
+Closure: () =&gt; int
+Closure: () =&gt; int
+</pre>
+<p>Sem erro nenhum, mas sem senha também: <code>criarContador()</code> devolve a <strong>função</strong>, e o <code>print</code> mostrou a função. Pior: cada linha criou uma maquininha nova. <strong>Como consertar:</strong> guarde a maquininha numa variável e chame-a: <code>final caixa = criarContador(); print(caixa());</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A closure foi chamada antes de a variável ter valor</strong>
+<pre class="file" data-file="err_late.dart">void main() {
+  late String cliente;
+  final chamar = () =&gt; print('Próximo: $cliente');
+  chamar();
+  cliente = 'Bia';
+}
+</pre>
+<pre class="term">$ dart run err_late.dart
+Unhandled exception:
+LateInitializationError: Local 'cliente' has not been initialized.
+#0      LateError._throwLocalNotInitialized (dart:_internal-patch/internal_patch.dart:214:5)
+#1      main.&lt;anonymous closure&gt; (file:///home/ana/err_late.dart)
+#2      main (file:///home/ana/err_late.dart:4:9)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>LateInitializationError: Local 'cliente' has not been initialized.</dt><dd>"Erro de inicialização tardia: a variável local <code>cliente</code> ainda não recebeu valor." O <code>late</code> prometeu ao Dart que ela teria valor antes de ser lida (veja <a href="late.html">late e o Operador !</a>), e a promessa foi quebrada.</dd>
+  <dt>#1 main.&lt;anonymous closure&gt; (file:///home/ana/err_late.dart)</dt><dd>O erro foi dentro da closure. Desta vez o Dart não mostrou o número da linha nessa entrada, só o arquivo.</dd>
+  <dt>#2 main (…err_late.dart:4:9)</dt><dd>Quem chamou a closure: a linha 4, o <code>chamar()</code>. Essa é a pista: a chamada veio antes da linha 5, que dá valor ao <code>cliente</code>.</dd>
+</dl>
+<p>A closure guarda a variável, não o valor (seção 4). Se ela for chamada <strong>depois</strong> do <code>cliente = 'Bia';</code>, funciona. <strong>Como consertar:</strong> troque a ordem das linhas 4 e 5.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que acontece</th></tr>
+<tr><td><code>final f = () =&gt; print(nome);</code></td><td>A função usa uma variável do bloco onde foi escrita</td></tr>
+<tr><td><code>int Function() criar() { var n = 0; return () =&gt; ++n; }</code></td><td>Fábrica: cada chamada de <code>criar()</code> faz um contador com o seu próprio <code>n</code></td></tr>
+<tr><td><code>criarDesconto(10)</code></td><td>Devolve uma função que lembra do parâmetro <code>10</code></td></tr>
+<tr><td>A variável de fora muda depois</td><td>A closure vê o valor novo (guarda a variável, não uma cópia)</td></tr>
+<tr><td><code>for (var i = …)</code> + closures</td><td>Cada volta tem o seu <code>i</code>; cada closure lembra do seu</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Undefined name 'x'</code> / <code>Setter not found: 'x'</code></td><td>A função está escrita fora do bloco onde a variável mora</td></tr>
+<tr><td><code>Can't assign to the final variable 'x'</code></td><td>A variável guardada é <code>final</code>, mas a closure quer mudá-la</td></tr>
+<tr><td><code>Closure: () =&gt; int</code> no lugar do número</td><td>Mostrou a função em vez de chamá-la</td></tr>
+<tr><td><code>LateInitializationError</code> dentro de <code>&lt;anonymous closure&gt;</code></td><td>A closure foi chamada antes de a variável <code>late</code> receber valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. O que sai?</h3>
+<p>Com a <code>criarContador</code> da seção 2: <code>final a = criarContador(); a(); a(); final b = criarContador(); print(b());</code>. Qual número aparece?</p>
+<div class="ex-code">Aparece <input data-answer="1" aria-label="número"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a fábrica</h3>
+<p>Complete para <code>criarSaudacao('Bom dia')</code> devolver uma função que, chamada com <code>'Ana'</code>, mostra <code>Bom dia, Ana!</code>:</p>
+<div class="ex-code">void Function(String) criarSaudacao(String inicio) {<br>&nbsp;&nbsp;<input data-answer="return" aria-label="palavra-chave"> (nome) =&gt; print('$<input data-answer="inicio" aria-label="variável lembrada">, $nome!');<br>}</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. <code>var x = 1; final f = () =&gt; x * 10; x = 3; print(f());</code> mostra:</p>
+<label><input type="radio" name="q3"> <code>10</code></label>
+<label><input type="radio" name="q3"> <code>30</code></label>
+<label><input type="radio" name="q3"> <code>Closure: () =&gt; int</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que <code>caixa1</code> e <code>caixa2</code> (seção 2) contam separado?</p>
+<label><input type="radio" name="q4"> Porque têm nomes diferentes</label>
+<label><input type="radio" name="q4"> Porque o Dart zera a <code>senha</code> a cada chamada</label>
+<label><input type="radio" name="q4"> Porque cada chamada de <code>criarContador()</code> criou uma variável <code>senha</code> nova</label>
+<label><input type="radio" name="q4"> Não contam separado: dividem a mesma <code>senha</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma função escrita <strong>fora</strong> do <code>main</code> tenta usar uma variável criada <strong>dentro</strong> do <code>main</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Erro de compilação: <code>Undefined name</code></label>
+<label><input type="radio" name="q5"> Funciona, se ela for chamada de dentro do <code>main</code></label>
+<label><input type="radio" name="q5"> A variável vale <code>null</code></label>
+<label><input type="radio" name="q5"> <code>LateInitializationError</code></label>
+</div>
+
+<h3>Missão final: o cofrinho</h3>
+
+<div class="trydart" data-goal="out:Saldo: R$ 35.0;;src:var\s+saldo">
+<p class="try-task"><strong>Missão:</strong> complete a fábrica <code>criarCofrinho</code>: ela cria uma variável <code>saldo</code> (começando em 0) e devolve uma função que recebe um valor, soma no saldo e devolve o saldo novo. Depositando 10, 20 e 5, deve aparecer <code>Saldo: R$ 35.0</code>.</p>
+<pre class="script" data-file="main.dart">double Function(double) criarCofrinho() {
+  // crie o saldo e devolva a função aqui
+  return (valor) =&gt; 0;
+}
+
+void main() {
+  final cofrinho = criarCofrinho();
+  cofrinho(10);
+  cofrinho(20);
+  final saldo = cofrinho(5);
+  print('Saldo: R\$ $saldo');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double Function(double) criarCofrinho() {
+  var saldo = 0.0;
+  return (valor) {
+    saldo = saldo + valor;
+    return saldo;
+  };
+}
+
+void main() {
+  final cofrinho = criarCofrinho();
+  cofrinho(10);
+  cofrinho(20);
+  final saldo = cofrinho(5);
+  print('Saldo: R\$ $saldo');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma closure é uma função que lembra das variáveis do lugar onde foi <strong>escrita</strong>, mesmo depois que esse lugar terminou.</li>
+  <li>Uma fábrica (<code>criarContador()</code>, <code>criarDesconto(10)</code>) devolve closures; cada chamada da fábrica cria variáveis novas, então cada closure tem as suas.</li>
+  <li>A closure guarda a <strong>variável</strong>, não uma cópia: se ela muda, a closure vê o valor novo.</li>
+  <li>No <code>for (var i = …)</code> do Dart, cada volta tem um <code>i</code> novo, então closures criadas no laço lembram números diferentes.</li>
+  <li>Uma função só enxerga as variáveis dos blocos em volta de onde está escrita: fora deles, <code>Undefined name</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
