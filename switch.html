@@ -523,7 +523,7 @@ warning - err_tipocase.dart:4:10 - The matched value type 'int' can never be equ
 <p>São avisos (<code>warning</code>), não erros: "este caso já é coberto pelos casos anteriores" (o <code>case 1:</code> repetido e o <code>1 =&gt;</code> depois do <code>_</code>), "código morto" (que nunca roda) e "um valor <code>int</code> nunca pode ser igual a esta constante do tipo <code>String</code>". Vale rodar o <code>dart analyze</code> antes de entregar um programa. <strong>Como consertar:</strong> o <code>_</code> sempre por último, sem casos repetidos, e casos do mesmo tipo do valor.</p>
 </div>
 
-<div class="trydart" data-goal="out:Tamanho M: R$ 12;;semerro">
+<div class="trydart" data-goal="out:Tamanho M: R$ 12;;semerro;;src:_\s*=&gt;">
 <p class="try-task"><strong>Missão:</strong> a expressão <code>switch</code> dos copos de suco não compila. Leia o erro e conserte até aparecer <code>Tamanho M: R$ 12</code>. (Dica: o Dart quer saber o que fazer com um tamanho que não é P, M nem G.)</p>
 <pre class="script" data-file="main.dart">void main() {
   final tamanho = 'M';
