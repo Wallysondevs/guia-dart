@@ -52,7 +52,7 @@
 <hr>
 
 <h2>1. O problema: o <code>null</code> sem conferência</h2>
-<p>Primeiro, veja o estrago que o <code>null</code> faz quando ninguém confere. Para isso, a Ana usou <a href="dynamic-object.html">dynamic</a>, o tipo que <strong>desliga</strong> a conferência do Dart (era assim que todo programa Dart funcionava antes do null safety):</p>
+<p>Primeiro, veja o estrago que o <code>null</code> faz quando ninguém confere. Para isso, a Ana usou <a href="dynamic-object.html">dynamic</a>, o tipo que <strong>desliga</strong> a conferência do Dart (antes do null safety, todo tipo do Dart aceitava <code>null</code> e quebrava assim, sem aviso):</p>
 
 <pre class="file" data-file="antigo.dart">void main() {
   dynamic apelido = null;
