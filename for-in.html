@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart for-in — passando por cada item de uma coleção | Guia Dart</title>
+<meta name="description" content="O laço for-in do Dart para quem nunca programou: for (final item in lista), somar preços, achar a maior nota e contar, percorrer Set e as chaves de um Map, as letras de um texto com split(''), a posição com .indexed, e os erros reais do Dart 3 (String e int que não são Iterable, of no lugar de in, mudar o item final, ConcurrentModificationError ao remover da lista, lista que pode ser null).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">for-in</span></h1>
+
+<p class="intro">Na aula <a href="for.html">for</a>, para mostrar uma lista de compras, você precisou de um contador, da posição <code>[i]</code> e do cuidado com o <code>&lt;</code> no <code>length</code>. Na maioria das vezes, porém, você não quer saber a posição: quer só <strong>passar por cada item</strong>. Para isso existe o <code>for-in</code>: "<strong>para cada</strong> item <strong>em</strong> (<em>in</em>) esta lista, faça isto". Sem contador, sem índice, sem <code>RangeError</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever <code>for (final item in lista) { … }</code>, e por que <code>final</code>.</li>
+  <li>Como somar, contar e achar o maior valor passando pela lista.</li>
+  <li>Que o <code>for-in</code> funciona com listas, conjuntos (<code>Set</code>) e as chaves de um mapa (<code>Map</code>).</li>
+  <li>Como passar pelas letras de um texto, e como ter a posição junto com o item (<code>.indexed</code>).</li>
+  <li>Os erros reais: texto e número que não são "percorríveis", <code>of</code> no lugar de <code>in</code>, mudar o item, mexer na lista durante o laço e a lista que pode ser <code>null</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: conferir a sacola</h2>
+<p>Quando a Ana volta do mercado, ela tira as compras da sacola <strong>uma por uma</strong> e guarda cada uma no lugar. Ela não numera nada ("item 0, item 1…"): só pega o próximo, até a sacola ficar vazia. Se a sacola vier vazia, ela não guarda nada, e tudo bem. Esse é o <code>for-in</code>: pega cada item, na ordem, e para sozinho quando acabam.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>for-in</code></h2>
+
+<pre class="file" data-file="forin1.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café', 'pão'];
+  for (final item in compras) {
+    print('Comprar: $item');
+  }
+  print('Lista conferida!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final compras = [ … ];</dt><dd>Uma lista com 4 textos (veja <a href="list.html">Listas</a>).</dd>
+  <dt>for ( … in compras)</dt><dd>"Para cada … <strong>em</strong> <code>compras</code>". Depois do <code>in</code> vem a coleção que vai ser percorrida.</dd>
+  <dt>final item</dt><dd>A variável que recebe <strong>um item por volta</strong>: na 1ª volta vale <code>'arroz'</code>, na 2ª <code>'feijão'</code>, e assim por diante. É <code>final</code> porque, dentro de uma volta, ela não muda (a cada volta nasce uma nova). O nome é você que escolhe: o costume é o singular do nome da lista (<code>compras</code> → <code>item</code>, <code>notas</code> → <code>nota</code>).</dd>
+  <dt>{ print('Comprar: $item'); }</dt><dd>O corpo: roda uma vez para cada item.</dd>
+</dl>
+
+<pre class="term">$ dart run forin1.dart
+Comprar: arroz
+Comprar: feijão
+Comprar: café
+Comprar: pão
+Lista conferida!
+</pre>
+
+<p>Compare com o <code>for</code> clássico da aula anterior, que fazia a mesma coisa:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th><code>for</code> clássico</th><th><code>for-in</code></th></tr>
+<tr><td><code>for (var i = 0; i &lt; compras.length; i++) {<br>&nbsp;&nbsp;print(compras[i]);<br>}</code></td><td><code>for (final item in compras) {<br>&nbsp;&nbsp;print(item);<br>}</code></td></tr>
+<tr><td>Você controla o contador, a condição e o passo</td><td>O Dart cuida de tudo: começa no primeiro, para no último</td></tr>
+<tr><td>Dá para errar o <code>&lt;</code>/<code>&lt;=</code> e ganhar um <code>RangeError</code></td><td>Não tem como passar do fim</td></tr>
+</table>
+</div>
+
+<p>E se a lista estiver vazia? O corpo roda <strong>zero</strong> vezes, sem erro nenhum: com <code>final compras = &lt;String&gt;[];</code>, o lab não mostrou nenhum "Comprar:", e <code>compras.isEmpty</code> ("está vazia?") deu <code>true</code>.</p>
+
+<div class="trydart" data-goal="out:Comprar: leite;;src:\bin\b">
+<p class="try-task"><strong>Missão:</strong> acrescente <code>'leite'</code> no fim da lista e rode: o laço passa a mostrar 5 itens, sem você mexer em mais nada.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café', 'pão'];
+  for (final item in compras) {
+    print('Comprar: $item');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café', 'pão', 'leite'];
+  for (final item in compras) {
+    print('Comprar: $item');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Somar, contar, achar o maior</h2>
+<p>As três tarefas mais comuns com um laço usam o mesmo truque: uma variável criada <strong>antes</strong> do laço, que vai sendo atualizada a cada item.</p>
+
+<h3>Somar</h3>
+<pre class="file" data-file="soma.dart">void main() {
+  final precos = [4.50, 12.90, 3.25, 7.00];
+  var total = 0.0;
+  for (final preco in precos) {
+    total += preco;
+  }
+  print('Itens: ${precos.length}');
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run soma.dart
+Itens: 4
+Total: R$ 27.65
+</pre>
+
+<p>O <code>total</code> começa em <code>0.0</code> (um <code>double</code>, porque os preços têm centavos; veja <a href="atribuicao.html">Atribuição</a>) e recebe cada preço com <code>+=</code>.</p>
+
+<h3>Achar o maior e contar</h3>
+<pre class="file" data-file="maior.dart">void main() {
+  final notas = [7.5, 9.0, 6.0, 8.5];
+  var maior = notas[0];
+  var aprovadas = 0;
+  for (final nota in notas) {
+    if (nota &gt; maior) {
+      maior = nota;
+    }
+    if (nota &gt;= 7) {
+      aprovadas++;
+    }
+  }
+  print('Maior nota: $maior');
+  print('Notas de 7 para cima: $aprovadas');
+}
+</pre>
+
+<pre class="term">$ dart run maior.dart
+Maior nota: 9.0
+Notas de 7 para cima: 3
+</pre>
+
+<dl class="anatomy">
+  <dt>var maior = notas[0];</dt><dd>O "campeão" começa sendo a primeira nota. A cada volta, se aparecer uma nota maior, ela vira a campeã.</dd>
+  <dt>var aprovadas = 0; … aprovadas++;</dt><dd>Um contador: começa em 0 e ganha 1 cada vez que uma nota passa no <a href="if-else.html">if</a>.</dd>
+</dl>
+
+<p>(As listas também têm atalhos prontos para isso, como <code>reduce</code> e <code>where</code>, na aula <a href="iterables.html">map, where, reduce e Outros</a>. Mas o laço mostra o que eles fazem por dentro.)</p>
+
+<hr>
+
+<h2>3. Não é só lista: <code>Set</code> e <code>Map</code></h2>
+<p>O <code>for-in</code> funciona com qualquer coisa que seja um <strong><code>Iterable</code></strong> (um "percorrível": uma coleção que sabe entregar os itens um por um). Listas são, conjuntos (<a href="set.html">Set</a>) também, e as chaves e os valores de um mapa (<a href="map.html">Map</a>) também:</p>
+
+<pre class="file" data-file="conjunto.dart">void main() {
+  final sabores = {'calabresa', 'mussarela', 'portuguesa'};
+  for (final sabor in sabores) {
+    print('Pizza de $sabor');
+  }
+  final estoque = {'pão': 30, 'bolo': 4, 'sonho': 12};
+  for (final produto in estoque.keys) {
+    print('$produto: ${estoque[produto]} unidades');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run conjunto.dart
+Pizza de calabresa
+Pizza de mussarela
+Pizza de portuguesa
+pão: 30 unidades
+bolo: 4 unidades
+sonho: 12 unidades
+</pre>
+
+<p>O <code>estoque.keys</code> são as chaves do mapa (<code>'pão'</code>, <code>'bolo'</code>, <code>'sonho'</code>), e <code>estoque[produto]</code> busca o valor de cada uma. O <code>Set</code> e o <code>Map</code> escritos assim, com chaves, mantêm a ordem em que os itens foram colocados. Outras formas de percorrer mapas estão em <a href="map-metodos.html">Percorrendo Mapas</a>.</p>
+
+<hr>
+
+<h2>4. Letras de um texto, e a posição junto</h2>
+
+<h3>As letras: <code>split('')</code></h3>
+<p>Um texto (<code>String</code>) <strong>não</strong> é um <code>Iterable</code>: <code>for (final letra in 'Dart')</code> não compila (veja <a href="#errado">Quando dá errado</a>). Para passar pelas letras, primeiro quebre o texto numa lista de letras com <code>split('')</code> ("dividir" sem separador):</p>
+
+<pre class="file" data-file="texto.dart">void main() {
+  final palavra = 'Dart';
+  for (final letra in palavra.split('')) {
+    print(letra);
+  }
+}
+</pre>
+
+<pre class="term">$ dart run texto.dart
+D
+a
+r
+t
+</pre>
+
+<h3>A posição e o item: <code>.indexed</code> <span class="versao">Dart 3.0</span></h3>
+<p>E se você quer o item <strong>e</strong> a posição? Em vez de voltar para o <code>for</code> com contador, use o <code>.indexed</code> ("com índice"), que entrega pares (posição, item):</p>
+
+<pre class="file" data-file="indexed.dart">void main() {
+  final fila = ['Ana', 'Bia', 'Caio'];
+  for (final (posicao, nome) in fila.indexed) {
+    print('${posicao + 1}º da fila: $nome');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run indexed.dart
+1º da fila: Ana
+2º da fila: Bia
+3º da fila: Caio
+</pre>
+
+<p>O <code>(posicao, nome)</code> desmonta cada par em duas variáveis: a posição (começando em 0, por isso o <code>+ 1</code>) e o item. Esse jeito de desmontar valores é um <em>pattern</em>, assunto de <a href="records.html">Records</a> e <a href="patterns.html">Patterns e Desestruturação</a>. O <code>indexed</code> chegou no Dart 3.0.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Passar por todos os itens, sem precisar da posição</td><td><code>for (final item in lista)</code></td></tr>
+<tr><td>Precisa da posição e do item</td><td><code>for (final (i, item) in lista.indexed)</code>, ou o <a href="for.html">for</a> clássico</td></tr>
+<tr><td>Contar de 1 a 10 (não há coleção)</td><td><a href="for.html">for</a> clássico (o Dart não tem <code>range</code>)</td></tr>
+<tr><td>Pular de 2 em 2, andar para trás, ou mudar os itens da lista</td><td><a href="for.html">for</a> clássico, com <code>lista[i] = …</code></td></tr>
+<tr><td>Remover itens que atendem uma condição</td><td><code>lista.removeWhere(…)</code>, fora de um laço (veja abaixo)</td></tr>
+<tr><td>Montar uma lista nova a partir de outra</td><td><code>for</code> dentro da lista (<a href="collection-if-for.html">if e for Dentro de Coleções</a>) ou <code>map</code> (<a href="iterables.html">map, where, reduce</a>)</td></tr>
+<tr><td>Parar no meio, ao achar o que procura</td><td><code>break</code> (<a href="break-continue.html">break e continue</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou percorrer um texto direto</strong>
+<pre class="file" data-file="err_string.dart">void main() {
+  final palavra = 'Dart';
+  for (final letra in palavra) {
+    print(letra);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_string.dart
+err_string.dart:3:23: Error: The type 'String' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.
+ - 'Iterable' is from 'dart:core'.
+  for (final letra in palavra) {
+                      ^
+</pre>
+<dl class="anatomy">
+  <dt>err_string.dart:3:23:</dt><dd>Linha 3, coluna 23: o <code>palavra</code>, depois do <code>in</code>.</dd>
+  <dt>The type 'String' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.</dt><dd>"O tipo <code>String</code>, usado no laço <code>for</code>, precisa ser um <code>Iterable</code>." Ou seja: depois do <code>in</code> tem de vir algo percorrível, e texto não é. (O <code>&lt;dynamic&gt;</code> quer dizer "de qualquer tipo de item".)</dd>
+  <dt>- 'Iterable' is from 'dart:core'.</dt><dd>Nota: o tipo <code>Iterable</code> é da biblioteca principal.</dd>
+</dl>
+<p>Quem vem do Python estranha, porque lá dá. Com um número acontece o mesmo: <code>for (final i in 5)</code> deu <code>The type 'int' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.</code> <strong>Como consertar:</strong> <code>palavra.split('')</code> para as letras; para contar até 5, o <a href="for.html">for</a> clássico.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>of</code> (do JavaScript) no lugar de <code>in</code></strong>
+<pre class="file" data-file="err_of.dart">void main() {
+  final compras = ['arroz', 'feijão'];
+  for (final item of compras) {
+    print(item);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_of.dart
+err_of.dart:3:14: Error: 'item' isn't a type.
+  for (final item of compras) {
+             ^^^^
+err_of.dart:3:19: Error: Expected ';' after this.
+  for (final item of compras) {
+                  ^^
+err_of.dart:3:22: Error: Expected ';' after this.
+  for (final item of compras) {
+                     ^^^^^^^
+err_of.dart:4:11: Error: Undefined name 'item'.
+    print(item);
+          ^^^^
+err_of.dart:3:22: Error: A value of type 'List&lt;String&gt;' can't be assigned to a variable of type 'bool'.
+ - 'List' is from 'dart:core'.
+  for (final item of compras) {
+                     ^
+</pre>
+<p>Cinco erros, e nenhum fala em <code>of</code>. Sem o <code>in</code>, o Dart achou que fosse um <code>for</code> clássico: leu <code>final item of</code> como "uma variável chamada <code>of</code>, do tipo <code>item</code>" (daí <code>'item' isn't a type</code>, "<code>item</code> não é um tipo") e depois esperou os <code>;</code>. <strong>Como consertar:</strong> no Dart é <code>in</code>: <code>for (final item in compras)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>final</code> (ou o <code>var</code>)</strong>
+<pre class="term">$ dart run err_semdecl.dart
+err_semdecl.dart:4:11: Error: Undefined name 'item'.
+    print(item);
+          ^^^^
+err_semdecl.dart:3:8: Error: Setter not found: 'item'.
+  for (item in compras) {
+       ^^^^
+</pre>
+<p>Em <code>for (item in compras)</code>, o Dart procura uma variável <code>item</code> que já exista para guardar cada valor (<code>Setter not found</code>, "não achei onde guardar") e não acha. <strong>Como consertar:</strong> crie a variável ali mesmo: <code>for (final item in compras)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou mudar o item</strong>
+<pre class="file" data-file="err_muda_item.dart">void main() {
+  final precos = [10, 20, 30];
+  for (final preco in precos) {
+    preco = preco * 2;
+  }
+  print(precos);
+}
+</pre>
+<pre class="term">$ dart run err_muda_item.dart
+err_muda_item.dart:4:5: Error: Can't assign to the final variable 'preco'.
+    preco = preco * 2;
+    ^^^^^
+</pre>
+<p>"Não dá para atribuir à variável final <code>preco</code>." E trocar <code>final</code> por <code>var</code> faz compilar, mas <strong>não adianta</strong>: no lab, com <code>for (var preco in precos)</code>, a lista continuou <code>[10, 20, 30]</code>. A variável do laço é uma <strong>cópia</strong> do item, não o lugar dele na lista; mudar a cópia não muda a lista. É por isso que o <code>final</code> é o recomendado: ele avisa do engano. <strong>Como consertar:</strong> para mudar os itens, use o <a href="for.html">for</a> clássico com <code>precos[i] = precos[i] * 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Removeu (ou acrescentou) itens da lista durante o laço</strong>
+<pre class="file" data-file="err_remove.dart">void main() {
+  final compras = ['arroz', 'feijão', 'café'];
+  for (final item in compras) {
+    if (item == 'feijão') {
+      compras.remove(item);
+    }
+  }
+  print(compras);
+}
+</pre>
+<pre class="term">$ dart run err_remove.dart
+Unhandled exception:
+Concurrent modification during iteration: Instance(length:2) of '_GrowableList'.
+#0      ListIterator.moveNext (dart:_internal/iterable.dart:366:7)
+#1      main (file:///home/ana/err_remove.dart:3:22)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>Compilou, rodou, e parou no meio.</dd>
+  <dt>Concurrent modification during iteration</dt><dd>"Modificação simultânea durante a iteração": a lista mudou enquanto o laço passava por ela. É como tirar uma compra da sacola enquanto outra pessoa está conferindo: ela perde a conta.</dd>
+  <dt>Instance(length:2) of '_GrowableList'</dt><dd>A lista que mudou (uma "lista que pode crescer", o tipo interno das listas do Dart), que agora tem tamanho 2: o feijão já tinha saído.</dd>
+  <dt>#0 ListIterator.moveNext …</dt><dd>Quem percebeu: o "passar para o próximo item" do laço, de dentro do Dart.</dd>
+  <dt>#1 main (file:///home/ana/err_remove.dart:3:22)</dt><dd>A linha do seu código: a 3, a do <code>for</code>, na hora de pegar o próximo item.</dd>
+</dl>
+<p>Acrescentar dá o mesmo erro (com <code>compras.add(…)</code> dentro do laço, o lab mostrou <code>Concurrent modification during iteration: Instance(length:3) of '_GrowableList'.</code>). <strong>Como consertar:</strong> remova fora do laço, com <code>compras.removeWhere((item) =&gt; item == 'feijão');</code> (no lab, a lista ficou <code>[arroz, café]</code>; o <code>(item) =&gt; …</code> é uma função curta, da aula <a href="funcoes-anonimas.html">Funções Anônimas</a>), ou monte uma lista nova com os itens que ficam.</p>
+</div>
+
+<div class="cenario">
+<strong>O tipo do item não bate</strong>
+<pre class="term">$ dart run err_tipo.dart
+err_tipo.dart:3:18: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+Try changing the type of the variable.
+  for (final int preco in precos) {
+                 ^
+</pre>
+<p>Com <code>precos = [4.5, 12.9]</code>, cada item é um <code>double</code>, e a variável do laço foi declarada <code>int</code>. A dica do Dart resolve: "tente mudar o tipo da variável". <strong>Como consertar:</strong> <code>for (final double preco in precos)</code>, ou só <code>final preco</code>, e o Dart descobre o tipo sozinho.</p>
+</div>
+
+<div class="cenario">
+<strong>A lista pode ser <code>null</code></strong>
+<pre class="file" data-file="err_null.dart">void main() {
+  List&lt;String&gt;? compras;
+  for (final item in compras) {
+    print(item);
+  }
+}
+</pre>
+<pre class="term">$ dart run err_null.dart
+err_null.dart:3:22: Error: The type 'List&lt;String&gt;?' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.
+ - 'List' is from 'dart:core'.
+ - 'Iterable' is from 'dart:core'.
+  for (final item in compras) {
+                     ^
+</pre>
+<p>Repare no <code>?</code> em <code>'List&lt;String&gt;?'</code>: a variável pode ser uma lista <strong>ou</strong> <code>null</code> (aula <a href="tipos-anulaveis.html">Tipos Anuláveis</a>), e não dá para percorrer o nada. <strong>Como consertar:</strong> use uma lista vazia como padrão, <code>for (final item in compras ?? [])</code> (o <code>??</code> é da aula <a href="operadores-null.html">?. , ?? e ??=</a>), ou teste antes com <code>if (compras != null)</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Total: R$ 27.65;;semerro;;src:\bin\b">
+<p class="try-task"><strong>Missão:</strong> o programa não compila. Conserte o laço para somar os preços e mostrar <code>Total: R$ 27.65</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final precos = [4.50, 12.90, 3.25, 7.00];
+  var total = 0.0;
+  for (final preco of precos) {
+    total += preco;
+  }
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final precos = [4.50, 12.90, 3.25, 7.00];
+  var total = 0.0;
+  for (final preco in precos) {
+    total += preco;
+  }
+  print('Total: R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>for (final item in lista) { … }</code></td><td>Roda o corpo uma vez para cada item, na ordem</td></tr>
+<tr><td><code>for (final x in conjunto)</code></td><td>Cada item de um <code>Set</code></td></tr>
+<tr><td><code>for (final chave in mapa.keys)</code> · <code>mapa.values</code></td><td>Cada chave · cada valor de um <code>Map</code></td></tr>
+<tr><td><code>for (final letra in texto.split(''))</code></td><td>Cada letra de um texto</td></tr>
+<tr><td><code>for (final (i, item) in lista.indexed)</code></td><td>A posição (de 0) e o item <span class="versao">Dart 3.0</span></td></tr>
+<tr><td><code>for (final item in lista ?? [])</code></td><td>Lista que pode ser <code>null</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The type 'String' used in the 'for' loop must implement 'Iterable&lt;dynamic&gt;'.</code></td><td>Texto direto no <code>in</code>: use <code>.split('')</code></td></tr>
+<tr><td><code>The type 'int' used in the 'for' loop …</code></td><td>Número no <code>in</code>: use o <code>for</code> clássico</td></tr>
+<tr><td><code>The type 'List&lt;…&gt;?' used in the 'for' loop …</code></td><td>Lista que pode ser <code>null</code></td></tr>
+<tr><td><code>'item' isn't a type.</code> e vários <code>Expected ';'</code></td><td><code>of</code> no lugar de <code>in</code></td></tr>
+<tr><td><code>Setter not found: 'item'.</code></td><td>Faltou <code>final</code> antes do nome</td></tr>
+<tr><td><code>Can't assign to the final variable 'item'.</code></td><td>Tentou mudar o item: use o <code>for</code> clássico com <code>lista[i]</code></td></tr>
+<tr><td><code>Concurrent modification during iteration</code></td><td>Mexeu na lista (<code>add</code>/<code>remove</code>) dentro do laço</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code">for (<input data-answer="final" aria-label="palavra antes do nome"> nota <input data-answer="in" aria-label="palavra-chave do for-in"> notas) {<br>&nbsp;&nbsp;print(nota);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto vale <code>soma</code> no fim?</h3>
+<pre class="file" data-file="ex2.dart">final pontos = [3, 5, 2];
+var soma = 0;
+for (final p in pontos) {
+  soma += p * 2;
+}
+</pre>
+<div class="ex-code"><code>soma</code> = <input data-answer="20" aria-label="valor de soma"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>for (final c in 'oi') { print(c); }</code> faz?</p>
+<label><input type="radio" name="q3"> Mostra <code>o</code> e <code>i</code></label>
+<label><input type="radio" name="q3"> Não compila: <code>String</code> não é <code>Iterable</code></label>
+<label><input type="radio" name="q3"> Mostra <code>oi</code> uma vez</label>
+<label><input type="radio" name="q3"> Lança uma exceção ao rodar</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Com a lista vazia, quantas vezes o corpo de um <code>for-in</code> roda?</p>
+<label><input type="radio" name="q4"> Uma</label>
+<label><input type="radio" name="q4"> Dá <code>RangeError</code></label>
+<label><input type="radio" name="q4"> Nenhuma, sem erro</label>
+<label><input type="radio" name="q4"> Infinitas</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é o jeito certo de tirar os itens <code>'feijão'</code> de uma lista?</p>
+<label><input type="radio" name="q5"> <code>compras.removeWhere((item) =&gt; item == 'feijão');</code>, fora de um laço</label>
+<label><input type="radio" name="q5"> <code>compras.remove(item)</code> dentro de um <code>for-in</code></label>
+<label><input type="radio" name="q5"> <code>item = null</code> dentro do <code>for-in</code></label>
+<label><input type="radio" name="q5"> Não existe jeito</label>
+</div>
+
+<h3>Missão final: o boletim</h3>
+
+<div class="trydart" data-goal="out:Média: 7.75;;out:Abaixo de 7: 1;;src:\bin\b">
+<p class="try-task"><strong>Missão:</strong> com um <code>for-in</code> sobre <code>notas</code>, some todas as notas em <code>soma</code> e conte em <code>abaixo</code> quantas são menores que 7. O <code>print</code> do fim já calcula a média. Deve aparecer <code>Média: 7.75</code> e <code>Abaixo de 7: 1</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = [8.0, 6.5, 9.0, 7.5];
+  var soma = 0.0;
+  var abaixo = 0;
+  // escreva o for-in aqui
+
+  print('Média: ${soma / notas.length}');
+  print('Abaixo de 7: $abaixo');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = [8.0, 6.5, 9.0, 7.5];
+  var soma = 0.0;
+  var abaixo = 0;
+  for (final nota in notas) {
+    soma += nota;
+    if (nota &lt; 7) {
+      abaixo++;
+    }
+  }
+  print('Média: ${soma / notas.length}');
+  print('Abaixo de 7: $abaixo');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>for (final item in colecao) { … }</code> passa por cada item, na ordem, e para sozinho no fim. Sem contador, sem índice, sem <code>RangeError</code>; com a coleção vazia, roda zero vezes.</li>
+  <li>Funciona com tudo que é <code>Iterable</code>: listas, <code>Set</code>, <code>mapa.keys</code>, <code>mapa.values</code>, <code>texto.split('')</code>. Texto e número direto não.</li>
+  <li>A variável do laço é <code>final</code> e é uma cópia: mudar ela não muda a lista. Para mudar itens, <code>for</code> clássico com <code>lista[i]</code>.</li>
+  <li>Não acrescente nem remova itens da lista dentro do <code>for-in</code> (<code>Concurrent modification during iteration</code>): use <code>removeWhere</code> ou uma lista nova.</li>
+  <li>Precisa da posição? <code>for (final (i, item) in lista.indexed)</code> <span class="versao">Dart 3.0</span>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
