@@ -360,7 +360,7 @@ PãoLeite
 <p>Dois <code>write</code> seguidos (<code>cupom.write('Pão'); cupom.write('Leite');</code>) não põem nada entre os textos. O Dart não acusa erro: ele escreveu exatamente o que você mandou. <strong>Como consertar:</strong> use <code>writeln</code> (uma linha cada), escreva o separador (<code>cupom.write(', ')</code>) ou use <code>writeAll(lista, ', ')</code>.</p>
 </div>
 
-<div class="trydart" data-goal="out:arroz, feijão, café;;semerro">
+<div class="trydart" data-goal="out:arroz, feijão, café;;semerro;;src:\.toString\(\)">
 <p class="try-task"><strong>Missão:</strong> o programa não compila. Leia o erro e conserte, para mostrar <code>arroz, feijão, café</code>.</p>
 <pre class="script" data-file="main.dart">void main() {
   final compras = ['arroz', 'feijão', 'café'];

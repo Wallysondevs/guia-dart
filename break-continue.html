@@ -483,13 +483,13 @@ warning - morto.dart:4:5 - Dead code. Try removing the code, or fixing the code 
 <p>Revise a seção 4: no <code>while</code>, um <code>continue</code> antes do passo (<code>i++</code>) deixa a variável parada e o laço não termina. O Dart não acusa nada; o programa só fica "pensando". Pare com <kbd>Ctrl</kbd>+<kbd>C</kbd> (ou o ■ Parar do editor) e mova o passo para antes do <code>continue</code>.</p>
 </div>
 
-<div class="trydart" data-sem-fim data-goal="out:Fim!;;semerro">
-<p class="try-task"><strong>Missão:</strong> este programa trava quando <code>i</code> chega a 2. Rode, pare com ■ Parar e conserte: o <code>i++</code> tem de acontecer antes do <code>continue</code> (ou troque o <code>while</code> por um <code>for</code>). O resultado certo mostra 0, 1, 3, 4 e <code>Fim!</code>.</p>
+<div class="trydart" data-goal="out:i = 3;;out:Fim!;;src:\bcontinue\b;;semerro">
+<p class="try-task"><strong>Missão:</strong> a Ana queria <strong>pular</strong> só o 2, mas usou <code>break</code>, e o laço parou de vez (rode e veja: só 0 e 1). Troque o <code>break</code> por <code>continue</code>. Cuidado: se você só trocar a palavra, o laço trava no 2 (pare com ■ Parar); o <code>i++</code> tem de acontecer antes do <code>continue</code>. O resultado certo mostra 0, 1, 3, 4 e <code>Fim!</code>.</p>
 <pre class="script" data-file="main.dart">void main() {
   var i = 0;
   while (i &lt; 5) {
     if (i == 2) {
-      continue;
+      break;
     }
     print('i = $i');
     i++;
