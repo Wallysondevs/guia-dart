@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart O que é — a linguagem do Flutter, explicada do zero | Guia Dart</title>
+<meta name="description" content="O que é a linguagem Dart para quem nunca programou: quem criou, para que serve (Flutter, terminal, servidores, web), como um programa Dart é lido e rodado, por que ela confere os tipos antes de rodar, e o primeiro contato com uma mensagem de erro real do Dart 3.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">O que é</span></h1>
+
+<p class="intro">O <strong>Dart</strong> é uma linguagem de programação: um jeito de escrever instruções que o computador consegue seguir. Foi criado pelo Google e hoje é mais conhecido por ser a linguagem do <strong>Flutter</strong>, a ferramenta usada para fazer aplicativos de celular, de computador e de navegador com um código só. Mas o Dart também serve, sozinho, para programas de terminal, scripts e servidores. É esse Dart "puro" que este guia ensina, do zero.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma linguagem de programação e o que é um programa.</li>
+  <li>De onde veio o Dart e para que ele é usado hoje.</li>
+  <li>Como é a cara de um programa Dart de verdade, e a saída que ele mostra.</li>
+  <li>O que o comando <code>dart</code> faz com o seu arquivo antes de rodá-lo.</li>
+  <li>Por que o Dart reclama de alguns erros <strong>antes</strong> de o programa começar (e o que é um erro em tempo de execução).</li>
+  <li>Como este guia está organizado e o que você precisa para acompanhar.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>, com Ubuntu), na pasta pessoal dela, com o comando <code>dart run arquivo.dart</code>. Você vai aprender esse comando na aula <a href="executar.html">Rodando um Programa</a>.</p>
+
+<hr>
+
+<h2>A ideia: uma receita escrita para o computador</h2>
+<p>Pense numa receita de bolo. Ela é uma lista de passos, na ordem certa: "misture os ovos com o açúcar", "acrescente a farinha", "asse por 40 minutos". Quem segue a receita não precisa pensar, só obedecer, um passo de cada vez.</p>
+
+<p>Um <strong>programa</strong> é uma receita para o computador. E uma <strong>linguagem de programação</strong> é o idioma em que a receita é escrita. O computador é um cozinheiro muito rápido e muito literal: ele faz exatamente o que está escrito, nem mais nem menos. Por isso a linguagem tem regras rígidas de escrita, e boa parte de aprender a programar é aprender essas regras.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na cozinha</th><th>No Dart</th></tr>
+<tr><td>A receita escrita no papel</td><td>O <strong>código-fonte</strong>: um arquivo de texto terminado em <code>.dart</code></td></tr>
+<tr><td>O idioma da receita</td><td>A linguagem <strong>Dart</strong></td></tr>
+<tr><td>O cozinheiro que lê e faz</td><td>O programa <code>dart</code>, que vem no <strong>Dart SDK</strong></td></tr>
+<tr><td>O bolo pronto</td><td>A <strong>saída</strong>: o que aparece na tela quando o programa roda</td></tr>
+</table>
+</div>
+
+<p><strong>SDK</strong> é a sigla de <em>Software Development Kit</em>, "kit de desenvolvimento de software": a caixa de ferramentas que você instala para escrever e rodar programas Dart. A aula <a href="instalar.html">Instalar o Dart</a> mostra como colocá-la no seu computador.</p>
+
+<hr>
+
+<h2>1. Um programa Dart de verdade</h2>
+<p>Este é um programa Dart completo. Ele mostra uma frase na tela:</p>
+
+<pre class="file" data-file="ola.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+
+<pre class="term">$ dart run ola.dart
+Olá, Ana!
+</pre>
+
+<p>Ainda não precisa entender cada pedaço: a aula <a href="primeiro-programa.html">Seu Primeiro Programa</a> explica tudo com calma. Por enquanto, repare em três coisas:</p>
+
+<dl class="anatomy">
+  <dt>void main() { ... }</dt><dd>O <strong>ponto de partida</strong> do programa. Todo programa Dart começa a rodar pelo que está entre as chaves <code>{ }</code> do <code>main</code> (em inglês, "principal").</dd>
+  <dt>print('Olá, Ana!')</dt><dd>A instrução que <strong>mostra</strong> um texto na tela (<code>print</code> = "imprimir"). O texto vai entre aspas, e as aspas não aparecem na saída.</dd>
+  <dt>;</dt><dd>O ponto e vírgula fecha a instrução, como o ponto final fecha uma frase. A aula <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a> conta por que ele é obrigatório.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Olá, Bia!">
+<p class="try-task"><strong>Missão:</strong> troque <code>Ana</code> por <code>Bia</code> e clique em Rodar.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Olá, Bia!');
+}
+</pre>
+</div>
+
+<h3>Um pouco mais: a lista de compras</h3>
+<p>Programas de verdade guardam informações e repetem tarefas. Este aqui guarda a lista de compras da Ana, mostra cada item e conta quantos são:</p>
+
+<pre class="file" data-file="compras.dart">void main() {
+  final itens = ['pão', 'leite', 'café'];
+  print('Lista de compras da Ana:');
+  for (final item in itens) {
+    print('- $item');
+  }
+  print('Total de itens: ${itens.length}');
+}
+</pre>
+
+<pre class="term">$ dart run compras.dart
+Lista de compras da Ana:
+- pão
+- leite
+- café
+Total de itens: 3
+</pre>
+
+<p>Leia em voz alta, quase como português: "os itens são pão, leite e café; mostre o título; <strong>para cada</strong> (<code>for</code>) item dos itens, mostre um tracinho e o item; mostre o total". Cada novidade deste programa tem a sua aula: <a href="final-const.html">final</a>, <a href="list.html">listas</a>, <a href="for-in.html">for-in</a> e <a href="interpolacao.html">o <code>$</code> dentro do texto</a>. Você vai chegar lá.</p>
+
+<hr>
+
+<h2>2. De onde veio o Dart</h2>
+<p>O Dart foi apresentado pelo Google em <strong>2011</strong>, e a versão 1.0 saiu em 2013. A ideia original era ser uma linguagem para páginas da web. Com o tempo, o grande uso dele passou a ser o <strong>Flutter</strong> (lançado em 2018), e a linguagem foi ficando mais rigorosa e mais segura. Os marcos que importam para você:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Versão</th><th>Ano</th><th>O que trouxe</th></tr>
+<tr><td>Dart 1</td><td>2013</td><td>A primeira versão estável.</td></tr>
+<tr><td>Dart 2</td><td>2018</td><td>Tipos conferidos com rigor (o "sistema de tipos forte" que você vai ver na seção 4).</td></tr>
+<tr><td>Dart 2.12</td><td>2021</td><td><strong>Null safety</strong>: o Dart passa a avisar quando algo pode estar "vazio" (aula <a href="null-safety.html">Null Safety</a>).</td></tr>
+<tr><td>Dart 3</td><td>2023</td><td>Null safety obrigatório para todos, <a href="records.html">records</a>, <a href="patterns.html">patterns</a> e mais. É o Dart que este guia ensina.</td></tr>
+</table>
+</div>
+
+<p>A história completa, versão por versão, está em <a href="versoes.html">Versões do Dart</a>.</p>
+
+<hr>
+
+<h2>3. Onde o Dart é usado</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Uso</th><th>Como</th><th>Neste guia</th></tr>
+<tr><td>Aplicativos de celular, computador e web</td><td>Com o <strong>Flutter</strong>: a tela é escrita em Dart.</td><td>Aula <a href="flutter.html">Dart e Flutter</a> (o lab não tem Flutter: o que for de tela é ilustrativo).</td></tr>
+<tr><td>Programas de terminal e scripts</td><td><code>dart run arquivo.dart</code>, ou um executável com <code>dart compile exe</code>.</td><td><strong>O guia inteiro.</strong></td></tr>
+<tr><td>Servidores</td><td>Programas Dart que respondem pela rede.</td><td>Citado de passagem.</td></tr>
+<tr><td>Páginas da web</td><td>O Dart é traduzido para JavaScript ou WebAssembly.</td><td>Aula <a href="dart-web.html">Dart na Web</a>.</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Por que aprender o Dart pelo terminal, e não direto no Flutter?</strong>
+<p>Porque o Flutter é <em>muita</em> coisa ao mesmo tempo: telas, botões, celular, emulador. Se você não sabe o que é uma variável, uma lista ou uma classe, cada erro vira um mistério. No terminal, só existe a linguagem: você escreve, roda e vê a resposta na hora. Quando chegar ao Flutter, o Dart já vai ser velho conhecido.</p>
+</div>
+
+<hr>
+
+<h2>4. O que o <code>dart</code> faz com o seu arquivo</h2>
+<p>Quando a Ana digita <code>dart run ola.dart</code>, o <code>dart</code> não sai executando a primeira linha às cegas. Ele faz duas coisas, nesta ordem:</p>
+
+<ol class="passo">
+  <li><strong>Lê e confere o arquivo inteiro</strong> e o <strong>compila</strong>: traduz o texto que você escreveu para uma forma que a máquina executa rápido. Nessa conferência, ele procura erros de escrita e de <strong>tipo</strong> (um número onde devia ir um texto, por exemplo). Se achar um, para aqui: nada do programa roda.</li>
+  <li><strong>Roda</strong> o programa, começando pelo <code>main</code>. Aqui ainda pode acontecer um problema que só aparece na hora, como uma divisão por zero.</li>
+</ol>
+
+<p>Essa conferência de tipos antes de rodar é uma das marcas do Dart. Cada valor tem um <strong>tipo</strong>: <code>int</code> para números inteiros, <code>String</code> para textos, e assim por diante (aula <a href="tipos.html">Os Tipos Básicos</a>). Se você diz que uma coisa é número e tenta guardar um texto nela, o Dart percebe <strong>antes</strong> de rodar.</p>
+
+<h3>Quando dá errado antes de rodar: erro de compilação</h3>
+
+<div class="cenario">
+<strong>Um texto onde devia ir um número</strong>
+<pre class="file" data-file="quantidade.dart">void main() {
+  int quantidade = 'três';
+  print(quantidade);
+}
+</pre>
+<pre class="term">$ dart run quantidade.dart
+quantidade.dart:2:20: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  int quantidade = 'três';
+                   ^
+$ echo $?
+254
+</pre>
+<p>É a primeira mensagem de erro do guia, então vamos ler parte por parte. As mensagens do Dart saem em inglês:</p>
+<dl class="anatomy">
+  <dt>quantidade.dart:2:20:</dt><dd>Onde está o problema: arquivo <code>quantidade.dart</code>, <strong>linha 2</strong>, <strong>coluna 20</strong> (a 20.ª letra da linha, contando os espaços). É a parte mais útil da mensagem.</dd>
+  <dt>Error:</dt><dd>"Erro". É um erro de <strong>compilação</strong>: o Dart achou durante a conferência, antes de rodar.</dd>
+  <dt>A value of type 'String' can't be assigned to a variable of type 'int'.</dt><dd>"Um valor do tipo <code>String</code> (texto) não pode ser guardado numa variável do tipo <code>int</code> (número inteiro)." A Ana disse que <code>quantidade</code> é um número e tentou guardar o texto <code>'três'</code>.</dd>
+  <dt>a linha do código e o <code>^</code></dt><dd>O Dart repete a linha com problema e aponta com o <code>^</code> ("acento circunflexo", aqui uma setinha) o lugar exato: o começo de <code>'três'</code>.</dd>
+  <dt>echo $? → 254</dt><dd>O <strong>código de saída</strong>: um número que todo programa devolve ao terminar (o <code>$?</code> do terminal mostra o do último comando). <code>0</code> é "deu tudo certo"; o <code>dart run</code> devolve <code>254</code> quando o código nem compilou.</dd>
+</dl>
+<p>Repare que o <code>print</code> da linha 3 <strong>não</strong> rodou: com erro de compilação, nenhuma linha do programa é executada. <strong>Como consertar:</strong> guarde um número, <code>int quantidade = 3;</code>.</p>
+</div>
+
+<h3>Quando dá errado durante a execução: exceção</h3>
+
+<div class="cenario">
+<strong>Uma divisão por zero</strong>
+<pre class="file" data-file="divisao.dart">void main() {
+  final pessoas = 0;
+  print('Começando a conta...');
+  print(12 ~/ pessoas);
+}
+</pre>
+<pre class="term">$ dart run divisao.dart
+Começando a conta...
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/divisao.dart:4:12)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>A Ana quer dividir 12 pães entre as pessoas (o <code>~/</code> é a divisão inteira, aula <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>), mas o número de pessoas é zero. Desta vez o arquivo estava bem escrito: o Dart compilou e começou a rodar, tanto que <code>Começando a conta...</code> apareceu. O problema só surgiu na linha 4, na hora da conta:</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada". Uma <strong>exceção</strong> é um problema que acontece com o programa já rodando; "não tratada" quer dizer que o programa não tinha um plano para ela (aula <a href="excecoes.html">Exceções</a>), então ele para ali.</dd>
+  <dt>IntegerDivisionByZeroException</dt><dd>O nome do problema: "exceção de divisão inteira por zero".</dd>
+  <dt>#0, #1, #2, #3</dt><dd>O <strong>stack trace</strong> ("rastro da pilha"): o caminho até o erro, do ponto mais fundo para fora. Procure a linha que fala do <strong>seu</strong> arquivo: <code>#1 main (file:///home/ana/divisao.dart:4:12)</code>, ou seja, função <code>main</code>, linha 4, coluna 12. As linhas com <code>dart:</code> são peças internas do Dart; pode ignorá-las.</dd>
+  <dt>echo $? → 255</dt><dd>O código de saída de um programa que parou por exceção não tratada.</dd>
+</dl>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Erro de compilação</th><th>Exceção</th></tr>
+<tr><td>Quando aparece</td><td>Antes de rodar, na conferência</td><td>Com o programa rodando</td></tr>
+<tr><td>Alguma linha roda?</td><td>Nenhuma</td><td>As de antes do problema, sim</td></tr>
+<tr><td>Como começa a mensagem</td><td><code>arquivo.dart:linha:coluna: Error:</code></td><td><code>Unhandled exception:</code></td></tr>
+<tr><td>Código de saída (<code>$?</code>)</td><td><code>254</code></td><td><code>255</code></td></tr>
+</table>
+</div>
+
+<p>A aula <a href="erros.html">Lendo uma Mensagem de Erro</a> volta a esse assunto com muito mais exemplos.</p>
+
+<hr>
+
+<h2>5. Como este guia funciona</h2>
+<ul>
+  <li><strong>Níveis:</strong> o menu tem quatro abas. O <strong>Iniciante</strong> vai do primeiro programa até decisões, repetições e o teclado; o <strong>Intermediário</strong> traz funções, coleções e classes; o <strong>Avançado</strong>, assíncrono, arquivos e pacotes; e há uma aba de <strong>Projetos</strong> completos e outra de <strong>Referência</strong>.</li>
+  <li><strong>Uma aula, um assunto:</strong> cada página ensina uma coisa só, com exemplos, a saída real, os erros mais comuns e exercícios.</li>
+  <li><strong>Saídas reais:</strong> todo terminal mostrado (as caixas escuras com <code>$</code>) foi rodado de verdade no Dart da Ana. O <code>$</code> é o "prompt": o sinal de que o terminal espera um comando. Você não digita o <code>$</code>.</li>
+  <li><strong>Experimente:</strong> as caixas com o botão Rodar deixam você mudar o código e ver o resultado no navegador, sem instalar nada (aula <a href="simulador.html">O Editor do Guia</a>).</li>
+</ul>
+
+<div class="note">
+<strong>O que você precisa saber antes?</strong>
+<p>Nada de programação. Ajuda saber usar um pouco o terminal (abrir, digitar um comando, apertar Enter), e a aula <a href="executar.html">Rodando um Programa</a> mostra o essencial. Para as primeiras aulas, o editor do guia já basta.</p>
+</div>
+
+<div class="trydart" data-goal="out:Aprendendo Dart;;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente uma segunda linha ao programa, logo abaixo da primeira, que mostre <code>Aprendendo Dart</code>. Copie o jeito da primeira linha, sem esquecer o <code>;</code> no fim.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Olá, Ana!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Olá, Ana!');
+  print('Aprendendo Dart');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Termo</th><th>O que é</th></tr>
+<tr><td>Dart</td><td>Linguagem de programação criada pelo Google (2011); a linguagem do Flutter</td></tr>
+<tr><td>Dart SDK</td><td>O kit que você instala: traz o comando <code>dart</code></td></tr>
+<tr><td>Flutter</td><td>Ferramenta para fazer aplicativos com telas, escrita em Dart; já vem com o Dart SDK dentro</td></tr>
+<tr><td>Código-fonte</td><td>O texto do programa, num arquivo <code>.dart</code></td></tr>
+<tr><td><code>dart run arquivo.dart</code></td><td>Confere, compila e roda o programa</td></tr>
+<tr><td><code>main</code></td><td>Onde todo programa Dart começa</td></tr>
+<tr><td>Erro de compilação</td><td>Problema achado antes de rodar; nada roda (<code>$?</code> = 254)</td></tr>
+<tr><td>Exceção</td><td>Problema com o programa rodando; ele para ali (<code>$?</code> = 255)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. A extensão</h3>
+<p>Que terminação tem o nome de um arquivo de código Dart? (escreva com o ponto)</p>
+<div class="ex-code">Arquivo: compras<input data-answer=".dart" aria-label="extensão"></div>
+</div>
+
+<div class="exercise">
+<h3>2. O ponto de partida</h3>
+<p>Qual é o nome da parte do programa por onde o Dart sempre começa a rodar?</p>
+<div class="ex-code">void <input data-answer="main" aria-label="nome">() { ... }</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. A Ana rodou um programa e a resposta começou com <code>compras.dart:5:3: Error:</code>. O que aconteceu com as linhas 1 a 4 do <code>main</code>?</p>
+<label><input type="radio" name="q3"> Rodaram normalmente; o programa parou na linha 5</label>
+<label><input type="radio" name="q3"> Nenhuma rodou: é erro de compilação, achado antes de rodar</label>
+<label><input type="radio" name="q3"> Rodaram duas vezes</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Qual destas frases sobre o Dart e o Flutter é verdadeira?</p>
+<label><input type="radio" name="q4"> O Dart só funciona dentro do Flutter</label>
+<label><input type="radio" name="q4"> O Flutter é outra linguagem, parecida com o Dart</label>
+<label><input type="radio" name="q4"> O Flutter usa o Dart, e o Dart também roda sozinho no terminal</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Uma mensagem que começa com <code>Unhandled exception:</code> quer dizer que…</p>
+<label><input type="radio" name="q5"> o programa começou a rodar e parou num problema que só apareceu na hora</label>
+<label><input type="radio" name="q5"> o arquivo tem um erro de escrita e nem foi rodado</label>
+<label><input type="radio" name="q5"> o Dart não está instalado</label>
+</div>
+
+<h3>Missão final: o recado da padaria</h3>
+
+<div class="trydart" data-goal="outre:^Padaria do Bairro\nPão quentinho às 7h\n$;;semerro">
+<p class="try-task"><strong>Missão:</strong> faça o programa mostrar exatamente duas linhas: <code>Padaria do Bairro</code> e, embaixo, <code>Pão quentinho às 7h</code>. Hoje ele mostra outra coisa.</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Olá, mundo!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  print('Padaria do Bairro');
+  print('Pão quentinho às 7h');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um programa é uma receita para o computador; o Dart é o idioma em que ela é escrita.</li>
+  <li>O Dart foi criado pelo Google (2011). O Dart 3 (2023) é o que este guia ensina, com null safety obrigatório.</li>
+  <li>É a linguagem do Flutter, mas roda sozinho: programas de terminal, scripts, servidores e web.</li>
+  <li>Todo programa começa pelo <code>main</code>; o <code>print</code> mostra textos na tela.</li>
+  <li>O <code>dart run</code> confere e compila o arquivo inteiro antes de rodar: erros de escrita e de tipo aparecem antes (<code>Error:</code>, código 254) e nada roda.</li>
+  <li>Problemas que só aparecem na hora viram uma <strong>exceção</strong> (<code>Unhandled exception:</code>, código 255), e o programa para ali.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
