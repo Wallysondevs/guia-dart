@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Operadores — tabela de todos os operadores do Dart 3, com precedência e resultados | Guia Dart</title>
+<meta name="description" content="Referência rápida dos operadores do Dart 3: aritméticos (+ - * / ~/ %), incremento, comparação, lógicos, is/as, os de null (?? ??= ?. ! ?[]), ternário, atribuição composta, bits, cascata (..), spread (...) e a tabela de precedência. Cada exemplo com o resultado real do Dart SDK 3.13 e os erros mais comuns.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Operadores</span></h1>
+
+<p class="intro">Esta é a página de consulta dos <strong>operadores</strong> do Dart: os símbolos que fazem contas (<code>+</code>, <code>~/</code>), comparam (<code>==</code>, <code>&lt;</code>), combinam condições (<code>&amp;&amp;</code>), lidam com <code>null</code> (<code>??</code>, <code>?.</code>) e mais alguns que só o Dart tem, como a cascata <code>..</code>. Cada tabela tem um exemplo e o resultado que o Dart deu no computador da Ana; no fim da página está o programa que gerou todos eles.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li><strong>Resultado</strong> é o que o Dart SDK 3.13.5 mostrou com <code>print</code>.</li>
+  <li>Quando o exemplo usa uma variável, ela foi criada antes (por exemplo, <code>var a = 5;</code>).</li>
+  <li>Os nomes em inglês ficam entre parênteses, para você reconhecer na documentação.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="aritmeticos">Aritméticos</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>+</code></td><td>Soma; com textos, junta.</td><td><code>7 + 2</code><br><code>'ab' + 'cd'</code></td><td><code>9</code><br><code>abcd</code></td><td rowspan="2"><a href="operadores-aritmeticos.html">Aritméticos</a></td></tr>
+<tr><td><code>-</code></td><td>Subtração; na frente de um número, troca o sinal.</td><td><code>7 - 2</code><br><code>-(3)</code></td><td><code>5</code><br><code>-3</code></td></tr>
+<tr><td><code>*</code></td><td>Multiplicação; com texto, repete.</td><td><code>7 * 2</code><br><code>'ab' * 3</code></td><td><code>14</code><br><code>ababab</code></td><td><a href="operadores-aritmeticos.html">Aritméticos</a></td></tr>
+<tr><td><code>/</code></td><td>Divisão. <strong>Sempre</strong> dá <code>double</code>.</td><td><code>7 / 2</code><br><code>6 / 2</code></td><td><code>3.5</code><br><code>3.0</code></td><td><a href="int-double.html">Números</a></td></tr>
+<tr><td><code>~/</code></td><td>Divisão inteira: corta as casas decimais (em direção ao zero).</td><td><code>7 ~/ 2</code><br><code>-7 ~/ 2</code></td><td><code>3</code><br><code>-3</code></td><td><a href="operadores-aritmeticos.html">Aritméticos</a></td></tr>
+<tr><td><code>%</code></td><td>Resto da divisão. No Dart, o resto nunca é negativo quando o divisor é positivo.</td><td><code>7 % 2</code><br><code>-7 % 2</code></td><td><code>1</code><br><code>1</code></td><td><a href="operadores-aritmeticos.html">Aritméticos</a></td></tr>
+</table>
+</div>
+
+<h2 id="incremento">Incremento e atribuição</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>=</code></td><td>Guarda um valor na variável.</td><td><code>var t = 10;</code></td><td>—</td><td><a href="variaveis.html">Variáveis</a></td></tr>
+<tr><td><code>x++</code></td><td>Soma 1; a expressão vale o número <strong>antes</strong>.</td><td><code>a++</code> (com <code>a = 5</code>)</td><td>vale <code>5</code>; depois <code>a</code> é <code>6</code></td><td rowspan="3"><a href="atribuicao.html">Atribuição e Incremento</a></td></tr>
+<tr><td><code>++x</code></td><td>Soma 1; a expressão vale o número <strong>depois</strong>.</td><td><code>++b</code> (com <code>b = 5</code>)</td><td>vale <code>6</code>; depois <code>b</code> é <code>6</code></td></tr>
+<tr><td><code>x--</code>, <code>--x</code></td><td>Tira 1 (mesma regra do antes/depois).</td><td><code>c--</code> (com <code>c = 5</code>)</td><td>vale <code>5</code>; depois <code>c</code> é <code>4</code></td></tr>
+<tr><td><code>+=</code> <code>-=</code> <code>*=</code></td><td>Faz a conta com a própria variável e guarda.</td><td><code>t += 5</code>, <code>t -= 3</code>, <code>t *= 2</code> (com <code>t = 10</code>)</td><td><code>15</code>, <code>12</code>, <code>24</code></td><td rowspan="3"><a href="atribuicao.html">Atribuição e Incremento</a></td></tr>
+<tr><td><code>~/=</code> <code>%=</code></td><td>Idem, com divisão inteira e resto.</td><td><code>t ~/= 5</code>, depois <code>t %= 3</code></td><td><code>4</code>, <code>1</code></td></tr>
+<tr><td><code>/=</code></td><td>Idem, com divisão. Só serve para variável <code>double</code> (a <code>/</code> dá <code>double</code>).</td><td><code>d /= 4</code> (com <code>d = 10.0</code>)</td><td><code>2.5</code></td></tr>
+<tr><td><code>??=</code></td><td>Guarda só se a variável estiver <code>null</code>.</td><td><code>nome ??= 'Bia'</code> (com <code>nome</code> nulo)</td><td><code>Bia</code></td><td><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td><code>&amp;=</code> <code>|=</code> <code>^=</code> <code>&lt;&lt;=</code> <code>&gt;&gt;=</code> <code>&gt;&gt;&gt;=</code></td><td>Atribuição composta com os operadores de bits (abaixo).</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+</div>
+
+<h2 id="comparacao">Comparação e lógicos</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>==</code></td><td>Igual a. Compara o <strong>valor</strong>, inclusive de textos.</td><td><code>3 == 3.0</code><br><code>'a' == 'a'</code></td><td><code>true</code><br><code>true</code></td><td rowspan="3"><a href="operadores-comparacao.html">Comparação</a></td></tr>
+<tr><td><code>!=</code></td><td>Diferente de.</td><td><code>3 != 4</code></td><td><code>true</code></td></tr>
+<tr><td><code>&lt;</code> <code>&lt;=</code> <code>&gt;</code> <code>&gt;=</code></td><td>Menor, menor ou igual, maior, maior ou igual.</td><td><code>3 &lt; 4</code>, <code>3 &lt;= 3</code>, <code>3 &gt; 4</code>, <code>4 &gt;= 5</code></td><td><code>true</code>, <code>true</code>, <code>false</code>, <code>false</code></td></tr>
+<tr><td><code>&amp;&amp;</code></td><td>"E": verdadeiro só se os dois lados forem.</td><td><code>true &amp;&amp; false</code></td><td><code>false</code></td><td rowspan="3"><a href="operadores-logicos.html">Lógicos</a></td></tr>
+<tr><td><code>||</code></td><td>"Ou": verdadeiro se um dos lados for.</td><td><code>true || false</code></td><td><code>true</code></td></tr>
+<tr><td><code>!</code></td><td>"Não": inverte.</td><td><code>!true</code></td><td><code>false</code></td></tr>
+<tr><td><code>condição ? a : b</code></td><td>Ternário: <code>a</code> se a condição for verdadeira, senão <code>b</code>.</td><td><code>idade &gt;= 18 ? 'adulto' : 'menor'</code> (com <code>idade = 17</code>)</td><td><code>menor</code></td><td><a href="ternario.html">Ternário</a></td></tr>
+</table>
+</div>
+
+<h2 id="tipo">Tipo</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo (com <code>Object x = 'Ana'</code>)</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>is</code></td><td>"É do tipo?"</td><td><code>x is String</code></td><td><code>true</code></td><td rowspan="3"><a href="operadores-tipo.html">is, is! e as</a></td></tr>
+<tr><td><code>is!</code></td><td>"Não é do tipo?"</td><td><code>x is! int</code></td><td><code>true</code></td></tr>
+<tr><td><code>as</code></td><td>"Trate como": converte o tipo; se estiver errado, lança exceção.</td><td><code>(x as String).length</code></td><td><code>3</code></td></tr>
+</table>
+</div>
+
+<h2 id="null">Os operadores de null</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo (com <code>String? nome</code> nulo)</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>??</code></td><td>"Se for nulo, use este outro."</td><td><code>nome ?? 'visitante'</code></td><td><code>visitante</code></td><td rowspan="3"><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td><code>?.</code></td><td>Acessa só se não for nulo; se for, o resultado é <code>null</code>.</td><td><code>nome?.length</code></td><td><code>null</code></td></tr>
+<tr><td><code>?[]</code></td><td>Índice só se a lista não for nula.</td><td><code>notas?[0]</code> (com <code>List&lt;int&gt;? notas</code> nula)</td><td><code>null</code></td></tr>
+<tr><td><code>!</code> (depois)</td><td>"Garanto que não é nulo." Se for, exceção.</td><td><code>outro!.length</code> (com <code>outro = 'Caio'</code>)</td><td><code>4</code></td><td><a href="late.html">late e o Operador !</a></td></tr>
+</table>
+</div>
+
+<h2 id="colecoes">Cascata, spread e índice</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>..</code></td><td>Cascata: várias operações no <strong>mesmo</strong> objeto, sem repetir o nome. A expressão vale o objeto.</td><td><code>&lt;int&gt;[]..add(3)..add(1)..sort()</code></td><td><code>[1, 3]</code></td><td><a href="list-metodos.html">Métodos de Lista</a></td></tr>
+<tr><td><code>?..</code></td><td>Cascata que não faz nada se o objeto for nulo.</td><td><code>sb?..write('x')..write('y')</code> (com <code>sb</code> nulo)</td><td><code>sb</code> continua <code>null</code></td><td><a href="operadores-null.html">?. , ?? e ??=</a></td></tr>
+<tr><td><code>...</code></td><td>Spread: espalha os itens de uma coleção dentro de outra.</td><td><code>[...base, 3]</code> (com <code>base = [1, 2]</code>)</td><td><code>[1, 2, 3]</code></td><td rowspan="2"><a href="spread.html">Espalhando Coleções</a></td></tr>
+<tr><td><code>...?</code></td><td>Spread que ignora uma coleção nula.</td><td><code>[0, ...?vazia]</code> (com <code>vazia</code> nula)</td><td><code>[0]</code></td></tr>
+<tr><td><code>[]</code></td><td>Índice: o item na posição (começa em 0).</td><td><code>'Dart'[0]</code></td><td><code>D</code></td><td><a href="list.html">Listas</a></td></tr>
+<tr><td><code>.</code></td><td>Acesso a um membro (campo, método).</td><td><code>'Ana'.length</code></td><td>(veja <code>as</code>, acima: <code>3</code>)</td><td><a href="classes.html">Classes</a></td></tr>
+</table>
+</div>
+
+<h2 id="bits">Bits</h2>
+<p>Operam nos bits (zeros e uns) de um <code>int</code>. Raros no dia a dia; aparecem em cores, permissões e protocolos. <code>6</code> é <code>110</code> e <code>3</code> é <code>011</code> em binário.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>&amp;</code></td><td>E bit a bit.</td><td><code>6 &amp; 3</code></td><td><code>2</code></td></tr>
+<tr><td><code>|</code></td><td>Ou bit a bit.</td><td><code>6 | 3</code></td><td><code>7</code></td></tr>
+<tr><td><code>^</code></td><td>Ou exclusivo.</td><td><code>6 ^ 3</code></td><td><code>5</code></td></tr>
+<tr><td><code>~</code></td><td>Inverte todos os bits.</td><td><code>~6</code></td><td><code>-7</code></td></tr>
+<tr><td><code>&lt;&lt;</code></td><td>Desloca para a esquerda (multiplica por 2 a cada casa).</td><td><code>1 &lt;&lt; 3</code></td><td><code>8</code></td></tr>
+<tr><td><code>&gt;&gt;</code></td><td>Desloca para a direita, mantendo o sinal.</td><td><code>16 &gt;&gt; 2</code><br><code>-16 &gt;&gt; 2</code></td><td><code>4</code><br><code>-4</code></td></tr>
+<tr><td><code>&gt;&gt;&gt;</code></td><td>Desloca para a direita, preenchendo com zeros (sem sinal).</td><td><code>-16 &gt;&gt;&gt; 60</code></td><td><code>15</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="precedencia">Precedência: quem vem primeiro</h2>
+<p>Numa expressão com vários operadores, o Dart resolve primeiro os das linhas de <strong>cima</strong> desta tabela (a ordem é a da documentação oficial, dart.dev/language/operators). Na mesma linha, a maioria vai da esquerda para a direita. Na dúvida, use parênteses: deixam a intenção clara para quem lê.</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Ordem</th><th>Grupo</th><th>Operadores</th></tr>
+<tr><td>1</td><td>depois do valor</td><td><code>x++</code> <code>x--</code> <code>()</code> <code>[]</code> <code>?[]</code> <code>.</code> <code>?.</code> <code>!</code></td></tr>
+<tr><td>2</td><td>antes do valor</td><td><code>-x</code> <code>!x</code> <code>~x</code> <code>++x</code> <code>--x</code> <code>await</code></td></tr>
+<tr><td>3</td><td>multiplicação</td><td><code>*</code> <code>/</code> <code>%</code> <code>~/</code></td></tr>
+<tr><td>4</td><td>soma</td><td><code>+</code> <code>-</code></td></tr>
+<tr><td>5</td><td>deslocamento</td><td><code>&lt;&lt;</code> <code>&gt;&gt;</code> <code>&gt;&gt;&gt;</code></td></tr>
+<tr><td>6–8</td><td>bits</td><td><code>&amp;</code>, depois <code>^</code>, depois <code>|</code></td></tr>
+<tr><td>9</td><td>relacionais e tipo</td><td><code>&gt;=</code> <code>&gt;</code> <code>&lt;=</code> <code>&lt;</code> <code>as</code> <code>is</code> <code>is!</code></td></tr>
+<tr><td>10</td><td>igualdade</td><td><code>==</code> <code>!=</code></td></tr>
+<tr><td>11</td><td>e lógico</td><td><code>&amp;&amp;</code></td></tr>
+<tr><td>12</td><td>ou lógico</td><td><code>||</code></td></tr>
+<tr><td>13</td><td>se nulo</td><td><code>??</code></td></tr>
+<tr><td>14</td><td>condicional</td><td><code>? :</code></td></tr>
+<tr><td>15</td><td>cascata</td><td><code>..</code> <code>?..</code></td></tr>
+<tr><td>16</td><td>atribuição</td><td><code>=</code> <code>*=</code> <code>/=</code> <code>+=</code> <code>-=</code> <code>&amp;=</code> <code>^=</code> <code>??=</code> e as outras</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Expressão</th><th>Resultado no lab</th><th>Por quê</th></tr>
+<tr><td><code>2 + 3 * 4</code></td><td><code>14</code></td><td>A multiplicação (3) vem antes da soma (4).</td></tr>
+<tr><td><code>(2 + 3) * 4</code></td><td><code>20</code></td><td>Os parênteses mandam.</td></tr>
+<tr><td><code>10 - 4 - 3</code></td><td><code>3</code></td><td>Da esquerda para a direita: <code>(10 - 4) - 3</code>.</td></tr>
+<tr><td><code>-2 * -2</code></td><td><code>4</code></td><td>O sinal (2) vem antes da multiplicação (3).</td></tr>
+<tr><td><code>true || false &amp;&amp; false</code></td><td><code>true</code></td><td>O <code>&amp;&amp;</code> (11) vem antes do <code>||</code> (12): <code>true || (false &amp;&amp; false)</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Texto + número</strong>
+<pre class="file" data-file="soma.dart">void main() {
+  final total = 5;
+  print('Total: ' + total);
+}
+</pre>
+<pre class="term">$ dart run soma.dart
+soma.dart:3:21: Error: A value of type 'int' can't be assigned to a variable of type 'String'.
+  print('Total: ' + total);
+                    ^
+</pre>
+<p>O <code>+</code> de um texto só aceita outro texto: "um valor do tipo <code>int</code> não pode ser atribuído a <code>String</code>". Use interpolação: <code>'Total: $total'</code> (veja <a href="interpolacao.html">Interpolação</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Divisão por zero: <code>/</code> não reclama, <code>~/</code> sim</strong>
+<pre class="file" data-file="divisao.dart">void main() {
+  print(5 / 0);
+  print(-5 / 0);
+  print(0 / 0);
+  print(5 ~/ 0);
+}
+</pre>
+<pre class="term">$ dart run divisao.dart
+Infinity
+-Infinity
+NaN
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/divisao.dart:5:11)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>A <code>/</code> trabalha com <code>double</code>, que tem valores especiais: <code>Infinity</code> (infinito) e <code>NaN</code> (<em>not a number</em>, "não é um número"). A <code>~/</code> dá <code>int</code>, que não tem infinito: "exceção de divisão inteira por zero", na linha 5.</p>
+</div>
+
+<div class="cenario">
+<strong><code>=</code> no lugar de <code>==</code></strong>
+<pre class="file" data-file="igual.dart">void main() {
+  var x = 3;
+  if (x = 4) {
+    print('quatro');
+  }
+}
+</pre>
+<pre class="term">$ dart run igual.dart
+igual.dart:3:7: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  if (x = 4) {
+      ^
+</pre>
+<p>O <code>if</code> precisa de um <code>bool</code>, e <code>x = 4</code> é uma atribuição, que vale <code>4</code> (um <code>int</code>). O Dart recusa, o que evita um erro clássico de outras linguagens. Para comparar: <code>x == 4</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Ponto num valor que pode ser nulo</strong>
+<pre class="file" data-file="nulo.dart">void main() {
+  String? apelido;
+  print(apelido.length);
+}
+</pre>
+<pre class="term">$ dart run nulo.dart
+nulo.dart:3:17: Error: Property 'length' cannot be accessed on 'String?' because it is potentially null.
+Try accessing using ?. instead.
+  print(apelido.length);
+                ^^^^^^
+</pre>
+<p>"A propriedade <code>length</code> não pode ser acessada em <code>String?</code> porque pode ser nula. Tente <code>?.</code>." Com <code>apelido!.length</code> compila, mas, como o valor é mesmo nulo, quebra ao rodar:</p>
+<pre class="term">$ dart run exclama.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/exclama.dart:3:16)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Operador de checagem de nulo usado num valor nulo." Use <code>!</code> só quando tiver certeza; senão, <code>?.</code> ou <code>??</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>as</code> com o tipo errado</strong>
+<pre class="file" data-file="como.dart">void main() {
+  Object valor = 'dez';
+  final n = valor as int;
+  print(n);
+}
+</pre>
+<pre class="term">$ dart run como.dart
+Unhandled exception:
+type 'String' is not a subtype of type 'int' in type cast
+#0      main (file:///home/ana/como.dart:3:19)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O <code>as</code> não converte texto em número; ele só confere. Para transformar <code>'10'</code> em <code>10</code>, use <code>int.parse</code> (veja <a href="conversao.html">Conversão de Tipos</a>).</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-goal="out:Pacotes cheios: 4;;out:Sobram: 2;;semerro">
+<p class="try-task"><strong>Missão:</strong> a padaria tem 26 pães e os pacotes levam 6. Troque os dois <code>0</code> pelas contas certas: quantos pacotes cheios (<code>~/</code>) e quantos pães sobram (<code>%</code>).</p>
+<pre class="script" data-file="main.dart">void main() {
+  final paes = 26;
+  final porPacote = 6;
+  print('Pacotes cheios: ${0}');
+  print('Sobram: ${0}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final paes = 26;
+  final porPacote = 6;
+  print('Pacotes cheios: ${paes ~/ porPacote}');
+  print('Sobram: ${paes % porPacote}');
+}
+</pre>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Livre:</strong> o programa que gerou os resultados das tabelas. Mude os valores e rode.</p>
+<pre class="script" data-file="main.dart">void main() {
+  // aritméticos
+  print('7 + 2 = ${7 + 2}');
+  print('7 - 2 = ${7 - 2}');
+  print('7 * 2 = ${7 * 2}');
+  print('7 / 2 = ${7 / 2}');
+  print('7 ~/ 2 = ${7 ~/ 2}');
+  print('7 % 2 = ${7 % 2}');
+  print('-7 % 2 = ${-7 % 2}');
+  print('-7 ~/ 2 = ${-7 ~/ 2}');
+  print('6 / 2 = ${6 / 2}');
+  print('-(3) = ${-(3)}');
+  print("'ab' + 'cd' = ${'ab' + 'cd'}");
+  print("'ab' * 3 = ${'ab' * 3}");
+  // incremento
+  var a = 5;
+  print('a++ = ${a++}, depois a = $a');
+  var b = 5;
+  print('++b = ${++b}, depois b = $b');
+  var c = 5;
+  print('c-- = ${c--}, depois c = $c');
+  // comparação
+  print('3 == 3.0: ${3 == 3.0}');
+  print("'a' == 'a': ${'a' == 'a'}");
+  print('3 != 4: ${3 != 4}');
+  print('3 &lt; 4: ${3 &lt; 4}, 3 &lt;= 3: ${3 &lt;= 3}, 3 &gt; 4: ${3 &gt; 4}, 4 &gt;= 5: ${4 &gt;= 5}');
+  // lógicos
+  print('true &amp;&amp; false: ${true &amp;&amp; false}');
+  print('true || false: ${true || false}');
+  print('!true: ${!true}');
+  // tipo
+  Object x = 'Ana';
+  print("x is String: ${x is String}, x is! int: ${x is! int}");
+  print('(x as String).length: ${(x as String).length}');
+  // null
+  String? nome;
+  print('nome ?? "visitante": ${nome ?? 'visitante'}');
+  print('nome?.length: ${nome?.length}');
+  nome ??= 'Bia';
+  print('nome ??= "Bia": $nome');
+  String? outro = 'Caio';
+  print('outro!.length: ${outro!.length}');
+  List&lt;int&gt;? notas;
+  print('notas?[0]: ${notas?[0]}');
+  // ternário
+  final idade = 17;
+  print("idade &gt;= 18 ? 'adulto' : 'menor': ${idade &gt;= 18 ? 'adulto' : 'menor'}");
+  // atribuição composta
+  var t = 10;
+  t += 5;
+  print('t += 5: $t');
+  t -= 3;
+  print('t -= 3: $t');
+  t *= 2;
+  print('t *= 2: $t');
+  t ~/= 5;
+  print('t ~/= 5: $t');
+  t %= 3;
+  print('t %= 3: $t');
+  var d = 10.0;
+  d /= 4;
+  print('d /= 4: $d');
+  // bits
+  print('6 &amp; 3 = ${6 &amp; 3}, 6 | 3 = ${6 | 3}, 6 ^ 3 = ${6 ^ 3}, ~6 = ${~6}');
+  print('1 &lt;&lt; 3 = ${1 &lt;&lt; 3}, 16 &gt;&gt; 2 = ${16 &gt;&gt; 2}, -16 &gt;&gt; 2 = ${-16 &gt;&gt; 2}, -16 &gt;&gt;&gt; 60 = ${-16 &gt;&gt;&gt; 60}');
+  // cascata
+  final lista = &lt;int&gt;[]
+    ..add(3)
+    ..add(1)
+    ..sort();
+  print('cascata: $lista');
+  StringBuffer? sb;
+  sb?..write('x')..write('y');
+  print('?.. com null: $sb');
+  // spread
+  final base = [1, 2];
+  List&lt;int&gt;? vazia;
+  print('[...base, 3]: ${[...base, 3]}');
+  print('[0, ...?vazia]: ${[0, ...?vazia]}');
+  // índice e chamada
+  print("'Dart'[0]: ${'Dart'[0]}");
+  // precedência
+  print('2 + 3 * 4 = ${2 + 3 * 4}');
+  print('(2 + 3) * 4 = ${(2 + 3) * 4}');
+  print('10 - 4 - 3 = ${10 - 4 - 3}');
+  print('-2 * -2 = ${-2 * -2}');
+  print('true || false &amp;&amp; false = ${true || false &amp;&amp; false}');
+}
+</pre>
+</div>
+
+<p>A saída completa dele no lab:</p>
+<pre class="term">$ dart run operadores.dart
+7 + 2 = 9
+7 - 2 = 5
+7 * 2 = 14
+7 / 2 = 3.5
+7 ~/ 2 = 3
+7 % 2 = 1
+-7 % 2 = 1
+-7 ~/ 2 = -3
+6 / 2 = 3.0
+-(3) = -3
+'ab' + 'cd' = abcd
+'ab' * 3 = ababab
+a++ = 5, depois a = 6
+++b = 6, depois b = 6
+c-- = 5, depois c = 4
+3 == 3.0: true
+'a' == 'a': true
+3 != 4: true
+3 &lt; 4: true, 3 &lt;= 3: true, 3 &gt; 4: false, 4 &gt;= 5: false
+true &amp;&amp; false: false
+true || false: true
+!true: false
+x is String: true, x is! int: true
+(x as String).length: 3
+nome ?? "visitante": visitante
+nome?.length: null
+nome ??= "Bia": Bia
+outro!.length: 4
+notas?[0]: null
+idade &gt;= 18 ? 'adulto' : 'menor': menor
+t += 5: 15
+t -= 3: 12
+t *= 2: 24
+t ~/= 5: 4
+t %= 3: 1
+d /= 4: 2.5
+6 &amp; 3 = 2, 6 | 3 = 7, 6 ^ 3 = 5, ~6 = -7
+1 &lt;&lt; 3 = 8, 16 &gt;&gt; 2 = 4, -16 &gt;&gt; 2 = -4, -16 &gt;&gt;&gt; 60 = 15
+cascata: [1, 3]
+?.. com null: null
+[...base, 3]: [1, 2, 3]
+[0, ...?vazia]: [0]
+'Dart'[0]: D
+2 + 3 * 4 = 14
+(2 + 3) * 4 = 20
+10 - 4 - 3 = 3
+-2 * -2 = 4
+true || false &amp;&amp; false = true
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>/</code> sempre dá <code>double</code>; <code>~/</code> dá a parte inteira; <code>%</code> dá o resto.</li>
+  <li><code>x++</code> vale o valor de antes; <code>++x</code>, o de depois.</li>
+  <li><code>==</code> compara; <code>=</code> guarda. <code>&amp;&amp;</code> vem antes de <code>||</code>.</li>
+  <li>Null: <code>??</code> (valor padrão), <code>??=</code> (guarda se nulo), <code>?.</code> e <code>?[]</code> (acesso seguro), <code>!</code> (garantia, com risco).</li>
+  <li><code>is</code>/<code>is!</code> perguntam o tipo; <code>as</code> confere e lança exceção se estiver errado.</li>
+  <li><code>..</code> encadeia operações no mesmo objeto; <code>...</code> espalha uma coleção em outra.</li>
+  <li>Na dúvida sobre a precedência, use parênteses.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
