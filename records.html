@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Records — vários valores juntos num só | Guia Dart</title>
+<meta name="description" content="Records do Dart 3 para quem nunca programou: ('Ana', 30), os campos $1 e $2, campos com nome (nome: 'café'), o tipo (String, int), devolver dois valores de uma função, comparar records com ==, por que não dá para mudar um campo e os erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Records</span> <span class="versao">Dart 3.0</span></h1>
+
+<p class="intro">Uma lista guarda <strong>vários valores do mesmo tipo</strong>: várias notas, vários nomes. Mas às vezes você quer juntar valores <strong>diferentes</strong> que andam juntos: o nome de uma aluna <strong>e</strong> a idade dela; o nome de um produto <strong>e</strong> o preço. Para isso, o Dart 3.0 trouxe os <strong>records</strong> (em inglês, "registros"): um pacotinho com alguns valores, escrito entre parênteses, como <code>('Ana', 30)</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como criar um record e ler os campos dele com <code>$1</code>, <code>$2</code>…</li>
+  <li>Como dar <strong>nome</strong> aos campos: <code>(nome: 'café', preco: 18.9)</code>.</li>
+  <li>Como se escreve o <strong>tipo</strong> de um record: <code>(String, int)</code>.</li>
+  <li>O uso mais comum: uma função que devolve <strong>dois valores</strong> de uma vez.</li>
+  <li>Que dois records com os mesmos valores são iguais (<code>==</code>), e que um record não pode ser mudado.</li>
+  <li>Quando usar record, lista, mapa ou classe, e os erros reais do Dart.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Records existem desde o <strong>Dart 3.0</strong> (maio de 2023); num Dart 2, eles não existem (veja o fim da seção <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>A ideia: a etiqueta do produto</h2>
+<p>Na padaria, cada produto tem uma etiqueta com duas informações: o <strong>nome</strong> e o <strong>preço</strong>. As duas andam sempre juntas; não faz sentido um preço solto, sem saber de quê. E a etiqueta é pequena: ninguém vai criar uma ficha completa para ela.</p>
+<p>Um record é essa etiqueta: um pacotinho com <strong>poucos valores</strong>, de <strong>tipos que podem ser diferentes</strong>, que viajam juntos. Ele é mais simples que uma <a href="classes.html">classe</a> (que você vai ver adiante) e mais organizado que dois valores soltos.</p>
+
+<hr>
+
+<h2>1. O primeiro record</h2>
+
+<pre class="file" data-file="primeiro.dart">void main() {
+  final aluna = ('Ana', 30);
+  print(aluna);
+  print(aluna.$1);
+  print(aluna.$2);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>('Ana', 30)</dt><dd>Um record: valores entre <strong>parênteses</strong>, separados por vírgula. Aqui, um texto e um número. Cada valor é um <strong>campo</strong>.</dd>
+  <dt>final aluna = …;</dt><dd>Guarda o record numa variável, como qualquer outro valor.</dd>
+  <dt>aluna.$1</dt><dd>O <strong>primeiro</strong> campo. Os campos sem nome se chamam <code>$1</code>, <code>$2</code>, <code>$3</code>… e a contagem começa em <strong>1</strong> (e não em 0, como nas listas).</dd>
+  <dt>aluna.$2</dt><dd>O segundo campo: <code>30</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run primeiro.dart
+(Ana, 30)
+Ana
+30
+</pre>
+
+<h3>O tipo de um record</h3>
+<p>O tipo se escreve do mesmo jeito que o valor: os tipos dos campos entre parênteses. <code>(String, int)</code> quer dizer "um record com um texto e depois um inteiro".</p>
+
+<pre class="file" data-file="tipo.dart">void main() {
+  (String, int) aluna = ('Ana', 30);
+  (String, double, bool) produto = ('café', 18.9, true);
+  print(aluna);
+  print(produto);
+  print('${produto.$1} custa R\$ ${produto.$2}');
+  print(aluna.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run tipo.dart
+(Ana, 30)
+(café, 18.9, true)
+café custa R$ 18.9
+(String, int)
+</pre>
+
+<p>O <code>runtimeType</code> ("tipo em tempo de execução") confirma: o tipo é <code>(String, int)</code>. A <strong>ordem</strong> importa: <code>(String, int)</code> e <code>(int, String)</code> são tipos diferentes. O <code>\$</code> dentro do texto é um cifrão de verdade, e não o começo de uma <a href="interpolacao.html">interpolação</a>.</p>
+
+<div class="trydart" data-goal="out:Bia tem 25 anos;;src:\$1;;src:\$2">
+<p class="try-task"><strong>Missão:</strong> o record <code>aluna</code> tem o nome e a idade. Complete o <code>print</code> usando <code>aluna.$1</code> e <code>aluna.$2</code> para mostrar <code>Bia tem 25 anos</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final aluna = ('Bia', 25);
+  print('??? tem ??? anos');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final aluna = ('Bia', 25);
+  print('${aluna.$1} tem ${aluna.$2} anos');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Campos com nome</h2>
+<p><code>$1</code> e <code>$2</code> são fáceis de confundir: qual era o preço mesmo? Dá para dar um <strong>nome</strong> a cada campo, escrevendo <code>nome: valor</code>:</p>
+
+<pre class="file" data-file="nomeados.dart">void main() {
+  final produto = (nome: 'café', preco: 18.9);
+  print(produto);
+  print(produto.nome);
+  print(produto.preco);
+
+  ({String nome, int idade}) aluna = (nome: 'Bia', idade: 25);
+  print('${aluna.nome} tem ${aluna.idade} anos');
+}
+</pre>
+
+<pre class="term">$ dart run nomeados.dart
+(nome: café, preco: 18.9)
+café
+18.9
+Bia tem 25 anos
+</pre>
+
+<dl class="anatomy">
+  <dt>(nome: 'café', preco: 18.9)</dt><dd>Um record com dois campos <strong>nomeados</strong>. Lê-se como uma etiqueta: nome café, preço 18.9.</dd>
+  <dt>produto.nome</dt><dd>Lê o campo pelo nome. Bem mais claro que <code>$1</code>.</dd>
+  <dt>({String nome, int idade})</dt><dd>O <strong>tipo</strong> de um record com campos nomeados: os campos vão entre <strong>chaves</strong>, dentro dos parênteses, cada um com tipo e nome.</dd>
+</dl>
+
+<h3>Misturando os dois</h3>
+<p>Um record pode ter campos sem nome e com nome ao mesmo tempo. Os sem nome continuam sendo <code>$1</code>, <code>$2</code>…:</p>
+
+<pre class="file" data-file="misto.dart">void main() {
+  final venda = ('pão', 3, total: 4.5, pago: true);
+  print(venda);
+  print(venda.$1);
+  print(venda.$2);
+  print(venda.total);
+  print(venda.pago);
+}
+</pre>
+
+<pre class="term">$ dart run misto.dart
+(pão, 3, pago: true, total: 4.5)
+pão
+3
+4.5
+true
+</pre>
+
+<p>Repare no <code>print(venda)</code>: no código, <code>total</code> vinha antes de <code>pago</code>, mas o Dart mostrou <code>pago</code> primeiro. Para um record, a ordem dos campos <strong>com nome</strong> não importa (só a dos sem nome importa); no lab, o <code>print</code> os mostrou em ordem alfabética.</p>
+
+<hr>
+
+<h2>3. Devolver dois valores de uma função</h2>
+<p>Este é o motivo número um para usar records. Uma <a href="funcoes.html">função</a> devolve <strong>um</strong> valor com <code>return</code>. Se ela precisa devolver dois (a menor e a maior nota, por exemplo), basta devolver um record com os dois:</p>
+
+<pre class="file" data-file="funcao.dart">(int, int) menorEMaior(List&lt;int&gt; notas) {
+  var menor = notas.first;
+  var maior = notas.first;
+  for (final n in notas) {
+    if (n &lt; menor) menor = n;
+    if (n &gt; maior) maior = n;
+  }
+  return (menor, maior);
+}
+
+void main() {
+  final resultado = menorEMaior([7, 9, 4, 10, 6]);
+  print(resultado);
+  print('Menor: ${resultado.$1}');
+  print('Maior: ${resultado.$2}');
+
+  final (menor, maior) = menorEMaior([5, 8, 3]);
+  print('Menor: $menor, maior: $maior');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>(int, int) menorEMaior(…)</dt><dd>O tipo de retorno da função é um record com dois inteiros.</dd>
+  <dt>return (menor, maior);</dt><dd>Devolve os dois valores juntos, num record.</dd>
+  <dt>final resultado = …;  resultado.$1</dt><dd>Um jeito de usar: guardar o record e ler os campos.</dd>
+  <dt>final (menor, maior) = …;</dt><dd>Outro jeito: <strong>desmontar</strong> o record em duas variáveis numa linha só. Isso se chama <strong>desestruturação</strong> e é assunto da próxima aula, <a href="patterns.html">Patterns e Desestruturação</a>.</dd>
+</dl>
+
+<pre class="term">$ dart run funcao.dart
+(4, 10)
+Menor: 4
+Maior: 10
+Menor: 3, maior: 8
+</pre>
+
+<p>Com campos nomeados, quem chama a função não precisa decorar a ordem:</p>
+
+<pre class="file" data-file="nomeadafuncao.dart">({double total, int itens}) fecharConta(List&lt;double&gt; precos) {
+  var soma = 0.0;
+  for (final p in precos) {
+    soma += p;
+  }
+  return (total: soma, itens: precos.length);
+}
+
+void main() {
+  final conta = fecharConta([4.5, 12.9, 3.25]);
+  print(conta);
+  print('${conta.itens} itens, total R\$ ${conta.total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run nomeadafuncao.dart
+(itens: 3, total: 20.65)
+3 itens, total R$ 20.65
+</pre>
+
+<div class="trydart" data-goal="out:(1, 4);;semerro">
+<p class="try-task"><strong>Missão:</strong> a função <code>dividir</code> deve devolver o <strong>quociente</strong> (<code>a ~/ b</code>) e o <strong>resto</strong> (<code>a % b</code>) juntos, num record. Troque o tipo de retorno para <code>(int, int)</code> e o <code>return</code> para devolver os dois. Para 14 dividido por 10, o resultado deve ser <code>(1, 4)</code>.</p>
+<pre class="script" data-file="main.dart">int dividir(int a, int b) {
+  return a ~/ b;
+}
+
+void main() {
+  print(dividir(14, 10));
+}
+</pre>
+<pre class="solucao" data-file="main.dart">(int, int) dividir(int a, int b) {
+  return (a ~/ b, a % b);
+}
+
+void main() {
+  print(dividir(14, 10));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Comparando records</h2>
+<p>Dois records são iguais (<code>==</code>) quando têm os <strong>mesmos campos com os mesmos valores</strong>:</p>
+
+<pre class="file" data-file="igual.dart">void main() {
+  final a = ('Ana', 30);
+  final b = ('Ana', 30);
+  final c = ('Ana', 31);
+  print(a == b);
+  print(a == c);
+  print((nome: 'Ana', idade: 30) == (idade: 30, nome: 'Ana'));
+}
+</pre>
+
+<pre class="term">$ dart run igual.dart
+true
+false
+true
+</pre>
+
+<p><code>a</code> e <code>b</code> foram criados separadamente, mas têm o mesmo conteúdo: são iguais. No último, os campos com nome estão em outra ordem, e mesmo assim são iguais. (Com objetos de classes, não é assim que funciona por padrão; veja <a href="tostring-igualdade.html">toString, == e hashCode</a>.)</p>
+
+<h3>Um record não muda</h3>
+<p>Depois de criado, um record não pode ter um campo trocado (ele é <strong>imutável</strong>). Para "mudar", crie um record novo:</p>
+
+<pre class="file" data-file="novo.dart">void main() {
+  var aluna = ('Ana', 30);
+  aluna = (aluna.$1, aluna.$2 + 1);
+  print(aluna);
+}
+</pre>
+
+<pre class="term">$ dart run novo.dart
+(Ana, 31)
+</pre>
+
+<p>A variável é <code>var</code>, então pode receber outro record. O record antigo não foi alterado: foi <strong>substituído</strong>. Tentar <code>aluna.$2 = 31</code> dá erro (veja abaixo).</p>
+
+<h3>Record de um campo só</h3>
+<p>Um record de um campo precisa de uma <strong>vírgula no fim</strong>. Sem ela, os parênteses são só parênteses comuns:</p>
+
+<pre class="file" data-file="umcampo.dart">void main() {
+  final soUm = ('Ana',);
+  final semVirgula = ('Ana');
+  print(soUm);
+  print(semVirgula);
+  print(soUm.runtimeType);
+  print(semVirgula.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run umcampo.dart
+(Ana)
+Ana
+(String)
+String
+</pre>
+
+<hr>
+
+<h2 id="formas">Record, lista, mapa ou classe?</h2>
+<p>As quatro coisas podem guardar "o nome e o preço do café":</p>
+
+<pre class="file" data-file="formas.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final r = (nome: 'café', preco: 18.9);
+  final m = {'nome': 'café', 'preco': 18.9};
+  final p = Produto('café', 18.9);
+  print(r.nome);
+  print(m['nome']);
+  print(p.nome);
+}
+</pre>
+
+<pre class="term">$ dart run formas.dart
+café
+café
+café
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Poucos valores de tipos diferentes, usados ali perto (por exemplo, o retorno de uma função)</td><td><strong>Record</strong>: rápido de escrever, cada campo com seu tipo</td></tr>
+<tr><td>Vários valores do <strong>mesmo</strong> tipo, quantidade variável</td><td><a href="list.html">List</a></td></tr>
+<tr><td>Chaves que só se conhecem quando o programa roda (por exemplo, lidas de um arquivo)</td><td><a href="map.html">Map</a> (mas <code>m['nome']</code> perde o tipo exato: o Dart não sabe se é texto ou número)</td></tr>
+<tr><td>Um "objeto" importante, usado no programa todo, com comportamento (métodos) e regras</td><td><a href="classes.html">Classe</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Tentou mudar um campo</strong>
+<pre class="file" data-file="mudar.dart">void main() {
+  final aluna = ('Ana', 30);
+  aluna.$2 = 31;
+  print(aluna);
+}
+</pre>
+<pre class="term">$ dart run mudar.dart
+mudar.dart:3:9: Error: The setter '$2' isn't defined for the type '(String, int)'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named '$2'.
+  aluna.$2 = 31;
+        ^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>mudar.dart:3:9</dt><dd>Linha 3, coluna 9: os <code>^^</code> marcam o <code>$2</code>.</dd>
+  <dt>Error: The setter '$2' isn't defined for the type '(String, int)'.</dt><dd>"O <em>setter</em> <code>$2</code> não está definido para o tipo <code>(String, int)</code>." Um <strong>setter</strong> é o que permite <strong>escrever</strong> num campo (veja <a href="getters-setters.html">get e set</a>). Os campos de um record só podem ser <strong>lidos</strong>.</dd>
+  <dt>Try correcting the name…</dt><dd>"Tente corrigir o nome ou definir um setter…" É uma sugestão genérica do Dart; aqui não se aplica, porque o nome está certo: o problema é que record não muda.</dd>
+</dl>
+<p><strong>Como consertar:</strong> crie um record novo: <code>var aluna = …; aluna = (aluna.$1, 31);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Começou a contar do zero (<code>$0</code>)</strong>
+<pre class="file" data-file="dolar0.dart">void main() {
+  final aluna = ('Ana', 30);
+  print(aluna.$0);
+}
+</pre>
+<pre class="term">$ dart run dolar0.dart
+dolar0.dart:3:15: Error: The getter '$0' isn't defined for the type '(String, int)'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named '$0'.
+  print(aluna.$0);
+              ^^
+</pre>
+<p>"O <em>getter</em> <code>$0</code> não está definido." Um <strong>getter</strong> é o que permite <strong>ler</strong> um campo. Nas listas, o primeiro item é o <code>[0]</code>; nos records, o primeiro campo é o <code>$1</code>. <strong>Como consertar:</strong> <code>aluna.$1</code>. (Pedir um campo que não existe, como <code>$3</code> num record de dois, dá a mesma mensagem.)</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu um nome que o record não tem</strong>
+<pre class="file" data-file="nomeerrado.dart">void main() {
+  final aluna = ('Ana', 30);
+  print(aluna.nome);
+}
+</pre>
+<pre class="term">$ dart run nomeerrado.dart
+nomeerrado.dart:3:15: Error: The getter 'nome' isn't defined for the type '(String, int)'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'nome'.
+  print(aluna.nome);
+              ^^^^
+</pre>
+<p>O record foi criado <strong>sem nomes</strong>: o tipo é <code>(String, int)</code>, e o Dart não tem como saber que o primeiro campo "é o nome". <strong>Como consertar:</strong> use <code>aluna.$1</code>, ou crie o record com nomes: <code>(nome: 'Ana', idade: 30)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Valores na ordem errada</strong>
+<pre class="file" data-file="tipoerrado.dart">void main() {
+  (String, int) aluna = (30, 'Ana');
+  print(aluna);
+}
+</pre>
+<pre class="term">$ dart run tipoerrado.dart
+tipoerrado.dart:2:25: Error: A value of type '(int, String)' can't be assigned to a variable of type '(String, int)'.
+  (String, int) aluna = (30, 'Ana');
+                        ^
+</pre>
+<p>"Um valor do tipo <code>(int, String)</code> não pode ser guardado numa variável do tipo <code>(String, int)</code>." A ordem dos campos sem nome faz parte do tipo. Do mesmo jeito, faltar um campo com nome também é outro tipo: <code>({String nome, int idade}) aluna = (nome: 'Ana');</code> dá <code>A value of type '({String nome})' can't be assigned to a variable of type '({int idade, String nome})'.</code></p>
+</div>
+
+<div class="cenario">
+<strong>A conversão com <code>as</code> falhou ao rodar</strong>
+<p>Quando um record chega guardado numa variável de tipo genérico (<code>Object</code>; veja <a href="dynamic-object.html">dynamic e Object</a>), dá para convertê-lo com <code>as</code>. Se os tipos não forem os esperados, o erro só aparece ao rodar:</p>
+<pre class="file" data-file="cast.dart">void main() {
+  Object dado = ('Ana', '30');
+  final aluna = dado as (String, int);
+  print(aluna.$2 + 1);
+}
+</pre>
+<pre class="term">$ dart run cast.dart
+Unhandled exception:
+type '(String, String)' is not a subtype of type '(String, int)' in type cast
+#0      main (file:///home/ana/cast.dart:3:22)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": compilou, mas falhou ao rodar.</dd>
+  <dt>type '(String, String)' is not a subtype of type '(String, int)' in type cast</dt><dd>"O tipo <code>(String, String)</code> não é um subtipo de <code>(String, int)</code> na conversão." A idade estava como texto (<code>'30'</code>, com aspas), e o <code>as</code> exigia um <code>int</code>.</dd>
+  <dt>#0 main (file:///home/ana/cast.dart:3:22)</dt><dd>Onde: linha 3, no <code>as</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> guarde a idade como número (<code>('Ana', 30)</code>) ou teste antes de converter, com <code>is</code> (veja <a href="operadores-tipo.html">is, is! e as</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Código preso numa versão antiga do Dart</strong>
+<p>Records só existem a partir do Dart 3.0. Um arquivo pode pedir para ser lido como uma versão antiga com o comentário especial <code>// @dart=2.19</code> no topo (você vai encontrá-lo em projetos antigos). Aí, o record vira erro:</p>
+<pre class="file" data-file="antigo.dart">// @dart=2.19
+void main() {
+  final aluna = ('Ana', 30);
+  print(aluna);
+}
+</pre>
+<pre class="term">$ dart run antigo.dart
+antigo.dart:3:17: Error: The 'records' language feature is disabled for this library.
+Try removing the `@dart=` annotation or setting the language version to 3.0 or higher.
+  final aluna = ('Ana', 30);
+                ^
+antigo.dart:1:1: Context: This is the annotation that opts out this library from the 'records' language feature.
+// @dart=2.19
+^^^^^^^^^^^^^
+</pre>
+<p>"O recurso <code>records</code> está desligado para esta biblioteca. Tente remover a anotação <code>@dart=</code> ou usar a versão 3.0 ou maior." A segunda parte (<code>Context:</code>, "contexto") mostra o culpado: o comentário da linha 1. <strong>Como consertar:</strong> apague o comentário. Num projeto, a versão mínima fica no <a href="pubspec.html">pubspec.yaml</a> (<code>sdk: ^3.0.0</code> ou maior).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>('Ana', 30)</code></td><td>Record com dois campos sem nome</td></tr>
+<tr><td><code>r.$1</code>, <code>r.$2</code></td><td>Lê o 1º e o 2º campo sem nome (começa em 1)</td></tr>
+<tr><td><code>(nome: 'café', preco: 18.9)</code></td><td>Record com campos nomeados; lê com <code>r.nome</code></td></tr>
+<tr><td><code>(String, int)</code></td><td>Tipo: texto e inteiro, nessa ordem</td></tr>
+<tr><td><code>({String nome, double preco})</code></td><td>Tipo com campos nomeados</td></tr>
+<tr><td><code>('Ana',)</code></td><td>Record de um campo só (vírgula obrigatória)</td></tr>
+<tr><td><code>(int, int) f() =&gt; (1, 2);</code></td><td>Função que devolve dois valores</td></tr>
+<tr><td><code>final (a, b) = f();</code></td><td>Desmonta o record em variáveis (aula <a href="patterns.html">Patterns</a>)</td></tr>
+<tr><td><code>r1 == r2</code></td><td><code>true</code> se os campos e valores forem os mesmos</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The setter '$2' isn't defined for the type '(…)'</code></td><td>Tentou mudar um campo: record não muda</td></tr>
+<tr><td><code>The getter '$0' isn't defined…</code></td><td>Os campos começam em <code>$1</code></td></tr>
+<tr><td><code>The getter 'nome' isn't defined for the type '(String, int)'</code></td><td>O record não tem campos com nome</td></tr>
+<tr><td><code>A value of type '(int, String)' can't be assigned to … '(String, int)'</code></td><td>Ordem ou tipos dos campos diferentes</td></tr>
+<tr><td><code>The 'records' language feature is disabled</code></td><td>Arquivo ou projeto numa versão anterior ao Dart 3.0</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual campo?</h3>
+<p><code>final p = ('pão', 1.5, 10);</code>. Complete para ler o preço (<code>1.5</code>):</p>
+<div class="ex-code">print(p.<input data-answer="$2" aria-label="nome do campo">);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Escreva o tipo</h3>
+<p>Qual é o tipo do record <code>('café', 18.9)</code>? Escreva sem espaços extras, como o Dart mostra.</p>
+<div class="ex-code"><input data-answer="(String, double)" aria-label="tipo do record"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. O que mostra <code>print(('Ana', 30) == ('Ana', 30));</code>?</p>
+<label><input type="radio" name="q3"> <code>false</code>, porque são dois records diferentes</label>
+<label><input type="radio" name="q3"> Dá erro de compilação</label>
+<label><input type="radio" name="q3"> <code>true</code></label>
+<label><input type="radio" name="q3"> <code>(Ana, 30)</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual destas linhas cria um record de <strong>um</strong> campo?</p>
+<label><input type="radio" name="q4"> <code>final r = ('Ana');</code></label>
+<label><input type="radio" name="q4"> <code>final r = ('Ana',);</code></label>
+<label><input type="radio" name="q4"> <code>final r = ['Ana'];</code></label>
+<label><input type="radio" name="q4"> <code>final r = (1: 'Ana');</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>final r = (nome: 'Bia', idade: 25);</code>. O que acontece com <code>r.idade = 26;</code>?</p>
+<label><input type="radio" name="q5"> A idade passa a ser 26</label>
+<label><input type="radio" name="q5"> Funciona porque <code>r</code> é <code>final</code>, mas os campos não</label>
+<label><input type="radio" name="q5"> Exceção ao rodar</label>
+<label><input type="radio" name="q5"> Erro de compilação: o setter <code>idade</code> não existe</label>
+</div>
+
+<h3>Missão final: a média da turma</h3>
+
+<div class="trydart" data-goal="out:4 notas, média 7.5;;src:return\s*\(">
+<p class="try-task"><strong>Missão:</strong> complete a função <code>resumo</code> para devolver um record com dois campos <strong>nomeados</strong>: <code>quantidade</code> (o número de notas) e <code>media</code> (a soma dividida pela quantidade). O programa deve mostrar <code>4 notas, média 7.5</code>.</p>
+<pre class="script" data-file="main.dart">({int quantidade, double media}) resumo(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final n in notas) {
+    soma += n;
+  }
+  // devolva o record aqui
+}
+
+void main() {
+  final r = resumo([8.0, 6.5, 9.0, 6.5]);
+  print('${r.quantidade} notas, média ${r.media}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">({int quantidade, double media}) resumo(List&lt;double&gt; notas) {
+  var soma = 0.0;
+  for (final n in notas) {
+    soma += n;
+  }
+  return (quantidade: notas.length, media: soma / notas.length);
+}
+
+void main() {
+  final r = resumo([8.0, 6.5, 9.0, 6.5]);
+  print('${r.quantidade} notas, média ${r.media}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um record junta poucos valores, de tipos que podem ser diferentes, entre parênteses: <code>('Ana', 30)</code>. Existe desde o <span class="versao">Dart 3.0</span>.</li>
+  <li>Campos sem nome se leem com <code>$1</code>, <code>$2</code>… (começa em 1); campos com nome, pelo nome: <code>(nome: 'café').nome</code>.</li>
+  <li>O tipo se escreve como o valor: <code>(String, int)</code> ou <code>({String nome, int idade})</code>.</li>
+  <li>O uso mais comum: uma função que devolve dois ou mais valores.</li>
+  <li>Records com os mesmos campos e valores são iguais (<code>==</code>), e nenhum campo pode ser mudado.</li>
+  <li>Para desmontar um record em variáveis (<code>final (a, b) = …</code>), veja a próxima aula: <a href="patterns.html">Patterns e Desestruturação</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
