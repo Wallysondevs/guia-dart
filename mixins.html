@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Mixins (with) — o mesmo código em classes diferentes | Guia Dart</title>
+<meta name="description" content="Mixins no Dart para quem nunca programou: mixin e with, o mesmo pedaço de código em classes sem parentesco (produto e entregador avaliáveis), vários mixins juntos, extends + with, a restrição on, mixin class do Dart 3, a ordem dos mixins, e os erros reais do Dart 3.13 (classe comum usada como mixin, mixin não vira objeto, on não cumprido, LateInitializationError).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Mixins (with)</span></h1>
+
+<p class="intro">A Ana abriu a lojinha para pedidos pelo celular, e os clientes dão <strong>estrelas</strong>: para o bolo que compraram e para o entregador que levou. O código de avaliar é o mesmo nos dois casos (guardar as notas, calcular a média). Mas produto e entregador não têm parentesco: herança não serve. <a href="interfaces.html">Interface</a> também não resolve, porque ela só <strong>promete</strong> os métodos, e a Ana teria de escrever o código duas vezes. Para <strong>emprestar o mesmo código pronto</strong> a classes diferentes, o Dart tem o <strong>mixin</strong>, usado com a palavra <code>with</code> ("com").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um mixin e como se escreve: <code>mixin Avaliavel { … }</code> e <code>class Produto with Avaliavel</code>.</li>
+  <li>Como uma classe usa vários mixins, e como juntar <code>extends</code> e <code>with</code>.</li>
+  <li>Como limitar um mixin a uma família de classes com <code>on</code>.</li>
+  <li>O que é <code>mixin class</code> (Dart 3) e o que acontece quando dois mixins têm o mesmo método.</li>
+  <li>Os erros reais: classe comum usada como mixin, tentar criar um objeto do mixin, <code>on</code> não cumprido e o <code>LateInitializationError</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o carimbo</h2>
+<p>Na lojinha há um carimbo "AVALIE-NOS ★★★★★". A Ana carimba a caixa do bolo, o saquinho do pão, o recibo do entregador. O carimbo não transforma o pão em recibo, nem o recibo em pão: ele só <strong>acrescenta o mesmo desenho</strong> em coisas diferentes.</p>
+<p>O mixin é o carimbo: um pedaço de código (campos e métodos) que se "mistura" a uma classe com <code>with</code>. O nome vem do inglês <em>mix in</em>, "misturar dentro", como as coberturas que se misturam no sorvete.</p>
+
+<hr>
+
+<h2>1. O primeiro mixin</h2>
+
+<pre class="file" data-file="avaliavel.dart">mixin Avaliavel {
+  final List&lt;int&gt; notas = [];
+
+  void avaliar(int estrelas) {
+    notas.add(estrelas);
+  }
+
+  double get media =&gt; notas.isEmpty ? 0 : notas.reduce((a, b) =&gt; a + b) / notas.length;
+}
+
+class Produto with Avaliavel {
+  final String nome;
+
+  Produto(this.nome);
+}
+
+class Entregador with Avaliavel {
+  final String nome;
+
+  Entregador(this.nome);
+}
+
+void main() {
+  final bolo = Produto('Bolo de cenoura');
+  bolo.avaliar(5);
+  bolo.avaliar(4);
+
+  final caio = Entregador('Caio');
+  caio.avaliar(3);
+
+  print('${bolo.nome}: ${bolo.media} estrelas (${bolo.notas.length} notas)');
+  print('${caio.nome}: ${caio.media} estrelas (${caio.notas.length} nota)');
+  print(bolo is Avaliavel);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>mixin Avaliavel { … }</dt><dd>Declara o mixin. Por dentro parece uma classe: tem um campo (<code>notas</code>), um método (<code>avaliar</code>) e um getter (<code>media</code>). Mas <strong>não tem construtor</strong>: um mixin não vira objeto sozinho.</dd>
+  <dt>final List&lt;int&gt; notas = [];</dt><dd>Cada objeto que usa o mixin ganha a <strong>sua própria</strong> lista de notas: as do bolo não se misturam com as do Caio.</dd>
+  <dt>notas.reduce((a, b) =&gt; a + b) / notas.length</dt><dd>Soma as notas e divide pela quantidade: a média (o <code>reduce</code> está em <a href="iterables.html">map, where, reduce e Outros</a>). Com a lista vazia, devolve 0.</dd>
+  <dt>class Produto with Avaliavel</dt><dd>"Produto, <strong>com</strong> Avaliavel". O produto ganha <code>notas</code>, <code>avaliar()</code> e <code>media</code> como se tivessem sido escritos dentro dele.</dd>
+  <dt>class Entregador with Avaliavel</dt><dd>Outra classe, sem parentesco, ganhando o mesmo código.</dd>
+</dl>
+
+<pre class="term">$ dart run avaliavel.dart
+Bolo de cenoura: 4.5 estrelas (2 notas)
+Caio: 3.0 estrelas (1 nota)
+true
+</pre>
+
+<p>O código das estrelas foi escrito <strong>uma vez</strong> e funcionou nas duas classes. E o <code>is Avaliavel</code> deu <code>true</code>: o mixin também vale como tipo, então uma <code>List&lt;Avaliavel&gt;</code> aceitaria bolos e entregadores juntos.</p>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> dê mais duas notas ao Caio (<code>caio.avaliar(5)</code> duas vezes) e veja a média subir. Depois crie uma classe <code>Loja with Avaliavel</code> com um nome e avalie a lojinha.</p>
+<pre class="script" data-file="main.dart">mixin Avaliavel {
+  final List&lt;int&gt; notas = [];
+
+  void avaliar(int estrelas) {
+    notas.add(estrelas);
+  }
+
+  double get media =&gt; notas.isEmpty ? 0 : notas.reduce((a, b) =&gt; a + b) / notas.length;
+}
+
+class Produto with Avaliavel {
+  final String nome;
+
+  Produto(this.nome);
+}
+
+class Entregador with Avaliavel {
+  final String nome;
+
+  Entregador(this.nome);
+}
+
+void main() {
+  final bolo = Produto('Bolo de cenoura');
+  bolo.avaliar(5);
+  bolo.avaliar(4);
+
+  final caio = Entregador('Caio');
+  caio.avaliar(3);
+
+  print('${bolo.nome}: ${bolo.media} estrelas');
+  print('${caio.nome}: ${caio.media} estrelas');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Vários mixins, e junto com <code>extends</code></h2>
+<p>Depois do <code>with</code> cabem vários mixins, separados por vírgula. E dá para combinar com herança: primeiro o <code>extends</code> (a mãe, uma só), depois o <code>with</code> (os carimbos):</p>
+
+<pre class="file" data-file="dois_mixins.dart">mixin Avaliavel {
+  final List&lt;int&gt; notas = [];
+
+  void avaliar(int estrelas) =&gt; notas.add(estrelas);
+
+  double get media =&gt; notas.isEmpty ? 0 : notas.reduce((a, b) =&gt; a + b) / notas.length;
+}
+
+mixin Registravel {
+  void registrar(String mensagem) {
+    print('[registro] $mensagem');
+  }
+}
+
+class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+class Bebida extends Produto with Avaliavel, Registravel {
+  final int volumeMl;
+
+  Bebida(super.nome, super.preco, this.volumeMl);
+}
+
+void main() {
+  final suco = Bebida('Suco de laranja', 6.5, 300);
+  suco.avaliar(5);
+  suco.registrar('${suco.nome} recebeu nota 5');
+  print('Média: ${suco.media}');
+  print(suco is Produto);
+  print(suco is Registravel);
+}
+</pre>
+
+<pre class="term">$ dart run dois_mixins.dart
+[registro] Suco de laranja recebeu nota 5
+Média: 5.0
+true
+true
+</pre>
+
+<p>A <code>Bebida</code> é um <code>Produto</code> (herança) e, além disso, é avaliável e registrável (mixins). A ordem na declaração é sempre <code>class X extends Mae with M1, M2 implements I1</code>, quando houver as três.</p>
+
+<hr>
+
+<h2>3. Mixin só para uma família: <code>on</code></h2>
+<p>Às vezes o mixin precisa usar algo da classe em que vai ser misturado. Um mixin de estoque quer saber o <code>nome</code> e o <code>preco</code> do produto. Com <code>on Produto</code> ("sobre Produto"), ele avisa: "só posso ser usado em classes que são <code>Produto</code>", e em troca pode usar tudo o que o produto tem:</p>
+
+<pre class="file" data-file="on.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+mixin ComEstoque on Produto {
+  int quantidade = 0;
+
+  void repor(int qtd) {
+    quantidade += qtd;
+    print('$nome: +$qtd (estoque: $quantidade)');
+  }
+
+  double get valorEmEstoque =&gt; preco * quantidade;
+}
+
+class Doce extends Produto with ComEstoque {
+  Doce(super.nome, super.preco);
+}
+
+void main() {
+  final brigadeiro = Doce('Brigadeiro', 3.0);
+  brigadeiro.repor(20);
+  brigadeiro.repor(10);
+  print('Valor em estoque: R\$ ${brigadeiro.valorEmEstoque.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run on.dart
+Brigadeiro: +20 (estoque: 20)
+Brigadeiro: +10 (estoque: 30)
+Valor em estoque: R$ 90.00
+</pre>
+
+<p>Dentro do mixin, <code>$nome</code> e <code>preco</code> funcionaram porque o <code>on Produto</code> garante que eles existem. Sem o <code>on</code>, o Dart reclama (testado no lab): <code>Error: The getter 'nome' isn't defined for the type 'ComEstoque'.</code>, e o mesmo para <code>preco</code>. Usar esse mixin numa classe que não é produto dá erro (veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>4. Dois mixins com o mesmo método: vale o último</h2>
+
+<pre class="file" data-file="ordem.dart">mixin Educado {
+  String saudar() =&gt; 'Bom dia!';
+}
+
+mixin Animado {
+  String saudar() =&gt; 'Ôpa, bom dia!!!';
+}
+
+class AtendenteA with Educado, Animado {}
+
+class AtendenteB with Animado, Educado {}
+
+void main() {
+  print(AtendenteA().saudar());
+  print(AtendenteB().saudar());
+}
+</pre>
+
+<pre class="term">$ dart run ordem.dart
+Ôpa, bom dia!!!
+Bom dia!
+</pre>
+
+<p>Os mixins são aplicados em camadas, da esquerda para a direita, e cada camada fica <strong>por cima</strong> da anterior. No <code>AtendenteA</code>, o <code>Animado</code> veio por último e venceu; no <code>AtendenteB</code>, o <code>Educado</code>. Não há erro, então convém evitar nomes repetidos entre mixins, ou ficar atento à ordem.</p>
+
+<hr>
+
+<h2>5. <code>mixin class</code>: classe e mixin ao mesmo tempo <span class="versao">Dart 3.0</span></h2>
+<p>Desde o Dart 3.0, uma <code>class</code> comum <strong>não pode</strong> ser usada depois do <code>with</code> (antes podia). Se você quer algo que funcione das duas formas, declare <code>mixin class</code>:</p>
+
+<pre class="file" data-file="mixin_class.dart">mixin class Registrador {
+  void registrar(String mensagem) =&gt; print('[registro] $mensagem');
+}
+
+class Caixa with Registrador {}
+
+void main() {
+  final r = Registrador();
+  r.registrar('usado como classe');
+  Caixa().registrar('usado como mixin');
+}
+</pre>
+
+<pre class="term">$ dart run mixin_class.dart
+[registro] usado como classe
+[registro] usado como mixin
+</pre>
+
+<p>Como classe, deu para criar <code>Registrador()</code>; como mixin, entrou no <code>with</code> da <code>Caixa</code>. Uma <code>mixin class</code> não pode ter <code>extends</code> nem <code>on</code>. A aula <a href="modificadores-classe.html">sealed, final, base e interface</a> mostra os outros modificadores que o Dart 3 trouxe.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Classes <strong>sem parentesco</strong> precisam do <strong>mesmo código pronto</strong></td><td><code>mixin</code> + <code>with</code> (esta aula)</td></tr>
+<tr><td>O código pronto precisa usar campos de uma família de classes</td><td><code>mixin M on Mae</code></td></tr>
+<tr><td>Classes sem parentesco precisam só <strong>prometer</strong> os mesmos métodos, cada uma do seu jeito</td><td><code>implements</code> (aula <a href="interfaces.html">Interfaces</a>)</td></tr>
+<tr><td>Uma é um tipo especial da outra ("é um")</td><td><code>extends</code> (aula <a href="heranca.html">Herança</a>)</td></tr>
+<tr><td>Quero criar objetos <strong>e</strong> usar como mixin</td><td><code>mixin class</code> <span class="versao">Dart 3.0</span></td></tr>
+<tr><td>Acrescentar métodos a uma classe que não é sua (como <code>String</code>)</td><td>Extensões (aula <a href="extension.html">Extensões</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usou uma classe comum depois do <code>with</code></strong>
+<pre class="file" data-file="erro_classe.dart">class Registrador {
+  void registrar(String mensagem) =&gt; print('[registro] $mensagem');
+}
+
+class Caixa with Registrador {}
+
+void main() {
+  Caixa().registrar('abriu o caixa');
+}
+</pre>
+<pre class="term">$ dart run erro_classe.dart
+erro_classe.dart:5:18: Error: The class 'Registrador' can't be used as a mixin because it isn't a mixin class nor a mixin.
+class Caixa with Registrador {}
+                 ^
+</pre>
+<p>Linha por linha: erro de compilação (<code>Error:</code>, código 254) na linha 5, coluna 18, onde está o nome depois do <code>with</code>. "A classe <code>Registrador</code> não pode ser usada como mixin porque não é nem uma <code>mixin class</code> nem um <code>mixin</code>." É a regra do Dart 3 (seção 5); muitos exemplos antigos da internet, de antes do Dart 3, fazem isso e hoje não compilam. <strong>Como consertar:</strong> troque <code>class Registrador</code> por <code>mixin Registrador</code> (se ninguém cria objetos dele) ou por <code>mixin class Registrador</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou criar um objeto do mixin</strong>
+<pre class="file" data-file="erro_instanciar.dart">mixin Avaliavel {
+  final List&lt;int&gt; notas = [];
+}
+
+void main() {
+  final a = Avaliavel();
+  print(a.notas);
+}
+</pre>
+<pre class="term">$ dart run erro_instanciar.dart
+erro_instanciar.dart:6:13: Error: Couldn't find constructor 'Avaliavel'.
+  final a = Avaliavel();
+            ^^^^^^^^^
+</pre>
+<p>"Não encontrei o construtor <code>Avaliavel</code>." Um mixin não tem construtor: ele é o carimbo, não a coisa carimbada. <strong>Como consertar:</strong> crie uma classe com o mixin (<code>class Produto with Avaliavel</code>) e crie um objeto dela.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um mixin <code>on Produto</code> numa classe que não é produto</strong>
+<pre class="file" data-file="erro_on.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+mixin ComEstoque on Produto {
+  int quantidade = 0;
+}
+
+class Cliente with ComEstoque {
+  final String nome = 'Bia';
+}
+
+void main() {
+  print(Cliente().quantidade);
+}
+</pre>
+<pre class="term">$ dart run erro_on.dart
+erro_on.dart:12:7: Error: The non-abstract class 'Cliente' is missing implementations for these members:
+ - Produto.preco
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Cliente with ComEstoque {
+      ^^^^^^^
+erro_on.dart:3:16: Context: 'Produto.preco' is defined here.
+  final double preco;
+               ^^^^^
+erro_on.dart:12:7: Error: 'Object' doesn't implement 'Produto' so it can't be used with 'ComEstoque'.
+ - 'Object' is from 'dart:core'.
+ - 'Produto' is from 'erro_on.dart'.
+ - 'ComEstoque' is from 'erro_on.dart'.
+class Cliente with ComEstoque {
+      ^
+</pre>
+<p>Dois erros para a mesma linha 12. O primeiro parece estranho ("faltou <code>Produto.preco</code>"): como o mixin exige um <code>Produto</code>, o Dart passou a cobrar do <code>Cliente</code> tudo o que um produto tem, e o <code>nome</code> ele já tinha. O <strong>segundo</strong> é o que explica a causa: "<code>Object</code> não implementa <code>Produto</code>, então não pode ser usado com <code>ComEstoque</code>". A mãe do <code>Cliente</code> é <code>Object</code> (ele não tem <code>extends</code>), e o mixin só aceita mães que sejam <code>Produto</code>. Lição geral: quando vierem vários erros, <strong>leia todos</strong> antes de mexer; às vezes a explicação está no último. <strong>Como consertar:</strong> o cliente não é produto, então não use esse mixin nele.</p>
+</div>
+
+<div class="cenario">
+<strong>Um campo <code>late</code> do mixin que ninguém preencheu (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_late.dart">mixin Registravel {
+  late String origem;
+
+  void registrar(String mensagem) {
+    print('[$origem] $mensagem');
+  }
+}
+
+class Caixa with Registravel {
+  Caixa() {
+    origem = 'caixa';
+  }
+}
+
+class Estoque with Registravel {}
+
+void main() {
+  Caixa().registrar('abriu às 7h');
+  Estoque().registrar('chegaram 20 brigadeiros');
+}
+</pre>
+<pre class="term">$ dart run erro_late.dart
+[caixa] abriu às 7h
+Unhandled exception:
+LateInitializationError: Field 'origem' has not been initialized.
+#0      Registravel.origem (file:///home/ana/erro_late.dart)
+#1      Registravel.registrar (file:///home/ana/erro_late.dart:5:14)
+#2      main (file:///home/ana/erro_late.dart:19:13)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Como o mixin não tem construtor, é comum ele declarar um campo <code>late</code> ("tardio": "prometo preencher antes de usar"; veja <a href="late.html">late e o Operador !</a>) e deixar a classe preencher. A <code>Caixa</code> preencheu no construtor e funcionou. O <code>Estoque</code> esqueceu:</p>
+<ul>
+  <li><code>LateInitializationError: Field 'origem' has not been initialized.</code>: "o campo <code>origem</code> não foi inicializado". A promessa do <code>late</code> foi quebrada. Código de saída 255.</li>
+  <li><code>#0 Registravel.origem</code>, sem número de linha: é a leitura do campo, feita por um código que o próprio Dart gera.</li>
+  <li><code>#1 Registravel.registrar</code>, linha 5: onde o campo foi lido (o <code>print</code>). <code>#2 main</code>, linha 19: quem chamou, o <code>Estoque().registrar(…)</code>.</li>
+</ul>
+<p><strong>Como consertar:</strong> preencha o campo em toda classe que usa o mixin, ou troque o campo por um getter abstrato (<code>String get origem;</code>): aí esquecer vira <strong>erro de compilação</strong>, como em <a href="abstract.html">Classes Abstratas</a>, que é muito melhor do que descobrir rodando.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>mixin Avaliavel { … }</code></td><td>Declara um mixin: campos e métodos prontos, sem construtor</td></tr>
+<tr><td><code>class Produto with Avaliavel</code></td><td>Mistura o código do mixin na classe</td></tr>
+<tr><td><code>with A, B</code></td><td>Vários mixins; se repetirem um método, vale o último</td></tr>
+<tr><td><code>class X extends Mae with A implements I</code></td><td>A ordem das três palavras</td></tr>
+<tr><td><code>mixin M on Produto</code></td><td>Só pode ser usado em classes que são <code>Produto</code>, e pode usar os membros dele</td></tr>
+<tr><td><code>mixin class R { … }</code></td><td>Serve como classe (dá para criar objeto) e como mixin <span class="versao">Dart 3.0</span></td></tr>
+<tr><td><code>objeto is Avaliavel</code></td><td>O mixin também vale como tipo</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The class 'X' can't be used as a mixin because it isn't a mixin class nor a mixin.</code></td><td>Uma <code>class</code> comum depois do <code>with</code></td></tr>
+<tr><td><code>Couldn't find constructor 'M'.</code></td><td>Tentou criar um objeto de um mixin</td></tr>
+<tr><td><code>'Object' doesn't implement 'Produto' so it can't be used with 'M'.</code></td><td>Mixin <code>on Produto</code> numa classe que não é produto</td></tr>
+<tr><td><code>LateInitializationError: Field 'x' has not been initialized.</code></td><td>Um campo <code>late</code> lido antes de receber valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code"><input data-answer="mixin" aria-label="palavra que declara o mixin"> Registravel {<br>&nbsp;&nbsp;void registrar(String m) =&gt; print(m);<br>}<br>class Caixa <input data-answer="with" aria-label="palavra que mistura o mixin"> Registravel {}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quem vence?</h3>
+<p>Com <code>class Atendente with Educado, Animado {}</code>, de qual mixin vem o <code>saudar()</code> que roda?</p>
+<div class="ex-code"><input data-answer="Animado" aria-label="nome do mixin"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual a diferença principal entre <code>with</code> e <code>implements</code>?</p>
+<label><input type="radio" name="q3"> Nenhuma</label>
+<label><input type="radio" name="q3"> <code>with</code> só aceita um; <code>implements</code>, vários</label>
+<label><input type="radio" name="q3"> <code>with</code> traz o código pronto; <code>implements</code> só obriga a escrever os métodos</label>
+<label><input type="radio" name="q3"> <code>implements</code> traz o código pronto; <code>with</code> só promete</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. No Dart 3, <code>class Registrador {…}</code> e depois <code>class Caixa with Registrador {}</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Erro de compilação: a classe não é <code>mixin</code> nem <code>mixin class</code></label>
+<label><input type="radio" name="q4"> Funciona normalmente</label>
+<label><input type="radio" name="q4"> Exceção durante a execução</label>
+<label><input type="radio" name="q4"> O Dart transforma a classe em mixin sozinho</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">5. Para que serve o <code>on Produto</code> em <code>mixin ComEstoque on Produto</code>?</p>
+<label><input type="radio" name="q5"> Para o mixin virar uma subclasse de Produto</label>
+<label><input type="radio" name="q5"> Para o mixin poder usar os membros de Produto, aceitando só classes que são Produto</label>
+<label><input type="radio" name="q5"> Para ligar o mixin automaticamente em todo Produto</label>
+<label><input type="radio" name="q5"> Para criar objetos do mixin</label>
+</div>
+
+<h3>Missão final: o caderno de registro</h3>
+
+<div class="trydart" data-goal="out:[registro] Caixa aberto;;out:[registro] Chegaram 20 brigadeiros;;src:mixin\s+Registravel">
+<p class="try-task"><strong>Missão:</strong> a <code>Caixa</code> e o <code>Estoque</code> já usam <code>with Registravel</code>, mas o mixin não existe. Escreva o <code>mixin Registravel</code> com um método <code>registrar(String mensagem)</code> que mostra <code>[registro] </code> seguido da mensagem.</p>
+<pre class="script" data-file="main.dart">// escreva o mixin Registravel aqui
+
+class Caixa with Registravel {
+  void abrir() =&gt; registrar('Caixa aberto');
+}
+
+class Estoque with Registravel {
+  void receber(int qtd, String item) =&gt; registrar('Chegaram $qtd $item');
+}
+
+void main() {
+  Caixa().abrir();
+  Estoque().receber(20, 'brigadeiros');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">mixin Registravel {
+  void registrar(String mensagem) {
+    print('[registro] $mensagem');
+  }
+}
+
+class Caixa with Registravel {
+  void abrir() =&gt; registrar('Caixa aberto');
+}
+
+class Estoque with Registravel {
+  void receber(int qtd, String item) =&gt; registrar('Chegaram $qtd $item');
+}
+
+void main() {
+  Caixa().abrir();
+  Estoque().receber(20, 'brigadeiros');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>[registro] Caixa aberto</code> e <code>[registro] Chegaram 20 brigadeiros</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>mixin</code> é um pedaço de código pronto (campos, métodos, getters) que se mistura em classes com <code>with</code>; ele não tem construtor nem vira objeto.</li>
+  <li>Uma classe pode usar vários mixins (<code>with A, B</code>) e combinar com herança: <code>extends Mae with A, B</code>. Se dois mixins têm o mesmo método, vale o último da lista.</li>
+  <li><code>mixin M on Produto</code> limita o mixin a produtos e deixa usar os membros deles.</li>
+  <li>No Dart 3, só <code>mixin</code> e <code>mixin class</code> podem ir depois do <code>with</code>; uma <code>class</code> comum dá erro de compilação.</li>
+  <li>Campo <code>late</code> num mixin é uma promessa que a classe tem de cumprir; se esquecer, <code>LateInitializationError</code> durante a execução. Um getter abstrato transforma esse esquecimento em erro de compilação.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
