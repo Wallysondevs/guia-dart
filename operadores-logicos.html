@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Operadores Lógicos — &amp;&amp; (e), || (ou) e ! (não) | Guia Dart</title>
+<meta name="description" content="Os operadores lógicos do Dart para quem nunca programou: &amp;&amp; (e), || (ou) e ! (não), as tabelas da verdade, 'entre 18 e 60', meia-entrada, o curto-circuito que evita divisão por zero e null, a ordem (&amp;&amp; antes de ||) com parênteses, e os erros reais do Dart 3 (and e or por extenso, int no lugar de bool, dia == 'sábado' || 'domingo').">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Operadores Lógicos</span></h1>
+
+<p class="intro">Na aula <a href="operadores-comparacao.html">Comparação</a>, cada pergunta tinha uma condição só: "a idade é maior ou igual a 18?". Mas as regras da vida real costumam juntar várias: "maior de idade <strong>e</strong> com ingresso", "sábado <strong>ou</strong> domingo", "<strong>não</strong> está chovendo". Para juntar perguntas de sim ou não existem os <strong>operadores lógicos</strong>: <code>&amp;&amp;</code> (e), <code>||</code> (ou) e <code>!</code> (não).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O <code>&amp;&amp;</code> ("e"): verdadeiro só quando as duas partes são verdadeiras.</li>
+  <li>O <code>||</code> ("ou"): verdadeiro quando pelo menos uma parte é verdadeira.</li>
+  <li>O <code>!</code> ("não"): inverte <code>true</code> e <code>false</code>.</li>
+  <li>As tabelas da verdade, com a saída real do Dart.</li>
+  <li>O <strong>curto-circuito</strong>: por que <code>alunos &gt; 0 &amp;&amp; pontos ~/ alunos &gt;= 5</code> não quebra com zero alunos.</li>
+  <li>A ordem: <code>&amp;&amp;</code> vem antes de <code>||</code>, e os parênteses resolvem.</li>
+  <li>Os erros reais: <code>and</code>/<code>or</code> por extenso, um número no lugar de um <code>bool</code>, e o <code>dia == 'sábado' || 'domingo'</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: as regras da portaria</h2>
+<p>O porteiro do show tem duas regras e um aviso:</p>
+<ul>
+  <li><strong>"Só entra quem é maior de idade E tem ingresso."</strong> Se faltar qualquer uma das duas coisas, não entra. Isso é o <code>&amp;&amp;</code>.</li>
+  <li><strong>"Paga meia quem é criança OU idoso."</strong> Basta uma das duas. Isso é o <code>||</code>.</li>
+  <li><strong>"Quem NÃO tem pulseira volta para a fila."</strong> Inverte a pergunta "tem pulseira?". Isso é o <code>!</code>.</li>
+</ul>
+<p>Cada parte (maior de idade? tem ingresso?) é uma comparação que dá <code>true</code> ou <code>false</code>. O operador lógico junta essas respostas numa resposta só, também <code>true</code> ou <code>false</code>.</p>
+
+<hr>
+
+<h2>1. <code>&amp;&amp;</code>: "e"</h2>
+
+<pre class="file" data-file="e.dart">void main() {
+  final idade = 30;
+  final temIngresso = true;
+  print(idade &gt;= 18 &amp;&amp; temIngresso);
+  print(idade &gt;= 18 &amp;&amp; idade &lt;= 60);
+  final idade2 = 70;
+  print(idade2 &gt;= 18 &amp;&amp; idade2 &lt;= 60);
+}
+</pre>
+
+<pre class="term">$ dart run e.dart
+true
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>idade &gt;= 18 &amp;&amp; temIngresso</dt><dd>"Tem 18 anos ou mais <strong>e</strong> tem ingresso?" As duas partes são <code>true</code>, então o resultado é <code>true</code>. A segunda parte já é um <code>bool</code> (a variável <code>temIngresso</code>), e não precisa de <code>== true</code>.</dd>
+  <dt>idade &gt;= 18 &amp;&amp; idade &lt;= 60</dt><dd>O jeito de dizer "<strong>entre</strong> 18 e 60" no Dart: duas comparações ligadas por <code>&amp;&amp;</code>. Com 30, as duas são verdade.</dd>
+  <dt>idade2 … → false</dt><dd>Com 70, a primeira parte é verdade (70 ≥ 18), mas a segunda não (70 ≤ 60 é falso). Basta uma parte falsa para o <code>&amp;&amp;</code> dar <code>false</code>.</dd>
+</dl>
+
+<p>O <code>&amp;&amp;</code> se escreve com <strong>dois</strong> "e comercial" (<code>&amp;</code>), grudados. Lê-se "e".</p>
+
+<hr>
+
+<h2>2. <code>||</code>: "ou"</h2>
+
+<pre class="file" data-file="ou.dart">void main() {
+  final dia = 'sábado';
+  final fimDeSemana = dia == 'sábado' || dia == 'domingo';
+  print('É fim de semana? $fimDeSemana');
+  final idade = 8;
+  final meiaEntrada = idade &lt; 12 || idade &gt;= 65;
+  print('Meia-entrada? $meiaEntrada');
+}
+</pre>
+
+<pre class="term">$ dart run ou.dart
+É fim de semana? true
+Meia-entrada? true
+</pre>
+
+<p>O <code>||</code> são duas barras verticais (a tecla fica perto do <kbd>Enter</kbd>, com <kbd>Shift</kbd>). Basta <strong>uma</strong> das partes ser verdade: a criança de 8 anos não é idosa, mas é menor de 12, e isso já garante a meia-entrada. Repare que cada lado do <code>||</code> é uma comparação <strong>completa</strong>: <code>dia == 'sábado' || dia == 'domingo'</code>, com o <code>dia ==</code> repetido (escrever só <code>|| 'domingo'</code> dá erro; veja <a href="#errado">Quando dá errado</a>).</p>
+
+<hr>
+
+<h2>3. <code>!</code>: "não"</h2>
+
+<pre class="file" data-file="nao.dart">void main() {
+  final chovendo = false;
+  print('Está chovendo? $chovendo');
+  print('Dá para estender a roupa? ${!chovendo}');
+  final idade = 15;
+  print(!(idade &gt;= 18));
+  print(idade &lt; 18);
+}
+</pre>
+
+<pre class="term">$ dart run nao.dart
+Está chovendo? false
+Dá para estender a roupa? true
+true
+true
+</pre>
+
+<p>O <code>!</code> vai <strong>antes</strong> do valor e inverte: <code>!false</code> é <code>true</code>. Para inverter uma comparação inteira, use parênteses: <code>!(idade &gt;= 18)</code>, "não é maior de idade". Muitas vezes existe uma comparação que já diz o contrário (<code>idade &lt; 18</code>), e ela costuma ser mais fácil de ler. O <code>!</code> brilha com variáveis <code>bool</code> de nome claro: <code>!chovendo</code>, <code>!temIngresso</code>, <code>!lista.isEmpty</code>.</p>
+
+<hr>
+
+<h2>4. As tabelas da verdade</h2>
+<p>Com duas partes, só existem quatro combinações. O Dart mostra todas:</p>
+
+<pre class="file" data-file="tabela.dart">void main() {
+  print('true  &amp;&amp; true  → ${true &amp;&amp; true}');
+  print('true  &amp;&amp; false → ${true &amp;&amp; false}');
+  print('false &amp;&amp; true  → ${false &amp;&amp; true}');
+  print('false &amp;&amp; false → ${false &amp;&amp; false}');
+  print('true  || true  → ${true || true}');
+  print('true  || false → ${true || false}');
+  print('false || true  → ${false || true}');
+  print('false || false → ${false || false}');
+  print('!true          → ${!true}');
+  print('!false         → ${!false}');
+}
+</pre>
+
+<pre class="term">$ dart run tabela.dart
+true  &amp;&amp; true  → true
+true  &amp;&amp; false → false
+false &amp;&amp; true  → false
+false &amp;&amp; false → false
+true  || true  → true
+true  || false → true
+false || true  → true
+false || false → false
+!true          → false
+!false         → true
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Operador</th><th>Dá <code>true</code> quando…</th><th>Dá <code>false</code> quando…</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>os <strong>dois</strong> são <code>true</code></td><td>pelo menos um é <code>false</code></td></tr>
+<tr><td><code>a || b</code></td><td>pelo menos <strong>um</strong> é <code>true</code></td><td>os dois são <code>false</code></td></tr>
+<tr><td><code>!a</code></td><td><code>a</code> é <code>false</code></td><td><code>a</code> é <code>true</code></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:Meia-entrada? true;;src:\|\|">
+<p class="try-task"><strong>Missão:</strong> a regra da meia-entrada mudou: agora estudantes também pagam meia. O programa tem <code>idade = 20</code> e <code>estudante = true</code>, mas a regra ainda não olha o <code>estudante</code>. Acrescente mais um <code>||</code> para que ele mostre <code>Meia-entrada? true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final idade = 20;
+  final estudante = true;
+  final meiaEntrada = idade &lt; 12 || idade &gt;= 65;
+  print('Estudante? $estudante');
+  print('Meia-entrada? $meiaEntrada');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final idade = 20;
+  final estudante = true;
+  final meiaEntrada = idade &lt; 12 || idade &gt;= 65 || estudante;
+  print('Estudante? $estudante');
+  print('Meia-entrada? $meiaEntrada');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>5. O curto-circuito: o Dart para de olhar assim que sabe</h2>
+<p>O Dart lê da esquerda para a direita e é preguiçoso de um jeito esperto:</p>
+<ul>
+  <li>no <code>a &amp;&amp; b</code>, se <code>a</code> já é <code>false</code>, o resultado <strong>só pode</strong> ser <code>false</code>: o <code>b</code> nem é calculado;</li>
+  <li>no <code>a || b</code>, se <code>a</code> já é <code>true</code>, o resultado <strong>só pode</strong> ser <code>true</code>: o <code>b</code> nem é calculado.</li>
+</ul>
+<p>Isso se chama <strong>curto-circuito</strong>, e serve de proteção. A professora quer saber se a turma fez, em média, 5 pontos ou mais; mas hoje não veio ninguém:</p>
+
+<pre class="file" data-file="curto.dart">void main() {
+  final alunos = 0;
+  final pontos = 30;
+  final passou = alunos &gt; 0 &amp;&amp; pontos ~/ alunos &gt;= 5;
+  print('Passou? $passou');
+}
+</pre>
+
+<pre class="term">$ dart run curto.dart
+Passou? false
+</pre>
+
+<p>Como <code>alunos &gt; 0</code> deu <code>false</code>, a divisão <code>pontos ~/ alunos</code> <strong>nunca foi feita</strong>. Agora a mesma pergunta com as partes na ordem trocada:</p>
+
+<pre class="file" data-file="curto_err.dart">void main() {
+  final alunos = 0;
+  final pontos = 30;
+  final passou = pontos ~/ alunos &gt;= 5 &amp;&amp; alunos &gt; 0;
+  print('Passou? $passou');
+}
+</pre>
+
+<pre class="term">$ dart run curto_err.dart
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/curto_err.dart:4:25)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>Agora a divisão vem primeiro, e o programa para com a exceção de divisão inteira por zero (a mesma de <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>), apontando a linha 4, coluna 25: o <code>~/</code>. A lógica do "e" é a mesma; o que muda é a <strong>ordem</strong>. Regra prática: <strong>ponha a verificação de segurança à esquerda</strong>.</p>
+
+<p>O mesmo truque protege contra variáveis vazias (<code>null</code>, veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>):</p>
+
+<pre class="file" data-file="curto_null.dart">void main() {
+  String? nome;
+  final valido = nome != null &amp;&amp; nome.length &gt;= 3;
+  print('Nome válido? $valido');
+  nome = 'Ana';
+  print('Nome válido? ${nome != null &amp;&amp; nome.length &gt;= 3}');
+}
+</pre>
+
+<pre class="term">$ dart run curto_null.dart
+Nome válido? false
+Nome válido? true
+</pre>
+
+<p>O Dart entende o curto-circuito: depois de <code>nome != null &amp;&amp;</code>, ele <strong>sabe</strong> que <code>nome</code> não é <code>null</code> e deixa usar o <code>nome.length</code> (o número de letras) sem reclamar.</p>
+
+<hr>
+
+<h2>6. A ordem: <code>&amp;&amp;</code> antes de <code>||</code></h2>
+<p>Como o <code>*</code> vem antes do <code>+</code>, o <code>&amp;&amp;</code> vem antes do <code>||</code>. E o <code>!</code> vem antes dos dois. Isso pode mudar a resposta:</p>
+
+<pre class="file" data-file="precedencia.dart">void main() {
+  final temCupom = false;
+  final valor = 30;
+  final clienteVip = true;
+  print(temCupom &amp;&amp; valor &gt; 50 || clienteVip);
+  print(temCupom &amp;&amp; (valor &gt; 50 || clienteVip));
+}
+</pre>
+
+<pre class="term">$ dart run precedencia.dart
+true
+false
+</pre>
+
+<dl class="anatomy">
+  <dt>temCupom &amp;&amp; valor &gt; 50 || clienteVip → true</dt><dd>O Dart faz <code>(temCupom &amp;&amp; valor &gt; 50) || clienteVip</code>: "(tem cupom e comprou mais de 50) <strong>ou</strong> é VIP". O VIP ganha desconto mesmo sem cupom.</dd>
+  <dt>temCupom &amp;&amp; (valor &gt; 50 || clienteVip) → false</dt><dd>Com os parênteses: "tem cupom <strong>e</strong> (comprou mais de 50 ou é VIP)". Sem cupom, nada feito.</dd>
+</dl>
+
+<p>Duas regras diferentes, só pela posição dos parênteses. <strong>Sempre que misturar <code>&amp;&amp;</code> e <code>||</code>, ponha parênteses</strong>, mesmo quando a ordem natural já dá o que você quer: quem lê (inclusive você, daqui a um mês) não precisa decorar a tabela.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Uma condição comprida fica mais fácil de ler quando cada parte ganha um nome:</p>
+
+<pre class="file" data-file="nomes.dart">final maiorDeIdade = idade &gt;= 18;
+final podeEntrar = maiorDeIdade &amp;&amp; temIngresso;
+</pre>
+
+<p>E toda negação de um "e" ou de um "ou" pode ser reescrita (são as chamadas <strong>leis de De Morgan</strong>): "não (chuva <strong>ou</strong> frio)" é o mesmo que "não chuva <strong>e</strong> não frio".</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>É o mesmo que</th></tr>
+<tr><td><code>!(a || b)</code></td><td><code>!a &amp;&amp; !b</code></td></tr>
+<tr><td><code>!(a &amp;&amp; b)</code></td><td><code>!a || !b</code></td></tr>
+<tr><td><code>!(idade &gt;= 18)</code></td><td><code>idade &lt; 18</code></td></tr>
+<tr><td><code>!(x == y)</code></td><td><code>x != y</code></td></tr>
+<tr><td><code>pronto == true</code> / <code>pronto == false</code></td><td><code>pronto</code> / <code>!pronto</code> (prefira estes)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E o <code>&amp;</code> e o <code>|</code> sozinhos?</strong>
+<p>Com <code>bool</code>, o Dart também aceita <code>&amp;</code>, <code>|</code> e <code>^</code> (um sinal só): no lab, <code>true &amp; false</code> deu <code>false</code>, <code>true | false</code> deu <code>true</code> e <code>true ^ false</code> ("ou exclusivo": um ou outro, mas não os dois) deu <code>true</code>. A diferença é que <code>&amp;</code> e <code>|</code> <strong>não fazem curto-circuito</strong>: calculam sempre os dois lados. No dia a dia, use <code>&amp;&amp;</code> e <code>||</code>.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Escreveu <code>and</code> ou <code>or</code> por extenso</strong>
+<pre class="file" data-file="err_and.dart">void main() {
+  final idade = 30;
+  print(idade &gt;= 18 and idade &lt;= 60);
+}
+</pre>
+<pre class="term">$ dart run err_and.dart
+err_and.dart:3:21: Error: Binary operator 'and' is written as '&amp;&amp;' instead of the written out word.
+Try replacing 'and' with '&amp;&amp;'.
+  print(idade &gt;= 18 and idade &lt;= 60);
+                    ^^^
+</pre>
+<dl class="anatomy">
+  <dt>err_and.dart:3:21:</dt><dd>Linha 3, coluna 21: onde começa o <code>and</code>.</dd>
+  <dt>Error: Binary operator 'and' is written as '&amp;&amp;' instead of the written out word.</dt><dd>"O operador <code>and</code> se escreve <code>&amp;&amp;</code>, e não com a palavra por extenso." (Binário = que trabalha com dois lados.) Quem vem do Python ou do Lua escreve <code>and</code>; o Dart reconhece o engano e diz exatamente o que fazer.</dd>
+  <dt>Try replacing 'and' with '&amp;&amp;'.</dt><dd>"Tente trocar <code>and</code> por <code>&amp;&amp;</code>." Desta vez, a dica é a solução.</dd>
+</dl>
+<p>Com <code>or</code>, a mensagem é a mesma, sugerindo <code>||</code> (<code>Binary operator 'or' is written as '||' instead of the written out word.</code>). Já o <code>not</code> o Dart nem reconhece como engano: <code>print(not chovendo);</code> dá <code>Error: Undefined name 'not'.</code> ("nome não definido") e mais três erros de quebra; o "não" do Dart é o <code>!</code>.</p>
+<p>Cuidado com a dica: ela nem sempre sugere o operador certo. Em <code>final podeDirigir = idade &gt;= 18 and temCarteira;</code>, o lab respondeu <code>Error: Binary operator 'and' is written as '&amp;' instead of the written out word.</code> (com <strong>um</strong> <code>&amp;</code> só) e mais um erro, <code>A value of type 'bool' can't be assigned to a variable of type 'int'.</code>, porque o Dart tentou ler <code>18 &amp; temCarteira</code> como uma conta. O que importa é a primeira mensagem: a palavra <code>and</code> não existe. <strong>Como consertar:</strong> <code>idade &gt;= 18 &amp;&amp; idade &lt;= 60</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>"Sábado ou domingo" pela metade</strong>
+<pre class="file" data-file="err_ou.dart">void main() {
+  final dia = 'domingo';
+  print(dia == 'sábado' || 'domingo');
+}
+</pre>
+<pre class="term">$ dart run err_ou.dart
+err_ou.dart:3:28: Error: A value of type 'String' can't be assigned to a variable of type 'bool'.
+  print(dia == 'sábado' || 'domingo');
+                           ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser usado onde se espera um <code>bool</code>." Em português, "o dia é sábado ou domingo" funciona; no Dart, cada lado do <code>||</code> tem de ser uma pergunta de sim ou não, e <code>'domingo'</code> sozinho é só um texto. <strong>Como consertar:</strong> repita a comparação: <code>dia == 'sábado' || dia == 'domingo'</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um número onde o Dart espera <code>true</code> ou <code>false</code></strong>
+<pre class="file" data-file="err_int.dart">void main() {
+  final pessoas = 3;
+  if (pessoas &amp;&amp; pessoas &lt; 10) {
+    print('Mesa pequena');
+  }
+}
+</pre>
+<pre class="term">$ dart run err_int.dart
+err_int.dart:3:7: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  if (pessoas &amp;&amp; pessoas &lt; 10) {
+      ^
+</pre>
+<p>Em linguagens como C, JavaScript e Python, um número diferente de zero "vale" verdadeiro. <strong>No Dart, não</strong>: <code>&amp;&amp;</code>, <code>||</code> e <code>!</code> só aceitam <code>bool</code>. O mesmo erro sai com <code>!estoque</code> num <code>int</code> (<code>err_not.dart:3:10: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.</code>). <strong>Como consertar:</strong> escreva a comparação inteira: <code>pessoas &gt; 0 &amp;&amp; pessoas &lt; 10</code>, ou <code>estoque == 0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A verificação de segurança do lado errado</strong>
+<p>Já visto na seção 5: <code>pontos ~/ alunos &gt;= 5 &amp;&amp; alunos &gt; 0</code> compila, mas com <code>alunos = 0</code> para com <code>IntegerDivisionByZeroException</code>. O Dart não reclama da ordem, porque a lógica está certa; quem quebra é a conta. <strong>Como consertar:</strong> o teste que protege vem primeiro: <code>alunos &gt; 0 &amp;&amp; pontos ~/ alunos &gt;= 5</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Pode dirigir? true;;semerro">
+<p class="try-task"><strong>Missão:</strong> para dirigir, a pessoa precisa ter 18 anos ou mais <strong>e</strong> ter carteira. O programa não compila. Leia o erro, conserte, e rode até aparecer <code>Pode dirigir? true</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final idade = 19;
+  final temCarteira = true;
+  final podeDirigir = idade &gt;= 18 and temCarteira;
+  print('Pode dirigir? $podeDirigir');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final idade = 19;
+  final temCarteira = true;
+  final podeDirigir = idade &gt;= 18 &amp;&amp; temCarteira;
+  print('Pode dirigir? $podeDirigir');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Lê-se</th><th>Observação</th></tr>
+<tr><td><code>a &amp;&amp; b</code></td><td>a <strong>e</strong> b</td><td>se <code>a</code> é <code>false</code>, não calcula <code>b</code></td></tr>
+<tr><td><code>a || b</code></td><td>a <strong>ou</strong> b</td><td>se <code>a</code> é <code>true</code>, não calcula <code>b</code></td></tr>
+<tr><td><code>!a</code></td><td><strong>não</strong> a</td><td>use <code>!( … )</code> para inverter uma comparação</td></tr>
+<tr><td><code>x &gt;= 18 &amp;&amp; x &lt;= 60</code></td><td>x entre 18 e 60</td><td>no Dart não existe <code>18 &lt;= x &lt;= 60</code></td></tr>
+<tr><td><code>d == 'sáb' || d == 'dom'</code></td><td>d é sábado ou domingo</td><td>a comparação se repete dos dois lados</td></tr>
+<tr><td><code>(a &amp;&amp; b) || c</code></td><td>ordem: <code>!</code>, depois <code>&amp;&amp;</code>, depois <code>||</code></td><td>misturou? ponha parênteses</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Binary operator 'and' is written as '&amp;&amp;' …</code></td><td><code>and</code>/<code>or</code> por extenso</td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td>Número usado como <code>true</code>/<code>false</code> num <code>&amp;&amp;</code>, <code>||</code>, <code>!</code> ou <code>if</code></td></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'bool'.</code></td><td><code>x == 'a' || 'b'</code>: faltou repetir o <code>x ==</code></td></tr>
+<tr><td>Exceção numa conta que deveria ter sido protegida</td><td>A verificação de segurança ficou à direita do <code>&amp;&amp;</code></td></tr>
+<tr><td>Resultado inesperado misturando <code>&amp;&amp;</code> e <code>||</code></td><td>Faltaram parênteses</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. true ou false?</h3>
+<p>Com <code>final a = true;</code> e <code>final b = false;</code>:</p>
+<div class="ex-code"><code>a &amp;&amp; b</code> → <input data-answer="false" aria-label="a && b"><br><code>a || b</code> → <input data-answer="true" aria-label="a || b"><br><code>!b</code> → <input data-answer="true" aria-label="!b"><br><code>!(a || b)</code> → <input data-answer="false" aria-label="!(a || b)"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete com o operador</h3>
+<div class="ex-code">// a nota está entre 0 e 10<br>nota &gt;= 0 <input data-answer="&amp;&amp;" aria-label="operador e"> nota &lt;= 10<br>// é feriado ou é domingo<br>feriado <input data-answer="||" aria-label="operador ou"> domingo<br>// não tem estoque<br><input data-answer="!" aria-label="operador não">temEstoque</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que mostra <code>print(false &amp;&amp; true || true);</code>?</p>
+<label><input type="radio" name="q3"> <code>false</code>, porque começa com <code>false &amp;&amp;</code></label>
+<label><input type="radio" name="q3"> <code>true</code>: é <code>(false &amp;&amp; true) || true</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Depende do computador</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Com <code>qtd</code> podendo ser zero, qual condição nunca divide por zero?</p>
+<label><input type="radio" name="q4"> <code>qtd &gt; 0 &amp;&amp; total ~/ qtd &gt; 10</code></label>
+<label><input type="radio" name="q4"> <code>total ~/ qtd &gt; 10 &amp;&amp; qtd &gt; 0</code></label>
+<label><input type="radio" name="q4"> <code>total ~/ qtd &gt; 10 || qtd &gt; 0</code></label>
+<label><input type="radio" name="q4"> Nenhuma: o Dart sempre calcula os dois lados</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destas é igual a <code>!(chuva || frio)</code>?</p>
+<label><input type="radio" name="q5"> <code>!chuva || !frio</code></label>
+<label><input type="radio" name="q5"> <code>chuva &amp;&amp; frio</code></label>
+<label><input type="radio" name="q5"> <code>!chuva || frio</code></label>
+<label><input type="radio" name="q5"> <code>!chuva &amp;&amp; !frio</code></label>
+</div>
+
+<h3>Missão final: a promoção da padaria</h3>
+
+<div class="trydart" data-goal="out:Cliente 1 ganha brinde? true;;out:Cliente 2 ganha brinde? false;;out:Cliente 3 ganha brinde? true;;src:&amp;&amp;;;src:\|\|">
+<p class="try-task"><strong>Missão:</strong> a padaria dá um brinde para quem compra <strong>mais de 50 reais</strong>, ou para quem compra <strong>mais de 20 reais e tem o cartão fidelidade</strong>. Escreva a regra dentro da função <code>ganhaBrinde</code>, no lugar do <code>false</code>, usando <code>&amp;&amp;</code>, <code>||</code> e parênteses.</p>
+<pre class="script" data-file="main.dart">bool ganhaBrinde(double valor, bool temCartao) {
+  return false; // escreva a regra aqui
+}
+
+void main() {
+  print('Cliente 1 ganha brinde? ${ganhaBrinde(60, false)}');
+  print('Cliente 2 ganha brinde? ${ganhaBrinde(30, false)}');
+  print('Cliente 3 ganha brinde? ${ganhaBrinde(30, true)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">bool ganhaBrinde(double valor, bool temCartao) {
+  return valor &gt; 50 || (valor &gt; 20 &amp;&amp; temCartao);
+}
+
+void main() {
+  print('Cliente 1 ganha brinde? ${ganhaBrinde(60, false)}');
+  print('Cliente 2 ganha brinde? ${ganhaBrinde(30, false)}');
+  print('Cliente 3 ganha brinde? ${ganhaBrinde(30, true)}');
+}
+</pre>
+</div>
+
+<p>A função (<code>bool ganhaBrinde(…) { return …; }</code>) só serve para testar três clientes de uma vez; você vai aprender a escrever as suas em <a href="funcoes.html">Funções</a>. Por enquanto, mexa só no que vem depois do <code>return</code>. No lab, a solução mostrou <code>true</code>, <code>false</code> e <code>true</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>&amp;&amp;</code> ("e") é <code>true</code> só quando os dois lados são; <code>||</code> ("ou") é <code>true</code> quando pelo menos um é; <code>!</code> ("não") inverte.</li>
+  <li>Cada lado precisa ser um <code>bool</code> de verdade: no Dart, número e texto não "valem" verdadeiro. <code>dia == 'sáb' || dia == 'dom'</code>, com a comparação repetida.</li>
+  <li>Curto-circuito: o Dart para de calcular assim que sabe a resposta. Ponha a verificação de segurança (<code>x != 0</code>, <code>nome != null</code>) à esquerda.</li>
+  <li>A ordem é <code>!</code>, <code>&amp;&amp;</code>, <code>||</code>; ao misturar <code>&amp;&amp;</code> e <code>||</code>, use parênteses.</li>
+  <li><code>and</code>, <code>or</code> e <code>not</code> por extenso não existem no Dart: o próprio erro sugere <code>&amp;&amp;</code>, <code>||</code> e <code>!</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
