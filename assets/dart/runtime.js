@@ -235,6 +235,11 @@
         case "Exception": if (v instanceof BASES.FormatException || v instanceof BASES.IntegerDivisionByZeroException || v instanceof BASES.TimeoutException || v instanceof BASES.FileSystemException) return true; break;
         case "Error": if (v instanceof BASES.Error) return true; break;
       }
+      if (n === "MapEntry" && v instanceof DMapEntry) return true;
+      if (n === "Duration" && v instanceof DDuration) return true;
+      if (n === "DateTime" && v instanceof DDateTime) return true;
+      if (n === "StringBuffer" && v instanceof DStringBuffer) return true;
+      if (n === "Random" && v instanceof DRandom) return true;
       if (v && v.constructor && v instanceof DObject) return ehSub(v.constructor, n);
       if (n === "Duration") return v instanceof DDuration;
       if (n === "DateTime") return v instanceof DDateTime;
@@ -530,6 +535,16 @@
       return null;
     }
     R.extMetodo = function (o, nome) { var e = acharExt(o, nome); return e.f.bind(o); };
+    R.extMetodoThis = function (o, nome) { return function () { return R.chamar(o, nome, [].slice.call(arguments)); }; };
+    // .valor (dot shorthand do Dart 3.10): procura o membro estático nas classes e enums do programa
+    R.atalho = function (nome, tipo, p, chamada) {
+      var achados = [];
+      Object.keys(R.classes).forEach(function (k) { var C = R.classes[k]; if (Object.prototype.hasOwnProperty.call(C, "m_" + nome) || (nome === "new" && C.$new)) achados.push(C); });
+      if (tipo && R.classes[tipo]) achados = [R.classes[tipo]];
+      if (achados.length) { var C = achados[0]; return nome === "new" ? C.$new : C["m_" + nome]; }
+      if (p) topo().p = p;
+      lancarErro(nsm(null, "." + nome, null, true));
+    };
     function nsm(v, nome, args, getter) {
       var o = new (BASES.NoSuchMethodError)();
       if (v === null || v === undefined) {
@@ -581,6 +596,8 @@
       if (typeof o === "bigint") return o;
       if (typeof o === "string") { var h = 0; for (var i = 0; i < o.length; i++) h = (h * 31 + o.charCodeAt(i)) & 0x3fffffff; return BigInt(h); }
       if (typeof o === "boolean") return o ? 1231n : 1237n;
+      if (typeof o === "number") { if (Number.isInteger(o) && Math.abs(o) < 2 ** 53) return BigInt(o); var buf = new DataView(new ArrayBuffer(8)); buf.setFloat64(0, o); return BigInt((buf.getUint32(0) ^ buf.getUint32(4)) & 0x3fffffff); }
+      if (o === null || o === undefined) return 2011n;
       if (o && o.m_hashCode !== undefined) return o.m_hashCode;
       return BigInt(Math.floor(Math.random() * 1e9));
     }
@@ -906,7 +923,7 @@
       isInfinite: function (o) { return o === Infinity || o === -Infinity; },
       isFinite: function (o) { return typeof o === "bigint" || isFinite(o); },
       sign: function (o) { return typeof o === "bigint" ? (o > 0n ? 1n : o < 0n ? -1n : 0n) : Math.sign(o); },
-      hashCode: function (o) { return typeof o === "bigint" ? o : BigInt(Math.floor(Math.abs(o) * 1000) % 1073741823); },
+      hashCode: function (o) { return hashCodeDe(o); },
       runtimeType: function (o) { return new DTipo(tipoDe(o)); },
       bitLength: function (o) { var n = o < 0n ? ~o : o; return BigInt(n.toString(2).length - (n === 0n ? 1 : 0)); },
     };
@@ -1359,6 +1376,7 @@
       ArgumentError: { checkNotNull: function (v, n) { if (v === null || v === undefined) lancarErro(erroArg("Must not be null")); return v; }, notNull: function (n) { var e = erroArg("Must not be null"); e.m_name = n; return e; }, value: function (v, n, m) { var e = new (BASES.ArgumentError)(); e.$valorInv = v; e.m_name = n || null; e.m_message = m === undefined ? null : m; return e; } },
       RangeError: { range: function (v, a, b, n, m) { return erroRange("RangeError" + (typeof n === "string" ? " (" + n + ")" : "") + ": " + (typeof m === "string" ? m : "Invalid value") + ": Not in inclusive range " + a + ".." + b + ": " + str(v)); }, checkValueInInterval: function (v, a, b) { if (v < a || v > b) lancarErro(ESTATICOS.RangeError.range(v, a, b)); return v; }, value: function (v, n, m) { return erroRange("RangeError" + (n ? " (" + n + ")" : "") + ": " + (m || "Value not in range") + ": " + str(v)); }, checkNotNegative: function (v, n) { if (v < 0n) lancarErro(erroRange("RangeError (" + (n || "index") + "): Invalid value: Not greater than or equal to 0: " + v)); return v; } },
       StateError: {}, Exception: {},
+      Isolate: { run: function (f) { return new Promise(function (ok, falha) { timer(function () { try { ok(R.chamarF(f, [])); } catch (e) { falha(e); } }, 0); }); }, spawn: function (f, msg) { timer(function () { R.chamarF(f, [msg]); }, 0); return Promise.resolve({ $nome: "Isolate", m_kill: function () { return null; } }); } },
       String_: {},
     };
     function timerUnico(d, f) { var h = { $nome: "_Timer", ativo: true }; h.t = timer(function () { h.ativo = false; R.chamarF(f, []); }, d.us / 1000); h.m_cancel = function () { h.ativo = false; cancelarTimer(h.t); return null; }; Object.defineProperty(h, "m_isActive", { get: function () { return h.ativo; } }); h.m_toString = function () { return "Instance of '_Timer'"; }; return h; }
@@ -1391,6 +1409,7 @@
         case "Future": return (function () { var f = x[0]; return new Promise(function (ok, falha) { timer(function () { try { ok(R.chamarF(f, [])); } catch (e) { falha(e); } }, 0); }); })();
         case "Stopwatch": { var sw = { $nome: "Stopwatch", ini: null, acum: 0 }; sw.m_start = function () { if (sw.ini === null) sw.ini = Date.now(); return null; }; sw.m_stop = function () { if (sw.ini !== null) { sw.acum += Date.now() - sw.ini; sw.ini = null; } return null; }; sw.m_reset = function () { sw.acum = 0; if (sw.ini !== null) sw.ini = Date.now(); return null; }; Object.defineProperty(sw, "m_elapsedMilliseconds", { get: function () { return BigInt(sw.acum + (sw.ini !== null ? Date.now() - sw.ini : 0)); } }); Object.defineProperty(sw, "m_elapsed", { get: function () { return new DDuration((sw.acum + (sw.ini !== null ? Date.now() - sw.ini : 0)) * 1000); } }); Object.defineProperty(sw, "m_isRunning", { get: function () { return sw.ini !== null; } }); return sw; }
         case "JsonEncoder": return { $nome: "JsonEncoder", m_convert: function (v) { return jsonEncode(v, null); } };
+        case "LineSplitter": return { $nome: "LineSplitter", m_convert: function (s) { var l = String(s).split(/\r?\n/); if (l[l.length - 1] === "") l.pop(); return lista(l, { n: "String" }); } };
       }
       if (BASES[classe]) return BASES[classe].$new.apply(null, x);
       lancarErro(nsm(null, classe, x));
