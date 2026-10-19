@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Construtores — o objeto já nasce pronto | Guia Dart</title>
+<meta name="description" content="Construtores do Dart para quem nunca programou: Produto(this.nome, this.preco), o que é o this, campos final, parâmetros nomeados com required e valor padrão, o corpo do construtor, a lista de inicialização (: preco = …), o construtor padrão, e os erros reais do Dart 3.13 (argumentos faltando, required, final sem valor, tipo de retorno).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Construtores</span></h1>
+
+<p class="intro">Na aula de <a href="classes.html">Classes</a>, cada produto era criado vazio e preenchido depois, linha por linha: <code>final cafe = Produto(); cafe.nome = 'café'; cafe.preco = 18.9;</code>. Funciona, mas é fácil esquecer um campo, e o objeto passa um tempo "pela metade". O <strong>construtor</strong> (em inglês, <em>constructor</em>) resolve isso: é o código que roda <strong>na hora de criar</strong> o objeto e que recebe os valores de que ele precisa. O objeto já nasce pronto: <code>Produto('café', 18.9)</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um construtor e o atalho que todo mundo usa: <code>Produto(this.nome, this.preco);</code></li>
+  <li>O que é o <code>this</code> ("este objeto").</li>
+  <li>Por que, com construtor, os campos podem ser <code>final</code>.</li>
+  <li>Construtores com <strong>parâmetros nomeados</strong>, <code>required</code> e valores padrão.</li>
+  <li>O <strong>corpo</strong> do construtor (para conferir os valores) e a <strong>lista de inicialização</strong> (<code>: preco = …</code>).</li>
+  <li>Os erros reais que o Dart mostra quando algo não bate.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário da matrícula</h2>
+<p>Para entrar na escola, ninguém vira aluno "vazio" e preenche o nome depois. A secretaria entrega um <strong>formulário</strong>: nome, data de nascimento, responsável. Sem preencher os campos obrigatórios, não tem matrícula. Quando o formulário é aceito, o aluno já existe <strong>completo</strong>.</p>
+<p>O construtor é esse formulário. Ele diz <strong>o que é preciso informar</strong> para criar o objeto e garante que, ao final, todos os campos tenham valor.</p>
+
+<hr>
+
+<h2>1. O primeiro construtor</h2>
+<p>Um construtor se escreve dentro da classe, com o <strong>mesmo nome da classe</strong> e sem tipo de retorno:</p>
+
+<pre class="file" data-file="longo.dart">class Produto {
+  String nome = '';
+  double preco = 0;
+
+  Produto(String n, double p) {
+    nome = n;
+    preco = p;
+  }
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Produto(String n, double p)</dt><dd>O construtor: o nome da classe e, entre parênteses, os <a href="parametros.html">parâmetros</a> que ele recebe. Não tem <code>void</code> nem outro tipo na frente: ele sempre "devolve" o objeto novo.</dd>
+  <dt>{ nome = n; preco = p; }</dt><dd>O <strong>corpo</strong>: o código que roda na criação. Aqui, copia os parâmetros para os campos.</dd>
+  <dt>Produto('café', 18.9)</dt><dd>Criar o objeto agora é <strong>chamar o construtor</strong>, passando os valores na ordem.</dd>
+</dl>
+
+<pre class="term">$ dart run longo.dart
+café: R$ 18.9
+</pre>
+
+<p>Funciona, mas tem dois defeitos: os campos ainda precisam de um valor inicial "de mentira" (<code>''</code> e <code>0</code>), e os nomes <code>n</code> e <code>p</code> não dizem nada. A forma a seguir resolve os dois.</p>
+
+<hr>
+
+<h2>2. O atalho <code>this.campo</code></h2>
+
+<pre class="file" data-file="curto.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  final pao = Produto('pão', 1.0);
+  print('${cafe.nome}: R\$ ${cafe.preco}');
+  print('${pao.nome}: R\$ ${pao.preco}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>final String nome;</dt><dd>O campo agora é <code>final</code> ("não muda mais") e <strong>não</strong> tem valor inicial. Pode ficar assim porque o construtor garante que ele vai receber um valor.</dd>
+  <dt>Produto(this.nome, this.preco);</dt><dd>O atalho: um parâmetro escrito como <code>this.nome</code> quer dizer "o valor que chegar aqui vai <strong>direto</strong> para o campo <code>nome</code>". O tipo vem do campo. Não tem corpo: termina com <code>;</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run curto.dart
+café: R$ 18.9
+pão: R$ 1.0
+</pre>
+
+<p>Este é o jeito <strong>recomendado</strong> pelo estilo oficial do Dart: curto, sem valores "de mentira", e com campos <code>final</code>, que protegem o objeto de mudanças acidentais. Com campos <code>final</code>, o produto não muda depois de criado (veja o erro em <a href="#errado">Quando dá errado</a>).</p>
+
+<h3>O que é o <code>this</code></h3>
+<p><code>this</code> ("este") quer dizer "<strong>este objeto</strong>", aquele em que o código está rodando. Ele serve para desempatar quando um parâmetro tem o mesmo nome de um campo. Compare os dois métodos:</p>
+
+<pre class="file" data-file="this.dart">class Produto {
+  String nome = '';
+
+  void renomear(String nome) {
+    nome = nome;
+  }
+
+  void renomearCerto(String nome) {
+    this.nome = nome;
+  }
+}
+
+void main() {
+  final p = Produto();
+  p.renomear('café');
+  print('Depois de renomear: "${p.nome}"');
+  p.renomearCerto('café');
+  print('Depois de renomearCerto: "${p.nome}"');
+}
+</pre>
+
+<pre class="term">$ dart run this.dart
+Depois de renomear: ""
+Depois de renomearCerto: "café"
+</pre>
+
+<p>Em <code>renomear</code>, os dois <code>nome</code> são o <strong>parâmetro</strong> (o nome mais "perto" vence): o método copiou o parâmetro nele mesmo, e o campo continuou vazio. Nenhum erro, só um programa errado. Em <code>renomearCerto</code>, <code>this.nome</code> é o campo do objeto, e <code>nome</code> é o parâmetro. Sem empate de nomes, o <code>this</code> não é necessário (e o estilo do Dart pede para não escrevê-lo).</p>
+
+<div class="trydart" data-goal="out:Ana tem 30 anos;;src:this\.nome;;src:this\.idade">
+<p class="try-task"><strong>Missão:</strong> escreva o construtor da classe <code>Pessoa</code> com o atalho <code>this.</code>, para que <code>Pessoa('Ana', 30)</code> funcione.</p>
+<pre class="script" data-file="main.dart">class Pessoa {
+  final String nome;
+  final int idade;
+
+  // escreva o construtor aqui
+}
+
+void main() {
+  final ana = Pessoa('Ana', 30);
+  print('${ana.nome} tem ${ana.idade} anos');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Pessoa {
+  final String nome;
+  final int idade;
+
+  Pessoa(this.nome, this.idade);
+}
+
+void main() {
+  final ana = Pessoa('Ana', 30);
+  print('${ana.nome} tem ${ana.idade} anos');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Parâmetros nomeados, <code>required</code> e valor padrão</h2>
+<p><code>Produto('café', 18.9, 10)</code>: o que é esse 10? Com muitos parâmetros, a ordem confunde. Os <a href="parametros-nomeados.html">parâmetros nomeados</a> funcionam também no construtor: eles vão entre <strong>chaves</strong>, e quem cria o objeto escreve o nome de cada um.</p>
+
+<pre class="file" data-file="nomeados.dart">class Produto {
+  final String nome;
+  final double preco;
+  final int estoque;
+
+  Produto({required this.nome, required this.preco, this.estoque = 0});
+
+  @override
+  String toString() =&gt; '$nome (R\$ $preco, estoque $estoque)';
+}
+
+void main() {
+  final cafe = Produto(nome: 'café', preco: 18.9, estoque: 10);
+  final pao = Produto(preco: 1.0, nome: 'pão');
+  print(cafe);
+  print(pao);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>{ … }</dt><dd>As chaves dentro dos parênteses avisam: estes parâmetros são <strong>nomeados</strong>.</dd>
+  <dt>required this.nome</dt><dd><code>required</code> = "obrigatório". Quem cria o produto <strong>tem</strong> de informar o nome. Sem o <code>required</code>, um parâmetro nomeado é opcional.</dd>
+  <dt>this.estoque = 0</dt><dd>Opcional, com <strong>valor padrão</strong>: se ninguém informar, vale 0 (veja <a href="parametros-opcionais.html">Parâmetros Opcionais</a>).</dd>
+  <dt>Produto(preco: 1.0, nome: 'pão')</dt><dd>Com nomes, a ordem não importa, e o <code>estoque</code> ficou de fora.</dd>
+  <dt>toString()</dt><dd>O texto que o <code>print</code> mostra (veja <a href="classes.html">Classes</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run nomeados.dart
+café (R$ 18.9, estoque 10)
+pão (R$ 1.0, estoque 0)
+</pre>
+
+<p>O pão ficou com <code>estoque 0</code>: o valor padrão. Também dá para misturar: os primeiros parâmetros posicionais e os demais nomeados, como em <code>Produto(this.nome, {this.estoque = 0})</code>.</p>
+
+<hr>
+
+<h2>4. O corpo do construtor: conferir os valores</h2>
+<p>Com o atalho <code>this.</code>, o construtor pode ter um corpo também. O corpo roda <strong>depois</strong> de os campos receberem os valores, e é o lugar de conferir se eles fazem sentido. A conta do banco não pode abrir com saldo negativo:</p>
+
+<pre class="file" data-file="corpo.dart">class Conta {
+  final String dona;
+  double saldo;
+
+  Conta(this.dona, this.saldo) {
+    print('Conta de $dona aberta com R\$ $saldo');
+    if (saldo &lt; 0) {
+      throw ArgumentError('saldo inicial negativo: $saldo');
+    }
+  }
+}
+
+void main() {
+  final ana = Conta('Ana', 100);
+  print('Saldo da ${ana.dona}: ${ana.saldo}');
+  final bia = Conta('Bia', -50);
+  print('Saldo da ${bia.dona}: ${bia.saldo}');
+}
+</pre>
+
+<pre class="term">$ dart run corpo.dart
+Conta de Ana aberta com R$ 100.0
+Saldo da Ana: 100.0
+Conta de Bia aberta com R$ -50.0
+Unhandled exception:
+Invalid argument(s): saldo inicial negativo: -50.0
+#0      new Conta (file:///home/ana/corpo.dart:8:7)
+#1      main (file:///home/ana/corpo.dart:16:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<dl class="anatomy">
+  <dt>Conta de … aberta com R$ …</dt><dd>O <code>print</code> do corpo rodou nas duas criações: o corpo roda <strong>toda vez</strong> que um objeto é criado. Repare que o <code>100</code> virou <code>100.0</code>: o campo é <code>double</code>.</dd>
+  <dt>throw ArgumentError(…)</dt><dd><code>throw</code> ("lançar") interrompe tudo com um erro; <code>ArgumentError</code> é o erro de "argumento inválido" (veja <a href="throw.html">Lançando Exceções</a>).</dd>
+  <dt>Invalid argument(s): saldo inicial negativo: -50.0</dt><dd>"Argumento(s) inválido(s)", seguido da sua mensagem.</dd>
+  <dt>#0 new Conta (file:///home/ana/corpo.dart:8:7)</dt><dd>O erro nasceu no construtor (<code>new Conta</code>), linha 8, a do <code>throw</code>.</dd>
+  <dt>#1 main (…corpo.dart:16:15)</dt><dd>Quem chamou: a linha 16, <code>Conta('Bia', -50)</code>. O último <code>print</code> nunca rodou: a conta da Bia não chegou a existir.</dd>
+</dl>
+
+<p>É exatamente o que se quer: um objeto inválido é barrado <strong>na criação</strong>, e não muitas linhas depois, quando alguém tenta usar o saldo errado.</p>
+
+<hr>
+
+<h2>5. A lista de inicialização: <code>: campo = …</code></h2>
+<p>E se um campo <code>final</code> precisa de uma <strong>conta</strong> feita com os parâmetros? O corpo não pode dar valor a um campo <code>final</code> (ele roda tarde demais). Para isso existe a <strong>lista de inicialização</strong>: depois dos parênteses, dois-pontos e as atribuições.</p>
+
+<pre class="file" data-file="lista.dart">class Produto {
+  final String nome;
+  final int precoCentavos;
+  final double preco;
+
+  Produto(this.nome, this.precoCentavos) : preco = precoCentavos / 100;
+}
+
+void main() {
+  final cafe = Produto('café', 1890);
+  print('${cafe.nome}: ${cafe.precoCentavos} centavos = R\$ ${cafe.preco}');
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+café: 1890 centavos = R$ 18.9
+</pre>
+
+<p>O <code>: preco = precoCentavos / 100</code> roda <strong>antes</strong> do corpo, junto com os <code>this.</code>, quando o objeto ainda está sendo montado. Vários campos se separam com vírgula: <code>: a = 1, b = 2</code>.</p>
+
+<h3>Ordem do que acontece ao criar um objeto</h3>
+<ol class="passo">
+  <li>Os parâmetros <code>this.campo</code> preenchem os seus campos.</li>
+  <li>A lista de inicialização (<code>: …</code>) preenche os outros.</li>
+  <li>Todo campo <code>final</code> ou sem <code>?</code> tem de ter valor neste ponto.</li>
+  <li>O corpo <code>{ … }</code> roda, com o objeto já completo.</li>
+</ol>
+
+<hr>
+
+<h2>6. E quando a classe não tem construtor?</h2>
+<p>Na aula de <a href="classes.html">Classes</a>, você escreveu <code>Produto()</code> sem ter escrito construtor nenhum. É que o Dart cria um sozinho, o <strong>construtor padrão</strong>: sem parâmetros e sem corpo.</p>
+
+<pre class="file" data-file="padrao.dart">class Cofrinho {
+  double saldo = 0;
+}
+
+void main() {
+  final c = Cofrinho();
+  print(c.saldo);
+}
+</pre>
+
+<pre class="term">$ dart run padrao.dart
+0.0
+</pre>
+
+<p>Assim que você escreve um construtor seu, o padrão deixa de existir: com <code>Produto(this.nome, this.preco)</code>, um <code>Produto()</code> vazio dá erro. Para ter <strong>mais de um</strong> jeito de criar o objeto, existem os construtores com nome, da próxima aula: <a href="construtores-nomeados.html">Construtores Nomeados e factory</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td>Construtor com <code>this.</code> posicional</td><td><code>Produto(this.nome, this.preco);</code></td><td>Poucos parâmetros, de ordem óbvia (o padrão)</td></tr>
+<tr><td>Construtor com nomeados</td><td><code>Produto({required this.nome, this.estoque = 0});</code></td><td>Muitos parâmetros, ou opcionais</td></tr>
+<tr><td>Lista de inicialização</td><td><code>Produto(this.c) : preco = c / 100;</code></td><td>Campo <code>final</code> calculado a partir dos parâmetros</td></tr>
+<tr><td>Corpo</td><td><code>Conta(this.saldo) { if (…) throw …; }</code></td><td>Conferir valores, mostrar algo, preparar o objeto</td></tr>
+<tr><td>Corpo copiando para campos</td><td><code>Produto(String n) { nome = n; }</code></td><td>Evite: obriga valores iniciais "de mentira" e impede <code>final</code></td></tr>
+<tr><td>Sem construtor (o padrão)</td><td><code>Cofrinho()</code></td><td>Todos os campos têm um valor inicial que faz sentido</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Faltou um argumento</strong>
+<pre class="file" data-file="poucos.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+}
+
+void main() {
+  final cafe = Produto('café');
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run poucos.dart
+poucos.dart:8:23: Error: Too few positional arguments: 2 required, 1 given.
+  final cafe = Produto('café');
+                      ^
+poucos.dart:4:3: Context: Found this candidate, but the arguments don't match.
+  Produto(this.nome, this.preco);
+  ^^^^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>poucos.dart:8:23</dt><dd>Linha 8, no parêntese da chamada.</dd>
+  <dt>Too few positional arguments: 2 required, 1 given.</dt><dd>"Argumentos posicionais de menos: 2 exigidos, 1 informado." Faltou o preço.</dd>
+  <dt>poucos.dart:4:3: Context: Found this candidate, but the arguments don't match.</dt><dd>"Contexto: encontrei este candidato, mas os argumentos não batem." O Dart mostra o construtor que ele tentou usar, para você comparar.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>Produto('café', 18.9)</code>. Com argumentos <strong>a mais</strong>, a mensagem é <code>Too many positional arguments</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu um parâmetro <code>required</code></strong>
+<pre class="file" data-file="semrequired.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto({required this.nome, required this.preco});
+}
+
+void main() {
+  final cafe = Produto(nome: 'café');
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run semrequired.dart
+semrequired.dart:8:23: Error: Required named parameter 'preco' must be provided.
+  final cafe = Produto(nome: 'café');
+                      ^
+semrequired.dart:4:3: Context: Found this candidate, but the arguments don't match.
+  Produto({required this.nome, required this.preco});
+  ^^^^^^^
+</pre>
+<p>"O parâmetro nomeado obrigatório <code>preco</code> precisa ser informado." <strong>Como consertar:</strong> <code>Produto(nome: 'café', preco: 18.9)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Passou sem nome o que era nomeado</strong>
+<pre class="file" data-file="semnomeparam.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto({required this.nome, required this.preco});
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run semnomeparam.dart
+semnomeparam.dart:8:23: Error: Too many positional arguments: 0 allowed, but 2 found.
+Try removing the extra positional arguments.
+  final cafe = Produto('café', 18.9);
+                      ^
+semnomeparam.dart:4:3: Context: Found this candidate, but the arguments don't match.
+  Produto({required this.nome, required this.preco});
+  ^^^^^^^
+</pre>
+<p>"Argumentos posicionais demais: 0 permitidos, 2 encontrados." Com as chaves, o construtor não aceita nenhum argumento <strong>sem nome</strong>. <strong>Como consertar:</strong> escreva os nomes: <code>Produto(nome: 'café', preco: 18.9)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Parâmetro nomeado opcional, sem valor padrão, num campo que não aceita <code>null</code></strong>
+<pre class="file" data-file="nomeoptsemreq.dart">class Produto {
+  final String nome;
+  Produto({this.nome});
+}
+
+void main() {
+  print(Produto(nome: 'café').nome);
+}
+</pre>
+<pre class="term">$ dart run nomeoptsemreq.dart
+nomeoptsemreq.dart:3:17: Error: The parameter 'nome' can't have a value of 'null' because of its type 'String', but the implicit default value is 'null'.
+Try adding either an explicit non-'null' default value or the 'required' modifier.
+  Produto({this.nome});
+                ^^^^
+</pre>
+<p>"O parâmetro <code>nome</code> não pode valer <code>null</code> por causa do tipo <code>String</code>, mas o valor padrão implícito é <code>null</code>." Parâmetro nomeado sem <code>required</code> é opcional; se ninguém o informar, valeria <code>null</code>, e o campo não aceita. A própria mensagem dá as duas saídas: <strong>"acrescente um valor padrão que não seja <code>null</code> ou o <code>required</code>"</strong>: <code>{required this.nome}</code> ou <code>{this.nome = 'sem nome'}</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou dar valor a um campo <code>final</code> no corpo</strong>
+<pre class="file" data-file="corpofinal.dart">class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(String nome, double preco) {
+    this.nome = nome;
+    this.preco = preco;
+  }
+}
+
+void main() {
+  final cafe = Produto('café', 18.9);
+  print(cafe.nome);
+}
+</pre>
+<pre class="term">$ dart run corpofinal.dart
+corpofinal.dart:6:10: Error: The setter 'nome' isn't defined for the type 'Produto'.
+ - 'Produto' is from 'corpofinal.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'nome'.
+    this.nome = nome;
+         ^^^^
+corpofinal.dart:7:10: Error: The setter 'preco' isn't defined for the type 'Produto'.
+ - 'Produto' is from 'corpofinal.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'preco'.
+    this.preco = preco;
+         ^^^^^
+corpofinal.dart:2:16: Error: Final field 'nome' is not initialized.
+Try to initialize the field in the declaration or in every constructor.
+  final String nome;
+               ^^^^
+corpofinal.dart:3:16: Error: Final field 'preco' is not initialized.
+Try to initialize the field in the declaration or in every constructor.
+  final double preco;
+               ^^^^^
+</pre>
+<p>Quatro erros, duas causas:</p>
+<ul>
+  <li><code>The setter 'nome' isn't defined</code>: um campo <code>final</code> não tem <em>setter</em> (não pode ser escrito), nem dentro do corpo do construtor.</li>
+  <li><code>Final field 'nome' is not initialized.</code>: "o campo final <code>nome</code> não recebeu valor". Como o corpo não conta, nenhum valor chegou a ele. A sugestão: "inicialize o campo na declaração ou em todo construtor".</li>
+</ul>
+<p><strong>Como consertar:</strong> use o atalho <code>Produto(this.nome, this.preco);</code> (ou a lista de inicialização: <code>Produto(String n, double p) : nome = n, preco = p;</code>). Depois de criado, tentar <code>cafe.preco = 20.5;</code> dá o mesmo <code>The setter 'preco' isn't defined for the type 'Produto'.</code>: é o <code>final</code> protegendo o objeto.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs <code>void</code> no construtor</strong>
+<pre class="file" data-file="tipovoid.dart">class Produto {
+  final String nome;
+  void Produto(this.nome);
+}
+
+void main() {
+  print(Produto('café').nome);
+}
+</pre>
+<pre class="term">$ dart run tipovoid.dart
+tipovoid.dart:3:3: Error: Constructors can't have a return type.
+Try removing the return type.
+  void Produto(this.nome);
+  ^^^^
+</pre>
+<p>"Construtores não podem ter tipo de retorno. Tente remover o tipo de retorno." O construtor sempre devolve o objeto novo; não se escreve tipo. <strong>Como consertar:</strong> apague o <code>void</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Sem erro, mas o campo não mudou: faltou o <code>this</code></strong>
+<p>O caso do <code>renomear</code> da seção 2: <code>nome = nome;</code> dentro de um método com um parâmetro <code>nome</code> copia o parâmetro nele mesmo. O Dart não reclama, e o campo fica como estava (no lab, <code>Depois de renomear: ""</code>). <strong>Como consertar:</strong> <code>this.nome = nome;</code>, ou dê ao parâmetro outro nome.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Produto(this.nome, this.preco);</code></td><td>Construtor que copia os argumentos para os campos</td></tr>
+<tr><td><code>Produto({required this.nome})</code></td><td>Parâmetro nomeado obrigatório</td></tr>
+<tr><td><code>Produto({this.estoque = 0})</code></td><td>Parâmetro nomeado opcional com valor padrão</td></tr>
+<tr><td><code>Produto(this.nome, {this.estoque = 0})</code></td><td>Posicional + nomeado</td></tr>
+<tr><td><code>Produto(this.c) : preco = c / 100;</code></td><td>Lista de inicialização: campo calculado</td></tr>
+<tr><td><code>Conta(this.saldo) { … }</code></td><td>Corpo: roda depois de os campos terem valor</td></tr>
+<tr><td><code>this.nome</code></td><td>O campo <code>nome</code> deste objeto (desempata de um parâmetro)</td></tr>
+<tr><td>(nenhum construtor escrito)</td><td>O Dart cria o padrão: <code>Classe()</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Too few positional arguments: 2 required, 1 given.</code></td><td>Faltou argumento na criação</td></tr>
+<tr><td><code>Too many positional arguments: 0 allowed, but 2 found.</code></td><td>Argumentos sem nome num construtor de nomeados</td></tr>
+<tr><td><code>Required named parameter 'x' must be provided.</code></td><td>Faltou um nomeado <code>required</code></td></tr>
+<tr><td><code>… but the implicit default value is 'null'.</code></td><td>Nomeado opcional sem padrão: use <code>required</code> ou <code>= valor</code></td></tr>
+<tr><td><code>Final field 'x' is not initialized.</code></td><td>Campo <code>final</code> sem <code>this.x</code> nem lista de inicialização</td></tr>
+<tr><td><code>The setter 'x' isn't defined</code> (num campo que existe)</td><td>O campo é <code>final</code></td></tr>
+<tr><td><code>Constructors can't have a return type.</code></td><td><code>void</code> (ou outro tipo) antes do construtor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o construtor</h3>
+<div class="ex-code">class Aluno {<br>&nbsp;&nbsp;final String nome;<br>&nbsp;&nbsp;final double nota;<br>&nbsp;&nbsp;Aluno(<input data-answer="this.nome" aria-label="primeiro parâmetro">, <input data-answer="this.nota" aria-label="segundo parâmetro">);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Palavra que falta</h3>
+<p>Que palavra torna um parâmetro nomeado obrigatório?</p>
+<div class="ex-code">Produto({<input data-answer="required" aria-label="palavra-chave"> this.nome});</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>Produto({required this.nome, this.estoque = 0})</code>, qual chamada <strong>funciona</strong>?</p>
+<label><input type="radio" name="q3"> <code>Produto('café')</code></label>
+<label><input type="radio" name="q3"> <code>Produto(estoque: 5)</code></label>
+<label><input type="radio" name="q3"> <code>Produto(nome: 'café')</code></label>
+<label><input type="radio" name="q3"> <code>Produto()</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que roda primeiro ao criar um objeto?</p>
+<label><input type="radio" name="q4"> O corpo <code>{ … }</code> do construtor</label>
+<label><input type="radio" name="q4"> Os <code>this.campo</code> e a lista de inicialização</label>
+<label><input type="radio" name="q4"> O <code>toString</code></label>
+<label><input type="radio" name="q4"> O <code>main</code> de novo</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Num método com parâmetro <code>nome</code>, o que faz <code>nome = nome;</code>?</p>
+<label><input type="radio" name="q5"> Copia o parâmetro para o campo</label>
+<label><input type="radio" name="q5"> Dá erro de compilação</label>
+<label><input type="radio" name="q5"> Dá exceção ao rodar</label>
+<label><input type="radio" name="q5"> Nada útil: copia o parâmetro nele mesmo</label>
+</div>
+
+<h3>Missão final: o aluno com nota conferida</h3>
+
+<div class="trydart" data-goal="out:Bia: 8.5;;erro:nota fora de 0 a 10;;src:required\s+this\.nome">
+<p class="try-task"><strong>Missão:</strong> escreva o construtor de <code>Aluno</code> com parâmetros <strong>nomeados</strong> e obrigatórios (<code>required this.nome</code>, <code>required this.nota</code>) e um corpo que lança <code>ArgumentError('nota fora de 0 a 10')</code> quando a nota for menor que 0 ou maior que 10. O <code>main</code> cria a Bia (8.5) e depois o Caio (12): a Bia deve aparecer e o Caio deve parar o programa com o erro.</p>
+<pre class="script" data-file="main.dart">class Aluno {
+  final String nome;
+  final double nota;
+
+  // escreva o construtor aqui
+}
+
+void main() {
+  final bia = Aluno(nome: 'Bia', nota: 8.5);
+  print('${bia.nome}: ${bia.nota}');
+  final caio = Aluno(nome: 'Caio', nota: 12);
+  print('${caio.nome}: ${caio.nota}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Aluno {
+  final String nome;
+  final double nota;
+
+  Aluno({required this.nome, required this.nota}) {
+    if (nota &lt; 0 || nota &gt; 10) {
+      throw ArgumentError('nota fora de 0 a 10');
+    }
+  }
+}
+
+void main() {
+  final bia = Aluno(nome: 'Bia', nota: 8.5);
+  print('${bia.nome}: ${bia.nota}');
+  final caio = Aluno(nome: 'Caio', nota: 12);
+  print('${caio.nome}: ${caio.nota}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>O construtor tem o nome da classe, não tem tipo de retorno e roda na criação do objeto.</li>
+  <li><code>Produto(this.nome, this.preco);</code> copia os argumentos direto para os campos, que podem ser <code>final</code>.</li>
+  <li><code>this</code> é "este objeto"; serve para desempatar campo e parâmetro de mesmo nome.</li>
+  <li>Nomeados: <code>{required this.nome, this.estoque = 0}</code>; quem cria escreve os nomes, em qualquer ordem.</li>
+  <li>A lista de inicialização (<code>: campo = …</code>) calcula campos <code>final</code>; o corpo <code>{ … }</code> roda depois, para conferir valores (e <code>throw</code> se estiverem errados).</li>
+  <li>Sem construtor escrito, o Dart dá o padrão <code>Classe()</code>; para vários jeitos de criar, veja <a href="construtores-nomeados.html">Construtores Nomeados e factory</a>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
