@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Stream — vários valores chegando ao longo do tempo | Guia Dart</title>
+<meta name="description" content="Stream no Dart para quem nunca programou: a diferença entre Future e Stream, await for, listen com onDone e onError, Stream.periodic, Stream.fromIterable, where, map, reduce e toList, StreamController com add, addError e close, broadcast, e os erros reais do Dart 3.13 (Stream has already been listened to, await for sem async, o close esquecido).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Stream</span></h1>
+
+<p class="intro">Um <a href="future.html">Future</a> entrega <strong>um</strong> valor, uma vez, no futuro. Mas muita coisa chega <strong>aos poucos</strong>: as linhas de um arquivo grande, as mensagens de um chat, os cliques num botão, as leituras de um sensor a cada segundo. Para isso o Dart tem o <strong>Stream</strong> (em inglês, "fluxo", "correnteza"): uma sequência de valores que vão chegando ao longo do tempo, até o fluxo acabar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>Future&lt;T&gt;</code> (um valor) e <code>Stream&lt;T&gt;</code> (vários valores).</li>
+  <li>Como percorrer um Stream com <code>await for</code>, e como reagir a cada valor com <code>listen</code>.</li>
+  <li>Como criar Streams prontos: <code>Stream.periodic</code> e <code>Stream.fromIterable</code>.</li>
+  <li>Como filtrar e transformar: <code>where</code>, <code>map</code>, <code>take</code>, <code>reduce</code>, <code>toList</code>.</li>
+  <li>Como fabricar o seu Stream com <code>StreamController</code> (<code>add</code>, <code>addError</code>, <code>close</code>) e tratar erros.</li>
+  <li>Os erros reais: <code>Stream has already been listened to</code>, <code>await for</code> sem <code>async</code>, e o <code>close</code> esquecido.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a esteira da padaria</h2>
+<p>Na padaria industrial do bairro, os pães saem do forno numa <strong>esteira</strong>. A funcionária da embalagem não sabe quantos pães vêm hoje; ela fica na ponta da esteira e embala <strong>cada pão quando ele chega</strong>. No fim do turno, a esteira para, e ela vai embora. Às vezes cai uma bandeja: é um problema no meio do fluxo.</p>
+<ul>
+  <li>A esteira é o <strong>Stream</strong>; cada pão é um <strong>evento</strong> (um valor).</li>
+  <li>Embalar cada pão que chega é o <code>await for</code> ou o <code>listen</code> ("escutar").</li>
+  <li>A esteira parar é o fim do Stream (o <em>done</em>, "pronto").</li>
+  <li>A bandeja caída é um <strong>erro</strong> no meio do Stream.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Um valor</th><th>Vários valores</th></tr>
+<tr><td><strong>Agora</strong> (síncrono)</td><td><code>int</code>, <code>String</code>…</td><td><code>List&lt;T&gt;</code>, <code>Iterable&lt;T&gt;</code></td></tr>
+<tr><td><strong>Depois</strong> (assíncrono)</td><td><code>Future&lt;T&gt;</code></td><td><code>Stream&lt;T&gt;</code></td></tr>
+</table>
+</div>
+<p>Um Stream é, de certa forma, uma "lista que vai chegando". Por isso muitos métodos são os mesmos das listas (<code>where</code>, <code>map</code>…).</p>
+
+<hr>
+
+<h2>1. O primeiro Stream: <code>await for</code></h2>
+
+<pre class="file" data-file="s1.dart">Future&lt;void&gt; main() async {
+  final fornadas = Stream.periodic(
+    Duration(seconds: 1),
+    (i) =&gt; 'fornada ${i + 1}',
+  ).take(3);
+
+  print('Esperando as fornadas...');
+  await for (final f in fornadas) {
+    print('Saiu a $f');
+  }
+  print('Forno desligado');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>Stream.periodic(Duration(seconds: 1), (i) =&gt; …)</dt><dd>"Periódico": um Stream que solta um valor <strong>a cada 1 segundo</strong>, para sempre. A função recebe a contagem <code>i</code> (0, 1, 2…) e devolve o valor do evento.</dd>
+  <dt>.take(3)</dt><dd>"Pegue 3": um novo Stream que termina depois dos 3 primeiros valores. Sem ele, as fornadas não parariam nunca.</dd>
+  <dt>await for (final f in fornadas)</dt><dd>Um <a href="for-in.html">for-in</a> com <code>await</code> na frente: <strong>espera</strong> cada valor chegar, roda o bloco com ele, e espera o próximo. Só sai do laço quando o Stream termina. Como todo <code>await</code>, exige uma função <code>async</code>.</dd>
+  <dt>print('Forno desligado')</dt><dd>Roda só depois que o Stream acabou.</dd>
+</dl>
+
+<pre class="term">$ dart run s1.dart
+Esperando as fornadas...
+Saiu a fornada 1
+Saiu a fornada 2
+Saiu a fornada 3
+Forno desligado
+</pre>
+
+<p>No terminal, cada "Saiu a fornada" apareceu um segundo depois da anterior.</p>
+
+<div class="trydart" data-goal="out:Total do dia: 57;;src:await\s+for">
+<p class="try-task"><strong>Missão:</strong> as vendas do dia chegam num Stream. No lugar do comentário, escreva um <code>await for (final v in vendas) { total += v; }</code> para somar todas. Deve aparecer <code>Total do dia: 57</code>.</p>
+<pre class="script" data-file="main.dart">Future&lt;void&gt; main() async {
+  final vendas = Stream.fromIterable([12, 30, 15]);
+  var total = 0;
+  // some as vendas aqui, com await for
+  print('Total do dia: $total');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;void&gt; main() async {
+  final vendas = Stream.fromIterable([12, 30, 15]);
+  var total = 0;
+  await for (final v in vendas) {
+    total += v;
+  }
+  print('Total do dia: $total');
+}
+</pre>
+</div>
+
+<p>O <code>Stream.fromIterable([…])</code> transforma uma lista num Stream: cada item vira um evento. É ótimo para testar. No lab, a solução mostrou <code>Total do dia: 57</code>.</p>
+
+<hr>
+
+<h2>2. <code>listen</code>: reagir a cada valor</h2>
+<p>O outro jeito de usar um Stream é <strong>registrar</strong> uma função que o Dart chama a cada valor, sem pausar a função atual. É o <code>listen</code> ("escutar"), primo do <code>then</code> dos Futures:</p>
+
+<pre class="file" data-file="s2.dart">void main() {
+  final pedidos = Stream.fromIterable(['pão', 'bolo', 'broa']);
+  pedidos.listen(
+    (p) =&gt; print('Pedido: $p'),
+    onDone: () =&gt; print('Sem mais pedidos'),
+  );
+  print('listen registrado');
+}
+</pre>
+
+<pre class="term">$ dart run s2.dart
+listen registrado
+Pedido: pão
+Pedido: bolo
+Pedido: broa
+Sem mais pedidos
+</pre>
+
+<dl class="anatomy">
+  <dt>pedidos.listen((p) =&gt; …)</dt><dd>A função é chamada uma vez para cada valor do Stream.</dd>
+  <dt>onDone: () =&gt; …</dt><dd>Um <a href="parametros-nomeados.html">parâmetro nomeado</a> opcional: roda quando o Stream termina.</dd>
+  <dt>listen registrado veio primeiro</dt><dd>Mesmo com a lista pronta, os eventos de um Stream só chegam <strong>depois</strong> que o código normal termina, como os Futures (veja a ordem em <a href="future.html">Future</a>). O <code>main</code> nem é <code>async</code>: o <code>listen</code> não espera nada.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Filtrar e transformar</h2>
+<p>Os métodos de Stream criam <strong>novos Streams</strong>, como os de lista criam novos iteráveis (veja <a href="iterables.html">map, where, reduce</a>). Os que juntam tudo num valor só devolvem um Future:</p>
+
+<pre class="file" data-file="s3.dart">Future&lt;void&gt; main() async {
+  final precos = Stream.fromIterable([4, 12, 7, 30, 2]);
+  final caros = precos.where((p) =&gt; p &gt;= 7).map((p) =&gt; 'R\$ $p');
+  await for (final c in caros) {
+    print(c);
+  }
+  final total = await Stream.fromIterable([4, 12, 7]).reduce((a, b) =&gt; a + b);
+  print('Total: $total');
+  final lista = await Stream.fromIterable(['a', 'b']).toList();
+  print(lista);
+  print(Stream.fromIterable([1, 2]));
+}
+</pre>
+
+<pre class="term">$ dart run s3.dart
+R$ 12
+R$ 7
+R$ 30
+Total: 23
+[a, b]
+Instance of '_MultiStream&lt;int&gt;'
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>Devolve</th><th>No exemplo</th></tr>
+<tr><td><code>where((p) =&gt; p &gt;= 7)</code></td><td>Stream só com os que passam no teste</td><td>12, 7, 30</td></tr>
+<tr><td><code>map((p) =&gt; 'R\$ $p')</code></td><td>Stream com cada valor transformado</td><td><code>R$ 12</code>…</td></tr>
+<tr><td><code>take(n)</code></td><td>Stream com os <code>n</code> primeiros</td><td>(seção 1)</td></tr>
+<tr><td><code>reduce((a, b) =&gt; a + b)</code></td><td><code>Future</code> com tudo combinado</td><td>23</td></tr>
+<tr><td><code>toList()</code></td><td><code>Future&lt;List&gt;</code> com todos os valores</td><td><code>[a, b]</code></td></tr>
+</table>
+</div>
+
+<p>A última linha mostra o mesmo de sempre: imprimir o Stream não mostra os valores, só <code>Instance of …</code> (o <code>_MultiStream</code> é o nome interno do tipo que o <code>fromIterable</code> cria).</p>
+
+<hr>
+
+<h2>4. O seu Stream: <code>StreamController</code></h2>
+<p>Para fabricar um Stream e decidir quando cada valor entra, use um <code>StreamController</code> ("controlador do fluxo"), da biblioteca <code>dart:async</code>. Ele tem a <strong>entrada</strong> (<code>add</code>, <code>addError</code>, <code>close</code>) e a <strong>saída</strong> (<code>.stream</code>):</p>
+
+<pre class="file" data-file="s4.dart">import 'dart:async';
+
+Future&lt;void&gt; main() async {
+  final esteira = StreamController&lt;String&gt;();
+
+  esteira.add('pão');
+  esteira.add('bolo');
+  esteira.addError(StateError('bandeja caiu'));
+  esteira.add('broa');
+  esteira.close();
+
+  try {
+    await for (final item in esteira.stream) {
+      print('Embalando $item');
+    }
+  } on StateError catch (e) {
+    print('Parou: ${e.message}');
+  }
+  print('Fim');
+}
+</pre>
+
+<pre class="term">$ dart run s4.dart
+Embalando pão
+Embalando bolo
+Parou: bandeja caiu
+Fim
+</pre>
+
+<dl class="anatomy">
+  <dt>StreamController&lt;String&gt;()</dt><dd>Uma esteira de textos.</dd>
+  <dt>esteira.add('pão')</dt><dd>Põe um valor na esteira.</dd>
+  <dt>esteira.addError(StateError(…))</dt><dd>Põe um <strong>erro</strong> na esteira.</dd>
+  <dt>esteira.close()</dt><dd>Desliga a esteira: avisa que não vem mais nada. É o que faz o <code>await for</code> terminar (veja <a href="#errado">Quando dá errado</a>).</dd>
+  <dt>await for … dentro de try</dt><dd>Quando o erro chega, o <code>await for</code> o <strong>lança</strong>, e o laço acaba ali. A <code>broa</code>, que vinha depois do erro, nunca foi embalada.</dd>
+</dl>
+
+<p>Com o <code>listen</code>, o erro vai para o <code>onError</code>, e o Stream <strong>continua</strong>:</p>
+
+<pre class="file" data-file="s5.dart">import 'dart:async';
+
+void main() {
+  final esteira = StreamController&lt;String&gt;();
+  esteira.stream.listen(
+    (item) =&gt; print('Embalando $item'),
+    onError: (e) =&gt; print('Problema: $e'),
+    onDone: () =&gt; print('Esteira parada'),
+  );
+  esteira.add('pão');
+  esteira.addError(StateError('bandeja caiu'));
+  esteira.add('broa');
+  esteira.close();
+}
+</pre>
+
+<pre class="term">$ dart run s5.dart
+Embalando pão
+Problema: Bad state: bandeja caiu
+Embalando broa
+Esteira parada
+</pre>
+
+<p>Aqui a broa foi embalada: o <code>onError</code> tratou a bandeja caída e a esteira seguiu até o <code>close</code> (<code>Esteira parada</code>).</p>
+
+<p>Para fabricar Streams há também um jeito mais elegante, com funções <code>async*</code> e <code>yield</code>: é a próxima aula, <a href="async-star.html">Geradores</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Processar cada valor em ordem, e fazer algo depois que o Stream acabar</td><td><code>await for</code> (dentro de uma função <code>async</code>)</td></tr>
+<tr><td>Reagir a cada valor sem parar o resto do programa (cliques, mensagens)</td><td><code>listen(…, onError: …, onDone: …)</code></td></tr>
+<tr><td>Um erro deve encerrar o processamento</td><td><code>await for</code> dentro de <code>try</code>/<code>catch</code></td></tr>
+<tr><td>Um erro não deve parar o fluxo</td><td><code>listen</code> com <code>onError</code></td></tr>
+<tr><td>Só precisa de todos os valores juntos no fim</td><td><code>await stream.toList()</code></td></tr>
+<tr><td>Testar, ou transformar uma lista em Stream</td><td><code>Stream.fromIterable([…])</code></td></tr>
+<tr><td>Um valor a cada intervalo de tempo</td><td><code>Stream.periodic(Duration(…), (i) =&gt; …)</code> + <code>take</code></td></tr>
+<tr><td>Fabricar o Stream você mesmo</td><td><code>StreamController</code>, ou <code>async*</code> (<a href="async-star.html">Geradores</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Dois ouvintes no mesmo Stream</strong>
+<pre class="file" data-file="s9.dart">import 'dart:async';
+
+void main() {
+  final esteira = StreamController&lt;String&gt;();
+  esteira.stream.listen((p) =&gt; print('Caixa 1: $p'));
+  esteira.stream.listen((p) =&gt; print('Caixa 2: $p'));
+  esteira.add('pão');
+  esteira.close();
+}
+</pre>
+<pre class="term">$ dart run s9.dart
+Unhandled exception:
+Bad state: Stream has already been listened to.
+#0      _StreamController._subscribe (dart:async/stream_controller.dart:695:7)
+#1      _ControllerStream._createSubscription (dart:async/stream_controller.dart:854:20)
+#2      _StreamImpl.listen (dart:async/stream_impl.dart:516:42)
+#3      main (file:///home/ana/s9.dart:6:18)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>"Estado inválido: este Stream já está sendo escutado". O <code>#3 main (…s9.dart:6:18)</code> aponta o <strong>segundo</strong> <code>listen</code>. O Stream de um <code>StreamController</code> comum aceita <strong>um ouvinte só</strong> (em inglês, <em>single-subscription</em>): como a esteira, que tem uma ponta só. <strong>Como consertar:</strong> se várias partes do programa precisam ouvir, crie o controlador com <code>StreamController&lt;String&gt;.broadcast()</code> ("transmissão", como uma rádio). Com ele, o mesmo programa mostrou no lab <code>Caixa 1: pão</code> e <code>Caixa 2: pão</code>.</p>
+<p>(O <code>Stream.fromIterable</code> do Dart 3.13 aceita vários ouvintes: no lab, dois <code>listen</code> nele funcionaram, cada um recebendo os valores desde o começo.)</p>
+</div>
+
+<div class="cenario">
+<strong><code>await for</code> numa função sem <code>async</code></strong>
+<pre class="file" data-file="s7.dart">void main() {
+  final pedidos = Stream.fromIterable(['pão', 'bolo']);
+  await for (final p in pedidos) {
+    print(p);
+  }
+}
+</pre>
+<pre class="term">$ dart run s7.dart
+s7.dart:3:3: Error: The asynchronous for-in can only be used in functions marked with 'async' or 'async*'.
+Try marking the function body with either 'async' or 'async*', or removing the 'await' before the for loop.
+  await for (final p in pedidos) {
+  ^^^^^
+</pre>
+<p>"O for-in assíncrono só pode ser usado em funções marcadas com <code>async</code> ou <code>async*</code>. Marque a função, ou tire o <code>await</code> antes do <code>for</code>". (Tirar o <code>await</code> não resolveria: um <code>for</code> comum não percorre um Stream.) <strong>Como consertar:</strong> <code>Future&lt;void&gt; main() async {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>close()</code>: o programa acaba no meio</strong>
+<pre class="file" data-file="s8.dart">import 'dart:async';
+
+Future&lt;void&gt; main() async {
+  final esteira = StreamController&lt;String&gt;();
+  esteira.add('pão');
+  esteira.add('bolo');
+  await for (final item in esteira.stream) {
+    print('Embalando $item');
+  }
+  print('Fim');
+}
+</pre>
+<pre class="term">$ timeout 10 dart run s8.dart
+Embalando pão
+Embalando bolo
+$ echo $?
+0
+</pre>
+<p>Sem mensagem de erro, e sem o <code>Fim</code>. O <code>await for</code> ficou esperando um terceiro item que nunca veio, porque ninguém disse que a esteira tinha parado. Como não havia mais nada que pudesse acontecer (nenhum Future, nenhum relógio), o Dart encerrou o programa com código 0, e o resto do <code>main</code> simplesmente nunca rodou. (O <code>timeout 10</code> era só uma garantia: o programa terminou na hora.) <strong>Como consertar:</strong> <code>esteira.close();</code> depois do último <code>add</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>Stream&lt;T&gt;</code></td><td>Vários valores do tipo <code>T</code>, chegando ao longo do tempo</td></tr>
+<tr><td><code>await for (final v in stream) { … }</code></td><td>Percorre o Stream, esperando cada valor; termina quando ele acaba</td></tr>
+<tr><td><code>stream.listen(f, onError: g, onDone: h)</code></td><td>Chama <code>f</code> a cada valor, <code>g</code> a cada erro, <code>h</code> no fim</td></tr>
+<tr><td><code>Stream.fromIterable(lista)</code></td><td>Stream com os itens da lista</td></tr>
+<tr><td><code>Stream.periodic(Duration(…), (i) =&gt; …)</code></td><td>Um valor a cada intervalo, sem fim (use <code>take</code>)</td></tr>
+<tr><td><code>where</code>, <code>map</code>, <code>take</code></td><td>Novos Streams filtrados, transformados, cortados</td></tr>
+<tr><td><code>await stream.toList()</code>, <code>await stream.reduce(…)</code></td><td>Junta tudo num valor só</td></tr>
+<tr><td><code>StreamController&lt;T&gt;()</code> + <code>.stream</code></td><td>Fabrica um Stream de um ouvinte só (<code>import 'dart:async';</code>)</td></tr>
+<tr><td><code>add(v)</code>, <code>addError(e)</code>, <code>close()</code></td><td>Põe valor, põe erro, encerra</td></tr>
+<tr><td><code>StreamController&lt;T&gt;.broadcast()</code></td><td>Stream com vários ouvintes</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o laço</h3>
+<div class="ex-code"><input data-answer="await" aria-label="palavra-chave"> for (final pedido in pedidos) {<br>&nbsp;&nbsp;print(pedido);<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Encerrar</h3>
+<p>Qual método do <code>StreamController</code> avisa que não vêm mais valores?</p>
+<div class="ex-code">esteira.<input data-answer="close" aria-label="método">();</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual é a diferença entre <code>Future&lt;int&gt;</code> e <code>Stream&lt;int&gt;</code>?</p>
+<label><input type="radio" name="q3"> Nenhuma</label>
+<label><input type="radio" name="q3"> O Stream é mais rápido</label>
+<label><input type="radio" name="q3"> O Future entrega um valor; o Stream entrega vários, ao longo do tempo</label>
+<label><input type="radio" name="q3"> O Future só funciona com <code>listen</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Um <code>StreamController</code> comum recebe um segundo <code>listen</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> <code>Bad state: Stream has already been listened to.</code></label>
+<label><input type="radio" name="q4"> Os dois recebem os valores</label>
+<label><input type="radio" name="q4"> O segundo substitui o primeiro</label>
+<label><input type="radio" name="q4"> Erro de compilação</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Num <code>await for</code> dentro de <code>try</code>, chega um erro no meio do Stream. E os valores que viriam depois dele?</p>
+<label><input type="radio" name="q5"> São processados normalmente</label>
+<label><input type="radio" name="q5"> Vão para o <code>onError</code></label>
+<label><input type="radio" name="q5"> O programa não compila</label>
+<label><input type="radio" name="q5"> Não são processados: o laço termina no erro e o <code>catch</code> roda</label>
+</div>
+
+<h3>Missão final: só as aprovadas</h3>
+
+<div class="trydart" data-goal="outre:Aprovada: 8\nAprovada: 10\nAprovada: 9\nFim;;src:\.where\(">
+<p class="try-task"><strong>Missão:</strong> as notas da turma chegam num Stream, e o programa mostra todas como "aprovadas". Crie um Stream só com as notas maiores ou iguais a 7, com <code>where</code>: <code>final aprovadas = notas.where((n) =&gt; n &gt;= 7);</code>, e percorra o <code>aprovadas</code> no lugar do <code>notas</code>.</p>
+<pre class="script" data-file="main.dart">Future&lt;void&gt; main() async {
+  final notas = Stream.fromIterable([8, 4, 10, 6, 9]);
+  await for (final n in notas) {
+    print('Aprovada: $n');
+  }
+  print('Fim');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">Future&lt;void&gt; main() async {
+  final notas = Stream.fromIterable([8, 4, 10, 6, 9]);
+  final aprovadas = notas.where((n) =&gt; n &gt;= 7);
+  await for (final n in aprovadas) {
+    print('Aprovada: $n');
+  }
+  print('Fim');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>Aprovada: 8</code>, <code>Aprovada: 10</code>, <code>Aprovada: 9</code> e <code>Fim</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <code>Stream&lt;T&gt;</code> é uma esteira: vários valores chegando ao longo do tempo, até o fim (ou um erro no meio).</li>
+  <li><code>await for</code> percorre o Stream esperando cada valor (precisa de <code>async</code>); <code>listen</code> reage a cada valor sem pausar nada, com <code>onError</code> e <code>onDone</code>.</li>
+  <li><code>where</code>, <code>map</code> e <code>take</code> criam novos Streams; <code>toList</code> e <code>reduce</code> devolvem um Future.</li>
+  <li><code>StreamController</code> fabrica um Stream: <code>add</code>, <code>addError</code> e, sempre, <code>close</code>. Sem o <code>close</code>, o <code>await for</code> nunca termina, e o resto da função não roda.</li>
+  <li>O Stream de um <code>StreamController</code> comum aceita um ouvinte só; para vários, <code>.broadcast()</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
