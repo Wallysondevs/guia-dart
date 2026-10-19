@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Extensões — métodos novos em tipos que não são seus | Guia Dart</title>
+<meta name="description" content="Extensões no Dart para quem nunca programou: extension Reais on double para mostrar R$ 12,90, getters e métodos novos em String, int e List<double>, extensões nas suas classes, on num, como resolver duas extensões com o mesmo nome, e os erros reais do Dart 3.13 (conflito, double?, int, e o NoSuchMethodError com dynamic).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Extensões</span></h1>
+
+<p class="intro">Em todo programa da lojinha, a Ana escreve <code>'R\$ ${preco.toStringAsFixed(2)}'</code> para mostrar um preço, e o resultado ainda sai com ponto (<code>R$ 12.90</code>), não com vírgula, como se escreve no Brasil. Seria ótimo se todo <code>double</code> tivesse um <code>.reais</code>: <code>preco.reais</code> → <code>R$ 12,90</code>. Mas o <code>double</code> é do Dart, não dela; ela não pode abrir a classe e acrescentar nada. Para isso existem as <strong>extensões</strong>: <code>extension … on double</code> ("extensão sobre double") acrescenta métodos e getters a um tipo que já existe, sem mexer nele.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever uma extensão: <code>extension Reais on double { … }</code>.</li>
+  <li>Getters e métodos (com parâmetros) em <code>String</code>, <code>int</code>, <code>List&lt;double&gt;</code> e nas suas próprias classes.</li>
+  <li>O que é <code>this</code> dentro de uma extensão.</li>
+  <li>Por que <code>on num</code> serve para <code>int</code> e <code>double</code>, e como lidar com <code>double?</code>.</li>
+  <li>Os erros reais: duas extensões com o mesmo nome, o tipo que não tem a extensão, e o <code>NoSuchMethodError</code> com <code>dynamic</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. As extensões existem desde o Dart 2.7.</p>
+
+<hr>
+
+<h2>A ideia: a capinha do celular</h2>
+<p>A Ana não pode abrir o celular e soldar um suporte novo. Mas pode pôr uma <strong>capinha</strong> com um anel atrás: o celular continua o mesmo, e agora "tem" um anel. Tirou a capinha (ou não trouxe o arquivo da extensão), o anel some.</p>
+<p>A extensão é a capinha: ela não muda a classe <code>double</code>. Ela só ensina ao <strong>compilador</strong> que, quando ele vir <code>preco.reais</code> e <code>preco</code> for um <code>double</code>, deve chamar o código da extensão. Guarde esse detalhe ("o compilador"), porque ele explica o erro mais curioso da aula.</p>
+
+<hr>
+
+<h2>1. A primeira extensão: preço em reais</h2>
+
+<pre class="file" data-file="reais.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+void main() {
+  final preco = 12.9;
+  print(preco.reais);
+  print(0.75.reais);
+  print((3 * 4.5).reais);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>extension</dt><dd>A palavra-chave: "vou acrescentar coisas a um tipo".</dd>
+  <dt>Reais</dt><dd>O nome da extensão, em <code>UpperCamelCase</code>, como uma classe. Ele é opcional, mas é útil para resolver conflitos (seção 5) e para as mensagens de erro.</dd>
+  <dt>on double</dt><dd>Sobre qual tipo: todo valor <code>double</code> ganha o que estiver dentro das chaves.</dd>
+  <dt>String get reais =&gt; …</dt><dd>Um getter novo (veja <a href="getters-setters.html">get e set</a>). Dentro dele, <code>toStringAsFixed(2)</code> é chamado no <strong>próprio número</strong>: é como escrever <code>this.toStringAsFixed(2)</code>, onde <code>this</code> é o <code>double</code> que está antes do ponto.</dd>
+  <dt>.replaceAll('.', ',')</dt><dd>Troca o ponto pela vírgula (veja <a href="strings-metodos.html">Métodos de String</a>).</dd>
+</dl>
+
+<pre class="term">$ dart run reais.dart
+R$ 12,90
+R$ 0,75
+R$ 13,50
+</pre>
+
+<p>O <code>.reais</code> funcionou numa variável, num número escrito direto (<code>0.75</code>) e no resultado de uma conta. Parece que o <code>double</code> sempre teve esse getter.</p>
+
+<hr>
+
+<h2>2. Métodos com parâmetros, e extensões em <code>String</code></h2>
+
+<pre class="file" data-file="texto.dart">extension TextoDaLoja on String {
+  String get capitalizado =&gt;
+      isEmpty ? this : this[0].toUpperCase() + substring(1).toLowerCase();
+
+  bool get vazioOuEspacos =&gt; trim().isEmpty;
+
+  String repetir(int vezes, {String separador = ' '}) =&gt;
+      List.filled(vezes, this).join(separador);
+}
+
+void main() {
+  print('bRIGADEIRO'.capitalizado);
+  print('pão de queijo'.capitalizado);
+  print('   '.vazioOuEspacos);
+  print('Ana'.vazioOuEspacos);
+  print('oba'.repetir(3));
+  print('-'.repetir(10, separador: ''));
+}
+</pre>
+
+<pre class="term">$ dart run texto.dart
+Brigadeiro
+Pão de queijo
+true
+false
+oba oba oba
+----------
+</pre>
+
+<dl class="anatomy">
+  <dt>isEmpty ? this : …</dt><dd>Aqui o <code>this</code> aparece por extenso: é o texto inteiro. Se estiver vazio, devolve ele mesmo (não há primeira letra para aumentar).</dd>
+  <dt>this[0].toUpperCase() + substring(1).toLowerCase()</dt><dd>A primeira letra em maiúscula e o resto em minúscula.</dd>
+  <dt>String repetir(int vezes, {String separador = ' '})</dt><dd>Um <strong>método</strong>, com um parâmetro posicional e um <a href="parametros-nomeados.html">nomeado</a> com valor padrão. Extensões aceitam tudo o que um método de classe aceita.</dd>
+</dl>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> troque <code>on double</code> por <code>on num</code> e rode: agora <code>3.reais</code> também funciona (no lab, deu <code>R$ 3,00</code>), porque <code>num</code> é o tipo que reúne <code>int</code> e <code>double</code>. Depois, acrescente um getter <code>String get centavos =&gt; '${(this * 100).round()} centavos';</code> e teste com <code>0.75.centavos</code>.</p>
+<pre class="script" data-file="main.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+void main() {
+  print(12.9.reais);
+  print(0.75.reais);
+  // print(3.reais);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Extensão numa lista</h2>
+<p>O tipo depois do <code>on</code> pode ser bem específico. A Ana quer somar e tirar a média das vendas da semana, uma <code>List&lt;double&gt;</code>:</p>
+
+<pre class="file" data-file="lista.dart">extension Contas on List&lt;double&gt; {
+  double get soma =&gt; fold(0, (total, x) =&gt; total + x);
+  double get media =&gt; isEmpty ? 0 : soma / length;
+}
+
+void main() {
+  final vendasDaSemana = [120.0, 98.5, 143.0, 87.25, 160.0];
+  print('Total: ${vendasDaSemana.soma}');
+  print('Média: ${vendasDaSemana.media}');
+  print(&lt;double&gt;[].media);
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+Total: 608.75
+Média: 121.75
+0.0
+</pre>
+
+<p>O <code>fold</code> percorre a lista acumulando um total (veja <a href="iterables.html">map, where, reduce e Outros</a>). Dentro da extensão, <code>isEmpty</code>, <code>length</code> e <code>fold</code> são da própria lista, e <code>soma</code> (usado pela <code>media</code>) é da extensão: os membros de uma extensão se enxergam. Uma <code>List&lt;String&gt;</code>, por outro lado, <strong>não</strong> ganha <code>.soma</code>: a extensão é só para listas de <code>double</code>.</p>
+
+<hr>
+
+<h2>4. Juntando: extensões nas suas próprias classes</h2>
+<p>Dá para estender as suas classes também, e uma extensão pode usar outra:</p>
+
+<pre class="file" data-file="juntas.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+extension Contas on List&lt;double&gt; {
+  double get soma =&gt; fold(0, (total, x) =&gt; total + x);
+}
+
+class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+}
+
+extension Etiqueta on Produto {
+  String get etiqueta =&gt; '${nome.toUpperCase()} ... ${preco.reais}';
+}
+
+void main() {
+  final carrinho = [Produto('Café', 4.0), Produto('Bolo', 20.0), Produto('Sonho', 6.5)];
+  for (final p in carrinho) {
+    print(p.etiqueta);
+  }
+  final total = carrinho.map((p) =&gt; p.preco).toList().soma;
+  print('Total: ${total.reais}');
+}
+</pre>
+
+<pre class="term">$ dart run juntas.dart
+CAFÉ ... R$ 4,00
+BOLO ... R$ 20,00
+SONHO ... R$ 6,50
+Total: R$ 30,50
+</pre>
+
+<p>Na sua própria classe, o normal é escrever o getter <strong>dentro</strong> dela. A extensão faz sentido quando a classe é de outra pessoa (de um pacote), ou quando a etiqueta é um assunto de outra parte do programa (a tela, a impressão) e você não quer misturá-lo com a classe. Para usar uma extensão escrita em outro arquivo, basta importar esse arquivo (veja <a href="imports.html">import, export e Bibliotecas</a>).</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Sem extensões, a mesma coisa sai com uma <strong>função comum</strong>:</p>
+
+<pre class="file" data-file="funcao.dart">String emReais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
+</pre>
+
+<p>E se usa assim: <code>print(emReais(preco));</code>. Funciona igual. A extensão só muda a <strong>leitura</strong>: <code>preco.reais</code> se lê da esquerda para a direita, e encadeia melhor (<code>carrinho.map(…).toList().soma.reais</code>, em vez de <code>emReais(somar(carrinho.map(…).toList()))</code>). E o editor de código sugere o <code>.reais</code> quando você digita o ponto.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Acrescentar uma operação a um tipo que não é seu (<code>double</code>, <code>String</code>, <code>List</code>, classe de pacote)</td><td><code>extension Nome on Tipo</code></td></tr>
+<tr><td>Uma operação usada uma vez só</td><td>Uma função comum basta</td></tr>
+<tr><td>A classe é sua e a operação é parte dela</td><td>Escreva o método dentro da classe</td></tr>
+<tr><td>Valer para <code>int</code> e <code>double</code></td><td><code>on num</code></td></tr>
+<tr><td>Mudar o que um método que já existe faz</td><td>Extensão <strong>não</strong> serve (o método da classe vence); use herança com <a href="override.html">@override</a></td></tr>
+<tr><td>Acrescentar <strong>campos</strong> (dados novos)</td><td>Extensão não pode ter campos de instância; use uma classe ou <a href="mixins.html">mixin</a></td></tr>
+</table>
+</div>
+
+<div class="note">
+<strong>E o <code>extension type</code>?</strong>
+<p>O Dart 3.3 trouxe uma coisa de nome parecido, o <code>extension type</code>, que cria um <strong>tipo novo</strong> por cima de um existente. É um recurso avançado, diferente desta aula; se encontrar <code>extension type</code> num código, saiba que não é a "capinha" vista aqui.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Duas extensões com o mesmo nome de getter</strong>
+<pre class="file" data-file="erro_conflito.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2)}';
+}
+
+extension ReaisBR on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+void main() {
+  final preco = 12.9;
+  print(preco.reais);
+}
+</pre>
+<pre class="term">$ dart run erro_conflito.dart
+erro_conflito.dart:11:15: Error: The property 'reais' is defined in multiple extensions for 'double' and neither is more specific.
+Try using an explicit extension application of the wanted extension or hiding unwanted extensions from scope.
+  print(preco.reais);
+              ^^^^^
+erro_conflito.dart:2:14: Context: This is one of the extension members.
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2)}';
+             ^^^^^
+erro_conflito.dart:6:14: Context: This is one of the extension members.
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+             ^^^^^
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro_conflito.dart:11:15: Error:</code> erro de compilação (código 254), linha 11, no <code>.reais</code>.</li>
+  <li>"A propriedade <code>reais</code> está definida em várias extensões para <code>double</code>, e nenhuma é mais específica." O Dart não sabe qual capinha usar.</li>
+  <li>"Tente uma aplicação explícita da extensão desejada, ou esconda as extensões indesejadas."</li>
+  <li>Os dois <code>Context:</code> mostram as duas candidatas, linhas 2 e 6.</li>
+</ul>
+<p><strong>Como consertar:</strong> a "aplicação explícita" é chamar a extensão pelo nome, como se fosse uma função: <code>ReaisBR(preco).reais</code>. No lab, <code>Reais(preco).reais</code> deu <code>R$ 12.90</code> e <code>ReaisBR(preco).reais</code> deu <code>R$ 12,90</code>. É para isso que serve o nome da extensão. "Esconder" se faz no <code>import</code>, com <code>hide</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O valor pode ser <code>null</code></strong>
+<pre class="file" data-file="erro_nulo.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+double? precoDe(String produto) =&gt; produto == 'café' ? 4.0 : null;
+
+void main() {
+  final preco = precoDe('café');
+  print(preco.reais);
+}
+</pre>
+<pre class="term">$ dart run erro_nulo.dart
+erro_nulo.dart:9:15: Error: Property 'reais' cannot be accessed on 'double?' because it is potentially null.
+Try accessing using ?. instead.
+  print(preco.reais);
+              ^^^^^
+</pre>
+<p>"A propriedade <code>reais</code> não pode ser acessada em <code>double?</code>, porque ele pode ser <code>null</code>. Tente <code>?.</code>." A extensão é <code>on double</code>, e <code>double?</code> é outro tipo (veja <a href="tipos-anulaveis.html">Tipos Anuláveis</a>). <strong>Como consertar:</strong> <code>preco?.reais</code> (dá <code>null</code> se não houver preço), <code>(preco ?? 0).reais</code>, ou confira com <code>if (preco != null)</code> antes (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Usou num <code>int</code> uma extensão <code>on double</code></strong>
+<pre class="file" data-file="erro_int.dart">extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+void main() {
+  final quantidade = 3;
+  print(quantidade.reais);
+}
+</pre>
+<pre class="term">$ dart run erro_int.dart
+erro_int.dart:7:20: Error: The getter 'reais' isn't defined for the type 'int'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'reais'.
+  print(quantidade.reais);
+                   ^^^^^
+</pre>
+<p>"O getter <code>reais</code> não está definido para o tipo <code>int</code>." O <code>3</code> é <code>int</code>, não <code>double</code>. É a mesma mensagem de quando o getter não existe em lugar nenhum: o Dart não diz "existe uma extensão, mas para outro tipo". <strong>Como consertar:</strong> <code>extension Reais on num</code> (como no Experimente), ou escreva <code>3.0</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A extensão "sumiu" com <code>dynamic</code> (exceção durante a execução)</strong>
+<p>Lembra do detalhe da capinha? Quem aplica a extensão é o <strong>compilador</strong>, olhando o tipo da variável. Se o tipo é <code>dynamic</code> ("qualquer coisa, decido rodando"; veja <a href="dynamic-object.html">dynamic e Object</a>), o compilador não sabe que é um <code>double</code>, e a extensão não é aplicada. É comum com dados que vêm de <a href="json.html">JSON</a>:</p>
+<pre class="file" data-file="erro_dynamic.dart">import 'dart:convert';
+
+extension Reais on double {
+  String get reais =&gt; 'R\$ ${toStringAsFixed(2).replaceAll('.', ',')}';
+}
+
+void main() {
+  final dados = jsonDecode('{"produto": "Bolo", "preco": 20.5}');
+  final double precoTipado = dados['preco'];
+  print(precoTipado.reais);
+  final preco = dados['preco'];
+  print(preco.reais);
+}
+</pre>
+<pre class="term">$ dart run erro_dynamic.dart
+R$ 20,50
+Unhandled exception:
+NoSuchMethodError: Class 'double' has no instance getter 'reais'.
+Receiver: 20.5
+Tried calling: reais
+#0      Object.noSuchMethod (dart:core-patch/object_patch.dart:38:5)
+#1      main (file:///home/ana/erro_dynamic.dart:12:15)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O mesmo número, <code>20.5</code>, duas vezes. Na variável com tipo (<code>final double precoTipado</code>), a extensão funcionou. Na variável sem tipo (o <code>jsonDecode</code> devolve <code>dynamic</code>), o programa compilou, rodou e quebrou:</p>
+<ul>
+  <li><code>NoSuchMethodError</code>: "erro: não existe tal método". <code>Class 'double' has no instance getter 'reais'.</code>: "a classe <code>double</code> não tem um getter <code>reais</code>". E é verdade: o <code>reais</code> nunca entrou no <code>double</code>; ele vivia na capinha.</li>
+  <li><code>Receiver: 20.5</code>: o objeto que recebeu o pedido. <code>Tried calling: reais</code>: o que se tentou chamar.</li>
+  <li><code>#0 Object.noSuchMethod</code> é do Dart; <code>#1 main</code>, linha 12, é o seu <code>preco.reais</code>. Código de saída 255.</li>
+</ul>
+<p><strong>Como consertar:</strong> dê tipo à variável (<code>final double preco = dados['preco'];</code>) ou converta (<code>(dados['preco'] as double).reais</code>). Regra: <strong>extensão precisa de tipo conhecido</strong>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>extension Reais on double { … }</code></td><td>Acrescenta membros a todo <code>double</code></td></tr>
+<tr><td><code>String get reais =&gt; …;</code></td><td>Getter de extensão</td></tr>
+<tr><td><code>String repetir(int vezes) =&gt; …;</code></td><td>Método de extensão, com parâmetros</td></tr>
+<tr><td><code>this</code> (ou nada) dentro da extensão</td><td>O valor antes do ponto</td></tr>
+<tr><td><code>on num</code> / <code>on List&lt;double&gt;</code> / <code>on Produto</code></td><td>Para que tipos a extensão vale</td></tr>
+<tr><td><code>ReaisBR(preco).reais</code></td><td>Escolhe a extensão pelo nome (resolve conflitos)</td></tr>
+<tr><td><code>preco?.reais</code></td><td>Usa a extensão num valor que pode ser <code>null</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The property 'x' is defined in multiple extensions for 'T' and neither is more specific.</code></td><td>Duas extensões com o mesmo nome de membro</td></tr>
+<tr><td><code>Property 'x' cannot be accessed on 'T?' because it is potentially null.</code></td><td>A extensão é para <code>T</code>, e o valor é <code>T?</code></td></tr>
+<tr><td><code>The getter 'x' isn't defined for the type 'int'.</code></td><td>A extensão é para outro tipo (ex.: <code>double</code>)</td></tr>
+<tr><td><code>NoSuchMethodError: Class 'double' has no instance getter 'x'.</code></td><td>A variável era <code>dynamic</code>: extensões não se aplicam (durante a execução)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a extensão</h3>
+<div class="ex-code"><input data-answer="extension" aria-label="palavra-chave"> Gritar <input data-answer="on" aria-label="palavra antes do tipo"> String {<br>&nbsp;&nbsp;String get gritado =&gt; '${toUpperCase()}!';<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual tipo?</h3>
+<p>Que tipo depois do <code>on</code> faz uma extensão valer para <code>int</code> e para <code>double</code> ao mesmo tempo?</p>
+<div class="ex-code">on <input data-answer="num" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>extension Reais on double</code>, o que acontece em <code>dynamic x = 2.5; print(x.reais);</code>?</p>
+<label><input type="radio" name="q3"> Mostra <code>R$ 2,50</code></label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Compila, e dá <code>NoSuchMethodError</code> durante a execução</label>
+<label><input type="radio" name="q3"> Mostra <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Uma extensão muda a classe <code>double</code> do Dart?</p>
+<label><input type="radio" name="q4"> Sim, para sempre</label>
+<label><input type="radio" name="q4"> Não: o compilador só passa a reconhecer os membros novos onde a extensão está visível</label>
+<label><input type="radio" name="q4"> Sim, mas só enquanto o programa roda</label>
+<label><input type="radio" name="q4"> Só se a extensão tiver nome</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Duas extensões <code>A</code> e <code>B</code> definem <code>get reais</code> para <code>double</code>. Como usar a de <code>B</code>?</p>
+<label><input type="radio" name="q5"> <code>B(preco).reais</code></label>
+<label><input type="radio" name="q5"> <code>preco.B.reais</code></label>
+<label><input type="radio" name="q5"> <code>preco.reais(B)</code></label>
+<label><input type="radio" name="q5"> Não tem como</label>
+</div>
+
+<h3>Missão final: as estrelas das avaliações</h3>
+
+<div class="trydart" data-goal="out:★★★★☆;;src:extension\s+\w+\s+on\s+int">
+<p class="try-task"><strong>Missão:</strong> o <code>main</code> usa <code>nota.estrelas</code>, mas ninguém ensinou isso ao <code>int</code>. Escreva uma extensão <code>on int</code> com um getter <code>estrelas</code> que devolve <code>'★' * this</code> seguido de <code>'☆' * (5 - this)</code> (em Dart, <code>texto * n</code> repete o texto n vezes). A nota 4 deve virar <code>★★★★☆</code>.</p>
+<pre class="script" data-file="main.dart">// escreva a extensão aqui
+
+void main() {
+  final notas = [5, 4, 2];
+  for (final nota in notas) {
+    print('$nota: ${nota.estrelas}');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">extension Estrelas on int {
+  String get estrelas =&gt; '★' * this + '☆' * (5 - this);
+}
+
+void main() {
+  final notas = [5, 4, 2];
+  for (final nota in notas) {
+    print('$nota: ${nota.estrelas}');
+  }
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial parou com <code>Error: The getter 'estrelas' isn't defined for the type 'int'.</code>, e a solução mostrou <code>5: ★★★★★</code>, <code>4: ★★★★☆</code> e <code>2: ★★☆☆☆</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>extension Nome on Tipo { … }</code> acrescenta getters e métodos a um tipo existente, mesmo que não seja seu (<code>double</code>, <code>String</code>, <code>List&lt;double&gt;</code>), sem mudar o tipo.</li>
+  <li>Dentro da extensão, <code>this</code> (ou só o nome do membro) é o valor antes do ponto.</li>
+  <li>Extensões não têm campos e não substituem métodos que o tipo já tem.</li>
+  <li>Quem aplica a extensão é o compilador, pelo tipo da variável: com <code>dynamic</code> ela não vale, e o erro só aparece rodando (<code>NoSuchMethodError</code>).</li>
+  <li>Tipos têm de bater: <code>on double</code> não vale para <code>int</code> (use <code>on num</code>) nem para <code>double?</code> (use <code>?.</code>).</li>
+  <li>Com duas extensões em conflito, escolha pelo nome: <code>ReaisBR(preco).reais</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
