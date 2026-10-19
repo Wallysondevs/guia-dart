@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Métodos de String — tabela de consulta com exemplos e resultados reais | Guia Dart</title>
+<meta name="description" content="Referência rápida dos métodos e propriedades de String no Dart 3: length, toUpperCase, contains, indexOf, substring, split, trim, replaceAll, padLeft, compareTo, codeUnits, runes, parse, toStringAsFixed, RegExp e StringBuffer. Cada exemplo com o resultado do Dart SDK 3.13 e os erros comuns (RangeError, FormatException, String que não muda).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Métodos de String</span></h1>
+
+<p class="intro">Esta é a página de consulta dos <strong>métodos de String</strong>: o que dá para perguntar e fazer com um texto em Dart. A explicação com calma de cada grupo está nas aulas <a href="strings.html">Strings</a>, <a href="strings-metodos.html">Métodos de String</a> e <a href="interpolacao.html">Interpolação</a>; aqui ficam as tabelas para consulta rápida.</p>
+
+<div class="note">
+<strong>Como ler as tabelas</strong>
+<ul>
+  <li>Nos exemplos, <code>s</code> é <code>'Padaria do Bairro'</code> (17 caracteres; o primeiro, <code>P</code>, está na posição 0).</li>
+  <li><strong>Resultado</strong> é o que o Dart SDK 3.13.5 mostrou no computador da Ana. Os colchetes em <code>[Ana  ]</code> foram postos no <code>print</code> para os espaços aparecerem.</li>
+  <li><strong>Uma String nunca muda.</strong> Todo método que "altera" devolve uma String <strong>nova</strong>; a original continua igual. Para guardar o resultado: <code>nome = nome.trim();</code>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2 id="tamanho">Tamanho e acesso</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método / propriedade</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>length</code></td><td>Quantos caracteres (unidades UTF-16; veja <code>runes</code>).</td><td><code>s.length</code></td><td><code>17</code></td></tr>
+<tr><td><code>[i]</code></td><td>O caractere na posição <code>i</code>, como uma String.</td><td><code>s[0]</code>, <code>s[s.length - 1]</code></td><td><code>P</code>, <code>o</code></td></tr>
+<tr><td><code>isEmpty</code> / <code>isNotEmpty</code></td><td>Está vazia? Espaços contam como conteúdo.</td><td><code>s.isEmpty</code>, <code>''.isEmpty</code>, <code>'  '.isNotEmpty</code></td><td><code>false</code>, <code>true</code>, <code>true</code></td></tr>
+</table>
+</div>
+
+<h2 id="maiusculas">Maiúsculas e minúsculas</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>toUpperCase()</code></td><td>Tudo em maiúsculas, inclusive letras acentuadas.</td><td><code>s.toUpperCase()</code><br><code>'ação'.toUpperCase()</code></td><td><code>PADARIA DO BAIRRO</code><br><code>AÇÃO</code></td></tr>
+<tr><td><code>toLowerCase()</code></td><td>Tudo em minúsculas.</td><td><code>s.toLowerCase()</code></td><td><code>padaria do bairro</code></td></tr>
+</table>
+</div>
+
+<h2 id="procurar">Procurar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>contains(x)</code></td><td>Tem esse pedaço? Diferencia maiúsculas.</td><td><code>s.contains('do')</code>, <code>s.contains('DO')</code></td><td><code>true</code>, <code>false</code></td></tr>
+<tr><td><code>startsWith(x)</code> / <code>endsWith(x)</code></td><td>Começa / termina com?</td><td><code>s.startsWith('Pad')</code>, <code>s.endsWith('ro')</code></td><td><code>true</code>, <code>true</code></td></tr>
+<tr><td><code>indexOf(x)</code></td><td>Posição da primeira ocorrência; <code>-1</code> se não achar.</td><td><code>s.indexOf('a')</code>, <code>s.indexOf('z')</code></td><td><code>1</code>, <code>-1</code></td></tr>
+<tr><td><code>indexOf(x, inicio)</code></td><td>Procura a partir de uma posição.</td><td><code>s.indexOf('a', 2)</code></td><td><code>3</code></td></tr>
+<tr><td><code>lastIndexOf(x)</code></td><td>Posição da última ocorrência.</td><td><code>s.lastIndexOf('a')</code></td><td><code>12</code></td></tr>
+<tr><td><code>allMatches(texto)</code></td><td>Todas as ocorrências deste padrão em outro texto.</td><td><code>'oi'.allMatches('oioioi').length</code></td><td><code>3</code></td></tr>
+</table>
+</div>
+
+<h2 id="pedacos">Pedaços</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>substring(inicio, fim)</code></td><td>O pedaço de <code>inicio</code> até <strong>antes</strong> de <code>fim</code>. Sem <code>fim</code>, vai até o final.</td><td><code>s.substring(0, 7)</code>, <code>s.substring(11)</code></td><td><code>Padaria</code>, <code>Bairro</code></td></tr>
+<tr><td><code>split(separador)</code></td><td>Corta numa <code>List&lt;String&gt;</code>. Separadores seguidos geram item vazio; <code>''</code> separa letra por letra.</td><td><code>s.split(' ')</code><br><code>'a,b,,c'.split(',')</code><br><code>'abc'.split('')</code></td><td><code>[Padaria, do, Bairro]</code><br><code>[a, b, , c]</code><br><code>[a, b, c]</code></td></tr>
+<tr><td><code>trim()</code></td><td>Tira espaços (e quebras de linha) das duas pontas.</td><td><code>'  Ana  '.trim()</code></td><td><code>[Ana]</code></td></tr>
+<tr><td><code>trimLeft()</code> / <code>trimRight()</code></td><td>Só da esquerda / só da direita.</td><td><code>'  Ana  '.trimLeft()</code>, <code>.trimRight()</code></td><td><code>[Ana  ]</code>, <code>[  Ana]</code></td></tr>
+</table>
+</div>
+
+<h2 id="trocar">Trocar e completar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>replaceAll(de, para)</code></td><td>Troca todas as ocorrências.</td><td><code>s.replaceAll('a', '4')</code></td><td><code>P4d4ri4 do B4irro</code></td></tr>
+<tr><td><code>replaceFirst(de, para)</code></td><td>Troca só a primeira.</td><td><code>s.replaceFirst('a', '4')</code></td><td><code>P4daria do Bairro</code></td></tr>
+<tr><td><code>replaceAll(RegExp(…), para)</code></td><td>Troca o que casar com uma expressão regular.</td><td><code>'banana'.replaceAll(RegExp('[an]'), '*')</code></td><td><code>b*****</code></td></tr>
+<tr><td><code>replaceRange(inicio, fim, novo)</code></td><td>Troca um trecho por posição.</td><td><code>s.replaceRange(0, 7, 'Doceria')</code></td><td><code>Doceria do Bairro</code></td></tr>
+<tr><td><code>padLeft(n, c)</code> / <code>padRight(n, c)</code></td><td>Completa até ter <code>n</code> caracteres, com <code>c</code> (espaço, se omitido).</td><td><code>'7'.padLeft(3, '0')</code><br><code>'Ana'.padRight(6)</code><br><code>'Ana'.padLeft(6)</code></td><td><code>[007]</code><br><code>[Ana   ]</code><br><code>[   Ana]</code></td></tr>
+<tr><td><code>*</code></td><td>Repete o texto.</td><td><code>'-' * 10</code></td><td><code>----------</code></td></tr>
+<tr><td><code>+</code></td><td>Junta dois textos (prefira interpolação).</td><td><code>'ab' + 'cd'</code></td><td><code>abcd</code> (veja <a href="ref-operadores.html">Operadores</a>)</td></tr>
+<tr><td><code>lista.join(sep)</code></td><td>O contrário do <code>split</code>: junta uma lista num texto.</td><td><code>['a', 'b', 'c'].join(' - ')</code></td><td><code>a - b - c</code></td></tr>
+</table>
+</div>
+
+<h2 id="comparar">Comparar e códigos</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th></tr>
+<tr><td><code>==</code></td><td>Mesmo texto? Diferencia maiúsculas.</td><td><code>'Ana' == 'ana'</code>, <code>'Ana'.toLowerCase() == 'ana'</code></td><td><code>false</code>, <code>true</code></td></tr>
+<tr><td><code>compareTo(outro)</code></td><td>Ordem alfabética (pelos códigos): negativo se vem antes, 0 se igual, positivo se vem depois. É o que o <code>sort()</code> usa.</td><td><code>'abc'.compareTo('abd')</code>, <code>'b'.compareTo('a')</code>, <code>'a'.compareTo('a')</code></td><td><code>-1</code>, <code>1</code>, <code>0</code></td></tr>
+<tr><td><code>codeUnitAt(i)</code></td><td>O código numérico do caractere.</td><td><code>'A'.codeUnitAt(0)</code></td><td><code>65</code></td></tr>
+<tr><td><code>String.fromCharCode(n)</code></td><td>O caractere de um código.</td><td><code>String.fromCharCode(66)</code></td><td><code>B</code></td></tr>
+<tr><td><code>codeUnits</code></td><td>Todos os códigos.</td><td><code>'Olá'.codeUnits</code></td><td><code>[79, 108, 225]</code></td></tr>
+<tr><td><code>runes</code></td><td>Os caracteres "de verdade" (Unicode). Um emoji ocupa 2 no <code>length</code>, mas é 1 rune.</td><td><code>'Olá'.runes.length</code>, <code>'👍'.length</code>, <code>'👍'.runes.length</code></td><td><code>3</code>, <code>2</code>, <code>1</code></td></tr>
+</table>
+</div>
+
+<h2 id="conversao">Texto ⇄ número</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>int.parse(t)</code> / <code>double.parse(t)</code></td><td>Texto vira número; lança <code>FormatException</code> se não der.</td><td><code>int.parse('42') + 1</code>, <code>double.parse('3.5') * 2</code></td><td><code>43</code>, <code>7.0</code></td><td rowspan="3"><a href="conversao.html">Conversão de Tipos</a></td></tr>
+<tr><td><code>int.tryParse(t)</code></td><td>Igual, mas devolve <code>null</code> se não der.</td><td><code>int.tryParse('x')</code></td><td><code>null</code></td></tr>
+<tr><td><code>toString()</code>, <code>toStringAsFixed(n)</code></td><td>Número vira texto (com <code>n</code> casas).</td><td><code>42.toString()</code>, <code>3.14159.toStringAsFixed(2)</code></td><td><code>42</code>, <code>3.14</code></td></tr>
+</table>
+</div>
+
+<h2 id="outros">Interpolação, textos especiais, RegExp e StringBuffer</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>O que faz</th><th>Exemplo</th><th>Resultado</th><th>Aula</th></tr>
+<tr><td><code>$nome</code>, <code>${expr}</code></td><td>Põe um valor dentro do texto.</td><td><code>'Olá, $nome! Você tem ${nome.length} letras.'</code></td><td><code>Olá, Ana! Você tem 3 letras.</code></td><td><a href="interpolacao.html">Interpolação</a></td></tr>
+<tr><td><code>'''…'''</code></td><td>Texto de várias linhas.</td><td><code>'''linha 1</code> ⏎ <code>linha 2'''</code></td><td>duas linhas</td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td><code>r'…'</code></td><td>Texto "cru": <code>$</code> e <code>\</code> valem como letras.</td><td><code>r'sem interpolação: $nome \n'</code></td><td><code>sem interpolação: $nome \n</code></td><td><a href="strings.html">Strings</a></td></tr>
+<tr><td><code>RegExp(r'…')</code></td><td>Expressão regular, para padrões (dígitos, e-mails…).</td><td><code>RegExp(r'\d+').allMatches('Rua 12, casa 7')</code> → lista dos <code>m[0]</code><br><code>'Rua 12'.contains(RegExp(r'\d'))</code></td><td><code>[12, 7]</code><br><code>true</code></td><td><a href="strings-metodos.html">Métodos de String</a></td></tr>
+<tr><td><code>StringBuffer</code></td><td>Monta um texto grande aos poucos: <code>write</code>, <code>writeln</code>, <code>writeAll</code>.</td><td><code>StringBuffer()..write('Pão')..write(', ')..writeAll(['leite', 'café'], ', ')</code></td><td><code>Pão, leite, café</code></td><td><a href="string-buffer.html">StringBuffer</a></td></tr>
+<tr><td>combinação</td><td>Iniciais de um nome.</td><td><code>'Ana Souza'.split(' ').map((p) =&gt; p[0]).join()</code></td><td><code>AS</code></td><td><a href="iterables.html">map, where…</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Posição fora do texto</strong>
+<pre class="file" data-file="pedaco.dart">void main() {
+  final nome = 'Ana';
+  print(nome.substring(0, 5));
+}
+</pre>
+<pre class="term">$ dart run pedaco.dart
+Unhandled exception:
+RangeError (end): Invalid value: Not in inclusive range 0..3: 5
+#0      RangeError.checkValidRange (dart:core/errors.dart:392:9)
+#1      _StringBase.substring (dart:core-patch/string_patch.dart:437:27)
+#2      main (file:///home/ana/pedaco.dart:3:14)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Erro de faixa (no <code>end</code>, o fim): valor inválido, fora da faixa 0..3: 5". <code>'Ana'</code> tem 3 letras, então o fim pode ir de 0 a 3. Confira o <code>length</code> antes de cortar.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentando mudar uma letra</strong>
+<pre class="file" data-file="trocar.dart">void main() {
+  var nome = 'ana';
+  nome[0] = 'A';
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run trocar.dart
+trocar.dart:3:7: Error: The operator '[]=' isn't defined for the type 'String'.
+Try correcting the operator to an existing operator, or defining a '[]=' operator.
+  nome[0] = 'A';
+      ^
+</pre>
+<p>"O operador <code>[]=</code> (escrever numa posição) não existe para <code>String</code>." Strings não mudam: monte uma nova, por exemplo <code>nome = nome[0].toUpperCase() + nome.substring(1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Texto que não é número</strong>
+<pre class="file" data-file="numero.dart">void main() {
+  final idade = int.parse('30 anos');
+  print(idade);
+}
+</pre>
+<pre class="term">$ dart run numero.dart
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+30 anos
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/numero.dart:2:21)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Número na base 10 inválido (no caractere 1)". O <code>^</code> embaixo do texto aponta o começo: o <code>int.parse</code> recusa o texto inteiro se qualquer parte não for número. Use <code>int.tryParse</code> e confira o <code>null</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um método que não existe</strong>
+<pre class="term">$ dart run metodo.dart
+metodo.dart:3:14: Error: The method 'upper' isn't defined for the type 'String'.
+Try correcting the name to the name of an existing method, or defining a method named 'upper'.
+  print(nome.upper());
+             ^^^^^
+</pre>
+<p>Quem vem do Python escreve <code>upper()</code>; em Dart é <code>toUpperCase()</code>. Na dúvida, procure nesta página.</p>
+</div>
+
+<hr>
+
+<h2>Experimente</h2>
+
+<div class="trydart" data-goal="out:Ana Clara Souza;;semerro">
+<p class="try-task"><strong>Missão:</strong> o cadastro chegou com espaços sobrando e tudo em minúsculas. Deixe o nome como <code>Ana Clara Souza</code>: tire os espaços das pontas, separe as palavras, ponha a primeira letra de cada uma em maiúscula e junte de novo com um espaço.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final cadastro = '   ana clara souza  ';
+  print(cadastro);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final cadastro = '   ana clara souza  ';
+  final palavras = cadastro.trim().split(' ');
+  final arrumadas = palavras.map((p) =&gt; p[0].toUpperCase() + p.substring(1));
+  print(arrumadas.join(' '));
+}
+</pre>
+</div>
+
+<div class="trydart">
+<p class="try-task"><strong>Livre:</strong> o programa que gerou todos os resultados das tabelas (cada linha começa com um número, para achar na tabela). Mude o texto de <code>s</code> e rode.</p>
+<pre class="script" data-file="main.dart">void main() {
+  const s = 'Padaria do Bairro';
+  // tamanho e acesso
+  print('1 ${s.length}');
+  print('2 ${s[0]} ${s[s.length - 1]}');
+  print('3 ${s.isEmpty} ${''.isEmpty} ${'  '.isNotEmpty}');
+  // maiúsculas
+  print('4 ${s.toUpperCase()} | ${s.toLowerCase()}');
+  print('5 ${'ação'.toUpperCase()}');
+  // procurar
+  print('6 ${s.contains('do')} ${s.contains('DO')}');
+  print('7 ${s.startsWith('Pad')} ${s.endsWith('ro')}');
+  print('8 ${s.indexOf('a')} ${s.lastIndexOf('a')} ${s.indexOf('z')}');
+  print('9 ${s.indexOf('a', 2)}');
+  // pedaços
+  print('10 ${s.substring(0, 7)} | ${s.substring(11)}');
+  print('11 ${s.split(' ')}');
+  print('12 ${'a,b,,c'.split(',')} ${'abc'.split('')}');
+  // limpar
+  print('13 [${'  Ana  '.trim()}] [${'  Ana  '.trimLeft()}] [${'  Ana  '.trimRight()}]');
+  // trocar
+  print('14 ${s.replaceAll('a', '4')}');
+  print('15 ${s.replaceFirst('a', '4')}');
+  print('16 ${'banana'.replaceAll(RegExp('[an]'), '*')}');
+  print('17 ${s.replaceRange(0, 7, 'Doceria')}');
+  // completar
+  print('18 [${'7'.padLeft(3, '0')}] [${'Ana'.padRight(6)}] [${'Ana'.padLeft(6)}]');
+  // repetir / juntar
+  print('19 ${'-' * 10} ${['a', 'b', 'c'].join(' - ')}');
+  // comparar
+  print('20 ${'abc'.compareTo('abd')} ${'b'.compareTo('a')} ${'a'.compareTo('a')}');
+  print('21 ${'Ana' == 'ana'} ${'Ana'.toLowerCase() == 'ana'}');
+  // códigos
+  print('22 ${'A'.codeUnitAt(0)} ${String.fromCharCode(66)} ${'Olá'.codeUnits}');
+  print('23 ${'Olá'.runes.length} ${'👍'.length} ${'👍'.runes.length}');
+  // conversões
+  print('24 ${int.parse('42') + 1} ${double.parse('3.5') * 2} ${int.tryParse('x')}');
+  print('25 ${42.toString()} ${3.14159.toStringAsFixed(2)} ${7.toString().padLeft(3, '0')}');
+  // regex
+  print('26 ${RegExp(r'\d+').allMatches('Rua 12, casa 7').map((m) =&gt; m[0]).toList()}');
+  print('27 ${'Rua 12'.contains(RegExp(r'\d'))}');
+  // interpolação e multilinha
+  final nome = 'Ana';
+  print('28 Olá, $nome! Você tem ${nome.length} letras.');
+  print('''29 linha 1
+linha 2''');
+  print(r'30 sem interpolação: $nome \n');
+  // splitMapJoin / isNotEmpty extras
+  print('31 ${'Ana Souza'.split(' ').map((p) =&gt; p[0]).join()}');
+  print('32 ${'oi'.allMatches('oioioi').length}');
+  final sb = StringBuffer()
+    ..write('Pão')
+    ..write(', ')
+    ..writeAll(['leite', 'café'], ', ');
+  print('33 $sb');
+}
+</pre>
+</div>
+
+<p>A saída completa no lab:</p>
+<pre class="term">$ dart run textos.dart
+1 17
+2 P o
+3 false true true
+4 PADARIA DO BAIRRO | padaria do bairro
+5 AÇÃO
+6 true false
+7 true true
+8 1 12 -1
+9 3
+10 Padaria | Bairro
+11 [Padaria, do, Bairro]
+12 [a, b, , c] [a, b, c]
+13 [Ana] [Ana  ] [  Ana]
+14 P4d4ri4 do B4irro
+15 P4daria do Bairro
+16 b*****
+17 Doceria do Bairro
+18 [007] [Ana   ] [   Ana]
+19 ---------- a - b - c
+20 -1 1 0
+21 false true
+22 65 B [79, 108, 225]
+23 3 2 1
+24 43 7.0 null
+25 42 3.14 007
+26 [12, 7]
+27 true
+28 Olá, Ana! Você tem 3 letras.
+29 linha 1
+linha 2
+30 sem interpolação: $nome \n
+31 AS
+32 3
+33 Pão, leite, café
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Strings não mudam: os métodos devolvem uma String nova (<code>nome = nome.trim();</code>).</li>
+  <li>Posições começam em 0; <code>substring(inicio, fim)</code> não inclui o <code>fim</code>; fora da faixa, <code>RangeError</code>.</li>
+  <li>Procurar: <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>, <code>indexOf</code> (<code>-1</code> = não achou).</li>
+  <li>Cortar e juntar: <code>split</code> e <code>join</code>; limpar: <code>trim</code>; trocar: <code>replaceAll</code>; alinhar: <code>padLeft</code>/<code>padRight</code>.</li>
+  <li>Converter: <code>int.parse</code>/<code>tryParse</code> e <code>toStringAsFixed</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
