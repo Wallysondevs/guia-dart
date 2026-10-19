@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Projeto Conta Bancária — classes, getter, exceções próprias, extrato e herança passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto passo a passo em Dart 3: uma conta bancária como classe, com depositar e sacar; o saldo protegido com _ e get; uma exceção própria para saldo insuficiente; um extrato com records e toString; e uma poupança que herda da conta (extends, super, @override). Quatro versões com saídas reais, erros de compilação e exceções colhidos no Dart SDK e missões no editor.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto <span class="hl">Conta Bancária</span></h1>
+
+<p class="intro">A Ana quer controlar o dinheiro dela: quanto entrou, quanto saiu e quanto sobrou. Uma conta de banco é o exemplo clássico de <strong>classe</strong>: ela tem dados (o titular e o saldo) e ações (depositar e sacar), e tem regras que ninguém pode furar, como "não dá para sacar mais do que tem". Neste projeto você constrói essa conta em quatro versões, cada uma consertando um problema da anterior.</p>
+
+<div class="note">
+<strong>Você vai praticar</strong>
+<ul>
+  <li>Criar uma <a href="classes.html">classe</a> com campos, <a href="construtores.html">construtor</a> e métodos.</li>
+  <li>Esconder o saldo com <a href="privado.html">_</a> e deixá-lo só para leitura com um <a href="getters-setters.html">get</a>.</li>
+  <li>Barrar operações erradas com <a href="throw.html">throw</a> e uma <a href="excecoes-proprias.html">exceção própria</a>, tratada com <a href="excecoes.html">try e catch</a>.</li>
+  <li>Guardar o extrato como uma lista de <a href="records.html">records</a> e mostrar a conta com <a href="tostring-igualdade.html">toString</a>.</li>
+  <li>Criar uma poupança que <a href="heranca.html">herda</a> da conta, com <code>super</code> e <a href="override.html">@override</a>.</li>
+</ul>
+</div>
+
+<hr>
+
+<h2>O que vamos construir</h2>
+<p>No fim, a Ana terá uma conta comum e uma poupança que rende juros, cada uma com o seu extrato:</p>
+
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Conta de Ana (saldo R$ 2500.00)
+Poupança de Ana (saldo R$ 1005.00)
+
+Extrato de Ana
+Guardado              R$ 1000.00
+Rendimento               R$ 5.00
+Saldo                 R$ 1005.00
+</pre>
+
+<ol class="passo">
+  <li><a href="#versao1">A classe ContaBancaria</a>: campos, construtor, <code>depositar</code> e <code>sacar</code>.</li>
+  <li><a href="#versao2">Regras</a>: saldo protegido e exceções.</li>
+  <li><a href="#versao3">O extrato</a>: records, parâmetros nomeados e <code>toString</code>.</li>
+  <li><a href="#versao4">A poupança</a>: herança.</li>
+</ol>
+
+<p>Crie a pasta do projeto e entre nela; o programa vai se chamar <code>conta.dart</code>:</p>
+<pre class="term">$ mkdir banco
+$ cd banco
+</pre>
+
+<hr>
+
+<h2 id="versao1">Versão 1 · A classe ContaBancaria</h2>
+<p>Uma classe é a <strong>forma</strong> do bolo; cada conta criada com ela é um bolo feito naquela forma (um <strong>objeto</strong>). A forma diz o que toda conta tem: um titular, um saldo e duas ações.</p>
+
+<pre class="file" data-file="conta.dart">class ContaBancaria {
+  final String titular;
+  double saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  void depositar(double valor) {
+    saldo += valor;
+  }
+
+  void sacar(double valor) {
+    saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+  print('${conta.titular}: R\$ ${conta.saldo.toStringAsFixed(2)}');
+
+  conta.sacar(1000);
+  print('${conta.titular}: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>class ContaBancaria { … }</dt><dd>Cria a classe. O nome vai em <code>UpperCamelCase</code> (cada palavra com maiúscula), a convenção do Dart.</dd>
+  <dt>final String titular;</dt><dd>Um <strong>campo</strong>: cada conta tem o seu. <code>final</code> porque o titular não muda depois que a conta existe.</dd>
+  <dt>double saldo = 0;</dt><dd>Outro campo, que começa em zero e vai mudar.</dd>
+  <dt>ContaBancaria(this.titular);</dt><dd>O <strong>construtor</strong>: roda quando a conta é criada. O <code>this.titular</code> é um atalho para "guarde o argumento no campo <code>titular</code>".</dd>
+  <dt>void depositar(double valor)</dt><dd>Um <strong>método</strong>: uma função que pertence à conta e mexe nos campos dela. <code>void</code> = não devolve nada.</dd>
+  <dt>ContaBancaria('Ana')</dt><dd>Cria um objeto (em Dart não se escreve <code>new</code>).</dd>
+  <dt>conta.depositar(500)</dt><dd>O ponto chama o método <strong>daquela</strong> conta.</dd>
+  <dt>R\$</dt><dd>Dentro de um texto, o <code>$</code> abre uma <a href="interpolacao.html">interpolação</a>. Para escrever o cifrão de verdade, ponha a barra antes: <code>\$</code>.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Ana: R$ 379.50
+Ana: R$ -620.50
+</pre>
+
+<p>Funciona, mas olhe a segunda linha: a Ana sacou R$ 1000 tendo R$ 379,50, e a conta ficou negativa. Nada impede. Pior: qualquer parte do programa pode escrever <code>conta.saldo = 1000000;</code> e inventar dinheiro. A versão 2 resolve as duas coisas.</p>
+
+<div class="trydart" data-goal="out:Ana: R$ 379.50;;semerro">
+<p class="try-task"><strong>Missão (versão 1):</strong> a classe só tem o <code>depositar</code>, e o <code>main</code> chama um <code>sacar</code> que não existe. Rode para ver o erro e depois escreva o método <code>sacar</code>, que tira o valor do saldo.</p>
+<pre class="script" data-file="main.dart">class ContaBancaria {
+  final String titular;
+  double saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  void depositar(double valor) {
+    saldo += valor;
+  }
+
+  // escreva o método sacar aqui
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+  print('${conta.titular}: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class ContaBancaria {
+  final String titular;
+  double saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  void depositar(double valor) {
+    saldo += valor;
+  }
+
+  void sacar(double valor) {
+    saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+  print('${conta.titular}: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao2">Versão 2 · Regras: saldo protegido e exceções</h2>
+<p>Pense no caixa eletrônico: você <strong>vê</strong> o saldo, mas não pode digitar um saldo novo; e, se pedir mais do que tem, a máquina recusa com uma mensagem. Em Dart:</p>
+<ul>
+  <li>o saldo de verdade vira <code>_saldo</code>: o <code>_</code> na frente o torna <strong>privado</strong>;</li>
+  <li>um <code>get saldo</code> deixa o resto do programa <strong>ler</strong>, mas não escrever;</li>
+  <li>os métodos conferem as regras e, se algo estiver errado, <strong>lançam</strong> uma exceção com <code>throw</code>.</li>
+</ul>
+
+<pre class="file" data-file="conta.dart">class SaldoInsuficienteException implements Exception {
+  final double saldo;
+  final double pedido;
+
+  SaldoInsuficienteException(this.saldo, this.pedido);
+
+  @override
+  String toString() =&gt; 'Saldo insuficiente: pediu R\$ ${pedido.toStringAsFixed(2)}, '
+      'mas só tem R\$ ${saldo.toStringAsFixed(2)}.';
+}
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    if (valor &lt;= 0) {
+      throw ArgumentError.value(valor, 'valor', 'o depósito precisa ser positivo');
+    }
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    if (valor &lt;= 0) {
+      throw ArgumentError.value(valor, 'valor', 'o saque precisa ser positivo');
+    }
+    if (valor &gt; _saldo) {
+      throw SaldoInsuficienteException(_saldo, valor);
+    }
+    _saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+  print('Saldo: R\$ ${conta.saldo.toStringAsFixed(2)}');
+
+  try {
+    conta.sacar(1000);
+  } on SaldoInsuficienteException catch (e) {
+    print(e);
+  }
+
+  try {
+    conta.depositar(-50);
+  } on ArgumentError catch (e) {
+    print('Erro: ${e.message}');
+  }
+
+  print('Saldo: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>class SaldoInsuficienteException implements Exception</code></td><td>Uma exceção própria, com nome que diz o problema. O <code>implements Exception</code> a marca como "erro previsto, que o programa pode tratar" (veja <a href="excecoes-proprias.html">Exceções Próprias</a>).</td></tr>
+<tr><td><code>@override String toString() =&gt; …</code></td><td>O texto que aparece quando a exceção é mostrada com <code>print(e)</code>.</td></tr>
+<tr><td><code>double _saldo = 0;</code></td><td>O campo privado: fora do arquivo da classe, ninguém o enxerga.</td></tr>
+<tr><td><code>double get saldo =&gt; _saldo;</code></td><td>Um <strong>getter</strong>: quem escreve <code>conta.saldo</code> recebe o valor de <code>_saldo</code>. Como não há <code>set saldo</code>, ninguém consegue mudar.</td></tr>
+<tr><td><code>throw ArgumentError.value(valor, 'valor', '…')</code></td><td>"Argumento inválido": a exceção que o próprio Dart usa quando alguém passa um valor errado para uma função (veja <a href="throw.html">throw</a>).</td></tr>
+<tr><td><code>throw SaldoInsuficienteException(_saldo, valor);</code></td><td>Lança a exceção e <strong>para</strong> o método ali: a linha do <code>_saldo -= valor</code> não roda.</td></tr>
+<tr><td><code>try { … } on SaldoInsuficienteException catch (e) { … }</code></td><td>"Tente; se der <strong>esta</strong> exceção, pegue-a em <code>e</code> e faça isto." O programa segue normalmente depois.</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Saldo: R$ 379.50
+Saldo insuficiente: pediu R$ 1000.00, mas só tem R$ 379.50.
+Erro: o depósito precisa ser positivo
+Saldo: R$ 379.50
+</pre>
+
+<p>O saque de R$ 1000 e o depósito de −50 foram recusados, e o saldo continuou certo. Agora, os dois jeitos de dar errado.</p>
+
+<div class="cenario">
+<strong>Tentando mudar o saldo por fora</strong>
+<p>Na linha 40, a Ana trocou o depósito por <code>conta.saldo = 1000000;</code>:</p>
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+conta.dart:40:9: Error: The setter 'saldo' isn't defined for the type 'ContaBancaria'.
+ - 'ContaBancaria' is from 'conta.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'saldo'.
+  conta.saldo = 1000000;
+        ^^^^^
+</pre>
+<ul>
+  <li><code>conta.dart:40:9</code>: arquivo, linha 40, coluna 9 (onde começa o <code>saldo</code>).</li>
+  <li><code>The setter 'saldo' isn't defined for the type 'ContaBancaria'.</code> = "o setter <code>saldo</code> não está definido para o tipo <code>ContaBancaria</code>". Setter ("definidor") é o que permite <strong>escrever</strong> num nome com <code>=</code>.</li>
+  <li><code>- 'ContaBancaria' is from 'conta.dart'.</code> = de onde vem a classe.</li>
+  <li><code>Try correcting the name…</code> = a sugestão: corrigir o nome ou criar um setter. Aqui a sugestão não serve: a falta do setter é <strong>de propósito</strong>.</li>
+</ul>
+<p>O erro aparece antes de o programa rodar: ninguém consegue nem compilar um código que inventa dinheiro.</p>
+</div>
+
+<div class="cenario">
+<strong>A exceção que ninguém pegou</strong>
+<p>Sem o <code>try</code>, a exceção sobe até o <code>main</code> e derruba o programa. Este <code>conta.dart</code> (só com o <code>sacar</code>) faz um saque numa conta vazia:</p>
+<pre class="file" data-file="conta.dart">class SaldoInsuficienteException implements Exception {
+  final double saldo;
+  final double pedido;
+
+  SaldoInsuficienteException(this.saldo, this.pedido);
+
+  @override
+  String toString() =&gt; 'Saldo insuficiente: pediu R\$ ${pedido.toStringAsFixed(2)}, '
+      'mas só tem R\$ ${saldo.toStringAsFixed(2)}.';
+}
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void sacar(double valor) {
+    if (valor &gt; _saldo) {
+      throw SaldoInsuficienteException(_saldo, valor);
+    }
+    _saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.sacar(1000);
+  print('Esta linha não aparece.');
+}
+</pre>
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Unhandled exception:
+Saldo insuficiente: pediu R$ 1000.00, mas só tem R$ 0.00.
+#0      ContaBancaria.sacar (file:///home/ana/banco/conta.dart:22:7)
+#1      main (file:///home/ana/banco/conta.dart:30:9)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<ul>
+  <li><code>Unhandled exception:</code> = "exceção não tratada": ninguém pegou com <code>catch</code>.</li>
+  <li>A segunda linha é o <code>toString()</code> da nossa exceção. Valeu a pena escrevê-lo: a mensagem já diz tudo.</li>
+  <li><code>#0</code>: onde a exceção nasceu, o <code>throw</code> da linha 22, dentro de <code>ContaBancaria.sacar</code>.</li>
+  <li><code>#1</code>: quem chamou, o <code>main</code>, na linha 30.</li>
+  <li><code>#2</code> e <code>#3</code>: o Dart chamando o <code>main</code>; pode ignorar.</li>
+  <li><code>255</code>: o código de saída de uma exceção não tratada. O <code>print</code> da última linha nunca rodou.</li>
+</ul>
+</div>
+
+<div class="trydart" data-goal="out:Saldo insuficiente: pediu R$ 1000.00;;out:Saldo: R$ 379.50;;semerro">
+<p class="try-task"><strong>Missão (versão 2):</strong> o <code>sacar</code> ainda deixa o saldo ficar negativo. Antes de tirar o dinheiro, lance <code>SaldoInsuficienteException(_saldo, valor)</code> quando o valor for maior que o saldo.</p>
+<pre class="script" data-file="main.dart">class SaldoInsuficienteException implements Exception {
+  final double saldo;
+  final double pedido;
+
+  SaldoInsuficienteException(this.saldo, this.pedido);
+
+  @override
+  String toString() =&gt; 'Saldo insuficiente: pediu R\$ ${pedido.toStringAsFixed(2)}, '
+      'mas só tem R\$ ${saldo.toStringAsFixed(2)}.';
+}
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    // confira o saldo antes
+    _saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+
+  try {
+    conta.sacar(1000);
+  } on SaldoInsuficienteException catch (e) {
+    print(e);
+  }
+
+  print('Saldo: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class SaldoInsuficienteException implements Exception {
+  final double saldo;
+  final double pedido;
+
+  SaldoInsuficienteException(this.saldo, this.pedido);
+
+  @override
+  String toString() =&gt; 'Saldo insuficiente: pediu R\$ ${pedido.toStringAsFixed(2)}, '
+      'mas só tem R\$ ${saldo.toStringAsFixed(2)}.';
+}
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    if (valor &gt; _saldo) {
+      throw SaldoInsuficienteException(_saldo, valor);
+    }
+    _saldo -= valor;
+  }
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(500);
+  conta.sacar(120.50);
+
+  try {
+    conta.sacar(1000);
+  } on SaldoInsuficienteException catch (e) {
+    print(e);
+  }
+
+  print('Saldo: R\$ ${conta.saldo.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao3">Versão 3 · O extrato</h2>
+<p>O banco não guarda só o saldo: guarda cada movimento, com uma descrição. Cada movimento vira um record <code>(descricao: …, valor: …)</code> numa lista privada; o saque entra com valor negativo. Três novidades:</p>
+<ul>
+  <li><code>depositar</code> e <code>sacar</code> ganham um <a href="parametros-nomeados.html">parâmetro nomeado</a> opcional, <code>descricao</code>, com <a href="parametros-opcionais.html">valor padrão</a>;</li>
+  <li>o método <code>mostrarExtrato</code> imprime a lista;</li>
+  <li>a conta ganha um <code>toString</code>, para que <code>print(conta)</code> mostre algo útil.</li>
+</ul>
+
+<pre class="file" data-file="conta.dart">class SaldoInsuficienteException implements Exception {
+  final double saldo;
+  final double pedido;
+
+  SaldoInsuficienteException(this.saldo, this.pedido);
+
+  @override
+  String toString() =&gt; 'Saldo insuficiente: pediu R\$ ${pedido.toStringAsFixed(2)}, '
+      'mas só tem R\$ ${saldo.toStringAsFixed(2)}.';
+}
+
+String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+  final _movimentos = &lt;({String descricao, double valor})&gt;[];
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor, {String descricao = 'Depósito'}) {
+    if (valor &lt;= 0) {
+      throw ArgumentError.value(valor, 'valor', 'o depósito precisa ser positivo');
+    }
+    _saldo += valor;
+    _movimentos.add((descricao: descricao, valor: valor));
+  }
+
+  void sacar(double valor, {String descricao = 'Saque'}) {
+    if (valor &lt;= 0) {
+      throw ArgumentError.value(valor, 'valor', 'o saque precisa ser positivo');
+    }
+    if (valor &gt; _saldo) {
+      throw SaldoInsuficienteException(_saldo, valor);
+    }
+    _saldo -= valor;
+    _movimentos.add((descricao: descricao, valor: -valor));
+  }
+
+  void mostrarExtrato() {
+    print('Extrato de $titular');
+    for (final (:descricao, :valor) in _movimentos) {
+      print('${descricao.padRight(20)}${reais(valor).padLeft(12)}');
+    }
+    print('${'Saldo'.padRight(20)}${reais(_saldo).padLeft(12)}');
+  }
+
+  @override
+  String toString() =&gt; 'Conta de $titular (saldo ${reais(_saldo)})';
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(2500, descricao: 'Salário');
+  conta.sacar(120.50, descricao: 'Padaria do bairro');
+  conta.sacar(800, descricao: 'Aluguel');
+  conta.depositar(45.90);
+
+  print(conta);
+  print('');
+  conta.mostrarExtrato();
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>String reais(double valor) =&gt; …</dt><dd>Uma função fora da classe que formata dinheiro. Escrita uma vez, usada em quatro lugares.</dd>
+  <dt>final _movimentos = &lt;({String descricao, double valor})&gt;[];</dt><dd>Uma lista vazia de records, privada. É <code>final</code> porque a <strong>lista</strong> é sempre a mesma; o que muda é o conteúdo, com <code>add</code>.</dd>
+  <dt>{String descricao = 'Depósito'}</dt><dd>Parâmetro nomeado com valor padrão: quem não passar <code>descricao:</code> recebe <code>'Depósito'</code>. Foi o que aconteceu com os R$ 45,90.</dd>
+  <dt>for (final (:descricao, :valor) in _movimentos)</dt><dd>Um <a href="patterns.html">pattern</a> que desmonta cada record em duas variáveis com os mesmos nomes dos campos. O <code>:descricao</code> é o atalho para <code>descricao: descricao</code>.</dd>
+  <dt>@override String toString()</dt><dd>Todo objeto já tem um <code>toString</code>; este substitui o padrão. É ele que o <code>print(conta)</code> chama.</dd>
+</dl>
+
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Conta de Ana (saldo R$ 1625.40)
+
+Extrato de Ana
+Salário               R$ 2500.00
+Padaria do bairro     R$ -120.50
+Aluguel               R$ -800.00
+Depósito                R$ 45.90
+Saldo                 R$ 1625.40
+</pre>
+
+<div class="tip">
+<strong>Dinheiro e <code>double</code></strong>
+<p>O <code>double</code> guarda números com casas decimais de forma aproximada (<code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>; veja <a href="int-double.html">Números</a>). Para um projeto de estudo, o <code>toStringAsFixed(2)</code> na hora de mostrar resolve. Sistemas de banco de verdade guardam <strong>centavos</strong> num <code>int</code> (R$ 120,50 = <code>12050</code>) e só dividem por 100 na hora de mostrar.</p>
+</div>
+
+<div class="trydart" data-goal="out:Conta de Ana (saldo R$ 1625.40);;semerro">
+<p class="try-task"><strong>Missão (versão 3):</strong> rode e veja o que o <code>print(conta)</code> mostra sem um <code>toString</code> próprio. Depois, acrescente na classe um <code>@override String toString()</code> que devolva <code>Conta de Ana (saldo R$ 1625.40)</code> (use <code>$titular</code> e <code>reais(_saldo)</code>).</p>
+<pre class="script" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    _saldo -= valor;
+  }
+
+  // escreva o toString aqui
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(2500);
+  conta.sacar(120.50);
+  conta.sacar(800);
+  conta.depositar(45.90);
+  print(conta);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    _saldo -= valor;
+  }
+
+  @override
+  String toString() =&gt; 'Conta de $titular (saldo ${reais(_saldo)})';
+}
+
+void main() {
+  final conta = ContaBancaria('Ana');
+  conta.depositar(2500);
+  conta.sacar(120.50);
+  conta.sacar(800);
+  conta.depositar(45.90);
+  print(conta);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="versao4">Versão 4 · A poupança</h2>
+<p>A Ana abriu uma poupança. Ela é uma conta como as outras (tem titular, saldo, extrato, depósito e saque) e mais uma coisa: rende juros todo mês. Em vez de copiar a classe inteira, a poupança <strong>herda</strong> da conta com <code>extends</code> ("estende") e acrescenta só o que é dela. As classes <code>SaldoInsuficienteException</code> e <code>ContaBancaria</code> e a função <code>reais</code> ficam iguais à versão 3; o arquivo ganha a classe nova e um <code>main</code> novo:</p>
+
+<pre class="file" data-file="conta.dart (o final do arquivo)">class ContaPoupanca extends ContaBancaria {
+  final double taxaMensal;
+
+  ContaPoupanca(super.titular, {required this.taxaMensal});
+
+  void renderJuros() {
+    final juros = saldo * taxaMensal;
+    if (juros &gt; 0) depositar(juros, descricao: 'Rendimento');
+  }
+
+  @override
+  String toString() =&gt; 'Poupança de $titular (saldo ${reais(saldo)})';
+}
+
+void main() {
+  final contas = &lt;ContaBancaria&gt;[
+    ContaBancaria('Ana'),
+    ContaPoupanca('Ana', taxaMensal: 0.005),
+  ];
+
+  contas[0].depositar(2500, descricao: 'Salário');
+  contas[1].depositar(1000, descricao: 'Guardado');
+
+  for (final conta in contas) {
+    if (conta is ContaPoupanca) {
+      conta.renderJuros();
+    }
+    print(conta);
+  }
+
+  print('');
+  contas[1].mostrarExtrato();
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Parte</th><th>O que faz</th></tr>
+<tr><td><code>class ContaPoupanca extends ContaBancaria</code></td><td>A poupança <strong>é uma</strong> conta: ganha todos os campos e métodos dela (veja <a href="heranca.html">Herança</a>).</td></tr>
+<tr><td><code>ContaPoupanca(super.titular, {required this.taxaMensal})</code></td><td><code>super.titular</code> passa o titular para o construtor da <code>ContaBancaria</code>; <code>required this.taxaMensal</code> é um parâmetro nomeado <strong>obrigatório</strong>, guardado no campo novo.</td></tr>
+<tr><td><code>saldo * taxaMensal</code></td><td>A poupança lê o saldo pelo <code>get saldo</code> herdado. 0,5% de R$ 1000 = R$ 5.</td></tr>
+<tr><td><code>depositar(juros, descricao: 'Rendimento')</code></td><td>Reaproveita o método herdado: o rendimento passa pelas mesmas regras e entra no extrato.</td></tr>
+<tr><td><code>@override String toString()</code></td><td>Substitui o <code>toString</code> da conta comum (veja <a href="override.html">@override</a>).</td></tr>
+<tr><td><code>&lt;ContaBancaria&gt;[ … ]</code></td><td>Uma lista de contas pode guardar poupanças: toda poupança é uma conta.</td></tr>
+<tr><td><code>if (conta is ContaPoupanca)</code></td><td>Pergunta se aquela conta é uma poupança. Dentro do <code>if</code>, o Dart já a trata como poupança e deixa chamar <code>renderJuros</code> (veja <a href="operadores-tipo.html">is, is! e as</a>).</td></tr>
+</table>
+</div>
+
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+Conta de Ana (saldo R$ 2500.00)
+Poupança de Ana (saldo R$ 1005.00)
+
+Extrato de Ana
+Guardado              R$ 1000.00
+Rendimento               R$ 5.00
+Saldo                 R$ 1005.00
+</pre>
+
+<p>O <code>print(conta)</code> é o mesmo nas duas voltas, mas cada objeto usou o <strong>seu</strong> <code>toString</code>: "Conta de…" e "Poupança de…". E o extrato da poupança veio do <code>mostrarExtrato</code> herdado, sem escrever nada.</p>
+
+<div class="cenario">
+<strong>Esquecendo um parâmetro <code>required</code></strong>
+<p>Na linha 71, a Ana criou a poupança sem a taxa: <code>ContaPoupanca('Ana'),</code>.</p>
+<pre class="term" data-cwd="~/banco">$ dart run conta.dart
+conta.dart:71:18: Error: Required named parameter 'taxaMensal' must be provided.
+    ContaPoupanca('Ana'),
+                 ^
+conta.dart:57:3: Context: Found this candidate, but the arguments don't match.
+  ContaPoupanca(super.titular, {required this.taxaMensal});
+  ^^^^^^^^^^^^^
+</pre>
+<p><code>Required named parameter 'taxaMensal' must be provided.</code> = "o parâmetro nomeado obrigatório <code>taxaMensal</code> precisa ser informado". A segunda parte, <code>Context:</code> ("contexto"), aponta a linha 57, onde está o construtor: "encontrei este candidato, mas os argumentos não batem". O <code>^</code> da primeira parte fica no parêntese, onde faltou o argumento. <strong>Conserto:</strong> <code>ContaPoupanca('Ana', taxaMensal: 0.005)</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Poupança de Ana (saldo R$ 1005.00);;semerro">
+<p class="try-task"><strong>Missão (versão 4):</strong> o <code>renderJuros</code> da poupança está vazio, e o saldo não rende. Complete: calcule <code>saldo * taxaMensal</code> e deposite esse valor.</p>
+<pre class="script" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  @override
+  String toString() =&gt; 'Conta de $titular (saldo ${reais(_saldo)})';
+}
+
+class ContaPoupanca extends ContaBancaria {
+  final double taxaMensal;
+
+  ContaPoupanca(super.titular, {required this.taxaMensal});
+
+  void renderJuros() {
+    // calcule os juros e deposite
+  }
+
+  @override
+  String toString() =&gt; 'Poupança de $titular (saldo ${reais(saldo)})';
+}
+
+void main() {
+  final poupanca = ContaPoupanca('Ana', taxaMensal: 0.005);
+  poupanca.depositar(1000);
+  poupanca.renderJuros();
+  print(poupanca);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  @override
+  String toString() =&gt; 'Conta de $titular (saldo ${reais(_saldo)})';
+}
+
+class ContaPoupanca extends ContaBancaria {
+  final double taxaMensal;
+
+  ContaPoupanca(super.titular, {required this.taxaMensal});
+
+  void renderJuros() {
+    final juros = saldo * taxaMensal;
+    depositar(juros);
+  }
+
+  @override
+  String toString() =&gt; 'Poupança de $titular (saldo ${reais(saldo)})';
+}
+
+void main() {
+  final poupanca = ContaPoupanca('Ana', taxaMensal: 0.005);
+  poupanca.depositar(1000);
+  poupanca.renderJuros();
+  print(poupanca);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Herdando</h3>
+<p>Complete a palavra que faz a poupança herdar tudo da conta:</p>
+<div class="ex-code">class ContaPoupanca <input data-answer="extends" aria-label="palavra" size="8"> ContaBancaria { … }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Só leitura</h3>
+<p>Complete o getter que deixa ler o campo privado <code>_saldo</code> pelo nome <code>saldo</code>:</p>
+<div class="ex-code">double <input data-answer="get" aria-label="palavra" size="4"> saldo =&gt; _saldo;</div>
+</div>
+
+<div class="exercise">
+<h3>3. O código de saída</h3>
+<p>Qual é o código de saída (<code>echo $?</code>) de um programa que terminou com <code>Unhandled exception</code>?</p>
+<div class="ex-code">Código: <input data-answer="255" aria-label="código" size="4"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Na poupança, o que faz o <code>super.titular</code> do construtor?</p>
+<label><input type="radio" name="q4"> Cria um campo novo chamado <code>super</code></label>
+<label><input type="radio" name="q4"> Passa o titular para o construtor da <code>ContaBancaria</code></label>
+<label><input type="radio" name="q4"> Torna o titular privado</label>
+<label><input type="radio" name="q4"> Faz o titular ser obrigatório</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. O que aparece num <code>print(conta)</code> se a classe <strong>não</strong> tem um <code>toString</code> próprio?</p>
+<label><input type="radio" name="q5"> Os campos da conta, separados por vírgula</label>
+<label><input type="radio" name="q5"> Um erro de compilação</label>
+<label><input type="radio" name="q5"> <code>Instance of 'ContaBancaria'</code></label>
+<label><input type="radio" name="q5"> Nada</label>
+</div>
+
+<h3>Missão final: a conta corrente com tarifa</h3>
+
+<div class="trydart" data-goal="out:Corrente de Ana (saldo R$ 2487.10);;semerro">
+<p class="try-task"><strong>Missão:</strong> crie a classe <code>ContaCorrente</code>, que herda de <code>ContaBancaria</code>, com um método <code>cobrarTarifa()</code> que saca R$ 12,90 e um <code>toString</code> que devolve <code>Corrente de Ana (saldo R$ 2487.10)</code> depois de um depósito de 2500 e uma tarifa.</p>
+<pre class="script" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    _saldo -= valor;
+  }
+}
+
+// crie a ContaCorrente aqui
+
+void main() {
+  // crie a conta corrente da Ana, deposite 2500, cobre a tarifa e mostre
+}
+</pre>
+<pre class="solucao" data-file="main.dart">String reais(double valor) =&gt; 'R\$ ${valor.toStringAsFixed(2)}';
+
+class ContaBancaria {
+  final String titular;
+  double _saldo = 0;
+
+  ContaBancaria(this.titular);
+
+  double get saldo =&gt; _saldo;
+
+  void depositar(double valor) {
+    _saldo += valor;
+  }
+
+  void sacar(double valor) {
+    _saldo -= valor;
+  }
+}
+
+class ContaCorrente extends ContaBancaria {
+  ContaCorrente(super.titular);
+
+  void cobrarTarifa() {
+    sacar(12.90);
+  }
+
+  @override
+  String toString() =&gt; 'Corrente de $titular (saldo ${reais(saldo)})';
+}
+
+void main() {
+  final corrente = ContaCorrente('Ana');
+  corrente.depositar(2500);
+  corrente.cobrarTarifa();
+  print(corrente);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma classe junta dados (campos) e ações (métodos); o construtor <code>ContaBancaria(this.titular)</code> preenche os campos.</li>
+  <li><code>_saldo</code> privado + <code>get saldo</code> = saldo só de leitura; tentar <code>conta.saldo = …</code> dá <code>The setter 'saldo' isn't defined</code>.</li>
+  <li><code>throw</code> barra a operação errada; uma exceção própria (<code>implements Exception</code>) com <code>toString</code> explica o problema; <code>try</code>/<code>on … catch</code> trata, e sem tratamento o programa termina com <code>Unhandled exception</code> e código 255.</li>
+  <li>Records guardam o extrato; parâmetros nomeados com valor padrão deixam a descrição opcional; <code>toString</code> faz o <code>print(conta)</code> mostrar algo útil.</li>
+  <li><code>extends</code> herda tudo; <code>super.titular</code> repassa ao construtor de cima; <code>@override</code> troca um método; <code>is</code> pergunta o tipo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
