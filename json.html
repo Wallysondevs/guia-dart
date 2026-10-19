@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart JSON — jsonDecode e jsonEncode (dart:convert) | Guia Dart</title>
+<meta name="description" content="JSON no Dart para quem nunca programou: o que é JSON, jsonDecode (texto para Map e List), jsonEncode (Map para texto), JsonEncoder.withIndent, conferir os tipos com as, listas de objetos, toJson e fromJson numa classe, salvar JSON em arquivo, e os erros reais do Dart 3 (FormatException, aspas simples, vírgula sobrando, type cast, chave que não existe, objeto que não vira JSON).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">JSON</span></h1>
+
+<p class="intro">Na aula de <a href="arquivos.html">Arquivos</a>, as notas da turma foram guardadas como <code>Ana;9.5</code>, uma por linha. Funciona, mas e se cada aluno tiver também uma lista de faltas, um e-mail que pode estar vazio, um "sim/não" de bolsista? Para guardar e trocar dados com estrutura, o mundo inteiro usa o mesmo formato de texto: o <strong>JSON</strong>. No Dart, quem traduz entre JSON e as coleções da linguagem é a biblioteca <code>dart:convert</code> ("converter").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é JSON e como ele se parece com os <a href="map.html">Mapas</a> e <a href="list.html">Listas</a> do Dart.</li>
+  <li>Como transformar texto JSON em dados com <code>jsonDecode</code>, e dados em texto JSON com <code>jsonEncode</code>.</li>
+  <li>Como deixar o JSON "bonito", com recuo, para pessoas lerem.</li>
+  <li>Como dizer ao Dart o tipo de cada campo com <code>as</code>.</li>
+  <li>Como converter uma classe sua de e para JSON (<code>fromJson</code> e <code>toJson</code>) e como salvar JSON num arquivo.</li>
+  <li>Os erros reais: JSON mal escrito (<code>FormatException</code>), tipo diferente do esperado, chave que não existe e objeto que não vira JSON.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a ficha que qualquer um entende</h2>
+<p>A padaria manda o pedido do dia para o fornecedor de farinha. Se cada um anotar do seu jeito ("2 sacos/farinha", "farinha x2", "dois sacos de farinha"), alguém vai errar. Então os dois combinam uma <strong>ficha padrão</strong>, com campos de nome fixo. O JSON (<em>JavaScript Object Notation</em>, "notação de objetos do JavaScript") é essa ficha padrão dos computadores: um aplicativo em Dart, um site em JavaScript e um servidor em Python leem o mesmo JSON do mesmo jeito.</p>
+<p>Um JSON é <strong>texto</strong> e parece muito com um mapa do Dart:</p>
+<pre class="file" data-file="cliente.json">{
+  "nome": "Ana",
+  "idade": 30,
+  "cliente": true,
+  "compras": ["pão", "leite"],
+  "email": null
+}
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>No JSON</th><th>Vira no Dart</th></tr>
+<tr><td><code>{ "chave": valor, … }</code> (objeto)</td><td><code>Map&lt;String, dynamic&gt;</code></td></tr>
+<tr><td><code>[ … ]</code> (lista)</td><td><code>List&lt;dynamic&gt;</code></td></tr>
+<tr><td><code>"texto"</code></td><td><code>String</code></td></tr>
+<tr><td><code>30</code></td><td><code>int</code></td></tr>
+<tr><td><code>4.5</code></td><td><code>double</code></td></tr>
+<tr><td><code>true</code> / <code>false</code></td><td><code>bool</code></td></tr>
+<tr><td><code>null</code></td><td><code>null</code></td></tr>
+</table>
+</div>
+<p>As regras do JSON são mais rígidas que as do Dart: textos e chaves <strong>sempre com aspas duplas</strong>, nada de vírgula depois do último item, nada de comentários.</p>
+
+<hr>
+
+<h2>1. De texto para dados: <code>jsonDecode</code></h2>
+
+<pre class="file" data-file="decodificar.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"nome": "Ana", "idade": 30, "cliente": true, "compras": ["pão", "leite"]}';
+  final dados = jsonDecode(texto);
+  print(dados);
+  print(dados.runtimeType);
+  print('Nome: ${dados['nome']}');
+  print('Idade: ${dados['idade']}');
+  print('Primeira compra: ${dados['compras'][0]}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:convert';</dt><dd>A biblioteca de conversões. Vem com o Dart, mas precisa do <code>import</code>.</dd>
+  <dt>const texto = '{"nome": …}';</dt><dd>O JSON é só uma <code>String</code>. As aspas simples de fora são do Dart; as duplas de dentro são do JSON. (Na vida real, esse texto vem de um <a href="arquivos.html">arquivo</a> ou da internet.)</dd>
+  <dt>jsonDecode(texto)</dt><dd>"Decodificar JSON": lê o texto e monta os dados do Dart (aqui, um mapa).</dd>
+  <dt>dados['compras'][0]</dt><dd>O valor da chave <code>compras</code> é uma lista; o <code>[0]</code> pega o primeiro item.</dd>
+</dl>
+
+<pre class="term">$ dart run decodificar.dart
+{nome: Ana, idade: 30, cliente: true, compras: [pão, leite]}
+_Map&lt;String, dynamic&gt;
+Nome: Ana
+Idade: 30
+Primeira compra: pão
+</pre>
+
+<p>O <code>print(dados)</code> mostra o mapa do jeito do Dart (sem aspas): agora é um <code>Map</code> de verdade, não mais texto. O <code>runtimeType</code> ("tipo em tempo de execução") confirma: <code>_Map&lt;String, dynamic&gt;</code> (o <code>_</code> é o nome interno da implementação; para você, é um <code>Map&lt;String, dynamic&gt;</code>). <code>dynamic</code> quer dizer que cada valor pode ser de um tipo diferente (veja <a href="dynamic-object.html">dynamic e Object</a>).</p>
+
+<div class="trydart" data-goal="out:Cidade: Recife;;semerro">
+<p class="try-task"><strong>Missão:</strong> acrescente ao JSON o campo <code>"cidade": "Recife"</code> (lembre da vírgula entre os campos e das aspas duplas) e mostre <code>Cidade: Recife</code> com mais um <code>print</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"nome": "Ana", "idade": 30}';
+  final dados = jsonDecode(texto);
+  print('Nome: ${dados['nome']}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"nome": "Ana", "idade": 30, "cidade": "Recife"}';
+  final dados = jsonDecode(texto);
+  print('Nome: ${dados['nome']}');
+  print('Cidade: ${dados['cidade']}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. De dados para texto: <code>jsonEncode</code></h2>
+
+<pre class="file" data-file="codificar.dart">import 'dart:convert';
+
+void main() {
+  final pedido = {
+    'cliente': 'Bia',
+    'itens': ['bolo', 'sonho'],
+    'total': 27.5,
+    'entregue': false,
+    'observacao': null,
+  };
+  final texto = jsonEncode(pedido);
+  print(texto);
+  print(texto.runtimeType);
+  const bonito = JsonEncoder.withIndent('  ');
+  print(bonito.convert(pedido));
+}
+</pre>
+
+<pre class="term">$ dart run codificar.dart
+{"cliente":"Bia","itens":["bolo","sonho"],"total":27.5,"entregue":false,"observacao":null}
+String
+{
+  "cliente": "Bia",
+  "itens": [
+    "bolo",
+    "sonho"
+  ],
+  "total": 27.5,
+  "entregue": false,
+  "observacao": null
+}
+</pre>
+
+<ul>
+  <li><code>jsonEncode(pedido)</code> ("codificar em JSON") faz o caminho inverso: devolve uma <code>String</code>, com aspas duplas e sem espaços. É o formato compacto, bom para guardar e mandar pela internet.</li>
+  <li><code>JsonEncoder.withIndent('  ')</code> cria um conversor "com recuo" de 2 espaços. <code>.convert(pedido)</code> devolve o mesmo JSON, quebrado em linhas: bom para pessoas lerem.</li>
+  <li>O <code>null</code> do Dart vira <code>null</code> no JSON; <code>false</code> vira <code>false</code>.</li>
+</ul>
+
+<hr>
+
+<h2>3. Dizendo o tipo de cada campo com <code>as</code></h2>
+<p>Como os valores vêm como <code>dynamic</code>, o Dart não sabe que <code>preco</code> é número. É boa prática dizer o tipo logo ao ler, com <code>as</code> (veja <a href="operadores-tipo.html">is, is! e as</a>). Assim, o resto do programa tem tipos claros, e se o JSON vier diferente do combinado, o erro aparece logo na leitura:</p>
+
+<pre class="file" data-file="tipos.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"produto": "pão de queijo", "preco": 4.5, "estoque": 30}';
+  final dados = jsonDecode(texto) as Map&lt;String, dynamic&gt;;
+  final produto = dados['produto'] as String;
+  final preco = dados['preco'] as double;
+  final estoque = dados['estoque'] as int;
+  print('$produto: R\$ ${preco.toStringAsFixed(2)} (restam $estoque)');
+  print('Valor do estoque: R\$ ${(preco * estoque).toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run tipos.dart
+pão de queijo: R$ 4.50 (restam 30)
+Valor do estoque: R$ 135.00
+</pre>
+
+<p>O <code>\$</code> mostra um cifrão de verdade, em vez de começar uma interpolação. <code>toStringAsFixed(2)</code> mostra 2 casas decimais.</p>
+
+<div class="warning">
+<strong>Cuidado com números inteiros num campo de preço</strong>
+<p>No JSON, <code>12</code> é inteiro e <code>12.0</code> é decimal. Se o preço vier como <code>12</code>, <code>as double</code> dá erro. O jeito seguro para campos decimais é <code>(dados['preco'] as num).toDouble()</code>: <code>num</code> aceita os dois. É o que a classe da seção 5 faz.</p>
+</div>
+
+<hr>
+
+<h2>4. Uma lista de objetos</h2>
+<p>O estoque da padaria vem como uma <strong>lista</strong> de objetos. O texto usa <code>'''</code> (três aspas), que permite uma <code>String</code> de várias linhas (veja <a href="strings.html">Strings</a>):</p>
+
+<pre class="file" data-file="lista.dart">import 'dart:convert';
+
+void main() {
+  const texto = '''
+[
+  {"nome": "pão francês", "quantidade": 120},
+  {"nome": "sonho", "quantidade": 8},
+  {"nome": "broa", "quantidade": 0}
+]
+''';
+  final produtos = jsonDecode(texto) as List&lt;dynamic&gt;;
+  for (final p in produtos) {
+    final item = p as Map&lt;String, dynamic&gt;;
+    print('${item['nome']}: ${item['quantidade']}');
+  }
+  final esgotados = produtos.where((p) =&gt; p['quantidade'] == 0).map((p) =&gt; p['nome']);
+  print('Esgotados: ${esgotados.toList()}');
+}
+</pre>
+
+<pre class="term">$ dart run lista.dart
+pão francês: 120
+sonho: 8
+broa: 0
+Esgotados: [broa]
+</pre>
+
+<p>Quando o JSON começa com <code>[</code>, o <code>jsonDecode</code> devolve uma <code>List</code>; cada item é um <code>Map</code>. Os métodos de <a href="iterables.html">map, where, reduce</a> funcionam normalmente.</p>
+
+<hr>
+
+<h2>5. Classes: <code>fromJson</code> e <code>toJson</code></h2>
+<p>Num programa maior, em vez de passar mapas para todo lado, você converte o JSON numa <a href="classes.html">classe</a> sua. A convenção do Dart (usada pelo Flutter e pelos pacotes) é ter dois métodos:</p>
+
+<pre class="file" data-file="classe.dart">import 'dart:convert';
+
+class Produto {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  factory Produto.fromJson(Map&lt;String, dynamic&gt; json) {
+    return Produto(json['nome'] as String, (json['preco'] as num).toDouble());
+  }
+
+  Map&lt;String, dynamic&gt; toJson() =&gt; {'nome': nome, 'preco': preco};
+}
+
+void main() {
+  final p = Produto.fromJson(jsonDecode('{"nome": "café", "preco": 12}'));
+  print('${p.nome} custa ${p.preco}');
+
+  final lista = [Produto('pão', 0.8), Produto('bolo', 25)];
+  print(jsonEncode(lista));
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>factory Produto.fromJson(…)</dt><dd>Um construtor <code>factory</code> nomeado (veja <a href="construtores-nomeados.html">Construtores Nomeados e factory</a>) que recebe o mapa vindo do <code>jsonDecode</code> e monta o objeto. O <code>(… as num).toDouble()</code> aceita <code>12</code> e <code>12.0</code>.</dd>
+  <dt>toJson()</dt><dd>Devolve um mapa com os campos. O nome <code>toJson</code> é especial: quando o <code>jsonEncode</code> encontra um objeto que não sabe converter, ele chama o <code>toJson()</code> desse objeto.</dd>
+  <dt>jsonEncode(lista)</dt><dd>Por isso uma lista de <code>Produto</code> vira JSON direto, sem você chamar nada.</dd>
+</dl>
+
+<pre class="term">$ dart run classe.dart
+café custa 12.0
+[{"nome":"pão","preco":0.8},{"nome":"bolo","preco":25.0}]
+</pre>
+
+<p>Repare: o <code>12</code> do JSON virou <code>12.0</code> (um <code>double</code>), e o <code>Produto('bolo', 25)</code> saiu como <code>25.0</code>. Em projetos grandes, esses dois métodos costumam ser gerados por pacotes (como o <code>json_serializable</code>, do <a href="pacotes.html">pub.dev</a>); escrevê-los à mão, como aqui, é o primeiro passo.</p>
+
+<hr>
+
+<h2>6. JSON num arquivo</h2>
+<p>Juntando com a aula de <a href="arquivos.html">Arquivos</a>: gravar é <code>jsonEncode</code> + <code>writeAsStringSync</code>; ler é <code>readAsStringSync</code> + <code>jsonDecode</code>.</p>
+
+<pre class="file" data-file="arquivo_json.dart">import 'dart:convert';
+import 'dart:io';
+
+void main() {
+  final arquivo = File('estoque.json');
+  final estoque = {'pão': 120, 'sonho': 8};
+  arquivo.writeAsStringSync(jsonEncode(estoque));
+
+  final lido = jsonDecode(arquivo.readAsStringSync()) as Map&lt;String, dynamic&gt;;
+  lido['sonho'] = (lido['sonho'] as int) - 3;
+  lido['broa'] = 15;
+  arquivo.writeAsStringSync(jsonEncode(lido));
+  print(arquivo.readAsStringSync());
+}
+</pre>
+
+<pre class="term">$ dart run arquivo_json.dart
+{"pão":120,"sonho":5,"broa":15}
+</pre>
+
+<p>Gravou, leu, vendeu 3 sonhos, cadastrou a broa e gravou de novo. Na próxima vez que o programa rodar, o estoque estará lá. O <a href="projeto-estoque.html">Projeto: Estoque da Lojinha</a> faz isso completo.</p>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Você quer…</th><th>Use</th></tr>
+<tr><td>texto JSON → dados do Dart</td><td><code>jsonDecode(texto)</code></td></tr>
+<tr><td>dados do Dart → texto JSON compacto</td><td><code>jsonEncode(dados)</code></td></tr>
+<tr><td>texto JSON com recuo, para gente ler</td><td><code>JsonEncoder.withIndent('  ').convert(dados)</code></td></tr>
+<tr><td>um script pequeno</td><td>trabalhe direto com o <code>Map</code>, com <code>as</code> em cada campo</td></tr>
+<tr><td>um programa que usa os dados em muitos lugares</td><td>uma classe com <code>fromJson</code> e <code>toJson</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>JSON com aspas simples</strong>
+<pre class="file" data-file="erro_aspas.dart">import 'dart:convert';
+
+void main() {
+  final dados = jsonDecode("{'nome': 'Ana'}");
+  print(dados);
+}
+</pre>
+<pre class="term">$ dart run erro_aspas.dart
+Unhandled exception:
+FormatException: Unexpected character (at character 2)
+{'nome': 'Ana'}
+ ^
+
+#0      _ChunkedJsonParser.fail (dart:convert-patch/convert_patch.dart:1466:5)
+#1      _ChunkedJsonParser.parse (dart:convert-patch/convert_patch.dart:932:48)
+#2      _parseJson (dart:convert-patch/convert_patch.dart:35:10)
+#3      JsonDecoder.convert (dart:convert/json.dart:640:36)
+#4      JsonCodec.decode (dart:convert/json.dart:219:41)
+#5      jsonDecode (dart:convert/json.dart:160:12)
+#6      main (file:///home/ana/erro_aspas.dart:4:17)
+#7      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#8      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<ul>
+  <li><code>FormatException</code> — "exceção de formato": o texto não é um JSON válido.</li>
+  <li><code>Unexpected character (at character 2)</code> — "caractere inesperado (no caractere 2)". A contagem começa em 1: o 1º é o <code>{</code>, o 2º é a aspa simples.</li>
+  <li>As duas linhas seguintes mostram o texto e um <code>^</code> embaixo do caractere com problema.</li>
+  <li><code>#0</code> a <code>#5</code> — o caminho dentro do <code>dart:convert</code>. <code>#6 main (…:4:17)</code> — a sua linha: linha 4, o <code>jsonDecode</code>.</li>
+</ul>
+<p>No Dart, aspas simples e duplas são a mesma coisa; no JSON, <strong>só as duplas</strong> valem. <strong>Como consertar:</strong> <code>jsonDecode('{"nome": "Ana"}')</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Vírgula depois do último item</strong>
+<pre class="file" data-file="erro_virgula.dart">import 'dart:convert';
+
+void main() {
+  final dados = jsonDecode('{"nome": "Ana", "idade": 30,}');
+  print(dados);
+}
+</pre>
+<pre class="term">$ dart run erro_virgula.dart
+Unhandled exception:
+FormatException: Unexpected character (at character 29)
+{"nome": "Ana", "idade": 30,}
+                            ^
+
+#0      _ChunkedJsonParser.fail (dart:convert-patch/convert_patch.dart:1466:5)
+#1      _ChunkedJsonParser.parse (dart:convert-patch/convert_patch.dart:926:13)
+#2      _parseJson (dart:convert-patch/convert_patch.dart:35:10)
+#3      JsonDecoder.convert (dart:convert/json.dart:640:36)
+#4      JsonCodec.decode (dart:convert/json.dart:219:41)
+#5      jsonDecode (dart:convert/json.dart:160:12)
+#6      main (file:///home/ana/erro_virgula.dart:4:17)
+#7      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#8      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>O <code>^</code> aponta para o <code>}</code>: depois de uma vírgula, o JSON esperava outro campo. No Dart, a vírgula no fim de listas e mapas é permitida (e até recomendada); no JSON, não. <strong>Como consertar:</strong> apague a vírgula antes do <code>}</code>.</p>
+<p>Quando o JSON vem de fora (de um arquivo, da internet), trate o erro com <code>on FormatException</code>:</p>
+<pre class="file" data-file="erro_formatoexc.dart">import 'dart:convert';
+
+void main() {
+  try {
+    jsonDecode('{"nome": "Ana",}');
+  } on FormatException catch (e) {
+    print('JSON inválido: ${e.message}');
+  }
+}
+</pre>
+<pre class="term">$ dart run erro_formatoexc.dart
+JSON inválido: Unexpected character
+</pre>
+</div>
+
+<div class="cenario">
+<strong>O campo veio com outro tipo</strong>
+<pre class="file" data-file="erro_cast.dart">import 'dart:convert';
+
+void main() {
+  final dados = jsonDecode('{"nome": "Ana", "idade": "30"}') as Map&lt;String, dynamic&gt;;
+  final idade = dados['idade'] as int;
+  print('Ano que vem: ${idade + 1}');
+}
+</pre>
+<pre class="term">$ dart run erro_cast.dart
+Unhandled exception:
+type 'String' is not a subtype of type 'int' in type cast
+#0      main (file:///home/ana/erro_cast.dart:5:32)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"O tipo <code>String</code> não é um subtipo do tipo <code>int</code> na conversão de tipo". No JSON, <code>"30"</code> (com aspas) é texto, não número. O <code>as int</code> da linha 5 (coluna 32) percebeu na hora. <strong>Como consertar:</strong> se o JSON é seu, grave o número sem aspas (<code>"idade": 30</code>); se vem de fora e sempre chega como texto, converta: <code>int.parse(dados['idade'] as String)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>A chave não existe</strong>
+<pre class="file" data-file="erro_chave.dart">import 'dart:convert';
+
+void main() {
+  final dados = jsonDecode('{"nome": "Ana"}') as Map&lt;String, dynamic&gt;;
+  final String email = dados['email'];
+  print(email.length);
+}
+</pre>
+<pre class="term">$ dart run erro_chave.dart
+Unhandled exception:
+type 'Null' is not a subtype of type 'String'
+#0      main (file:///home/ana/erro_chave.dart:5:16)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Pedir uma chave que não existe num mapa devolve <code>null</code>. Como <code>dados['email']</code> é <code>dynamic</code>, o compilador deixou passar, mas na hora de guardar <code>null</code> numa variável <code>String</code> (que não aceita nulo, veja <a href="null-safety.html">Null Safety</a>) o programa parou: "o tipo <code>Null</code> não é um subtipo de <code>String</code>". <strong>Como consertar:</strong> se o campo é opcional, use um tipo anulável e um padrão: <code>final email = dados['email'] as String? ?? 'sem e-mail';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Um objeto sem <code>toJson</code></strong>
+<pre class="file" data-file="erro_encode.dart">import 'dart:convert';
+
+class Produto {
+  final String nome;
+  Produto(this.nome);
+}
+
+void main() {
+  print(jsonEncode([Produto('pão')]));
+}
+</pre>
+<pre class="term">$ dart run erro_encode.dart
+Unhandled exception:
+Converting object to an encodable object failed: Instance of 'Produto'
+#0      _JsonStringifier.writeObject (dart:convert/json.dart:826:7)
+#1      _JsonStringifier.writeList (dart:convert/json.dart:877:7)
+#2      _JsonStringifier.writeJsonValue (dart:convert/json.dart:859:7)
+#3      _JsonStringifier.writeObject (dart:convert/json.dart:817:9)
+#4      _JsonStringStringifier.printOn (dart:convert/json.dart:1026:17)
+#5      _JsonStringStringifier.stringify (dart:convert/json.dart:1007:5)
+#6      JsonEncoder.convert (dart:convert/json.dart:352:30)
+#7      JsonCodec.encode (dart:convert/json.dart:237:45)
+#8      jsonEncode (dart:convert/json.dart:118:12)
+#9      main (file:///home/ana/erro_encode.dart:9:9)
+#10     _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#11     _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Falhou ao converter o objeto num objeto codificável: instância de <code>Produto</code>". O <code>jsonEncode</code> só sabe converter números, textos, <code>bool</code>, <code>null</code>, listas e mapas com chaves <code>String</code>. Para qualquer outra coisa, ele procura um método <code>toJson()</code>; a classe não tinha. O stack trace é longo, mas a sua linha é a <code>#9 main (…:9:9)</code>. <strong>Como consertar:</strong> acrescente <code>Map&lt;String, dynamic&gt; toJson() =&gt; {'nome': nome};</code> na classe.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>import 'dart:convert';</code></td><td>traz <code>jsonDecode</code>, <code>jsonEncode</code>, <code>JsonEncoder</code></td></tr>
+<tr><td><code>jsonDecode(texto)</code></td><td>texto JSON → <code>Map</code> / <code>List</code> / valor</td></tr>
+<tr><td><code>jsonEncode(dados)</code></td><td>dados → texto JSON compacto (chama <code>toJson()</code> nos objetos)</td></tr>
+<tr><td><code>JsonEncoder.withIndent('  ').convert(dados)</code></td><td>texto JSON com recuo</td></tr>
+<tr><td><code>x as Map&lt;String, dynamic&gt;</code> / <code>as List&lt;dynamic&gt;</code></td><td>diz o tipo do que veio</td></tr>
+<tr><td><code>(m['preco'] as num).toDouble()</code></td><td>número que pode vir inteiro ou decimal</td></tr>
+<tr><td><code>m['x'] as String? ?? 'padrão'</code></td><td>campo opcional</td></tr>
+<tr><td><code>on FormatException catch (e)</code></td><td>trata JSON inválido</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para transformar o texto em mapa e o mapa em texto:</p>
+<div class="ex-code">import 'dart:<input data-answer="convert" aria-label="biblioteca">';<br>final mapa = <input data-answer="jsonDecode" aria-label="função que lê JSON">('{"a": 1}');<br>final texto = <input data-answer="jsonEncode" aria-label="função que gera JSON">(mapa);</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p>O que <code>print(jsonEncode({'pao': 2, 'leite': true}));</code> mostra?</p>
+<div class="ex-code">Saída: <input data-answer="{&quot;pao&quot;:2,&quot;leite&quot;:true}" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual destes textos é um JSON válido?</p>
+<label><input type="radio" name="q3"> <code>{'nome': 'Ana'}</code></label>
+<label><input type="radio" name="q3"> <code>{"nome": "Ana",}</code></label>
+<label><input type="radio" name="q3"> <code>{"nome": "Ana", "idade": 30}</code></label>
+<label><input type="radio" name="q3"> <code>{nome: "Ana"}</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que <code>jsonDecode('[1, 2, 3]')</code> devolve?</p>
+<label><input type="radio" name="q4"> Um <code>Map</code></label>
+<label><input type="radio" name="q4"> Uma <code>List</code></label>
+<label><input type="radio" name="q4"> Uma <code>String</code></label>
+<label><input type="radio" name="q4"> Um <code>FormatException</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. <code>jsonEncode</code> de um objeto da sua classe deu <code>Converting object to an encodable object failed</code>. O que falta na classe?</p>
+<label><input type="radio" name="q5"> Um <code>toString()</code></label>
+<label><input type="radio" name="q5"> Um construtor <code>const</code></label>
+<label><input type="radio" name="q5"> O <code>import 'dart:io';</code></label>
+<label><input type="radio" name="q5"> Um método <code>toJson()</code></label>
+</div>
+
+<h3>Missão final: o pedido da padaria</h3>
+
+<div class="trydart" data-goal="out:&quot;total&quot;:17.5;;out:&quot;cliente&quot;:&quot;Caio&quot;;;src:jsonEncode">
+<p class="try-task"><strong>Missão:</strong> o programa lê o pedido do Caio em JSON, mas ainda não calcula o total. Some <code>quantidade * preco</code> de cada item, guarde no mapa com <code>pedido['total'] = total;</code> e mostre o pedido de volta em JSON com <code>print(jsonEncode(pedido));</code>. O total deve dar 17.5.</p>
+<pre class="script" data-file="main.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"cliente": "Caio", "itens": [{"nome": "pão", "quantidade": 10, "preco": 0.75}, {"nome": "bolo", "quantidade": 1, "preco": 10}]}';
+  final pedido = jsonDecode(texto) as Map&lt;String, dynamic&gt;;
+  final itens = pedido['itens'] as List&lt;dynamic&gt;;
+
+  var total = 0.0;
+  // some quantidade * preco de cada item aqui
+
+  print('Itens: ${itens.length}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:convert';
+
+void main() {
+  const texto = '{"cliente": "Caio", "itens": [{"nome": "pão", "quantidade": 10, "preco": 0.75}, {"nome": "bolo", "quantidade": 1, "preco": 10}]}';
+  final pedido = jsonDecode(texto) as Map&lt;String, dynamic&gt;;
+  final itens = pedido['itens'] as List&lt;dynamic&gt;;
+
+  var total = 0.0;
+  for (final item in itens) {
+    final quantidade = item['quantidade'] as int;
+    final preco = (item['preco'] as num).toDouble();
+    total += quantidade * preco;
+  }
+
+  print('Itens: ${itens.length}');
+  pedido['total'] = total;
+  print(jsonEncode(pedido));
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>JSON é um formato de <strong>texto</strong> para dados: objetos <code>{ }</code>, listas <code>[ ]</code>, textos com aspas <strong>duplas</strong>, números, <code>true</code>/<code>false</code> e <code>null</code>.</li>
+  <li><code>jsonDecode</code> (de <code>dart:convert</code>) transforma o texto em <code>Map&lt;String, dynamic&gt;</code> / <code>List&lt;dynamic&gt;</code>; <code>jsonEncode</code> faz o contrário.</li>
+  <li>Diga o tipo de cada campo com <code>as</code>; para decimais, <code>(x as num).toDouble()</code>; para opcionais, <code>as String? ?? 'padrão'</code>.</li>
+  <li>Classes ganham <code>fromJson</code> (um <code>factory</code>) e <code>toJson()</code> (que o <code>jsonEncode</code> chama sozinho).</li>
+  <li>JSON mal escrito dá <code>FormatException</code> com a posição do caractere; tipo errado dá <code>type '…' is not a subtype of type '…'</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
