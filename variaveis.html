@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Variáveis — guardando valores com var | Guia Dart</title>
+<meta name="description" content="Variáveis em Dart para quem nunca programou: criar com var, guardar e trocar o valor, usar a variável em contas e no print, escrever o tipo (int, String, double), declarar agora e dar valor depois, e os erros reais do Dart 3 (Undefined name, already declared, A value of type 'String' can't be assigned, Non-nullable variable must be assigned) explicados em português.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Variáveis (var)</span></h1>
+
+<p class="intro">Até aqui, os programas mostravam sempre o mesmo texto, escrito direto no <code>print</code>. Programas de verdade precisam <strong>guardar</strong> informações: quantos pães sobraram, o nome da cliente, o preço do café. Para isso servem as <strong>variáveis</strong>: espaços com nome onde o programa guarda um valor para usar depois, quantas vezes quiser, e trocar quando precisar.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma variável e como criá-la com <code>var</code>.</li>
+  <li>A usar a variável no <code>print</code> e em contas.</li>
+  <li>A <strong>trocar</strong> o valor guardado, inclusive usando o valor antigo (<code>paes = paes - 4</code>).</li>
+  <li>Que o Dart descobre o <strong>tipo</strong> da variável sozinho, e que esse tipo não muda mais.</li>
+  <li>A escrever o tipo no lugar do <code>var</code>: <code>int</code>, <code>double</code>, <code>String</code>.</li>
+  <li>A criar a variável agora e dar o valor depois.</li>
+  <li>Os erros reais: usar antes de criar, criar duas vezes, trocar o tipo, usar sem valor e errar o nome.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>vr</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: potes com etiqueta</h2>
+<p>Na lojinha da Ana há uma prateleira de potes. Cada pote tem uma <strong>etiqueta</strong> com um nome ("balas", "troco") e, dentro, uma <strong>coisa</strong>. Para saber quanto troco há, ela não precisa decorar: olha o pote com a etiqueta "troco". E pode esvaziar o pote e pôr outra quantidade.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Na prateleira</th><th>No Dart</th></tr>
+<tr><td>O pote</td><td>A <strong>variável</strong></td></tr>
+<tr><td>A etiqueta</td><td>O <strong>nome</strong> da variável: <code>paes</code></td></tr>
+<tr><td>O que está dentro</td><td>O <strong>valor</strong>: <code>30</code></td></tr>
+<tr><td>Pote só de líquido, pote só de grãos</td><td>O <strong>tipo</strong>: a variável <code>paes</code> só guarda números inteiros</td></tr>
+<tr><td>Trocar o conteúdo</td><td><strong>Atribuir</strong> um valor novo: <code>paes = 25;</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. Criando uma variável com <code>var</code></h2>
+
+<pre class="file" data-file="primeira.dart">void main() {
+  var nome = 'Ana';
+  print(nome);
+  print(nome);
+}
+</pre>
+
+<pre class="term">$ dart run primeira.dart
+Ana
+Ana
+</pre>
+
+<dl class="anatomy">
+  <dt>var</dt><dd>De <em>variable</em>, "variável": "vou criar um pote novo". Criar uma variável se chama <strong>declarar</strong>.</dd>
+  <dt>nome</dt><dd>A etiqueta. Você escolhe, seguindo regras (aula <a href="nomes-variaveis.html">Nomes de Variáveis</a>): sem espaços, sem acento, começando com letra minúscula.</dd>
+  <dt>=</dt><dd>Não é o "igual" da matemática: quer dizer <strong>"guarde"</strong>. Pegue o que está à direita e ponha na variável da esquerda. Isso se chama <strong>atribuir</strong>.</dd>
+  <dt>'Ana'</dt><dd>O valor guardado: o texto <code>Ana</code>.</dd>
+  <dt>print(nome)</dt><dd>Sem aspas, <code>nome</code> é a etiqueta: o <code>print</code> mostra o que está <strong>dentro</strong> do pote. Usamos duas vezes; o valor continua lá.</dd>
+</dl>
+
+<div class="warning">
+<strong>Com aspas é texto; sem aspas é variável</strong>
+<pre class="file" data-file="aspas.dart">void main() {
+  var nome = 'Ana';
+  print('nome');
+  print(nome);
+}
+</pre>
+<pre class="term">$ dart run aspas.dart
+nome
+Ana
+</pre>
+<p><code>'nome'</code> é a palavra "nome", e é ela que aparece. <code>nome</code> é a variável, e aparece o que ela guarda.</p>
+</div>
+
+<hr>
+
+<h2>2. Usando variáveis em contas e textos</h2>
+<p>Uma variável pode entrar em qualquer lugar onde entraria o valor dela:</p>
+
+<pre class="file" data-file="compras.dart">void main() {
+  var item = 'café';
+  var quantidade = 2;
+  var preco = 18.5;
+  print(item);
+  print(quantidade * preco);
+  print('Comprar $quantidade de $item');
+}
+</pre>
+
+<pre class="term">$ dart run compras.dart
+café
+37.0
+Comprar 2 de café
+</pre>
+
+<dl class="anatomy">
+  <dt>quantidade * preco</dt><dd>O Dart troca cada nome pelo valor (<code>2 * 18.5</code>) e calcula: <code>37.0</code>. O <code>.0</code> aparece porque a conta envolve um número com casas decimais (aula <a href="int-double.html">Números</a>).</dd>
+  <dt>'Comprar $quantidade de $item'</dt><dd>Dentro de um texto, <code>$</code> seguido do nome da variável é trocado pelo valor dela. Isso é a <strong>interpolação</strong>, que tem a sua própria aula: <a href="interpolacao.html">Interpolação</a>.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:Comprar 3 de pão;;src:var\s+item\s*=\s*'pão'">
+<p class="try-task"><strong>Missão:</strong> mude <strong>só os valores das variáveis</strong> (não mexa no <code>print</code>) para o programa mostrar <code>Comprar 3 de pão</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var item = 'café';
+  var quantidade = 2;
+  print('Comprar $quantidade de $item');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var item = 'pão';
+  var quantidade = 3;
+  print('Comprar $quantidade de $item');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Trocando o valor</h2>
+<p>O nome diz: variável é o que <strong>varia</strong>. Para trocar o valor, use o <code>=</code> de novo, agora <strong>sem</strong> o <code>var</code> (o pote já existe):</p>
+
+<pre class="file" data-file="estoque.dart">void main() {
+  var paes = 30;
+  print(paes);
+  paes = 25;
+  print(paes);
+  paes = paes - 4;
+  print(paes);
+}
+</pre>
+
+<pre class="term">$ dart run estoque.dart
+30
+25
+21
+</pre>
+
+<dl class="anatomy">
+  <dt>var paes = 30;</dt><dd>Cria o pote <code>paes</code> com 30 dentro.</dd>
+  <dt>paes = 25;</dt><dd>Joga fora o 30 e guarda 25. O valor antigo se perde.</dd>
+  <dt>paes = paes - 4;</dt><dd>Em matemática, isso seria absurdo. Aqui, lembre que <code>=</code> é "guarde": primeiro o Dart calcula o lado direito com o valor <strong>atual</strong> (<code>25 - 4</code> = <code>21</code>), depois guarda o resultado em <code>paes</code>. Quatro pães foram vendidos.</dd>
+</dl>
+
+<p>Repare na ordem: cada <code>print</code> mostra o valor <strong>daquele momento</strong>. O programa roda de cima para baixo, e a variável guarda só o último valor atribuído. Há atalhos para esse tipo de conta (<code>paes -= 4</code>, <code>paes--</code>), na aula <a href="atribuicao.html">Atribuição e Incremento</a>.</p>
+
+<div class="trydart" data-goal="outre:^12\n7\n$;;src:balas\s*=\s*balas\s*-\s*5">
+<p class="try-task"><strong>Missão:</strong> o pote tem 12 balas e a Bia comprou 5. Depois do primeiro <code>print</code>, tire 5 do valor de <code>balas</code> <strong>usando o próprio <code>balas</code></strong> (sem escrever o 7), e mostre de novo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var balas = 12;
+  print(balas);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var balas = 12;
+  print(balas);
+  balas = balas - 5;
+  print(balas);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. O tipo: o Dart descobre e não esquece</h2>
+<p>Toda variável tem um <strong>tipo</strong>: o tipo de valor que ela aceita. Com <code>var</code>, o Dart olha o primeiro valor e decide sozinho (isso se chama <strong>inferência de tipo</strong>):</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Tipo que o Dart descobre</th><th>Quer dizer</th></tr>
+<tr><td><code>var nome = 'Ana';</code></td><td><code>String</code></td><td>Texto</td></tr>
+<tr><td><code>var quantidade = 2;</code></td><td><code>int</code></td><td>Número inteiro</td></tr>
+<tr><td><code>var preco = 18.5;</code></td><td><code>double</code></td><td>Número com casas decimais</td></tr>
+</table>
+</div>
+
+<p>Depois de decidido, o tipo <strong>não muda mais</strong>. O pote de <code>paes</code> é um pote de números inteiros: guardar um texto nele é erro (veja em "Quando dá errado"). Os tipos têm aula própria: <a href="tipos.html">Os Tipos Básicos</a>.</p>
+
+<h3>Escrevendo o tipo no lugar do <code>var</code></h3>
+<p>Você também pode dizer o tipo com todas as letras:</p>
+
+<pre class="file" data-file="tipada.dart">void main() {
+  String cliente = 'Bia';
+  int pedidos = 3;
+  double troco = 2.5;
+  print(cliente);
+  print(pedidos);
+  print(troco);
+}
+</pre>
+
+<pre class="term">$ dart run tipada.dart
+Bia
+3
+2.5
+</pre>
+
+<p>O resultado é o mesmo que com <code>var</code>. Repare que <code>String</code> começa com maiúscula, e <code>int</code> e <code>double</code>, com minúscula: é assim que eles se chamam.</p>
+
+<h3>Criar agora, guardar depois</h3>
+<p>Com o tipo escrito, dá para criar a variável sem valor e atribuir mais tarde, desde que seja <strong>antes</strong> de usá-la:</p>
+
+<pre class="file" data-file="depois.dart">void main() {
+  int total;
+  total = 12 + 8;
+  print(total);
+}
+</pre>
+
+<pre class="term">$ dart run depois.dart
+20
+</pre>
+
+<hr>
+
+<h2>Formas de declarar: qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Forma</th><th>Exemplo</th><th>Quando usar</th></tr>
+<tr><td><code>var</code> com valor</td><td><code>var paes = 30;</code></td><td>Variável que vai mudar, quando o tipo é óbvio pelo valor. A forma mais comum.</td></tr>
+<tr><td>Tipo com valor</td><td><code>int paes = 30;</code></td><td>Quando você quer deixar o tipo bem visível. Também correto.</td></tr>
+<tr><td>Tipo sem valor</td><td><code>int total;</code></td><td>Quando o valor só vai ser conhecido mais adiante.</td></tr>
+<tr><td><code>final</code></td><td><code>final nome = 'Ana';</code></td><td>Quando o valor <strong>não</strong> vai mudar: o caso mais comum de todos! Aula <a href="final-const.html">final e const</a>.</td></tr>
+<tr><td><code>var</code> sem valor</td><td><code>var coisa;</code></td><td>Evite. Veja abaixo.</td></tr>
+</table>
+</div>
+
+<div class="warning">
+<strong>Cuidado com <code>var</code> sem valor</strong>
+<pre class="file" data-file="var_vazio.dart">void main() {
+  var coisa;
+  coisa = 10;
+  print(coisa);
+  coisa = 'dez';
+  print(coisa);
+}
+</pre>
+<pre class="term">$ dart run var_vazio.dart
+10
+dez
+$ dart analyze var_vazio.dart
+Analyzing var_vazio.dart...
+No issues found!
+</pre>
+<p>Sem um valor inicial, o Dart não tem como descobrir o tipo, e a variável vira <code>dynamic</code> ("dinâmico"): aceita qualquer coisa, número agora, texto depois. Parece cômodo, mas você perde a proteção que o Dart dá conferindo os tipos antes de rodar, e nenhuma ferramenta reclama. Se não tem o valor ainda, escreva o tipo: <code>int coisa;</code>. Mais em <a href="dynamic-object.html">dynamic e Object</a>.</p>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Usar antes de criar</strong>
+<pre class="file" data-file="antes.dart">void main() {
+  print(nome);
+  var nome = 'Ana';
+}
+</pre>
+<pre class="term">$ dart run antes.dart
+antes.dart:2:9: Error: Undefined name 'nome'.
+  print(nome);
+        ^^^^
+antes.dart:2:9: Error: Local variable 'nome' can't be referenced before it is declared.
+  print(nome);
+        ^^^^
+antes.dart:3:7: Context: This is the declaration of the variable 'nome'.
+  var nome = 'Ana';
+      ^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>Undefined name 'nome'.</dt><dd>"Nome não definido": na linha 2, ainda não existe nada chamado <code>nome</code>.</dd>
+  <dt>Local variable 'nome' can't be referenced before it is declared.</dt><dd>"A variável local <code>nome</code> não pode ser usada antes de ser declarada." O Dart percebeu que ela existe, só que mais abaixo.</dd>
+  <dt>Context: This is the declaration of the variable 'nome'.</dt><dd>Uma mensagem de <strong>contexto</strong> (não é outro erro): "esta é a declaração da variável", apontando a linha 3.</dd>
+</dl>
+<p>O programa roda de cima para baixo: primeiro crie o pote, depois use. <strong>Como consertar:</strong> troque as duas linhas de lugar.</p>
+</div>
+
+<div class="cenario">
+<strong>Criar duas vezes</strong>
+<pre class="file" data-file="duas_vezes.dart">void main() {
+  var paes = 30;
+  var paes = 25;
+  print(paes);
+}
+</pre>
+<pre class="term">$ dart run duas_vezes.dart
+duas_vezes.dart:3:7: Error: 'paes' is already declared in this scope.
+  var paes = 25;
+      ^^^^
+duas_vezes.dart:2:7: Context: Previous declaration of 'paes'.
+  var paes = 30;
+      ^^^^
+</pre>
+<p>"<code>paes</code> já foi declarada neste escopo" (escopo é o pedaço do código onde o nome vale; aqui, o <code>main</code>). O contexto mostra a "declaração anterior", na linha 2. Não dá para ter dois potes com a mesma etiqueta na mesma prateleira. A Ana queria só <strong>trocar</strong> o valor. <strong>Como consertar:</strong> tire o <code>var</code> da linha 3: <code>paes = 25;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardar um valor de outro tipo</strong>
+<pre class="file" data-file="muda_tipo.dart">void main() {
+  var paes = 30;
+  paes = 'trinta';
+  print(paes);
+}
+</pre>
+<pre class="term">$ dart run muda_tipo.dart
+muda_tipo.dart:3:10: Error: A value of type 'String' can't be assigned to a variable of type 'int'.
+  paes = 'trinta';
+         ^
+</pre>
+<p>"Um valor do tipo <code>String</code> não pode ser atribuído a uma variável do tipo <code>int</code>". O <code>var paes = 30</code> fez de <code>paes</code> uma variável <code>int</code> para sempre. <strong>Como consertar:</strong> guarde um número, <code>paes = 30;</code>; se você precisa de um texto, crie outra variável.</p>
+</div>
+
+<div class="cenario">
+<strong>Usar sem ter guardado nada</strong>
+<pre class="file" data-file="sem_valor.dart">void main() {
+  int total;
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run sem_valor.dart
+sem_valor.dart:3:9: Error: Non-nullable variable 'total' must be assigned before it can be used.
+  print(total);
+        ^^^^^
+</pre>
+<p>"A variável não anulável <code>total</code> precisa receber um valor antes de ser usada." O pote foi criado vazio e ninguém pôs nada dentro. <strong>Não anulável</strong> (<em>non-nullable</em>) quer dizer que ela não pode ficar "vazia" (<code>null</code>): é a <strong>null safety</strong> do Dart, que tem um grupo inteiro de aulas, começando em <a href="null-safety.html">Null Safety</a>. <strong>Como consertar:</strong> atribua antes de usar, <code>total = 20;</code>, ou já crie com valor: <code>int total = 20;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome escrito errado</strong>
+<pre class="file" data-file="digitou.dart">void main() {
+  var quantidade = 3;
+  print(quantidde);
+}
+</pre>
+<pre class="term">$ dart run digitou.dart
+digitou.dart:3:9: Error: Undefined name 'quantidde'.
+  print(quantidde);
+        ^^^^^^^^^
+</pre>
+<p>Faltou um <code>a</code>. Para o Dart, <code>quantidde</code> é um nome que ninguém criou. O mesmo vale para maiúsculas: <code>Quantidade</code> e <code>quantidade</code> são variáveis diferentes. <strong>Como consertar:</strong> copie o nome exatamente como foi declarado (no VS Code, o editor completa o nome enquanto você digita).</p>
+</div>
+
+<div class="trydart" data-goal="semerro;;outre:^30\n26\n$">
+<p class="try-task"><strong>Missão:</strong> este programa tem dois erros. Conserte para ele mostrar <code>30</code> e, embaixo, <code>26</code> (quatro pães vendidos).</p>
+<pre class="script" data-file="main.dart">void main() {
+  var paes = 30;
+  print(paes);
+  var paes = paes - 4;
+  print(pães);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var paes = 30;
+  print(paes);
+  paes = paes - 4;
+  print(paes);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>var paes = 30;</code></td><td>Cria a variável <code>paes</code> (tipo <code>int</code>, descoberto pelo valor) e guarda 30</td></tr>
+<tr><td><code>int paes = 30;</code></td><td>O mesmo, com o tipo escrito</td></tr>
+<tr><td><code>int total;</code></td><td>Cria sem valor; precisa receber um antes de ser usada</td></tr>
+<tr><td><code>paes = 25;</code></td><td>Troca o valor (sem <code>var</code>)</td></tr>
+<tr><td><code>paes = paes - 4;</code></td><td>Calcula com o valor atual e guarda o resultado</td></tr>
+<tr><td><code>print(paes);</code></td><td>Mostra o valor guardado</td></tr>
+<tr><td><code>'Comprar $paes pães'</code></td><td>Põe o valor dentro de um texto (interpolação)</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Undefined name 'x'.</code></td><td>Nome escrito errado, ou a variável não foi criada</td></tr>
+<tr><td><code>Local variable 'x' can't be referenced before it is declared.</code></td><td>Usou numa linha acima da que cria</td></tr>
+<tr><td><code>'x' is already declared in this scope.</code></td><td><code>var</code> repetido: para trocar o valor, sem <code>var</code></td></tr>
+<tr><td><code>A value of type 'String' can't be assigned to a variable of type 'int'.</code></td><td>Valor de outro tipo</td></tr>
+<tr><td><code>Non-nullable variable 'x' must be assigned before it can be used.</code></td><td>Usou antes de guardar um valor</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Criando</h3>
+<p>Complete para criar a variável <code>cidade</code> com o texto <code>Recife</code>:</p>
+<div class="ex-code"><input data-answer="var|String|final" aria-label="palavra"> cidade = 'Recife';</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual é a saída?</h3>
+<p><code>var x = 10;</code>, depois <code>x = x + 5;</code>, depois <code>print(x);</code>. O que aparece?</p>
+<div class="ex-code">Saída: <input data-answer="15" aria-label="saída"></div>
+</div>
+
+<div class="exercise">
+<h3>3. O tipo</h3>
+<p>Que tipo o Dart descobre para <code>var preco = 4.75;</code>?</p>
+<div class="ex-code">Tipo: <input data-answer="double" aria-label="tipo"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O que mostra este programa? <code>var nome = 'Bia';</code> e depois <code>print('nome');</code></p>
+<label><input type="radio" name="q4"> <code>Bia</code></label>
+<label><input type="radio" name="q4"> <code>nome</code></label>
+<label><input type="radio" name="q4"> Dá erro</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual linha <strong>troca</strong> o valor de uma variável <code>troco</code> que já existe?</p>
+<label><input type="radio" name="q5"> <code>var troco = 5;</code></label>
+<label><input type="radio" name="q5"> <code>int troco = 5;</code></label>
+<label><input type="radio" name="q5"> <code>troco = 5;</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">6. Depois de <code>var idade = 30;</code>, o que acontece com <code>idade = 'trinta';</code>?</p>
+<label><input type="radio" name="q6"> Erro de compilação: <code>idade</code> é <code>int</code></label>
+<label><input type="radio" name="q6"> A variável passa a guardar o texto</label>
+<label><input type="radio" name="q6"> O Dart converte o texto para 30</label>
+</div>
+
+<h3>Missão final: o caixa da lojinha</h3>
+
+<div class="trydart" data-goal="outre:^Cliente: Bia\nTotal: 24\nTroco: 6\n$;;semerro;;src:troco\s*=\s*pago\s*-\s*total">
+<p class="try-task"><strong>Missão:</strong> a Bia comprou 4 cadernos de 6 reais e pagou com 30. Complete o programa: calcule <code>total</code> com <code>quantidade * preco</code> e o <code>troco</code> com <code>pago - total</code> (variáveis, nada de escrever 24 ou 6 direto), para a saída ficar <code>Cliente: Bia</code>, <code>Total: 24</code> e <code>Troco: 6</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var cliente = 'Bia';
+  var quantidade = 4;
+  var preco = 6;
+  var pago = 30;
+  print('Cliente: $cliente');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var cliente = 'Bia';
+  var quantidade = 4;
+  var preco = 6;
+  var pago = 30;
+  var total = quantidade * preco;
+  var troco = pago - total;
+  print('Cliente: $cliente');
+  print('Total: $total');
+  print('Troco: $troco');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma variável é um pote com etiqueta: um nome que guarda um valor. <code>var nome = valor;</code> cria e guarda.</li>
+  <li>O <code>=</code> quer dizer "guarde": calcula a direita e guarda na esquerda. <code>paes = paes - 4</code> usa o valor atual.</li>
+  <li>Para trocar o valor, sem <code>var</code>. Cada <code>print</code> mostra o valor daquele momento.</li>
+  <li>Com <code>var</code>, o Dart descobre o tipo pelo primeiro valor (<code>int</code>, <code>double</code>, <code>String</code>), e ele não muda mais. Também dá para escrever o tipo: <code>int paes = 30;</code>.</li>
+  <li><code>int total;</code> cria sem valor, mas é preciso guardar algo antes de usar. Evite <code>var</code> sem valor (vira <code>dynamic</code>).</li>
+  <li>Sem aspas é a variável; com aspas é o texto.</li>
+  <li>Erros: <code>Undefined name</code> (nome errado ou ainda não criado), <code>already declared</code> (<code>var</code> repetido), tipo diferente, e <code>must be assigned before it can be used</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
