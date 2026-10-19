@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Percorrendo Mapas — keys, values, entries e forEach | Guia Dart</title>
+<meta name="description" content="Como percorrer um Map no Dart para quem nunca programou: for-in nas keys e nos values, entries e MapEntry, forEach com chave e valor, o padrão MapEntry(:key, :value) do Dart 3, contar com um mapa, update, putIfAbsent, addAll, removeWhere, ordenar por chave e por valor, e os erros reais do Dart 3 (Concurrent modification, Key not in map, forEach com um parâmetro, keys[0]).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Percorrendo Mapas</span></h1>
+
+<p class="intro">Na aula <a href="map.html">Mapas</a>, você leu e gravou um valor de cada vez, pela chave. Mas a Ana quer imprimir o cardápio <strong>inteiro</strong>, a professora quer o boletim de <strong>todos</strong> os alunos, e o dono da padaria quer saber quantas vezes <strong>cada</strong> produto foi pedido. Para isso é preciso <strong>percorrer</strong> o mapa, par por par, e usar os métodos que mexem em vários pares de uma vez.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Três jeitos de percorrer: pelas chaves (<code>keys</code>), pelos valores (<code>values</code>) e pelos pares (<code>entries</code>).</li>
+  <li>O <code>forEach</code> com dois parâmetros: chave e valor.</li>
+  <li>O jeito do Dart 3: <code>for (final MapEntry(:key, :value) in mapa.entries)</code>.</li>
+  <li>O padrão mais útil dos mapas: <strong>contar</strong> quantas vezes cada coisa aparece.</li>
+  <li><code>update</code>, <code>putIfAbsent</code>, <code>addAll</code> e <code>removeWhere</code>.</li>
+  <li>Como mostrar o mapa em ordem alfabética ou do maior valor para o menor.</li>
+  <li>Os erros reais: remover durante o <code>for</code>, o <code>update</code> numa chave que não existe, o <code>forEach</code> com um parâmetro só e o <code>keys[0]</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: ler o cardápio de cima a baixo</h2>
+<p>Para ler o cardápio na parede inteiro, você pode:</p>
+<ul>
+  <li>ler só a coluna dos <strong>nomes</strong> ("o que tem hoje?"): as <strong>chaves</strong>;</li>
+  <li>ler só a coluna dos <strong>preços</strong> ("quanto dá tudo?"): os <strong>valores</strong>;</li>
+  <li>ler <strong>linha por linha</strong>, nome e preço juntos: os <strong>pares</strong> (em inglês, <em>entries</em>, "entradas").</li>
+</ul>
+<p>Os três existem no Dart. A ordem é sempre a mesma em que os pares entraram no mapa.</p>
+
+<hr>
+
+<h2>1. Pelas chaves e pelos valores</h2>
+
+<pre class="file" data-file="chaves.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49, 'café': 18.90};
+  for (final produto in precos.keys) {
+    print('$produto custa R\$ ${precos[produto]}');
+  }
+  var soma = 0.0;
+  for (final preco in precos.values) {
+    soma = soma + preco;
+  }
+  print('Soma: R\$ ${soma.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run chaves.dart
+pão custa R$ 0.75
+leite custa R$ 5.49
+café custa R$ 18.9
+Soma: R$ 25.14
+</pre>
+
+<dl class="anatomy">
+  <dt>for (final produto in precos.keys)</dt><dd>Percorre as <strong>chaves</strong>, uma por volta (veja <a href="for-in.html">for-in</a>). Com a chave na mão, <code>precos[produto]</code> busca o valor.</dd>
+  <dt>for (final preco in precos.values)</dt><dd>Percorre só os <strong>valores</strong>. Bom para somar, achar o maior, contar… quando a chave não importa.</dd>
+</dl>
+
+<p>Dentro do primeiro laço, <code>precos[produto]</code> ainda é um <code>double?</code> (veja <a href="map.html">Mapas</a>): mostrar funciona, mas fazer conta com ele exigiria <code>!</code>. O próximo jeito evita isso.</p>
+
+<hr>
+
+<h2>2. Pelos pares: <code>entries</code></h2>
+
+<pre class="file" data-file="entries.dart">void main() {
+  final precos = {'pão': 0.75, 'leite': 5.49, 'café': 18.90};
+  for (final par in precos.entries) {
+    print('${par.key}: R\$ ${par.value.toStringAsFixed(2)}');
+  }
+  print(precos.entries.first);
+}
+</pre>
+
+<pre class="term">$ dart run entries.dart
+pão: R$ 0.75
+leite: R$ 5.49
+café: R$ 18.90
+MapEntry(pão: 0.75)
+</pre>
+
+<dl class="anatomy">
+  <dt>precos.entries</dt><dd>Uma sequência de <strong>pares</strong>. Cada par é um objeto <code>MapEntry</code> ("entrada do mapa"), como mostra o último <code>print</code>: <code>MapEntry(pão: 0.75)</code>.</dd>
+  <dt>par.key / par.value</dt><dd>A chave e o valor daquele par. Aqui, <code>par.value</code> é um <code>double</code> de verdade (não <code>double?</code>): o par existe, então o valor também. Por isso o <code>toStringAsFixed(2)</code> funcionou direto.</dd>
+</dl>
+
+<h3>Desmontando o par com um padrão <span class="versao">Dart 3.0</span></h3>
+<p>Desde o Dart 3.0, dá para "desmontar" o par já no <code>for</code>, dando nomes à chave e ao valor (isso é um <strong>padrão</strong>; veja <a href="patterns.html">Patterns</a>):</p>
+
+<pre class="file" data-file="padrao.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0, 'Caio': 8.0};
+  for (final MapEntry(key: aluno, value: nota) in notas.entries) {
+    print('$aluno tirou $nota');
+  }
+  for (final MapEntry(:key, :value) in notas.entries) {
+    print('$key -&gt; $value');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run padrao.dart
+Ana tirou 9.5
+Bia tirou 6.0
+Caio tirou 8.0
+Ana -&gt; 9.5
+Bia -&gt; 6.0
+Caio -&gt; 8.0
+</pre>
+
+<p><code>MapEntry(key: aluno, value: nota)</code> quer dizer "pegue o <code>key</code> do par e chame de <code>aluno</code>; pegue o <code>value</code> e chame de <code>nota</code>". A forma curta <code>MapEntry(:key, :value)</code> usa os próprios nomes <code>key</code> e <code>value</code> como variáveis.</p>
+
+<hr>
+
+<h2>3. <code>forEach</code>: uma função para cada par</h2>
+<p>O <code>forEach</code> do mapa chama uma função para cada par, entregando <strong>dois</strong> argumentos: a chave e o valor (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>):</p>
+
+<pre class="file" data-file="foreach.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0, 'Caio': 8.0};
+  notas.forEach((aluno, nota) {
+    final situacao = nota &gt;= 7 ? 'aprovado' : 'recuperação';
+    print('$aluno: $nota ($situacao)');
+  });
+}
+</pre>
+
+<pre class="term">$ dart run foreach.dart
+Ana: 9.5 (aprovado)
+Bia: 6.0 (recuperação)
+Caio: 8.0 (aprovado)
+</pre>
+
+<div class="trydart" data-goal="out:Bia: 6.0 (recuperação);;out:Caio: 8.0;;src:\bfor\s*\(|forEach">
+<p class="try-task"><strong>Missão:</strong> mostre o boletim da turma, um aluno por linha, no formato <code>Ana: 9.5</code>. Acrescente <code> (recuperação)</code> depois da nota de quem tirou menos de 7. Use o jeito de percorrer que preferir.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0, 'Caio': 8.0};
+  print(notas);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0, 'Caio': 8.0};
+  for (final MapEntry(key: aluno, value: nota) in notas.entries) {
+    if (nota &lt; 7) {
+      print('$aluno: $nota (recuperação)');
+    } else {
+      print('$aluno: $nota');
+    }
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Contando com um mapa</h2>
+<p>O dono da padaria tem a lista de pedidos do dia e quer saber quantos de <strong>cada</strong> produto saíram. A ideia: um mapa produto → quantidade, começando vazio; para cada pedido, soma 1 na quantidade daquele produto.</p>
+
+<pre class="file" data-file="contar.dart">void main() {
+  final pedidos = ['pão', 'leite', 'pão', 'café', 'pão', 'leite'];
+  final contagem = &lt;String, int&gt;{};
+  for (final item in pedidos) {
+    contagem[item] = (contagem[item] ?? 0) + 1;
+  }
+  print(contagem);
+  final contagem2 = &lt;String, int&gt;{};
+  for (final item in pedidos) {
+    contagem2.update(item, (n) =&gt; n + 1, ifAbsent: () =&gt; 1);
+  }
+  print(contagem2);
+}
+</pre>
+
+<pre class="term">$ dart run contar.dart
+{pão: 3, leite: 2, café: 1}
+{pão: 3, leite: 2, café: 1}
+</pre>
+
+<dl class="anatomy">
+  <dt>contagem[item] = (contagem[item] ?? 0) + 1;</dt><dd>"A contagem do item passa a ser a contagem atual (ou 0, se ele ainda não apareceu) mais 1." Na primeira vez que o <code>pão</code> aparece, <code>contagem['pão']</code> é <code>null</code>, o <code>??</code> troca por 0, e o pão fica com 1.</dd>
+  <dt>update(item, (n) =&gt; n + 1, ifAbsent: () =&gt; 1)</dt><dd>O mesmo, com o método <code>update</code> ("atualizar"): se a chave existe, aplica a função ao valor atual (<code>n + 1</code>); se não existe (<code>ifAbsent</code>, "se ausente"), grava o valor da outra função (<code>1</code>).</dd>
+</dl>
+
+<p>Os dois jeitos dão o mesmo resultado. O primeiro é mais fácil de ler no começo; o segundo deixa claro o que acontece nos dois casos.</p>
+
+<hr>
+
+<h2>5. Mexendo em vários pares: <code>putIfAbsent</code>, <code>update</code>, <code>addAll</code> e <code>removeWhere</code></h2>
+
+<pre class="file" data-file="putifabsent.dart">void main() {
+  final estoque = {'pão': 30};
+  estoque.putIfAbsent('pão', () =&gt; 99);
+  estoque.putIfAbsent('bolo', () =&gt; 5);
+  print(estoque);
+  estoque.update('pão', (q) =&gt; q - 10);
+  print(estoque);
+  estoque.addAll({'leite': 12, 'bolo': 8});
+  print(estoque);
+  estoque.removeWhere((produto, qtd) =&gt; qtd &lt; 10);
+  print(estoque);
+}
+</pre>
+
+<pre class="term">$ dart run putifabsent.dart
+{pão: 30, bolo: 5}
+{pão: 20, bolo: 5}
+{pão: 20, bolo: 8, leite: 12}
+{pão: 20, leite: 12}
+</pre>
+
+<dl class="anatomy">
+  <dt>putIfAbsent('pão', () =&gt; 99)</dt><dd>"Ponha se estiver ausente": o pão já existia, então <strong>nada</strong> muda (continua 30).</dd>
+  <dt>putIfAbsent('bolo', () =&gt; 5)</dt><dd>O bolo não existia: entra com 5.</dd>
+  <dt>update('pão', (q) =&gt; q - 10)</dt><dd>Vendeu 10 pães: o valor novo é calculado a partir do antigo.</dd>
+  <dt>addAll({…})</dt><dd>Grava vários pares de uma vez: o <code>leite</code> entra, e o <code>bolo</code>, que já existia, é trocado para 8.</dd>
+  <dt>removeWhere((produto, qtd) =&gt; qtd &lt; 10)</dt><dd>Tira todos os pares em que a regra dá <code>true</code>. A função recebe chave e valor. O bolo (8) saiu.</dd>
+</dl>
+
+<hr>
+
+<h2>6. Mostrando em ordem</h2>
+<p>O mapa guarda a ordem de inserção. Para mostrar em outra ordem, ordene uma <strong>lista</strong> feita a partir dele:</p>
+
+<pre class="file" data-file="ordenar.dart">void main() {
+  final notas = {'Caio': 8.0, 'Ana': 9.5, 'Bia': 6.0};
+  final nomes = notas.keys.toList()..sort();
+  for (final nome in nomes) {
+    print('$nome: ${notas[nome]}');
+  }
+  final ranking = notas.entries.toList()
+    ..sort((a, b) =&gt; b.value.compareTo(a.value));
+  for (final par in ranking) {
+    print('${par.key} (${par.value})');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run ordenar.dart
+Ana: 9.5
+Bia: 6.0
+Caio: 8.0
+Ana (9.5)
+Caio (8.0)
+Bia (6.0)
+</pre>
+
+<ul>
+  <li><code>notas.keys.toList()..sort()</code>: faz uma lista das chaves e a ordena. Os dois pontos <code>..</code> (a <strong>cascata</strong>) chamam o <code>sort</code> e devolvem a <strong>própria lista</strong>, não o resultado do <code>sort</code> (que é <code>void</code>; veja <a href="list-metodos.html">Métodos de Lista</a>).</li>
+  <li><code>notas.entries.toList()..sort((a, b) =&gt; b.value.compareTo(a.value))</code>: uma lista de pares, ordenada pelo <strong>valor</strong>, do maior para o menor: o ranking da turma.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de percorrer</h2>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>Quando usar</th></tr>
+<tr><td><code>for (final k in mapa.keys)</code></td><td>Só precisa das chaves (ou vai buscar o valor só às vezes)</td></tr>
+<tr><td><code>for (final v in mapa.values)</code></td><td>Só precisa dos valores (somar, achar o maior)</td></tr>
+<tr><td><code>for (final MapEntry(:key, :value) in mapa.entries)</code></td><td>Precisa dos dois: o jeito mais claro no Dart 3, e aceita <code>break</code> e <code>continue</code></td></tr>
+<tr><td><code>for (final par in mapa.entries)</code> + <code>par.key</code>/<code>par.value</code></td><td>O mesmo, sem padrão</td></tr>
+<tr><td><code>mapa.forEach((k, v) { … })</code></td><td>Uma ação curta para cada par. O guia de estilo do Dart prefere o <code>for-in</code> quando o corpo tem mais de uma linha.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Removendo durante o <code>for</code></strong>
+<pre class="file" data-file="err_durante.dart">void main() {
+  final estoque = {'pão': 30, 'leite': 0, 'bolo': 4};
+  for (final produto in estoque.keys) {
+    if (estoque[produto] == 0) {
+      estoque.remove(produto);
+    }
+  }
+  print(estoque);
+}
+</pre>
+<pre class="term">$ dart run err_durante.dart
+Unhandled exception:
+Concurrent modification during iteration: _Map len:2.
+#0      _CompactIterator.moveNext (dart:_compact_hash:841:7)
+#1      main (file:///home/ana/err_durante.dart:3:33)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<dl class="anatomy">
+  <dt>Concurrent modification during iteration: _Map len:2.</dt><dd>"Modificação simultânea durante a iteração: o mapa, que agora tem 2 pares." O leite foi removido enquanto o <code>for</code> andava pelas chaves.</dd>
+  <dt>#1 main (…:3:33)</dt><dd>A linha 3, a do <code>for</code>: o erro aparece quando o laço tenta ir para a próxima chave.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>estoque.removeWhere((produto, qtd) =&gt; qtd == 0);</code>. Se precisar mesmo de um laço, percorra uma cópia das chaves: <code>for (final produto in estoque.keys.toList())</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>update</code> numa chave que não existe</strong>
+<pre class="file" data-file="err_update.dart">void main() {
+  final estoque = {'pão': 30};
+  estoque.update('bolo', (q) =&gt; q + 1);
+}
+</pre>
+<pre class="term">$ dart run err_update.dart
+Unhandled exception:
+Invalid argument (key): Key not in map.: "bolo"
+#0      MapBase.update (dart:collection/maps.dart:66:5)
+#1      main (file:///home/ana/err_update.dart:3:11)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>"Argumento inválido (a chave): a chave não está no mapa: <code>"bolo"</code>." Sem o <code>ifAbsent</code>, o <code>update</code> exige que a chave exista. <strong>Como consertar:</strong> <code>estoque.update('bolo', (q) =&gt; q + 1, ifAbsent: () =&gt; 1);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Contando sem tratar o <code>null</code></strong>
+<pre class="file" data-file="err_acrescenta.dart">void main() {
+  final contagem = &lt;String, int&gt;{};
+  for (final item in ['pão', 'pão']) {
+    contagem[item] = contagem[item] + 1;
+  }
+}
+</pre>
+<pre class="term">$ dart run err_acrescenta.dart
+err_acrescenta.dart:4:37: Error: Operator '+' cannot be called on 'int?' because it is potentially null.
+    contagem[item] = contagem[item] + 1;
+                                    ^
+err_acrescenta.dart:4:37: Error: A value of type 'num' can't be assigned to a variable of type 'int'.
+    contagem[item] = contagem[item] + 1;
+                                    ^
+</pre>
+<p>Dois erros no mesmo lugar. O primeiro é o que importa: "o operador <code>+</code> não pode ser usado num <code>int?</code>, porque ele pode ser <code>null</code>" (na primeira vez, o item não está no mapa). O segundo é consequência do primeiro. <strong>Como consertar:</strong> <code>(contagem[item] ?? 0) + 1</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>forEach</code> com um parâmetro só</strong>
+<pre class="file" data-file="err_foreach.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0};
+  notas.forEach((aluno) {
+    print(aluno);
+  });
+}
+</pre>
+<pre class="term">$ dart run err_foreach.dart
+err_foreach.dart:3:17: Error: The argument type 'void Function(String)' can't be assigned to the parameter type 'void Function(String, double)'.
+  notas.forEach((aluno) {
+                ^
+</pre>
+<p>"Uma função que recebe <code>(String)</code> não serve onde se pede <code>(String, double)</code>." O <code>forEach</code> do mapa entrega <strong>dois</strong> argumentos, sempre. <strong>Como consertar:</strong> <code>(aluno, nota)</code>, ou <code>(aluno, _)</code> se não vai usar a nota, ou <code>for (final aluno in notas.keys)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>keys[0]</code></strong>
+<pre class="file" data-file="err_keys.dart">void main() {
+  final notas = {'Ana': 9.5, 'Bia': 6.0};
+  print(notas.keys[0]);
+}
+</pre>
+<pre class="term">$ dart run err_keys.dart
+err_keys.dart:3:19: Error: The operator '[]' isn't defined for the type 'Iterable&lt;String&gt;'.
+ - 'Iterable' is from 'dart:core'.
+Try correcting the operator to an existing operator, or defining a '[]' operator.
+  print(notas.keys[0]);
+                  ^
+</pre>
+<p>As <code>keys</code> são um <code>Iterable</code> (os parênteses do <code>print</code> avisam), não uma lista. <strong>Como consertar:</strong> <code>notas.keys.first</code>, ou <code>notas.keys.toList()[0]</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>mapa.keys</code> / <code>mapa.values</code></td><td>As chaves / os valores, em ordem de inserção</td></tr>
+<tr><td><code>mapa.entries</code></td><td>Os pares (<code>MapEntry</code>), com <code>.key</code> e <code>.value</code></td></tr>
+<tr><td><code>for (final MapEntry(:key, :value) in mapa.entries)</code></td><td>Percorre desmontando cada par (Dart 3.0+)</td></tr>
+<tr><td><code>mapa.forEach((k, v) { … })</code></td><td>Chama a função para cada par</td></tr>
+<tr><td><code>mapa[k] = (mapa[k] ?? 0) + 1</code></td><td>Conta mais um para a chave <code>k</code></td></tr>
+<tr><td><code>mapa.update(k, (v) =&gt; …, ifAbsent: () =&gt; …)</code></td><td>Atualiza o valor (ou cria, se ausente)</td></tr>
+<tr><td><code>mapa.putIfAbsent(k, () =&gt; v)</code></td><td>Grava só se a chave ainda não existe</td></tr>
+<tr><td><code>mapa.addAll({…})</code></td><td>Grava vários pares</td></tr>
+<tr><td><code>mapa.removeWhere((k, v) =&gt; …)</code></td><td>Tira os pares em que a regra dá <code>true</code></td></tr>
+<tr><td><code>mapa.keys.toList()..sort()</code></td><td>Lista das chaves em ordem</td></tr>
+<tr><td><code>mapa.entries.toList()..sort((a, b) =&gt; …)</code></td><td>Lista dos pares ordenada pelo critério que você quiser</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>Concurrent modification during iteration: _Map …</code></td><td>Mudou o mapa dentro do laço que o percorre</td></tr>
+<tr><td><code>Invalid argument (key): Key not in map.</code></td><td><code>update</code> sem <code>ifAbsent</code> numa chave nova</td></tr>
+<tr><td><code>Operator '+' cannot be called on 'int?'</code></td><td>Conta com <code>mapa[k]</code> sem tratar o <code>null</code></td></tr>
+<tr><td><code>… can't be assigned to the parameter type 'void Function(String, double)'</code></td><td><code>forEach</code> de mapa com um parâmetro só</td></tr>
+<tr><td><code>The operator '[]' isn't defined for the type 'Iterable…'</code></td><td><code>keys[0]</code> ou <code>values[0]</code>: use <code>first</code> ou <code>toList()</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Os valores</h3>
+<p>Complete para somar os preços do mapa <code>precos</code>:</p>
+<div class="ex-code">for (final preco in precos.<input data-answer="values" aria-label="propriedade">) { total = total + preco; }</div>
+</div>
+
+<div class="exercise">
+<h3>2. Contar</h3>
+<p>Complete a linha que conta quantas vezes cada <code>palavra</code> aparece:</p>
+<div class="ex-code">contagem[palavra] = (contagem[palavra] <input data-answer="??" aria-label="operador"> 0) + 1;</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. O que <code>print({'a': 1}.entries.first)</code> mostra?</p>
+<label><input type="radio" name="q3"> <code>a</code></label>
+<label><input type="radio" name="q3"> <code>MapEntry(a: 1)</code></label>
+<label><input type="radio" name="q3"> <code>1</code></label>
+<label><input type="radio" name="q3"> <code>{a: 1}</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Com <code>final m = {'pão': 30};</code>, o que faz <code>m.putIfAbsent('pão', () =&gt; 0);</code>?</p>
+<label><input type="radio" name="q4"> Troca o pão para 0</label>
+<label><input type="radio" name="q4"> Dá uma exceção</label>
+<label><input type="radio" name="q4"> Cria outra chave <code>'pão'</code></label>
+<label><input type="radio" name="q4"> Nada: o pão já existia</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual é o jeito certo de tirar do estoque todos os produtos com quantidade 0?</p>
+<label><input type="radio" name="q5"> <code>estoque.removeWhere((p, q) =&gt; q == 0);</code></label>
+<label><input type="radio" name="q5"> <code>for (final p in estoque.keys) { if (estoque[p] == 0) estoque.remove(p); }</code></label>
+<label><input type="radio" name="q5"> <code>estoque.remove(0);</code></label>
+<label><input type="radio" name="q5"> <code>estoque.update(0, (q) =&gt; null);</code></label>
+</div>
+
+<h3>Missão final: as letras de um nome</h3>
+
+<div class="trydart" data-goal="out:{a: 3, n: 1, s: 1, o: 1, u: 1, z: 1};;src:\bfor\s*\(">
+<p class="try-task"><strong>Missão:</strong> conte quantas vezes cada letra aparece em <code>'anasouza'</code>, num mapa de letra → quantidade. (<code>texto.split('')</code> separa o texto em letras; veja <a href="strings-metodos.html">Métodos de String</a>.) Deve aparecer <code>{a: 3, n: 1, s: 1, o: 1, u: 1, z: 1}</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final texto = 'anasouza';
+  final contagem = &lt;String, int&gt;{};
+  // conte aqui
+  print(contagem);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final texto = 'anasouza';
+  final contagem = &lt;String, int&gt;{};
+  for (final letra in texto.split('')) {
+    contagem[letra] = (contagem[letra] ?? 0) + 1;
+  }
+  print(contagem);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Percorra um mapa pelas chaves (<code>keys</code>), pelos valores (<code>values</code>) ou pelos pares (<code>entries</code>, cada um com <code>.key</code> e <code>.value</code>).</li>
+  <li>No Dart 3, <code>for (final MapEntry(:key, :value) in mapa.entries)</code> desmonta o par direto no <code>for</code>.</li>
+  <li>O <code>forEach</code> de um mapa recebe uma função com <strong>dois</strong> parâmetros.</li>
+  <li>Para contar: <code>mapa[k] = (mapa[k] ?? 0) + 1</code> ou <code>update(k, …, ifAbsent: …)</code>.</li>
+  <li>Para tirar vários pares, <code>removeWhere</code>; nunca remova dentro do <code>for</code> que percorre o mapa.</li>
+  <li>Para mostrar em ordem, ordene uma lista feita das chaves ou dos pares (<code>toList()..sort(…)</code>).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
