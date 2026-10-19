@@ -114,7 +114,7 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 
 ### 4.2 Como o editor mostra as coisas
 - O comando aparece como `ana@notebook:~$ dart run main.dart [args]` e, no fim, `[código de saída: N]`.
-- **Erro de compilação**: no formato do `dart run`, em vermelho. Primeiro `main.dart:3:9: Error: Undefined name 'idadee'.`, depois as linhas de contexto (` - 'Pessoa' is from 'main.dart'.`), o `Try …`, a linha do código e o `^^^^`. Todos os erros de verificação aparecem, em ordem. Erros de **sintaxe**: só o primeiro (o lab às vezes mostra mais). Código de saída **254**.
+- **Erro de compilação**: no formato do `dart run`, em vermelho. Primeiro `main.dart:3:9: Error: Undefined name 'idadee'.`, depois as linhas de contexto (` - 'Pessoa' is from 'main.dart'.`), o `Try …`, a linha do código e o `^^^^`. Todos os erros de verificação aparecem, em ordem. Erros de **sintaxe**: só o primeiro (o lab às vezes mostra mais). Os erros saem na ordem do lab: primeiro os do scanner (letras com acento), depois os de classe (membros abstratos), os de nomes e argumentos, os de tipo e, por fim, os campos `final`. Código de saída **254**.
 - **Exceção não tratada**: `Unhandled exception:`, a mensagem (o `toString()` do Dart) e o stack trace `#0      main (file:///home/ana/main.dart:4:10)`, com as duas linhas finais do `dart:isolate-patch`. Para `List.[]`, `int.parse` e `double.parse`, vêm também as linhas `dart:core-patch` do lab. Código de saída **255**.
 - `print` usa o `toString()` do Dart:
   - coleções: `[1, 2, 3]`, `{a: 1}`, `{1, 2}`;
@@ -153,7 +153,12 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 **Tipos**:
 - `A value of type 'String' can't be assigned to a variable of type 'int'.`, também com elementos de uma lista tipada e argumentos (`The argument type … can't be assigned to the parameter type …`);
 - getter, método ou setter inexistente numa classe sua ou em `Object`, e membro `_privado` usado de outra aba (outra biblioteca) (`The getter 'length' isn't defined for the type 'Object'.`), e atribuir a um campo `final`;
-- `Too few/many positional arguments`, `Required named parameter 'x' must be provided.`, `No named parameter with the name 'x'.`.
+- `Too few/many positional arguments` (com o `Context: Found this candidate…` ou `The class 'X' has a constructor that takes no arguments.`), `Required named parameter 'x' must be provided.`, `No named parameter with the name 'x'.`;
+- uma classe sua onde se espera outra (`A value of type 'Fornecedor' can't be assigned to a variable of type 'Imprimivel'.`), e classes do SDK no lugar de `String`/`int` (`StringBuffer` → `String`).
+
+**Classes**:
+- `The non-abstract class 'Vale' is missing implementations for these members:` (com a lista, o `Try to either` e um `Context:` por membro);
+- `Final field 'nome' is not initialized.` e `… is not initialized by this constructor.`.
 
 **Null safety**:
 - membro, método ou operador de tipo anulável (`Property 'length' cannot be accessed on 'String?' because it is potentially null.`);
@@ -173,7 +178,7 @@ O 1º Rodar baixa uns 180 KB. **Não é o SDK oficial.** As saídas das aulas (`
 **Ainda não confere** (roda, e pode virar exceção ou rodar "certo" onde o lab recusa; avise se a aula precisar):
 - a análise de fluxo mais fina (promoção de campos privados `final`, atribuição definida dentro de laços);
 - erros de tipos genéricos e de *function types*;
-- `@override` incorreto, métodos abstratos não implementados, modificadores de classe (`base`/`final`/`interface` fora da biblioteca);
+- `@override` incorreto, modificadores de classe (`base`/`final`/`interface` fora da biblioteca), membros de `int`/`String`/`List` que não existem (no editor viram exceção `NoSuchMethodError` em vez de erro de compilação);
 - `late final` atribuído duas vezes (no lab é exceção em tempo de execução; no editor, não);
 - vários erros de sintaxe ao mesmo tempo (o editor mostra o primeiro).
 
@@ -201,6 +206,7 @@ O testador `--nativo` registra as demais em `tools/DIFERENCAS.md`.
 | `timeout 60 node tools/sim.js -e 'void main() => print(1);' [--js]` | idem, com o código na linha (`--js` mostra o JavaScript gerado) |
 | `~/guia-dart-lab/testar [--nativo] pagina.html` (no notebook) | o testador: o inicial falha, a solução cumpre, escapes, links, privacidade; o `--nativo` roda também no Dart do lab e registra as diferenças em `tools/DIFERENCAS.md` |
 | `timeout 600 node tools/diferencial.js [--sdk]` | o teste diferencial do motor: `tools/testes/*.dart` com a saída real do lab (`*.esperado`) |
+| `timeout 900 node tools/testar-navegador.js [-q] pagina.html \| --todas` | abre as páginas num Chromium headless e roda cada caixa no editor de verdade (Web Worker) |
 
 Achou uma diferença que não está aqui? Anote no relatório para o agente do simulador.
 
