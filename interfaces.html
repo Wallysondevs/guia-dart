@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Interfaces (implements) — prometer os mesmos métodos | Guia Dart</title>
+<meta name="description" content="Interfaces no Dart para quem nunca programou: implements, a classe abstrata como contrato, várias interfaces numa classe só, toda classe é uma interface (a balança de teste), Comparable e o sort(), extends × implements, e os erros reais do Dart 3.13 (faltou implementar campos, super sem mãe, tipo que não combina, sort sem Comparable).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Interfaces (implements)</span></h1>
+
+<p class="intro">A Ana comprou uma impressora de etiquetas para a lojinha. Ela quer imprimir etiquetas de <strong>produtos</strong> (para a prateleira) e de <strong>clientes</strong> (para as encomendas). Produto e cliente não têm nada a ver um com o outro: um cliente não "é um" produto, então <a href="heranca.html">herança</a> não serve. O que os dois têm em comum é só uma <strong>promessa</strong>: "eu sei gerar a minha etiqueta". No Dart, essa promessa se chama <strong>interface</strong>, e uma classe a assume com <code>implements</code> (em inglês, "implementa", "cumpre").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é uma interface: uma lista de métodos que a classe promete ter.</li>
+  <li>Como escrever <code>class Produto implements Imprimivel</code> e usar classes diferentes no mesmo lugar.</li>
+  <li>Como uma classe cumpre <strong>várias</strong> interfaces de uma vez.</li>
+  <li>Que, no Dart, <strong>toda classe também é uma interface</strong>, e para que isso serve (a balança de teste).</li>
+  <li>Como cumprir uma interface da própria linguagem, <code>Comparable</code>, para o <code>sort()</code> funcionar.</li>
+  <li>A diferença entre <code>extends</code> e <code>implements</code>, e os erros reais de cada engano.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>. Ajuda ter feito <a href="abstract.html">Classes Abstratas</a> antes.</p>
+
+<hr>
+
+<h2>A ideia: a tomada</h2>
+<p>A tomada da parede é uma interface: ela diz "tudo o que tiver <strong>este formato de plugue</strong> pode ser ligado aqui". A tomada não quer saber se é um liquidificador, um carregador ou um abajur, nem como cada um funciona por dentro. Basta cumprir o formato.</p>
+<ul>
+  <li>A <strong>interface</strong> é o formato do plugue: os nomes dos métodos, seus parâmetros e o que devolvem.</li>
+  <li>Cada <strong>classe que implementa</strong> é um aparelho: escreve por conta própria o que acontece quando é ligado.</li>
+  <li>O código que usa a interface é a tomada: funciona com qualquer aparelho que cumpra o formato.</li>
+</ul>
+<p>A diferença para a herança: com <code>extends</code>, a filha <strong>recebe</strong> o código da mãe. Com <code>implements</code>, a classe <strong>não recebe nada</strong>; ela só promete, e escreve tudo sozinha.</p>
+
+<hr>
+
+<h2>1. A primeira interface</h2>
+<p>O Dart não tem uma palavra separada para "interface" no sentido mais simples: o costume é escrever uma <strong>classe abstrata só com métodos abstratos</strong> e usá-la com <code>implements</code>.</p>
+
+<pre class="file" data-file="etiquetas.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+class Produto implements Imprimivel {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String etiqueta() =&gt; '[PRODUTO] $nome - R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Cliente implements Imprimivel {
+  final String nome;
+  final String telefone;
+
+  Cliente(this.nome, this.telefone);
+
+  @override
+  String etiqueta() =&gt; '[CLIENTE] $nome - tel. $telefone';
+}
+
+void imprimirTodas(List&lt;Imprimivel&gt; coisas) {
+  for (final c in coisas) {
+    print(c.etiqueta());
+  }
+}
+
+void main() {
+  imprimirTodas([
+    Produto('Pão de queijo', 1.5),
+    Cliente('Bia', '99999-1234'),
+    Produto('Café coado', 4.0),
+  ]);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>abstract class Imprimivel { String etiqueta(); }</dt><dd>A interface: "quem for imprimível tem um método <code>etiqueta()</code> que devolve <code>String</code>". O nome termina em <strong>-ível</strong> de propósito: descreve uma capacidade ("pode ser impresso"), não uma coisa.</dd>
+  <dt>class Produto implements Imprimivel</dt><dd>"Produto cumpre a promessa de Imprimivel." A partir daqui, o Dart <strong>exige</strong> que <code>Produto</code> tenha <code>etiqueta()</code>.</dd>
+  <dt>@override String etiqueta() =&gt; …</dt><dd>O método prometido, com o jeito do produto. Usa-se o mesmo <code>@override</code> da herança.</dd>
+  <dt>class Cliente implements Imprimivel</dt><dd>Outra classe, sem parentesco nenhum com <code>Produto</code>, cumprindo a mesma promessa.</dd>
+  <dt>void imprimirTodas(List&lt;Imprimivel&gt; coisas)</dt><dd>A "tomada": a função aceita qualquer lista de imprimíveis. Ela só pode chamar o que a interface garante (<code>etiqueta()</code>); <code>c.preco</code> ali daria erro, porque cliente não tem preço.</dd>
+</dl>
+
+<pre class="term">$ dart run etiquetas.dart
+[PRODUTO] Pão de queijo - R$ 1.50
+[CLIENTE] Bia - tel. 99999-1234
+[PRODUTO] Café coado - R$ 4.00
+</pre>
+
+<p>Na mesma lista, produtos e um cliente; cada um gerou a etiqueta do seu jeito. Amanhã, se a Ana quiser etiquetas de fornecedores, basta uma classe nova que <code>implements Imprimivel</code>: a função <code>imprimirTodas</code> não muda (é a missão final).</p>
+
+<hr>
+
+<h2>2. Várias interfaces na mesma classe</h2>
+<p>Uma classe só pode ter <strong>uma</strong> mãe no <code>extends</code>, mas pode cumprir <strong>quantas interfaces quiser</strong>, separadas por vírgula. O produto, além de imprimível, agora sabe virar uma linha de planilha (CSV, o formato de texto com campos separados por <code>;</code>):</p>
+
+<pre class="file" data-file="duas.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+abstract class Exportavel {
+  String paraCsv();
+}
+
+class Produto implements Imprimivel, Exportavel {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String etiqueta() =&gt; '[PRODUTO] $nome - R\$ ${preco.toStringAsFixed(2)}';
+
+  @override
+  String paraCsv() =&gt; '$nome;$preco';
+}
+
+void main() {
+  final p = Produto('Pão de queijo', 1.5);
+  print(p.etiqueta());
+  print(p.paraCsv());
+  print(p is Imprimivel);
+  print(p is Exportavel);
+}
+</pre>
+
+<pre class="term">$ dart run duas.dart
+[PRODUTO] Pão de queijo - R$ 1.50
+Pão de queijo;1.5
+true
+true
+</pre>
+
+<p>O produto agora "é" as duas coisas: o <code>is</code> responde <code>true</code> para as duas interfaces. Ele pode entrar numa <code>List&lt;Imprimivel&gt;</code> e também numa <code>List&lt;Exportavel&gt;</code>. Dá para juntar com herança também: <code>class Bebida extends Produto implements Exportavel</code> (o <code>extends</code> vem primeiro).</p>
+
+<div class="trydart">
+<p class="try-task"><strong>Experimente:</strong> faça o <code>Cliente</code> da seção 1 também implementar <code>Exportavel</code> (com <code>paraCsv()</code> devolvendo <code>'$nome;$telefone'</code>). Antes de escrever o método, rode e leia o que o Dart reclama.</p>
+<pre class="script" data-file="main.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+abstract class Exportavel {
+  String paraCsv();
+}
+
+class Cliente implements Imprimivel {
+  final String nome;
+  final String telefone;
+
+  Cliente(this.nome, this.telefone);
+
+  @override
+  String etiqueta() =&gt; '[CLIENTE] $nome - tel. $telefone';
+}
+
+void main() {
+  final bia = Cliente('Bia', '99999-1234');
+  print(bia.etiqueta());
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Toda classe é uma interface</h2>
+<p>No Dart, <strong>qualquer</strong> classe pode aparecer depois do <code>implements</code>, mesmo uma classe comum, com código dentro. Isso é chamado de <strong>interface implícita</strong>: toda classe "publica" o seu formato de plugue. Para que serve? Um exemplo clássico é o <strong>teste</strong>. A lojinha tem uma balança ligada ao computador; para testar o programa sem a balança, a Ana cria uma balança "de mentira" com o mesmo formato:</p>
+
+<pre class="file" data-file="classe_comum.dart">class Balanca {
+  double pesar() {
+    print('Pesando na balança de verdade...');
+    return 0.350;
+  }
+}
+
+class BalancaDeTeste implements Balanca {
+  @override
+  double pesar() =&gt; 1.0;
+}
+
+void venderQueijo(Balanca balanca) {
+  final kg = balanca.pesar();
+  print('Queijo: ${kg.toStringAsFixed(3)} kg = R\$ ${(kg * 60).toStringAsFixed(2)}');
+}
+
+void main() {
+  venderQueijo(Balanca());
+  venderQueijo(BalancaDeTeste());
+}
+</pre>
+
+<pre class="term">$ dart run classe_comum.dart
+Pesando na balança de verdade...
+Queijo: 0.350 kg = R$ 21.00
+Queijo: 1.000 kg = R$ 60.00
+</pre>
+
+<p>A <code>BalancaDeTeste</code> não herdou nada (por isso não apareceu "Pesando na balança de verdade..." na segunda venda): ela só tem o mesmo formato. A função <code>venderQueijo</code> aceita as duas, e o teste sempre pesa exatamente 1 kg, o que facilita conferir a conta. A aula <a href="testes.html">Testes</a> usa essa ideia.</p>
+
+<div class="warning">
+<strong>Implementar uma classe com campos dá trabalho</strong>
+<p>Quando a classe implementada tem <strong>campos</strong>, eles também fazem parte do formato, e você tem de declará-los de novo. O erro que aparece quando você esquece está em <a href="#errado">Quando dá errado</a>. Se você quer <strong>proibir</strong> que outros implementem (ou estendam) uma classe sua, existem modificadores para isso (aula <a href="modificadores-classe.html">sealed, final, base e interface</a>).</p>
+</div>
+
+<hr>
+
+<h2>4. Uma interface da própria linguagem: <code>Comparable</code></h2>
+<p>A biblioteca do Dart também tem interfaces. <code>Comparable</code> ("comparável") promete um método <code>compareTo</code>, que diz se um objeto vem antes ou depois de outro. É ele que o <code>sort()</code> de uma lista usa para ordenar (veja <a href="list-metodos.html">Métodos de Lista</a>). Números e textos já são <code>Comparable</code>; os seus produtos, não, até você implementar:</p>
+
+<pre class="file" data-file="comparable.dart">class Produto implements Comparable&lt;Produto&gt; {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  int compareTo(Produto outro) =&gt; preco.compareTo(outro.preco);
+}
+
+void main() {
+  final vitrine = [
+    Produto('Bolo', 20.0),
+    Produto('Pão francês', 0.75),
+    Produto('Suco', 6.5),
+  ];
+  vitrine.sort();
+  for (final p in vitrine) {
+    print('${p.nome}: ${p.preco}');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>implements Comparable&lt;Produto&gt;</dt><dd>"Produto é comparável com outro Produto." O <code>&lt;Produto&gt;</code> diz com quem a comparação é feita (veja <a href="genericos.html">Genéricos</a>).</dd>
+  <dt>int compareTo(Produto outro)</dt><dd>O método prometido. A regra: devolver um número <strong>negativo</strong> se este produto vem antes, <strong>zero</strong> se empata, <strong>positivo</strong> se vem depois.</dd>
+  <dt>preco.compareTo(outro.preco)</dt><dd>O <code>double</code> já sabe se comparar; o produto só repassa a pergunta para os preços. Resultado: ordem do mais barato para o mais caro.</dd>
+</dl>
+
+<pre class="term">$ dart run comparable.dart
+Pão francês: 0.75
+Suco: 6.5
+Bolo: 20.0
+</pre>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer: <code>extends</code> ou <code>implements</code>?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>extends</code> (herança)</th><th><code>implements</code> (interface)</th></tr>
+<tr><td>Recebe o código da outra classe?</td><td>Sim: campos e métodos prontos</td><td>Não: escreve tudo de novo</td></tr>
+<tr><td>Quantas de uma vez?</td><td>Uma só</td><td>Quantas quiser</td></tr>
+<tr><td>Pode usar <code>super.metodo()</code>?</td><td>Sim</td><td>Não</td></tr>
+<tr><td>Frase que combina</td><td>"Bebida <strong>é um</strong> Produto"</td><td>"Cliente <strong>sabe</strong> gerar etiqueta"</td></tr>
+<tr><td>Passa no <code>is</code>?</td><td>Sim</td><td>Sim</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Classes sem parentesco que precisam ser usadas no mesmo lugar</td><td><code>implements</code> uma classe abstrata com os métodos</td></tr>
+<tr><td>Uma versão "de mentira" para testar, sem o comportamento real</td><td><code>implements</code> a classe real</td></tr>
+<tr><td>A subclasse aproveita o código da mãe</td><td><code>extends</code> (aula <a href="heranca.html">Herança</a>)</td></tr>
+<tr><td>Várias classes sem parentesco precisam do <strong>mesmo código</strong> pronto</td><td><code>with</code> (aula <a href="mixins.html">Mixins</a>)</td></tr>
+<tr><td>Ordenar objetos seus com <code>sort()</code></td><td><code>implements Comparable&lt;T&gt;</code>, ou <code>sort((a, b) =&gt; …)</code> com uma função</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Implementou uma classe com campos e esqueceu os campos</strong>
+<pre class="file" data-file="erro_campos.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ $preco';
+}
+
+class Brinde implements Produto {
+  @override
+  String descricao() =&gt; 'Brinde grátis';
+}
+
+void main() {
+  print(Brinde().descricao());
+}
+</pre>
+<pre class="term">$ dart run erro_campos.dart
+erro_campos.dart:10:7: Error: The non-abstract class 'Brinde' is missing implementations for these members:
+ - Produto.nome
+ - Produto.preco
+Try to either
+ - provide an implementation,
+ - inherit an implementation from a superclass or mixin,
+ - mark the class as abstract, or
+ - provide a 'noSuchMethod' implementation.
+class Brinde implements Produto {
+      ^^^^^^
+erro_campos.dart:2:10: Context: 'Produto.nome' is defined here.
+  String nome;
+         ^^^^
+erro_campos.dart:3:10: Context: 'Produto.preco' is defined here.
+  double preco;
+         ^^^^^
+</pre>
+<p>Linha por linha: erro de compilação (<code>Error:</code>, código de saída 254) na linha 10, coluna 7, o nome da classe. "A classe não abstrata <code>Brinde</code> está sem implementação para estes membros:" <code>Produto.nome</code> e <code>Produto.preco</code>. O <code>descricao()</code> foi escrito, mas os <strong>campos</strong> também fazem parte do formato. Depois vêm as sugestões ("Try to either…") e dois <code>Context:</code>, um para cada membro, mostrando onde foram declarados. <strong>Como consertar:</strong> declare os campos no <code>Brinde</code> (<code>@override String nome = 'Chaveiro';</code> e <code>@override double preco = 0;</code>), ou, se a ideia era aproveitar o produto, use <code>extends</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>super</code> numa classe que só implementa</strong>
+<pre class="file" data-file="erro_super.dart">class Produto {
+  String nome;
+  double preco;
+
+  Produto(this.nome, this.preco);
+
+  String descricao() =&gt; '$nome: R\$ $preco';
+}
+
+class Brinde implements Produto {
+  @override
+  String nome = 'Chaveiro';
+  @override
+  double preco = 0;
+
+  @override
+  String descricao() =&gt; '${super.descricao()} (brinde)';
+}
+
+void main() {
+  print(Brinde().descricao());
+}
+</pre>
+<pre class="term">$ dart run erro_super.dart
+erro_super.dart:17:34: Error: Superclass has no method named 'descricao'.
+  String descricao() =&gt; '${super.descricao()} (brinde)';
+                                 ^^^^^^^^^
+</pre>
+<p>"A superclasse não tem método chamado <code>descricao</code>." Com <code>implements</code>, o <code>Produto</code> <strong>não é a mãe</strong> do <code>Brinde</code>: a mãe é <code>Object</code>, que não tem <code>descricao()</code>. Não há "versão da mãe" para aproveitar. <strong>Como consertar:</strong> escreva o texto inteiro (<code>'$nome (brinde)'</code>) ou troque para <code>extends Produto</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tem o método, mas não disse <code>implements</code></strong>
+<pre class="file" data-file="erro_esqueceu.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+class Fornecedor {
+  final String nome;
+
+  Fornecedor(this.nome);
+
+  String etiqueta() =&gt; '[FORNECEDOR] $nome';
+}
+
+void main() {
+  final Imprimivel f = Fornecedor('Laticínios Serra');
+  print(f.etiqueta());
+}
+</pre>
+<pre class="term">$ dart run erro_esqueceu.dart
+erro_esqueceu.dart:14:24: Error: A value of type 'Fornecedor' can't be assigned to a variable of type 'Imprimivel'.
+ - 'Fornecedor' is from 'erro_esqueceu.dart'.
+ - 'Imprimivel' is from 'erro_esqueceu.dart'.
+  final Imprimivel f = Fornecedor('Laticínios Serra');
+                       ^
+</pre>
+<p>"Um valor do tipo <code>Fornecedor</code> não pode ser guardado numa variável do tipo <code>Imprimivel</code>." As duas linhas com tracinho só dizem de que arquivo vem cada tipo. O <code>Fornecedor</code> até tem um <code>etiqueta()</code> igualzinho, mas o Dart não aceita "parecido": a promessa tem de ser <strong>declarada</strong>. <strong>Como consertar:</strong> <code>class Fornecedor implements Imprimivel</code> (e o <code>@override</code> no método).</p>
+</div>
+
+<div class="cenario">
+<strong>Ordenou objetos que não são <code>Comparable</code> (exceção durante a execução)</strong>
+<pre class="file" data-file="erro_sort.dart">class Cliente {
+  final String nome;
+
+  Cliente(this.nome);
+}
+
+void main() {
+  final clientes = [Cliente('Bia'), Cliente('Ana'), Cliente('Caio')];
+  print('Ordenando ${clientes.length} clientes...');
+  clientes.sort();
+  print(clientes.first.nome);
+}
+</pre>
+<pre class="term">$ dart run erro_sort.dart
+Ordenando 3 clientes...
+Unhandled exception:
+type 'Cliente' is not a subtype of type 'Comparable&lt;dynamic&gt;' in type cast
+#0      ListBase._compareAny (dart:collection/list.dart:325:33)
+#1      Sort._insertionSort (dart:_internal/sort.dart:77:36)
+#2      Sort._doSort (dart:_internal/sort.dart:62:7)
+#3      Sort.sort (dart:_internal/sort.dart:33:5)
+#4      ListBase.sort (dart:collection/list.dart:321:10)
+#5      main (file:///home/ana/erro_sort.dart:10:12)
+#6      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#7      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Este compilou (o <code>sort()</code> sem argumentos é permitido em qualquer lista) e quebrou rodando, com código de saída 255:</p>
+<ul>
+  <li>"O tipo <code>Cliente</code> não é um subtipo de <code>Comparable&lt;dynamic&gt;</code> numa conversão de tipo." Por dentro, o <code>sort()</code> tentou tratar cada cliente como <code>Comparable</code>, e o cliente não é.</li>
+  <li>O stack trace começa <strong>dentro da biblioteca do Dart</strong> (<code>dart:collection</code>, <code>dart:_internal</code>): linhas <code>#0</code> a <code>#4</code>. Não foi lá o erro; foi lá que ele <strong>estourou</strong>. Desça até a primeira linha com <code>file:///home/ana/…</code>: <code>#5 main</code>, linha 10, o <code>clientes.sort()</code>. Essa é a linha do <strong>seu</strong> código.</li>
+</ul>
+<p><strong>Como consertar:</strong> <code>class Cliente implements Comparable&lt;Cliente&gt;</code> com <code>compareTo</code> (seção 4), ou diga ao <code>sort</code> como comparar: <code>clientes.sort((a, b) =&gt; a.nome.compareTo(b.nome));</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Forçou com <code>as</code> um objeto que não implementa (exceção durante a execução)</strong>
+<p>Se o <code>Fornecedor</code> sem <code>implements</code> estiver numa <code>List&lt;Object&gt;</code>, o compilador deixa passar um <code>c as Imprimivel</code>, e o problema aparece rodando: <code>[PRODUTO] Pão</code> sai, e logo depois <code>Unhandled exception:</code> / <code>type 'Fornecedor' is not a subtype of type 'Imprimivel' in type cast</code> / <code>#0      main (file:///home/ana/erro_as.dart:25:14)</code>. É o mesmo erro de <code>as</code> da aula <a href="heranca.html">Herança</a>: prefira <code>if (c is Imprimivel)</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>abstract class Imprimivel { String etiqueta(); }</code></td><td>Uma interface: a lista de métodos prometidos</td></tr>
+<tr><td><code>class Produto implements Imprimivel { … }</code></td><td>Produto promete (e escreve) tudo o que Imprimivel tem</td></tr>
+<tr><td><code>implements A, B</code></td><td>Cumpre várias interfaces</td></tr>
+<tr><td><code>class X extends Mae implements A</code></td><td>Herança e interface juntas (<code>extends</code> primeiro)</td></tr>
+<tr><td><code>class Teste implements Balanca</code></td><td>Usa uma classe comum como interface (interface implícita)</td></tr>
+<tr><td><code>implements Comparable&lt;Produto&gt;</code> + <code>int compareTo(Produto outro)</code></td><td>Permite <code>lista.sort()</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>The non-abstract class 'X' is missing implementations for these members:</code></td><td>Faltou um método, getter ou campo da interface</td></tr>
+<tr><td><code>Superclass has no method named 'm'.</code></td><td><code>super.m()</code> numa classe que só implementa</td></tr>
+<tr><td><code>A value of type 'X' can't be assigned to a variable of type 'Interface'.</code></td><td>Faltou o <code>implements</code></td></tr>
+<tr><td><code>type 'X' is not a subtype of type 'Comparable&lt;dynamic&gt;'</code></td><td><code>sort()</code> sem função numa lista de objetos não comparáveis</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a promessa</h3>
+<div class="ex-code">class Cliente <input data-answer="implements" aria-label="palavra-chave"> Imprimivel {<br>&nbsp;&nbsp;<input data-answer="@override" aria-label="anotação"><br>&nbsp;&nbsp;String etiqueta() =&gt; '[CLIENTE] $nome';<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. Qual separa?</h3>
+<p>Que caractere separa as interfaces em <code>implements Imprimivel_Exportavel</code> (no lugar do <code>_</code>)?</p>
+<div class="ex-code"><input data-answer="," aria-label="separador" size="2"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Com <code>class Brinde implements Produto</code>, o que o <code>Brinde</code> recebe pronto do <code>Produto</code>?</p>
+<label><input type="radio" name="q3"> Todos os métodos, como na herança</label>
+<label><input type="radio" name="q3"> Nada: ele tem de escrever todos os campos e métodos</label>
+<label><input type="radio" name="q3"> Só os campos</label>
+<label><input type="radio" name="q3"> Só o construtor</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. Num stack trace, as linhas <code>#0</code> a <code>#4</code> são de <code>dart:collection</code> e a <code>#5</code> é <code>main (file:///home/ana/erro_sort.dart:10:12)</code>. Onde você deve olhar primeiro?</p>
+<label><input type="radio" name="q4"> Na linha 10 do <code>erro_sort.dart</code>, a primeira do seu código</label>
+<label><input type="radio" name="q4"> Na <code>#0</code>, dentro da biblioteca do Dart</label>
+<label><input type="radio" name="q4"> Na última linha, <code>_RawReceivePort</code></label>
+<label><input type="radio" name="q4"> Em nenhuma; é bug do Dart</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">5. Qual frase pede <code>implements</code> em vez de <code>extends</code>?</p>
+<label><input type="radio" name="q5"> "Um refrigerante é uma bebida"</label>
+<label><input type="radio" name="q5"> "Um gerente é um funcionário"</label>
+<label><input type="radio" name="q5"> "Produtos e clientes sabem gerar etiqueta"</label>
+<label><input type="radio" name="q5"> "Um sonho é um doce"</label>
+</div>
+
+<h3>Missão final: etiqueta de fornecedor</h3>
+
+<div class="trydart" data-goal="out:[FORNECEDOR] Laticínios Serra;;src:Fornecedor\s+implements\s+Imprimivel">
+<p class="try-task"><strong>Missão:</strong> o programa não compila, porque o <code>Fornecedor</code> não prometeu ser <code>Imprimivel</code>. Faça a classe implementar a interface (não esqueça o <code>@override</code>) e rode até aparecer <code>[FORNECEDOR] Laticínios Serra</code> junto com as outras etiquetas. A função <code>imprimirTodas</code> não precisa mudar.</p>
+<pre class="script" data-file="main.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+class Produto implements Imprimivel {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String etiqueta() =&gt; '[PRODUTO] $nome - R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Fornecedor {
+  final String nome;
+
+  Fornecedor(this.nome);
+
+  String etiqueta() =&gt; '[FORNECEDOR] $nome';
+}
+
+void imprimirTodas(List&lt;Imprimivel&gt; coisas) {
+  for (final c in coisas) {
+    print(c.etiqueta());
+  }
+}
+
+void main() {
+  imprimirTodas([
+    Produto('Queijo minas', 32.0),
+    Fornecedor('Laticínios Serra'),
+  ]);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">abstract class Imprimivel {
+  String etiqueta();
+}
+
+class Produto implements Imprimivel {
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco);
+
+  @override
+  String etiqueta() =&gt; '[PRODUTO] $nome - R\$ ${preco.toStringAsFixed(2)}';
+}
+
+class Fornecedor implements Imprimivel {
+  final String nome;
+
+  Fornecedor(this.nome);
+
+  @override
+  String etiqueta() =&gt; '[FORNECEDOR] $nome';
+}
+
+void imprimirTodas(List&lt;Imprimivel&gt; coisas) {
+  for (final c in coisas) {
+    print(c.etiqueta());
+  }
+}
+
+void main() {
+  imprimirTodas([
+    Produto('Queijo minas', 32.0),
+    Fornecedor('Laticínios Serra'),
+  ]);
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou <code>[PRODUTO] Queijo minas - R$ 32.00</code> e <code>[FORNECEDOR] Laticínios Serra</code>.</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Uma interface é uma promessa de métodos; <code>implements</code> assume a promessa e o Dart exige que todos os membros sejam escritos.</li>
+  <li>O costume é usar uma <code>abstract class</code> só com métodos abstratos como interface; mas <strong>qualquer</strong> classe serve (interface implícita), inclusive para criar versões de teste.</li>
+  <li>Uma classe tem uma mãe só (<code>extends</code>), mas pode implementar várias interfaces (<code>implements A, B</code>).</li>
+  <li><code>implements</code> não traz código: nada de <code>super.metodo()</code>, e os campos da classe implementada também têm de ser declarados.</li>
+  <li>O Dart não aceita "parecido": sem <code>implements</code>, um objeto com o mesmo método não vale como a interface.</li>
+  <li><code>implements Comparable&lt;T&gt;</code> com <code>compareTo</code> permite <code>lista.sort()</code>; sem isso, o <code>sort()</code> estoura durante a execução. No stack trace, procure a primeira linha com o seu arquivo.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
