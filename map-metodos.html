@@ -156,11 +156,11 @@ Caio: 8.0 (aprovado)
 </pre>
 <pre class="solucao" data-file="main.dart">void main() {
   final notas = {'Ana': 9.5, 'Bia': 6.0, 'Caio': 8.0};
-  for (final MapEntry(key: aluno, value: nota) in notas.entries) {
-    if (nota &lt; 7) {
-      print('$aluno: $nota (recuperação)');
+  for (final par in notas.entries) {
+    if (par.value &lt; 7) {
+      print('${par.key}: ${par.value} (recuperação)');
     } else {
-      print('$aluno: $nota');
+      print('${par.key}: ${par.value}');
     }
   }
 }
