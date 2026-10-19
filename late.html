@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart late e o Operador ! — "confie em mim" | Guia Dart</title>
+<meta name="description" content="late e o operador ! do Dart para quem nunca programou: o ! que transforma String? em String (e a exceção real Null check operator used on a null value), quando usar e quando evitar, late para variáveis preenchidas depois (LateInitializationError), late preguiçoso, late final, e os erros reais do Dart 3.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">late e o Operador !</span></h1>
+
+<p class="intro">Nas aulas anteriores, o Dart conferiu tudo por você: se uma variável <strong>podia</strong> ser <code>null</code>, ele não deixava usar sem tratar. Mas às vezes <strong>você sabe mais</strong> do que o Dart consegue enxergar: "esta chave está no mapa, eu acabei de conferir", "esta variável vai ser preenchida antes de alguém ler". Para esses casos existem duas ferramentas que dizem ao Dart "<strong>confie em mim</strong>": o operador <code>!</code> e a palavra <code>late</code>. Elas são úteis, e perigosas: se você estiver errado, o erro volta a aparecer <strong>durante a execução</strong>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O operador <code>!</code>: transforma um <code>String?</code> em <code>String</code> na marra.</li>
+  <li>O que acontece quando o <code>!</code> encontra <code>null</code>: a exceção real <code>Null check operator used on a null value</code>.</li>
+  <li><code>late</code>: uma variável sem <code>?</code> que só vai receber valor depois.</li>
+  <li>O <code>LateInitializationError</code>, quando o "depois" não chegou.</li>
+  <li><code>late</code> com valor (preguiçoso) e <code>late final</code> (preenchido uma vez só).</li>
+  <li>Quando usar cada um, e quando preferir <code>if</code>, <code>??</code> ou um tipo com <code>?</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a promessa</h2>
+<p>O Dart é o gerente cuidadoso da lojinha: antes de abrir qualquer caixa, ele pergunta "tem certeza de que tem algo aí dentro?". O <code>!</code> e o <code>late</code> são <strong>promessas</strong> que você faz para ele:</p>
+<ul>
+  <li><strong><code>x!</code></strong> — "Pode abrir, eu garanto que esta caixa <strong>não está vazia</strong>."</li>
+  <li><strong><code>late</code></strong> — "Esta prateleira está vazia agora, mas eu garanto que vou abastecê-la <strong>antes</strong> de alguém pegar algo."</li>
+</ul>
+<p>O gerente aceita a promessa e para de conferir. Se você cumprir, tudo bem. Se não cumprir, o programa para no meio, com uma exceção: o mesmo tipo de quebra que o null safety existe para evitar.</p>
+
+<hr>
+
+<h2>1. O operador <code>!</code></h2>
+
+<pre class="file" data-file="exclamacao.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  if (precos.containsKey('bolo')) {
+    int preco = precos['bolo']!;
+    print('Bolo: R\$ $preco');
+  }
+  String? apelido = buscar();
+  print(apelido!.length);
+}
+
+String? buscar() =&gt; 'Aninha';
+</pre>
+
+<pre class="term">$ dart run exclamacao.dart
+Bolo: R$ 25
+6
+</pre>
+
+<dl class="anatomy">
+  <dt>precos.containsKey('bolo')</dt><dd>"O mapa contém a chave <code>bolo</code>?" Você conferiu: tem. Mas o Dart não liga essa pergunta à próxima linha: para ele, <code>precos['bolo']</code> continua sendo <code>int?</code>.</dd>
+  <dt>precos['bolo']!</dt><dd>O <code>!</code> colado <strong>depois</strong> do valor diz: "não é <code>null</code>, confie". O tipo vira <code>int</code>, e cabe na variável <code>int preco</code>. Sem o <code>!</code>, seria o erro <code>A value of type 'int?' can't be assigned to a variable of type 'int'.</code> (aula <a href="null-safety.html">Null Safety</a>).</dd>
+  <dt>apelido!.length</dt><dd>O mesmo antes de um ponto: "<code>apelido</code> não é <code>null</code>, pode pegar o <code>length</code>". Deu <code>6</code>.</dd>
+  <dt>String? buscar() =&gt; 'Aninha';</dt><dd>Uma função de uma linha que devolve <code>String?</code> (veja <a href="arrow.html">Funções de Uma Linha</a>). Ela devolveu um texto, então a promessa foi cumprida.</dd>
+</dl>
+
+<p>O nome técnico do <code>!</code> é <strong>operador de asserção de não nulo</strong> (<em>null assertion operator</em>; muita gente diz "bang", o nome do <code>!</code> em inglês). Não confunda com o <code>!</code> que vem <strong>antes</strong> de um <code>bool</code> (<code>!aberta</code>, "não aberta", da aula <a href="bool.html">Booleanos</a>): mesmo sinal, outro trabalho.</p>
+
+<h3>Quando a promessa é quebrada</h3>
+<p>Agora a Ana usou o <code>!</code> numa chave que <strong>não</strong> existe:</p>
+
+<pre class="file" data-file="err_null.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  int preco = precos['torta']!;
+  print('Torta: R\$ $preco');
+}
+</pre>
+
+<pre class="term">$ dart run err_null.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/err_null.dart:3:30)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada." Repare: <strong>compilou</strong>. O Dart aceitou a promessa e só descobriu a verdade durante a execução.</dd>
+  <dt>Null check operator used on a null value</dt><dd>"O operador de checagem de nulo (o <code>!</code>) foi usado num valor <code>null</code>." A caixa estava vazia.</dd>
+  <dt>#0 main (file:///home/ana/err_null.dart:3:30)</dt><dd>Onde: linha 3, coluna 30, exatamente o <code>!</code>.</dd>
+  <dt>#1 e #2</dt><dd>A máquina do Dart que chamou o <code>main</code>. Pode ignorar.</dd>
+  <dt>echo $? → 255</dt><dd>Código de saída de exceção não tratada.</dd>
+</dl>
+
+<p>Compare com as aulas anteriores: sem o <code>!</code>, o Dart teria recusado o programa <strong>antes</strong> de rodar. O <code>!</code> desligou essa proteção naquele ponto. Por isso, a regra é: <strong>cada <code>!</code> é um lugar onde o programa pode quebrar</strong>. Use só quando tiver certeza, e prefira as alternativas da seção 4.</p>
+
+<hr>
+
+<h2>2. <code>late</code>: "vou preencher depois"</h2>
+<p>Às vezes uma variável comum (sem <code>?</code>) não tem valor no momento em que é criada, mas vai ter antes de ser usada. Aqui, a saudação depende da hora:</p>
+
+<pre class="file" data-file="tardia.dart">late String saudacao;
+
+void main() {
+  var hora = 9;
+  if (hora &lt; 12) {
+    saudacao = 'Bom dia';
+  } else {
+    saudacao = 'Boa tarde';
+  }
+  print('$saudacao, Ana!');
+}
+</pre>
+
+<pre class="term">$ dart run tardia.dart
+Bom dia, Ana!
+</pre>
+
+<dl class="anatomy">
+  <dt>late String saudacao;</dt><dd><code>late</code> quer dizer "atrasado", "tardio". A variável é <code>String</code> (nunca <code>null</code>), mas começa <strong>sem valor</strong>, com a promessa de receber um antes de ser lida. Ela foi criada fora do <code>main</code>, no "topo" do arquivo: uma variável assim se chama <strong>global</strong>, e o Dart não consegue acompanhar o caminho dela como faz com as variáveis de dentro de uma função. Sem o <code>late</code>, seria o erro <code>Field 'saudacao' should be initialized because its type 'String' doesn't allow null.</code> (o mesmo do campo de classe, na aula <a href="null-safety.html">Null Safety</a>).</dd>
+  <dt>saudacao = 'Bom dia';</dt><dd>A promessa sendo cumprida, num dos dois caminhos do <code>if</code>.</dd>
+</dl>
+
+<p>Onde o <code>late</code> aparece de verdade é em <strong>classes</strong>: campos que só são preenchidos depois que o objeto é criado (você vai ver em <a href="classes.html">Classes</a>):</p>
+
+<pre class="file" data-file="classe.dart">class Pedido {
+  late String cliente;
+}
+
+void main() {
+  var p = Pedido();
+  p.cliente = 'Ana';
+  print(p.cliente);
+  var q = Pedido();
+  print(q.cliente);
+}
+</pre>
+
+<pre class="term">$ dart run classe.dart
+Ana
+Unhandled exception:
+LateInitializationError: Field 'cliente' has not been initialized.
+#0      Pedido.cliente (file:///home/ana/classe.dart)
+#1      main (file:///home/ana/classe.dart:10:11)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>O primeiro pedido recebeu o cliente e funcionou. O segundo foi lido sem ninguém preencher: promessa quebrada.</p>
+
+<dl class="anatomy">
+  <dt>LateInitializationError:</dt><dd>"Erro de inicialização tardia": o erro próprio do <code>late</code>.</dd>
+  <dt>Field 'cliente' has not been initialized.</dt><dd>"O campo <code>cliente</code> não foi inicializado" (não recebeu valor). <em>Field</em> ("campo") é como o Dart chama variáveis de classe e globais.</dd>
+  <dt>#0 Pedido.cliente (file:///home/ana/classe.dart)</dt><dd>Quem reclamou: o campo <code>cliente</code> da classe <code>Pedido</code>. Esta linha vem sem número de linha.</dd>
+  <dt>#1 main (file:///home/ana/classe.dart:10:11)</dt><dd>Quem tentou ler: linha 10, o <code>print(q.cliente)</code>.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Dois usos especiais: <code>late</code> com valor e <code>late final</code></h2>
+
+<h3><code>late</code> com valor: só calcula se precisar</h3>
+<p>Um <code>late</code> <strong>com</strong> valor inicial é "preguiçoso": o valor só é calculado na primeira vez que alguém lê a variável. Repare na ordem das linhas na saída:</p>
+
+<pre class="file" data-file="preguica.dart">int contarEstoque() {
+  print('(contando o estoque...)');
+  return 42;
+}
+
+void main() {
+  late int estoque = contarEstoque();
+  print('Programa começou');
+  print('Estoque: $estoque');
+  print('Estoque de novo: $estoque');
+}
+</pre>
+
+<pre class="term">$ dart run preguica.dart
+Programa começou
+(contando o estoque...)
+Estoque: 42
+Estoque de novo: 42
+</pre>
+
+<p>A contagem aconteceu <strong>depois</strong> do <code>Programa começou</code>, só quando o <code>$estoque</code> foi usado, e <strong>uma vez só</strong>: na segunda leitura, o valor já estava guardado. Útil quando o cálculo é demorado e talvez nem seja necessário.</p>
+
+<h3><code>late final</code>: preenchido uma vez, nunca mais</h3>
+<p><code>final</code> quer dizer "não muda mais" (aula <a href="final-const.html">final e const</a>). Com <code>late final</code>, a variável começa vazia e pode receber valor <strong>uma única vez</strong>:</p>
+
+<pre class="file" data-file="err_final.dart">late final String codigo;
+
+void main() {
+  codigo = 'A1';
+  print(codigo);
+  codigo = 'B2';
+  print(codigo);
+}
+</pre>
+
+<pre class="term">$ dart run err_final.dart
+A1
+Unhandled exception:
+LateInitializationError: Field 'codigo' has already been initialized.
+#0      LateError._throwFieldAlreadyInitialized (dart:_internal-patch/internal_patch.dart:209:5)
+#1      codigo= (file:///home/ana/err_final.dart)
+#2      main (file:///home/ana/err_final.dart:6:3)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+
+<p>"O campo <code>codigo</code> <strong>já</strong> foi inicializado." O <code>A1</code> apareceu; a segunda atribuição, na linha 6 (<code>#2 main … :6:3</code>), quebrou o programa. A linha <code>#1 codigo=</code> é o "guardar em <code>codigo</code>" que recusou. Quando a variável é de <strong>dentro</strong> de uma função, o Dart consegue ver o erro antes de rodar:</p>
+
+<pre class="file" data-file="err_final_local.dart">void main() {
+  late final String codigo;
+  codigo = 'A1';
+  codigo = 'B2';
+  print(codigo);
+}
+</pre>
+
+<pre class="term">$ dart run err_final_local.dart
+err_final_local.dart:4:3: Error: Late final variable 'codigo' definitely assigned.
+  codigo = 'B2';
+  ^^^^^^
+</pre>
+
+<p>"A variável <code>late final</code> <code>codigo</code> com certeza já recebeu valor" (na linha 3). Erro de compilação: nada rodou.</p>
+
+<hr>
+
+<h2 id="formas">4. Formas diferentes, e qual usar</h2>
+<p>O <code>!</code> e o <code>late</code> quase sempre têm uma alternativa mais segura:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Em vez de…</th><th>Prefira…</th><th>Por quê</th></tr>
+<tr><td><code>precos['torta']!</code></td><td><code>precos['torta'] ?? 0</code> (<a href="operadores-null.html">??</a>)</td><td>Se faltar, usa um padrão em vez de quebrar</td></tr>
+<tr><td><code>apelido!.length</code></td><td><code>if (apelido != null) { … }</code> (<a href="tipos-anulaveis.html">Tipos Anuláveis</a>)</td><td>O Dart confere, e o caso do <code>null</code> fica tratado</td></tr>
+<tr><td><code>late String saudacao;</code> + <code>if</code> sem <code>else</code></td><td><code>String saudacao = hora &lt; 12 ? 'Bom dia' : 'Boa tarde';</code> (<a href="ternario.html">Ternário</a>)</td><td>A variável nasce com valor: não há promessa</td></tr>
+<tr><td><code>late String apelido;</code> que pode nunca ser preenchido</td><td><code>String? apelido;</code></td><td>Se o "nada" é possível, diga no tipo</td></tr>
+</table>
+</div>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Você conferiu de um jeito que o Dart não acompanha (ex.: <code>containsKey</code>) e tem <strong>certeza</strong></td><td><code>!</code></td></tr>
+<tr><td>Campo de classe ou variável global preenchido depois, com certeza antes da primeira leitura</td><td><code>late</code></td></tr>
+<tr><td>Valor caro de calcular, que talvez nem seja usado</td><td><code>late</code> com valor</td></tr>
+<tr><td>Valor que é preenchido depois, mas uma vez só</td><td><code>late final</code></td></tr>
+<tr><td>Qualquer dúvida</td><td><code>?</code>, <code>if</code>, <code>??</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong><code>!</code> num valor que era <code>null</code></strong>
+<p>Seção 1: <code>Null check operator used on a null value</code>, em tempo de execução, código 255. É de longe o erro mais comum de quem usa <code>!</code>: num aplicativo Flutter, é a tela vermelha. <strong>Como consertar:</strong> troque o <code>!</code> por <code>?? padrao</code>, ou por um <code>if (x != null)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>late</code> local lido antes de receber valor</strong>
+<pre class="file" data-file="err_late.dart">void main() {
+  late String saudacao;
+  var hora = 15;
+  if (hora &lt; 12) {
+    saudacao = 'Bom dia';
+  }
+  print('$saudacao, Ana!');
+}
+</pre>
+<pre class="term">$ dart run err_late.dart
+Unhandled exception:
+LateInitializationError: Local 'saudacao' has not been initialized.
+#0      LateError._throwLocalNotInitialized (dart:_internal-patch/internal_patch.dart:214:5)
+#1      main (file:///home/ana/err_late.dart)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<p>Às 15 horas, o <code>if</code> não rodou e ninguém deu valor à saudação. "A variável local (<em>Local</em>) <code>saudacao</code> não foi inicializada." Repare que a linha <code>#1 main</code> veio <strong>sem</strong> número de linha: com <code>late</code>, procure no código onde a variável é lida. <strong>Como consertar:</strong> o <code>else</code> que faltou (<code>else { saudacao = 'Boa tarde'; }</code>), e aí você nem precisa do <code>late</code>: o Dart percebe sozinho que os dois caminhos dão valor.</p>
+</div>
+
+<div class="cenario">
+<strong>Sem <code>late</code>: o erro aparece antes de rodar</strong>
+<pre class="file" data-file="err_semlate.dart">void main() {
+  String saudacao;
+  var hora = 9;
+  if (hora &lt; 12) {
+    saudacao = 'Bom dia';
+  }
+  print('$saudacao, Ana!');
+}
+</pre>
+<pre class="term">$ dart run err_semlate.dart
+err_semlate.dart:7:11: Error: Non-nullable variable 'saudacao' must be assigned before it can be used.
+  print('$saudacao, Ana!');
+          ^^^^^^^^
+</pre>
+<p>Este é o mesmo programa, sem <code>late</code> (e com <code>hora = 9</code>). O Dart percebeu que <strong>existe</strong> um caminho (o <code>if</code> falso) em que a variável chega vazia ao <code>print</code>, e recusou. Pôr <code>late</code> aqui faz o erro sumir (a missão abaixo), mas só troca um erro de compilação por um possível erro de execução, como no cenário anterior. <strong>Conserto melhor:</strong> o <code>else</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>!</code> sobrando</strong>
+<pre class="file" data-file="inutil.dart">void main() {
+  String nome = 'Ana';
+  print(nome!.length);
+}
+</pre>
+<pre class="term">$ dart run inutil.dart
+3
+$ dart analyze inutil.dart
+Analyzing inutil.dart...
+
+warning - inutil.dart:3:13 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+
+1 issue found.
+</pre>
+<p>Rodou, mas o <code>dart analyze</code> avisa: "o <code>!</code> não vai ter efeito, porque o receptor não pode ser <code>null</code>. Tente remover o <code>!</code>." <code>nome</code> é <code>String</code>, sem <code>?</code>: não há promessa a fazer. <strong>Como consertar:</strong> tire o <code>!</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Bom dia, Ana!;;semerro;;src:\blate\b|\belse\b">
+<p class="try-task"><strong>Missão:</strong> este programa não compila (<code>Non-nullable variable 'saudacao' must be assigned before it can be used.</code>). Conserte de um dos dois jeitos: pondo <code>late</code> antes de <code>String saudacao;</code>, ou (melhor) acrescentando um <code>else { saudacao = 'Boa tarde'; }</code>. Depois, se usou <code>late</code>, troque a hora para 15 e veja o <code>LateInitializationError</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  String saudacao;
+  var hora = 9;
+  if (hora &lt; 12) {
+    saudacao = 'Bom dia';
+  }
+  print('$saudacao, Ana!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  late String saudacao;
+  var hora = 9;
+  if (hora &lt; 12) {
+    saudacao = 'Bom dia';
+  }
+  print('$saudacao, Ana!');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>x!</code></td><td>Trata <code>x</code> (de tipo <code>T?</code>) como <code>T</code>; se for <code>null</code>, exceção</td></tr>
+<tr><td><code>x!.metodo()</code></td><td>Chama o método prometendo que <code>x</code> não é <code>null</code></td></tr>
+<tr><td><code>late String x;</code></td><td>Sem <code>?</code>, sem valor agora; ler antes de preencher dá exceção</td></tr>
+<tr><td><code>late int x = calcular();</code></td><td>Calcula só na primeira leitura</td></tr>
+<tr><td><code>late final String x;</code></td><td>Recebe valor uma vez só</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Quer dizer</th></tr>
+<tr><td><code>Null check operator used on a null value</code></td><td>O <code>!</code> encontrou <code>null</code> (execução, 255)</td></tr>
+<tr><td><code>LateInitializationError: Local/Field '…' has not been initialized.</code></td><td>Leu um <code>late</code> antes de preencher</td></tr>
+<tr><td><code>LateInitializationError: Field '…' has already been initialized.</code></td><td>Segundo valor num <code>late final</code></td></tr>
+<tr><td><code>Late final variable '…' definitely assigned.</code></td><td>Segundo valor num <code>late final</code> local (compilação)</td></tr>
+<tr><td><code>unnecessary_non_null_assertion</code> (<code>dart analyze</code>)</td><td><code>!</code> num tipo que já não é anulável</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para prometer ao Dart que <code>apelido</code> não é <code>null</code>:</p>
+<div class="ex-code">String? apelido = 'Bia';<br>String certo = apelido<input data-answer="!" aria-label="operador">;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete</h3>
+<p>Complete para criar uma variável <code>String</code> que só vai receber valor depois:</p>
+<div class="ex-code"><input data-answer="late" aria-label="palavra-chave"> String turno;</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. <code>String? s;</code> e depois <code>print(s!.length);</code>. O que acontece?</p>
+<label><input type="radio" name="q3"> Não compila</label>
+<label><input type="radio" name="q3"> Mostra <code>null</code></label>
+<label><input type="radio" name="q3"> Compila e para com <code>Null check operator used on a null value</code></label>
+<label><input type="radio" name="q3"> Mostra <code>0</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Com <code>late int x = calcular();</code>, quando o <code>calcular()</code> roda?</p>
+<label><input type="radio" name="q4"> Na linha da declaração</label>
+<label><input type="radio" name="q4"> Na primeira vez que <code>x</code> é lido</label>
+<label><input type="radio" name="q4"> Toda vez que <code>x</code> é lido</label>
+<label><input type="radio" name="q4"> Nunca</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual troca é <strong>mais segura</strong> para <code>int preco = precos['torta']!;</code>?</p>
+<label><input type="radio" name="q5"> <code>late int preco = precos['torta'];</code></label>
+<label><input type="radio" name="q5"> <code>int preco = precos['torta']!!;</code></label>
+<label><input type="radio" name="q5"> <code>dynamic preco = precos['torta'];</code></label>
+<label><input type="radio" name="q5"> <code>int preco = precos['torta'] ?? 0;</code></label>
+</div>
+
+<h3>Missão final: o caixa que quebrava</h3>
+
+<div class="trydart" data-goal="out:Total: R$ 26;;semerro;;src:\?\?">
+<p class="try-task"><strong>Missão:</strong> o caixa soma os preços do pedido usando <code>precos[item]!</code>. Mas a <code>torta</code> não está na tabela, e o programa para com <code>Null check operator used on a null value</code>. Troque o <code>!</code> por <code>?? 0</code> (com parênteses: <code>(precos[item] ?? 0)</code>) para itens desconhecidos valerem zero. A saída deve ser <code>Total: R$ 26</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  var pedido = ['bolo', 'torta', 'pão'];
+  var total = 0;
+  for (var item in pedido) {
+    total = total + precos[item]!;
+  }
+  print('Total: R\$ $total');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  var precos = {'pão': 1, 'bolo': 25};
+  var pedido = ['bolo', 'torta', 'pão'];
+  var total = 0;
+  for (var item in pedido) {
+    total = total + (precos[item] ?? 0);
+  }
+  print('Total: R\$ $total');
+}
+</pre>
+</div>
+
+<p>No lab, o código inicial quebrou assim, e a solução mostrou o total:</p>
+<pre class="term">$ dart run caixa0.dart
+Unhandled exception:
+Null check operator used on a null value
+#0      main (file:///home/ana/caixa0.dart:6:33)
+#1      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#2      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ dart run caixa.dart
+Total: R$ 26
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>x!</code> promete que <code>x</code> não é <code>null</code> e o transforma de <code>T?</code> em <code>T</code>. Se a promessa falhar: <code>Null check operator used on a null value</code>, durante a execução.</li>
+  <li><code>late</code> cria uma variável sem <code>?</code> que só recebe valor depois. Ler antes: <code>LateInitializationError … has not been initialized</code>.</li>
+  <li><code>late</code> com valor só calcula na primeira leitura; <code>late final</code> aceita um valor só.</li>
+  <li>Os dois trocam um erro de compilação (seguro) por um possível erro de execução (perigoso). Use só com certeza; na dúvida, <code>?</code>, <code>if</code> e <code>??</code>.</li>
+  <li>O <code>!</code> depois de um valor (asserção de não nulo) não é o <code>!</code> antes de um <code>bool</code> (negação).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
