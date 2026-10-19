@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart int e double — números inteiros e com vírgula | Guia Dart</title>
+<meta name="description" content="Os números do Dart para quem nunca programou: int (inteiros) e double (com casas decimais), num, as contas com / e ~/, o resto %, o 0.1 + 0.2 que não dá 0.3, toStringAsFixed para dinheiro, round, floor, ceil, e os erros reais do Dart 3 (double em variável int, divisão por zero com ~/).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">int e double</span></h1>
+
+<p class="intro">Quase todo programa faz conta: o total da compra, a média da turma, quantos pães cabem em cada saco. O Dart tem <strong>dois tipos de número</strong>: o <code>int</code>, para números <strong>inteiros</strong> (sem vírgula: 3, 30, -4), e o <code>double</code>, para números <strong>com casas decimais</strong> (4.50, 1.68). Nesta aula você vai ver quando usar cada um, como eles se misturam nas contas e as surpresas que todo programador encontra um dia.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre <code>int</code> e <code>double</code>, e como escrever cada um no código.</li>
+  <li>Por que <code>7 / 2</code> dá <code>3.5</code> e <code>7 ~/ 2</code> dá <code>3</code>, e o que é o resto <code>%</code>.</li>
+  <li>Por que <code>0.1 + 0.2</code> não dá exatamente <code>0.3</code>, e como mostrar dinheiro com <code>toStringAsFixed(2)</code>.</li>
+  <li>Os métodos de arredondar: <code>round</code>, <code>floor</code>, <code>ceil</code> e <code>truncate</code>.</li>
+  <li>O tipo <code>num</code>, que aceita os dois.</li>
+  <li>Os erros reais: guardar um <code>double</code> numa variável <code>int</code> e dividir por zero com <code>~/</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), salvos na pasta pessoal dela e executados com <code>dart run arquivo.dart</code> (veja <a href="executar.html">Rodando um Programa</a>).</p>
+
+<hr>
+
+<h2>A ideia: contar pães e pesar farinha</h2>
+<p>Na padaria do bairro, algumas coisas se <strong>contam</strong>: 7 pães, 2 clientes, 30 anos de idade. Ninguém compra 2,7 pães. Outras coisas se <strong>medem</strong>: 1,68 metro de altura, 4,50 reais, 0,5 quilo de farinha. Medidas quase sempre têm casas decimais.</p>
+<p>O Dart separa os números do mesmo jeito:</p>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Tipo</th><th>Para quê</th><th>Exemplos</th></tr>
+<tr><td><code>int</code> (de <em>integer</em>, "inteiro")</td><td>Coisas que se contam</td><td><code>7</code>, <code>30</code>, <code>-4</code>, <code>0</code></td></tr>
+<tr><td><code>double</code> (de "precisão dupla")</td><td>Coisas que se medem, com casas decimais</td><td><code>4.50</code>, <code>1.68</code>, <code>-0.5</code>, <code>2.0</code></td></tr>
+</table>
+</div>
+<div class="warning">
+<strong>No código, a vírgula decimal é um ponto</strong>
+<p>Em português escrevemos 4,50; no Dart (e em quase toda linguagem de programação) se escreve <code>4.50</code>. A vírgula tem outro trabalho no código: separar itens de uma lista e argumentos de uma função.</p>
+</div>
+
+<hr>
+
+<h2>1. Criando variáveis <code>int</code> e <code>double</code></h2>
+
+<pre class="file" data-file="numeros.dart">void main() {
+  int idade = 30;
+  int estoque = -4;
+  double preco = 4.50;
+  double altura = 1.68;
+  print(idade);
+  print(estoque);
+  print(preco);
+  print(altura);
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>int idade = 30;</dt><dd>Cria a variável <code>idade</code> do tipo <code>int</code> com o valor 30. O tipo vem antes do nome, como em <a href="variaveis.html">Variáveis</a>.</dd>
+  <dt>int estoque = -4;</dt><dd>Inteiros podem ser negativos: o estoque da lojinha ficou devendo 4 unidades.</dd>
+  <dt>double preco = 4.50;</dt><dd>Um <code>double</code>, com o ponto no lugar da vírgula.</dd>
+  <dt>print(preco)</dt><dd>Mostra o valor. Repare na saída: o Dart mostra <code>4.5</code>, sem o zero do fim. Para o computador, 4.50 e 4.5 são o mesmo número. Como mostrar sempre duas casas está na seção 4.</dd>
+</dl>
+
+<pre class="term">$ dart run numeros.dart
+30
+-4
+4.5
+1.68
+</pre>
+
+<h3>Outras formas de escrever números</h3>
+<pre class="file" data-file="literais.dart">void main() {
+  var populacao = 1_000_000;
+  var cor = 0xFF;
+  var grande = 1e6;
+  var pequeno = 2.5e-3;
+  double cinco = 5;
+  print(populacao);
+  print(cor);
+  print(grande);
+  print(pequeno);
+  print(cinco);
+  print(populacao.runtimeType);
+  print(grande.runtimeType);
+}
+</pre>
+
+<pre class="term">$ dart run literais.dart
+1000000
+255
+1000000.0
+0.0025
+5.0
+int
+double
+</pre>
+
+<dl class="anatomy">
+  <dt>1_000_000</dt><dd>O <strong>sublinhado</strong> separa os milhares só para os seus olhos; o Dart ignora. Vale o mesmo que <code>1000000</code>. <span class="versao">Dart 3.6</span></dd>
+  <dt>0xFF</dt><dd>Número em <strong>hexadecimal</strong> (base 16), comum para cores. <code>0xFF</code> é 255.</dd>
+  <dt>1e6</dt><dd>Notação científica: 1 × 10<sup>6</sup>, um milhão. Com o <code>e</code>, o número é sempre <code>double</code>, por isso a saída tem <code>.0</code>.</dd>
+  <dt>2.5e-3</dt><dd>2,5 × 10<sup>-3</sup> = 0,0025.</dd>
+  <dt>double cinco = 5;</dt><dd>Numa variável <code>double</code>, o Dart aceita o <code>5</code> escrito sem ponto e guarda como <code>5.0</code>. O contrário (um número com ponto numa variável <code>int</code>) é erro: veja <a href="#errado">Quando dá errado</a>.</dd>
+  <dt>.runtimeType</dt><dd>"Tipo durante a execução": pergunta ao valor de que tipo ele é. Com <code>var</code>, o Dart escolheu <code>int</code> para <code>1_000_000</code> e <code>double</code> para <code>1e6</code>, olhando para o valor.</dd>
+</dl>
+
+<div class="trydart" data-goal="out:2.5;;src:double\s+\w+">
+<p class="try-task"><strong>Missão:</strong> o pão de queijo custa R$ 2,50. Crie uma variável <code>double</code> chamada <code>precoPaoDeQueijo</code> com esse valor (lembre: ponto, não vírgula) e mostre-a com <code>print</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  int paes = 7;
+  print(paes);
+  // crie a variável double aqui e mostre com print
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  int paes = 7;
+  print(paes);
+  double precoPaoDeQueijo = 2.50;
+  print(precoPaoDeQueijo);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Contas com <code>int</code> e <code>double</code></h2>
+<p>A Ana tem 7 pães para dividir entre 2 pessoas. Veja as contas:</p>
+
+<pre class="file" data-file="contas.dart">void main() {
+  int paes = 7;
+  int pessoas = 2;
+  print(paes + pessoas);
+  print(paes - pessoas);
+  print(paes * pessoas);
+  print(paes / pessoas);
+  print(paes ~/ pessoas);
+  print(paes % pessoas);
+  print(10 / 2);
+  print(2 + 1.5);
+}
+</pre>
+
+<pre class="term">$ dart run contas.dart
+9
+5
+14
+3.5
+3
+1
+5.0
+3.5
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Conta</th><th>Resultado</th><th>O que aconteceu</th></tr>
+<tr><td><code>7 + 2</code>, <code>7 - 2</code>, <code>7 * 2</code></td><td><code>9</code>, <code>5</code>, <code>14</code></td><td>Soma, subtração, multiplicação (o <code>*</code> é o "vezes"). <code>int</code> com <code>int</code> dá <code>int</code>.</td></tr>
+<tr><td><code>7 / 2</code></td><td><code>3.5</code></td><td>A barra <code>/</code> é a divisão "de verdade". <strong>Sempre</strong> dá <code>double</code>.</td></tr>
+<tr><td><code>7 ~/ 2</code></td><td><code>3</code></td><td>O <code>~/</code> é a <strong>divisão inteira</strong>: quantos pães inteiros cada um leva. Joga fora a parte depois da vírgula. Dá <code>int</code>.</td></tr>
+<tr><td><code>7 % 2</code></td><td><code>1</code></td><td>O <code>%</code> é o <strong>resto</strong> da divisão: o pão que sobrou.</td></tr>
+<tr><td><code>10 / 2</code></td><td><code>5.0</code></td><td>Mesmo quando a divisão é exata, o <code>/</code> dá <code>double</code>: por isso o <code>.0</code>.</td></tr>
+<tr><td><code>2 + 1.5</code></td><td><code>3.5</code></td><td>Misturou <code>int</code> com <code>double</code>? O resultado é <code>double</code>.</td></tr>
+</table>
+</div>
+
+<p>A regra para guardar na cabeça: <strong><code>/</code> sempre dá <code>double</code>; <code>~/</code> sempre dá <code>int</code></strong>. Os operadores em detalhe estão em <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>.</p>
+
+<hr>
+
+<h2>3. O tipo <code>num</code>: "qualquer número"</h2>
+<p><code>int</code> e <code>double</code> são primos: os dois são <strong><code>num</code></strong> (de <em>number</em>, "número"). Uma variável <code>num</code> aceita os dois:</p>
+
+<pre class="file" data-file="num.dart">void main() {
+  num qualquer = 3;
+  print(qualquer);
+  qualquer = 2.5;
+  print(qualquer);
+  print(qualquer is int);
+  print(qualquer is double);
+}
+</pre>
+
+<pre class="term">$ dart run num.dart
+3
+2.5
+false
+true
+</pre>
+
+<p>O <code>is</code> pergunta "é deste tipo?" e responde <code>true</code> ou <code>false</code> (veja <a href="operadores-tipo.html">is, is! e as</a>). Depois de receber <code>2.5</code>, a variável guarda um <code>double</code>. Na prática, prefira <code>int</code> ou <code>double</code>: dizem mais sobre o valor. Use <code>num</code> só quando os dois servem de verdade.</p>
+
+<hr>
+
+<h2>4. Dinheiro e o <code>0.1 + 0.2</code></h2>
+<p>Agora uma surpresa que pega todo mundo:</p>
+
+<pre class="file" data-file="dinheiro.dart">void main() {
+  double total = 0.1 + 0.2;
+  print(total);
+  print(total == 0.3);
+  print(total.toStringAsFixed(2));
+  double compra = 4.5 + 12.9 + 3.25;
+  print(compra);
+  print('Total: R\$ ${compra.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run dinheiro.dart
+0.30000000000000004
+false
+0.30
+20.65
+Total: R$ 20.65
+</pre>
+
+<p>Não é defeito do Dart. O computador guarda o <code>double</code> em <strong>binário</strong> (zeros e uns), e números como 0,1 não têm representação exata em binário, do mesmo jeito que 1/3 não tem representação exata em decimal (0,3333…). Fica um errinho minúsculo no fim. O <code>total == 0.3</code> (o <code>==</code> pergunta "é igual?") deu <code>false</code> por causa desse errinho. Python, JavaScript, Java e C fazem igual.</p>
+
+<dl class="anatomy">
+  <dt>total.toStringAsFixed(2)</dt><dd>"Para texto com casas fixas": transforma o número em texto com <strong>exatamente</strong> 2 casas decimais, arredondando. <code>0.30000000000000004</code> vira <code>'0.30'</code>. É o jeito de mostrar dinheiro.</dd>
+  <dt>'Total: R\$ ${…}'</dt><dd>Um texto com o valor dentro. O <code>\$</code> mostra o cifrão de verdade; o <code>${…}</code> encaixa o resultado da conta no texto. Os dois são assunto da aula <a href="interpolacao.html">Interpolação</a>.</dd>
+</dl>
+
+<div class="tip">
+<strong>Boa prática com dinheiro</strong>
+<p>Para <strong>mostrar</strong>, use <code>toStringAsFixed(2)</code>. Para <strong>comparar</strong>, não use <code>==</code> com <code>double</code>. Programas de banco costumam guardar dinheiro em <strong>centavos</strong>, num <code>int</code> (R$ 4,50 = <code>450</code>): conta com inteiro nunca tem esse errinho.</p>
+</div>
+
+<hr>
+
+<h2>5. Arredondar e outras perguntas ao número</h2>
+<p>Todo número no Dart tem <strong>métodos</strong>: ações que você chama com um ponto depois do valor, como <code>nota.round()</code>. A nota da Ana foi 7,6:</p>
+
+<pre class="file" data-file="metodos.dart">void main() {
+  double nota = 7.6;
+  print(nota.round());
+  print(nota.floor());
+  print(nota.ceil());
+  print(nota.truncate());
+  print((-7.6).truncate());
+  print((-7.6).floor());
+  print((-3).abs());
+  print(8.isEven);
+  print(7.isOdd);
+  print(15.clamp(0, 10));
+  print(7.toDouble());
+  print(2.5.round());
+  print(3.14159.toStringAsFixed(2));
+}
+</pre>
+
+<pre class="term">$ dart run metodos.dart
+8
+7
+8
+7
+-7
+-8
+3
+true
+true
+10
+7.0
+3
+3.14
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Método</th><th>O que faz</th><th>Exemplo da saída</th></tr>
+<tr><td><code>round()</code></td><td>Arredonda para o inteiro mais próximo; o meio (.5) sobe</td><td><code>7.6</code> → <code>8</code>; <code>2.5</code> → <code>3</code></td></tr>
+<tr><td><code>floor()</code></td><td>"Piso": o inteiro de baixo</td><td><code>7.6</code> → <code>7</code>; <code>-7.6</code> → <code>-8</code></td></tr>
+<tr><td><code>ceil()</code></td><td>"Teto": o inteiro de cima</td><td><code>7.6</code> → <code>8</code></td></tr>
+<tr><td><code>truncate()</code></td><td>Corta a parte decimal (na direção do zero)</td><td><code>7.6</code> → <code>7</code>; <code>-7.6</code> → <code>-7</code></td></tr>
+<tr><td><code>abs()</code></td><td>Valor absoluto: tira o sinal de menos</td><td><code>-3</code> → <code>3</code></td></tr>
+<tr><td><code>isEven</code> / <code>isOdd</code></td><td>É par? / É ímpar? (só no <code>int</code>)</td><td><code>8.isEven</code> → <code>true</code></td></tr>
+<tr><td><code>clamp(min, max)</code></td><td>Prende o valor entre um mínimo e um máximo</td><td><code>15.clamp(0, 10)</code> → <code>10</code></td></tr>
+<tr><td><code>toDouble()</code> / <code>toInt()</code></td><td>Converte <code>int</code> → <code>double</code> / <code>double</code> → <code>int</code> (cortando)</td><td><code>7</code> → <code>7.0</code></td></tr>
+<tr><td><code>toStringAsFixed(n)</code></td><td>Texto com <code>n</code> casas decimais</td><td><code>3.14159</code> → <code>3.14</code></td></tr>
+</table>
+</div>
+
+<p>Repare nos parênteses de <code>(-7.6).truncate()</code>: sem eles, o Dart faria primeiro o <code>7.6.truncate()</code> e só depois poria o sinal de menos. E o <code>isEven</code> não tem parênteses: é uma <strong>propriedade</strong> (uma pergunta pronta), não uma ação. Note também que <code>round</code>, <code>floor</code>, <code>ceil</code> e <code>truncate</code> devolvem <code>int</code>: o <code>8</code> sai sem <code>.0</code>.</p>
+
+<div class="trydart" data-goal="out:Média: 7;;src:\.round\(\)">
+<p class="try-task"><strong>Missão:</strong> a média da Ana deu 6.75, mas o boletim só aceita número inteiro arredondado. Use <code>.round()</code> para o programa mostrar <code>Média: 7</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  double media = (6.5 + 7.0) / 2;
+  print(media);
+  int boletim = media.floor();
+  print('Média: $boletim');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  double media = (6.5 + 7.0) / 2;
+  print(media);
+  int boletim = media.round();
+  print('Média: $boletim');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>6. Os limites: o maior <code>int</code> e o "infinito"</h2>
+<pre class="file" data-file="limites.dart">void main() {
+  int maior = 9223372036854775807;
+  print(maior);
+  print(maior + 1);
+  print(1 / 0);
+  print(-1 / 0);
+  print(0 / 0);
+  print(double.maxFinite);
+}
+</pre>
+
+<pre class="term">$ dart run limites.dart
+9223372036854775807
+-9223372036854775808
+Infinity
+-Infinity
+NaN
+1.7976931348623157e+308
+</pre>
+
+<ul>
+  <li>Um <code>int</code> do Dart (num programa de terminal) cabe em 64 bits: vai até <strong>9.223.372.036.854.775.807</strong> (9 quintilhões). Passou disso, ele <strong>dá a volta</strong> para o menor número negativo, sem aviso nenhum. Ninguém conta pães até lá, mas é bom saber. (Para números ainda maiores existe o <code>BigInt</code>.)</li>
+  <li>Dividir um número por zero com <code>/</code> não dá erro: dá <code>Infinity</code> ("infinito") ou <code>-Infinity</code>.</li>
+  <li><code>0 / 0</code> dá <code>NaN</code>: <em>Not a Number</em>, "não é um número". Um <code>double</code> que avisa que a conta não faz sentido.</li>
+  <li><code>double.maxFinite</code> é o maior <code>double</code> que não é infinito: cerca de 1,8 × 10<sup>308</sup>.</li>
+</ul>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>Dividir 7 pães para 2 pessoas e pegar a parte inteira dá para escrever de três jeitos:</p>
+<pre class="file" data-file="formas.dart">int a = 7 ~/ 2;            // divisão inteira: 3
+int b = (7 / 2).floor();   // divide e arredonda para baixo: 3
+int c = (7 / 2).toInt();   // divide e corta: 3
+</pre>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Coisas que se contam (pães, alunos, idade)</td><td><code>int</code></td></tr>
+<tr><td>Medidas, médias, preços que só vão ser mostrados</td><td><code>double</code></td></tr>
+<tr><td>Dinheiro em contas que precisam ser exatas</td><td><code>int</code> em centavos</td></tr>
+<tr><td>Dividir e ficar com a parte inteira</td><td><code>~/</code> (o mais curto e claro)</td></tr>
+<tr><td>O que sobrou da divisão</td><td><code>%</code></td></tr>
+<tr><td>Mostrar com 2 casas</td><td><code>toStringAsFixed(2)</code></td></tr>
+<tr><td>Uma variável que aceita os dois</td><td><code>num</code> (raramente)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Um número com casas decimais numa variável <code>int</code></strong>
+<pre class="file" data-file="errado_int.dart">void main() {
+  int preco = 4.50;
+  print(preco);
+}
+</pre>
+<pre class="term">$ dart run errado_int.dart
+errado_int.dart:2:15: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+  int preco = 4.50;
+              ^
+$ echo $?
+254
+</pre>
+<p>Linha por linha, já que é a primeira mensagem de erro de compilação desta aula:</p>
+<dl class="anatomy">
+  <dt>errado_int.dart:2:15:</dt><dd>Onde está o problema: arquivo <code>errado_int.dart</code>, <strong>linha 2</strong>, <strong>coluna 15</strong> (o 15º caractere da linha, contando os espaços).</dd>
+  <dt>Error:</dt><dd>"Erro": o programa <strong>nem começou a rodar</strong>. O Dart confere os tipos antes de executar a primeira linha.</dd>
+  <dt>A value of type 'double' can't be assigned to a variable of type 'int'.</dt><dd>"Um valor do tipo <code>double</code> não pode ser atribuído a uma variável do tipo <code>int</code>." Você prometeu um inteiro e entregou um número com casas decimais.</dd>
+  <dt>int preco = 4.50; e o ^</dt><dd>A linha do código, e o <code>^</code> apontando para o valor culpado.</dd>
+  <dt>echo $? → 254</dt><dd>O código de saída: o Dart devolve <strong>254</strong> quando o programa não compila.</dd>
+</dl>
+<p><strong>Como consertar:</strong> preço tem centavos, então é <code>double preco = 4.50;</code>. Se você quer mesmo um inteiro, converta: <code>int preco = 4.50.round();</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Guardou o resultado de <code>/</code> num <code>int</code></strong>
+<pre class="file" data-file="errado_div.dart">void main() {
+  int metade = 10 / 2;
+  print(metade);
+}
+</pre>
+<pre class="term">$ dart run errado_div.dart
+errado_div.dart:2:19: Error: A value of type 'double' can't be assigned to a variable of type 'int'.
+  int metade = 10 / 2;
+                  ^
+</pre>
+<p>A mesma mensagem. Mesmo sendo uma divisão exata, <code>10 / 2</code> dá <code>5.0</code>, que é <code>double</code>. O Dart olha o <strong>tipo</strong> do resultado, não o valor. <strong>Como consertar:</strong> <code>int metade = 10 ~/ 2;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Divisão inteira por zero</strong>
+<pre class="file" data-file="errado_zero.dart">void main() {
+  int paes = 7;
+  int pessoas = 0;
+  print(paes ~/ pessoas);
+}
+</pre>
+<pre class="term">$ dart run errado_zero.dart
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      main (file:///home/ana/errado_zero.dart:4:14)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<p>Desta vez o programa <strong>compilou e começou a rodar</strong>; o erro aconteceu no meio da execução. Isso se chama <strong>exceção</strong>:</p>
+<dl class="anatomy">
+  <dt>Unhandled exception:</dt><dd>"Exceção não tratada": aconteceu um problema durante a execução, e ninguém no programa cuidou dele (como cuidar está em <a href="excecoes.html">Exceções</a>).</dd>
+  <dt>IntegerDivisionByZeroException</dt><dd>O nome do problema: "exceção de divisão inteira por zero".</dd>
+  <dt>#0 int.~/ (…)</dt><dd>O <strong>stack trace</strong> ("rastro da pilha"): o caminho até o erro, do mais recente para o mais antigo. A linha <code>#0</code> é dentro do próprio Dart, no <code>~/</code>.</dd>
+  <dt>#1 main (file:///home/ana/errado_zero.dart:4:14)</dt><dd>A linha que interessa: o seu código, na função <code>main</code>, <strong>linha 4, coluna 14</strong>, o <code>~/</code>.</dd>
+  <dt>#2 e #3</dt><dd>A máquina do Dart que chamou o seu <code>main</code>. Pode ignorar.</dd>
+  <dt>echo $? → 255</dt><dd>Exceção não tratada termina o programa com código <strong>255</strong>.</dd>
+</dl>
+<p>Com <code>/</code> não haveria exceção (daria <code>Infinity</code>, seção 6); com <code>~/</code>, sim, porque não existe "infinito" inteiro. <strong>Como consertar:</strong> teste antes de dividir com um <a href="if-else.html">if</a>: <code>if (pessoas &gt; 0) { … }</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pediu ao <code>double</code> algo que só o <code>int</code> tem</strong>
+<pre class="file" data-file="errado_numero.dart">void main() {
+  var x = 1.5;
+  print(x.isEven);
+}
+</pre>
+<pre class="term">$ dart run errado_numero.dart
+errado_numero.dart:3:11: Error: The getter 'isEven' isn't defined for the type 'double'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'isEven'.
+  print(x.isEven);
+          ^^^^^^
+</pre>
+<p>"O getter <code>isEven</code> não está definido para o tipo <code>double</code>." Um <em>getter</em> é uma propriedade que você lê, como o <code>isEven</code>. Par e ímpar só fazem sentido para inteiros. A segunda linha é uma sugestão do Dart ("tente corrigir o nome…"), e os <code>^^^^^^</code> sublinham o nome inteiro. <strong>Como consertar:</strong> use um <code>int</code>, ou converta: <code>x.toInt().isEven</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Somou um número grande demais (sem erro nenhum)</strong>
+<p>Na seção 6, <code>9223372036854775807 + 1</code> deu <code>-9223372036854775808</code>. O Dart não reclamou: o número simplesmente "deu a volta". É raro no dia a dia, mas é o tipo de erro mais difícil de achar, porque não há mensagem. Se o seu programa pode passar de quintilhões, use <code>BigInt</code>.</p>
+</div>
+
+<div class="trydart" data-goal="out:Por cabeça: 3;;semerro">
+<p class="try-task"><strong>Missão:</strong> este programa não compila. Leia a mensagem de erro e conserte com o operador certo para o programa mostrar <code>Por cabeça: 3</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  int paes = 7;
+  int pessoas = 2;
+  int porCabeca = paes / pessoas;
+  print('Por cabeça: $porCabeca');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  int paes = 7;
+  int pessoas = 2;
+  int porCabeca = paes ~/ pessoas;
+  print('Por cabeça: $porCabeca');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>int n = 7;</code></td><td>Inteiro</td></tr>
+<tr><td><code>double d = 4.50;</code></td><td>Número com casas decimais (ponto, não vírgula)</td></tr>
+<tr><td><code>num x = 3;</code></td><td>Aceita <code>int</code> ou <code>double</code></td></tr>
+<tr><td><code>1_000_000</code>, <code>0xFF</code>, <code>1e6</code></td><td>Separador de milhar, hexadecimal, notação científica (<code>double</code>)</td></tr>
+<tr><td><code>a / b</code></td><td>Divisão; sempre <code>double</code></td></tr>
+<tr><td><code>a ~/ b</code></td><td>Divisão inteira; <code>int</code></td></tr>
+<tr><td><code>a % b</code></td><td>Resto da divisão</td></tr>
+<tr><td><code>round()</code>, <code>floor()</code>, <code>ceil()</code>, <code>truncate()</code></td><td>Arredondar, para baixo, para cima, cortar</td></tr>
+<tr><td><code>toStringAsFixed(2)</code></td><td>Texto com 2 casas decimais</td></tr>
+<tr><td><code>toInt()</code>, <code>toDouble()</code></td><td>Converter entre os dois</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>A value of type 'double' can't be assigned to a variable of type 'int'.</code></td><td>Número com ponto, ou resultado de <code>/</code>, numa variável <code>int</code></td></tr>
+<tr><td><code>IntegerDivisionByZeroException</code></td><td><code>~/</code> (ou <code>%</code>) com divisor zero</td></tr>
+<tr><td><code>Infinity</code> ou <code>NaN</code> na saída</td><td>Divisão por zero com <code>/</code></td></tr>
+<tr><td><code>0.30000000000000004</code></td><td>Imprecisão normal do <code>double</code>: use <code>toStringAsFixed</code></td></tr>
+<tr><td><code>The getter 'isEven' isn't defined for the type 'double'.</code></td><td><code>isEven</code>/<code>isOdd</code> só existem no <code>int</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Qual o tipo?</h3>
+<p>Complete com <code>int</code> ou <code>double</code>:</p>
+<div class="ex-code"><input data-answer="int" aria-label="tipo da quantidade de alunos"> alunos = 32;<br><input data-answer="double" aria-label="tipo do peso"> peso = 2.5;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quanto dá?</h3>
+<p>Escreva o resultado exatamente como o Dart mostraria:</p>
+<div class="ex-code">print(17 ~/ 5); → <input data-answer="3" aria-label="resultado de 17 ~/ 5"><br>print(17 % 5); → <input data-answer="2" aria-label="resultado de 17 % 5"><br>print(9 / 3); → <input data-answer="3.0" aria-label="resultado de 9 / 3"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Qual linha <strong>não compila</strong>?</p>
+<label><input type="radio" name="q3"> <code>double a = 5;</code></label>
+<label><input type="radio" name="q3"> <code>int b = 10 ~/ 3;</code></label>
+<label><input type="radio" name="q3"> <code>int c = 9 / 3;</code></label>
+<label><input type="radio" name="q3"> <code>num d = 2.5;</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Qual o jeito certo de mostrar <code>19.9</code> como <code>19.90</code>?</p>
+<label><input type="radio" name="q4"> <code>19.9.round()</code></label>
+<label><input type="radio" name="q4"> <code>19.9.toStringAsFixed(2)</code></label>
+<label><input type="radio" name="q4"> <code>19.9.toInt()</code></label>
+<label><input type="radio" name="q4"> <code>19.9 ~/ 2</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. O que acontece com <code>print(7 ~/ 0);</code>?</p>
+<label><input type="radio" name="q5"> Mostra <code>Infinity</code></label>
+<label><input type="radio" name="q5"> Mostra <code>0</code></label>
+<label><input type="radio" name="q5"> Não compila</label>
+<label><input type="radio" name="q5"> Compila, mas para com <code>IntegerDivisionByZeroException</code></label>
+</div>
+
+<h3>Missão final: a pizza da turma</h3>
+
+<div class="trydart" data-goal="out:Cada um: 3 fatias;;out:Sobram: 2;;out:Por pessoa: R$ 17.50">
+<p class="try-task"><strong>Missão:</strong> 17 fatias de pizza para 5 amigos, e a conta deu R$ 87,50. Complete as três linhas: quantas fatias <strong>inteiras</strong> cada um come (<code>~/</code>), quantas sobram (<code>%</code>) e quanto cada um paga, com 2 casas (<code>/</code> e <code>toStringAsFixed(2)</code>). A saída deve ser <code>Cada um: 3 fatias</code>, <code>Sobram: 2</code> e <code>Por pessoa: R$ 17.50</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  int fatias = 17;
+  int pessoas = 5;
+  print('Cada um: ${fatias} fatias');
+  print('Sobram: ${fatias}');
+  double conta = 87.5;
+  print('Por pessoa: R\$ ${conta}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  int fatias = 17;
+  int pessoas = 5;
+  print('Cada um: ${fatias ~/ pessoas} fatias');
+  print('Sobram: ${fatias % pessoas}');
+  double conta = 87.5;
+  print('Por pessoa: R\$ ${(conta / pessoas).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<p>No lab, a solução mostrou:</p>
+<pre class="term">$ dart run missao.dart
+Cada um: 3 fatias
+Sobram: 2
+Por pessoa: R$ 17.50
+</pre>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>int</code> guarda inteiros (o que se conta); <code>double</code> guarda números com casas decimais (o que se mede). Os dois são <code>num</code>.</li>
+  <li>No código, a vírgula decimal é um <strong>ponto</strong>: <code>4.50</code>.</li>
+  <li><code>/</code> sempre dá <code>double</code>; <code>~/</code> é a divisão inteira; <code>%</code> é o resto. <code>int</code> misturado com <code>double</code> dá <code>double</code>.</li>
+  <li><code>0.1 + 0.2</code> dá <code>0.30000000000000004</code>: mostre dinheiro com <code>toStringAsFixed(2)</code> e não compare <code>double</code> com <code>==</code>.</li>
+  <li><code>round</code>, <code>floor</code>, <code>ceil</code> e <code>truncate</code> transformam <code>double</code> em <code>int</code>, cada um do seu jeito.</li>
+  <li>Um <code>double</code> numa variável <code>int</code> não compila (código 254); <code>~/</code> por zero é uma exceção em tempo de execução (código 255).</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
