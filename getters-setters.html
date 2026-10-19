@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart get e set — campos calculados e campos que conferem o valor | Guia Dart</title>
+<meta name="description" content="Getters e setters do Dart para quem nunca programou: double get total =&gt; preco * quantidade, getter com corpo, valores que se recalculam sozinhos, set para conferir o valor antes de aceitar, getter sem setter (só leitura), getter × método, e os erros reais do Dart 3.13 (parênteses no getter, setter que não existe, Stack Overflow do setter que chama a si mesmo).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">get e set</span></h1>
+
+<p class="intro">Um item do carrinho tem preço e quantidade. E o <strong>total</strong> do item? Dá para guardar num campo, mas aí, se a quantidade mudar, alguém precisa lembrar de atualizar o total. O Dart oferece algo melhor: um <strong>getter</strong> (de <em>get</em>, "pegar"), que parece um campo para quem usa (<code>item.total</code>), mas é <strong>calculado</strong> na hora, toda vez. E o seu par, o <strong>setter</strong> (de <em>set</em>, "definir"), parece uma atribuição comum (<code>t.celsius = 25</code>), mas roda código: por exemplo, para <strong>recusar</strong> um valor impossível.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um getter: <code>double get total =&gt; preco * quantidade;</code> e como usá-lo (sem parênteses).</li>
+  <li>Getters com corpo e getters que usam outros getters.</li>
+  <li>Como escrever um setter que <strong>confere</strong> o valor antes de guardar.</li>
+  <li>Que todo campo já vem com um getter e um setter "invisíveis", e o que isso explica nas mensagens de erro.</li>
+  <li>Quando usar getter e quando usar método.</li>
+  <li>Os erros reais, incluindo o setter que chama a si mesmo para sempre.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o visor da balança e o porteiro</h2>
+<p>Na balança da padaria, o visor mostra o <strong>preço a pagar</strong>. Ninguém digita esse número: a balança <strong>calcula</strong> na hora, peso vezes preço do quilo. Põe mais pão, o visor muda sozinho. Isso é um <strong>getter</strong>: você "lê" um valor que, por trás, é uma conta.</p>
+<p>Na portaria do prédio da Ana, quem chega não entra direto: o porteiro <strong>confere</strong> antes. Se estiver tudo certo, deixa entrar; se não, barra. Isso é um <strong>setter</strong>: você "guarda" um valor, e por trás um código decide se aceita.</p>
+
+<hr>
+
+<h2>1. O primeiro getter</h2>
+
+<pre class="file" data-file="getter.dart">class ItemDoCarrinho {
+  final String nome;
+  final double preco;
+  final int quantidade;
+
+  ItemDoCarrinho(this.nome, this.preco, this.quantidade);
+
+  double get total =&gt; preco * quantidade;
+}
+
+void main() {
+  final cafe = ItemDoCarrinho('café', 18.9, 3);
+  print('${cafe.nome}: ${cafe.quantidade} x ${cafe.preco}');
+  print('Total: ${cafe.total.toStringAsFixed(2)}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>double</dt><dd>O tipo do valor que o getter devolve.</dd>
+  <dt>get</dt><dd>A palavra que faz disto um getter.</dd>
+  <dt>total</dt><dd>O nome, como o de um campo. <strong>Sem parênteses</strong>: getter não recebe parâmetros.</dd>
+  <dt>=&gt; preco * quantidade;</dt><dd>A conta, numa linha só, com a seta (veja <a href="arrow.html">Funções de Uma Linha</a>). Ela roda <strong>toda vez</strong> que alguém lê <code>total</code>.</dd>
+  <dt>cafe.total</dt><dd>Para quem usa, é igual a ler um campo: sem parênteses.</dd>
+</dl>
+
+<pre class="term">$ dart run getter.dart
+café: 3 x 18.9
+Total: 56.70
+</pre>
+
+<h3>O valor se recalcula sozinho</h3>
+<p>Como o getter faz a conta na hora, ele acompanha as mudanças dos campos. A meta do cofrinho é R$ 100:</p>
+
+<pre class="file" data-file="atualiza.dart">class Cofrinho {
+  double saldo = 0;
+  double get faltaParaMeta =&gt; 100 - saldo;
+}
+
+void main() {
+  final c = Cofrinho();
+  print('Falta: ${c.faltaParaMeta}');
+  c.saldo = 30;
+  print('Falta: ${c.faltaParaMeta}');
+  c.saldo = 75.5;
+  print('Falta: ${c.faltaParaMeta}');
+}
+</pre>
+
+<pre class="term">$ dart run atualiza.dart
+Falta: 100.0
+Falta: 70.0
+Falta: 24.5
+</pre>
+
+<p>Ninguém atualizou <code>faltaParaMeta</code>: ela não está guardada em lugar nenhum. Se fosse um campo comum, alguém teria de lembrar de mudá-la a cada depósito, e um dia esqueceria.</p>
+
+<h3>Getter com corpo, e getters que usam getters</h3>
+<p>Quando a conta não cabe numa linha, o getter pode ter um corpo com <code>{ }</code> e <code>return</code>, como uma função:</p>
+
+<pre class="file" data-file="getters.dart">class Aluno {
+  final String nome;
+  final List&lt;double&gt; notas;
+
+  Aluno(this.nome, this.notas);
+
+  double get media {
+    var soma = 0.0;
+    for (final n in notas) {
+      soma += n;
+    }
+    return soma / notas.length;
+  }
+
+  bool get aprovado =&gt; media &gt;= 7;
+
+  String get situacao =&gt; aprovado ? 'aprovado' : 'recuperação';
+}
+
+void main() {
+  final bia = Aluno('Bia', [8.0, 6.5, 9.0]);
+  final caio = Aluno('Caio', [5.0, 6.0, 7.5]);
+  for (final a in [bia, caio]) {
+    print('${a.nome}: média ${a.media.toStringAsFixed(1)}, ${a.situacao}');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run getters.dart
+Bia: média 7.8, aprovado
+Caio: média 6.2, recuperação
+</pre>
+
+<p><code>situacao</code> usa <code>aprovado</code>, que usa <code>media</code>, que usa <code>notas</code>. Cada um é pequeno e tem um nome que diz o que é. Getters do tipo <code>bool</code> costumam ter nome de pergunta ou de adjetivo (<code>aprovado</code>, <code>vazio</code>, <code>estaPago</code>).</p>
+
+<div class="trydart" data-goal="out:Total: 54.0;;src:\bget\s+total">
+<p class="try-task"><strong>Missão:</strong> acrescente à classe o getter <code>double get total</code>, que devolve <code>preco * quantidade</code>, para o <code>main</code> mostrar <code>Total: 54.0</code>.</p>
+<pre class="script" data-file="main.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+
+  ItemDoCarrinho(this.preco, this.quantidade);
+
+  // escreva o getter total aqui
+}
+
+void main() {
+  final pao = ItemDoCarrinho(4.5, 12);
+  print('Total: ${pao.total}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+
+  ItemDoCarrinho(this.preco, this.quantidade);
+
+  double get total =&gt; preco * quantidade;
+}
+
+void main() {
+  final pao = ItemDoCarrinho(4.5, 12);
+  print('Total: ${pao.total}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. O setter: conferir antes de guardar</h2>
+<p>Um termômetro não pode marcar menos de −273,15 °C (o "zero absoluto", a temperatura mais fria que existe). Com um campo comum, qualquer um poderia escrever <code>t.celsius = -300</code>. Com um setter, a classe confere:</p>
+
+<pre class="file" data-file="setter.dart">class Termometro {
+  double _celsius = 0;
+
+  double get celsius =&gt; _celsius;
+
+  set celsius(double valor) {
+    if (valor &lt; -273.15) {
+      throw ArgumentError('abaixo do zero absoluto: $valor');
+    }
+    _celsius = valor;
+  }
+
+  double get fahrenheit =&gt; _celsius * 9 / 5 + 32;
+
+  set fahrenheit(double valor) {
+    celsius = (valor - 32) * 5 / 9;
+  }
+}
+
+void main() {
+  final t = Termometro();
+  t.celsius = 25;
+  print('${t.celsius} °C = ${t.fahrenheit} °F');
+  t.fahrenheit = 212;
+  print('${t.celsius} °C = ${t.fahrenheit} °F');
+  t.celsius = -300;
+  print('não chega aqui');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>double _celsius = 0;</dt><dd>O campo que guarda o valor de verdade. O <code>_</code> no começo do nome o deixa <strong>privado</strong>: fora deste arquivo, ninguém mexe nele direto, só pelo getter e pelo setter (os detalhes estão na próxima aula, <a href="privado.html">Privacidade</a>).</dd>
+  <dt>double get celsius =&gt; _celsius;</dt><dd>O getter só devolve o campo.</dd>
+  <dt>set celsius(double valor) { … }</dt><dd>O <strong>setter</strong>: a palavra <code>set</code>, o nome e <strong>exatamente um</strong> parâmetro, o valor que está chegando. Não se escreve tipo de retorno.</dd>
+  <dt>if (valor &lt; -273.15) { throw … }</dt><dd>O porteiro: valor impossível é recusado com uma exceção (veja <a href="throw.html">Lançando Exceções</a>).</dd>
+  <dt>_celsius = valor;</dt><dd>Valor aceito: vai para o campo.</dd>
+  <dt>set fahrenheit(…) { celsius = …; }</dt><dd>Um setter pode usar outro: este converte e passa pelo setter <code>celsius</code>, que confere.</dd>
+  <dt>t.celsius = 25;</dt><dd>Para quem usa, é uma atribuição comum. Por trás, roda o setter.</dd>
+</dl>
+
+<pre class="term">$ dart run setter.dart
+25.0 °C = 77.0 °F
+100.0 °C = 212.0 °F
+Unhandled exception:
+Invalid argument(s): abaixo do zero absoluto: -300.0
+#0      Termometro.celsius= (file:///home/ana/setter.dart:8:7)
+#1      main (file:///home/ana/setter.dart:26:5)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<ul>
+  <li>Os 212 °F (a água fervendo) viraram <code>100.0 °C</code>: o setter <code>fahrenheit</code> converteu e guardou.</li>
+  <li>O <code>-300</code> foi barrado. No stack trace, o setter aparece como <code>Termometro.celsius=</code>, com um <strong><code>=</code> no fim</strong>: é assim que o Dart chama o setter, para diferenciar do getter <code>Termometro.celsius</code>.</li>
+  <li>A linha <code>não chega aqui</code> nunca foi mostrada: a exceção parou o programa (código de saída 255).</li>
+</ul>
+
+<hr>
+
+<h2>3. Todo campo já tem getter e setter</h2>
+<p>Agora dá para entender umas mensagens das aulas anteriores. Quando você escreve um campo comum, como <code>double saldo = 0;</code>, o Dart cria sozinho, sem você ver:</p>
+<ul>
+  <li>um <strong>getter</strong> <code>saldo</code>, usado em <code>c.saldo</code>;</li>
+  <li>um <strong>setter</strong> <code>saldo=</code>, usado em <code>c.saldo = 30</code>.</li>
+</ul>
+<p>Um campo <code>final</code> só ganha o getter. Por isso tentar mudá-lo dá <code>The setter 'preco' isn't defined</code> (veja <a href="construtores.html">Construtores</a>). E um getter escrito por você, sem setter, também é <strong>só de leitura</strong>.</p>
+<p>A boa notícia: quem usa a classe não vê diferença entre um campo e um getter. Você pode começar com um campo comum e, mais tarde, trocá-lo por getter e setter (para conferir valores), sem mudar uma linha do código que usa a classe.</p>
+
+<div class="tip">
+<strong>Não escreva getter e setter "de enfeite"</strong>
+<p>Em algumas linguagens, é costume escrever <code>getNome()</code> e <code>setNome()</code> para todo campo. No Dart, não: o estilo oficial pede um campo comum quando o getter e o setter só leriam e gravariam o valor. Escreva <code>get</code>/<code>set</code> só quando houver algo a <strong>calcular</strong> ou a <strong>conferir</strong>.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Getter ou método?</h2>
+<p>Um getter e um método sem parâmetros fazem quase a mesma coisa. Compare:</p>
+
+<pre class="file" data-file="metodo.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+  ItemDoCarrinho(this.preco, this.quantidade);
+
+  double get total =&gt; preco * quantidade;
+  double totalComDesconto(double porcento) =&gt; total * (1 - porcento / 100);
+}
+
+void main() {
+  final item = ItemDoCarrinho(20, 3);
+  print(item.total);
+  print(item.totalComDesconto(10));
+}
+</pre>
+
+<pre class="term">$ dart run metodo.dart
+60.0
+54.0
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Uma <strong>característica</strong> do objeto, calculada dos campos, rápida e sem efeitos (total, média, idade, está vazio?)</td><td>Getter: <code>item.total</code></td></tr>
+<tr><td>Precisa de parâmetros</td><td>Método: <code>item.totalComDesconto(10)</code> (getter não recebe parâmetros)</td></tr>
+<tr><td>Uma <strong>ação</strong>, que muda algo ou demora (vender, salvar, imprimir, baixar)</td><td>Método: <code>conta.depositar(50)</code></td></tr>
+<tr><td>Guardar um valor, mas conferir antes</td><td>Setter (com um campo privado por trás)</td></tr>
+<tr><td>Só guardar e ler, sem conta e sem conferência</td><td>Campo comum</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Chamou o getter com parênteses</strong>
+<pre class="file" data-file="parenteses.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+  ItemDoCarrinho(this.preco, this.quantidade);
+  double get total =&gt; preco * quantidade;
+}
+
+void main() {
+  final item = ItemDoCarrinho(18.9, 3);
+  print(item.total());
+}
+</pre>
+<pre class="term">$ dart run parenteses.dart
+parenteses.dart:10:19: Error: 'total' isn't a function or method and can't be invoked.
+  print(item.total());
+                  ^^^^^...
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>parenteses.dart:10:19</dt><dd>Linha 10, coluna 19: os parênteses depois de <code>total</code>.</dd>
+  <dt>'total' isn't a function or method and can't be invoked.</dt><dd>"<code>total</code> não é uma função nem um método e não pode ser chamado." Getter se lê, não se chama.</dd>
+  <dt>^^^^^...</dt><dd>O Dart marcou a partir do parêntese e encurtou o resto com <code>...</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>item.total</code>, sem parênteses.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs parênteses na declaração do getter</strong>
+<pre class="file" data-file="getparen.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+  ItemDoCarrinho(this.preco, this.quantidade);
+  double get total() =&gt; preco * quantidade;
+}
+
+void main() {
+  print(ItemDoCarrinho(18.9, 3).total);
+}
+</pre>
+<pre class="term">$ dart run getparen.dart
+getparen.dart:5:19: Error: A getter can't have formal parameters.
+Try removing '(...)'.
+  double get total() =&gt; preco * quantidade;
+                  ^
+</pre>
+<p>"Um getter não pode ter parâmetros. Tente remover o <code>(...)</code>." Nem parênteses vazios. <strong>Como consertar:</strong> <code>double get total =&gt; …</code>. Se você precisa de parâmetros, é um método.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou mudar um getter que não tem setter</strong>
+<pre class="file" data-file="sogetter.dart">class ItemDoCarrinho {
+  final double preco;
+  final int quantidade;
+  ItemDoCarrinho(this.preco, this.quantidade);
+  double get total =&gt; preco * quantidade;
+}
+
+void main() {
+  final item = ItemDoCarrinho(18.9, 3);
+  item.total = 50;
+}
+</pre>
+<pre class="term">$ dart run sogetter.dart
+sogetter.dart:10:8: Error: The setter 'total' isn't defined for the type 'ItemDoCarrinho'.
+ - 'ItemDoCarrinho' is from 'sogetter.dart'.
+Try correcting the name to the name of an existing setter, or defining a setter or field named 'total'.
+  item.total = 50;
+       ^^^^^
+</pre>
+<p>"O setter <code>total</code> não está definido." O total é <strong>calculado</strong>; não há onde guardar 50. <strong>Como consertar:</strong> mude o que o total usa (a quantidade ou o preço). Se fizer sentido "definir o total", escreva um <code>set total(…)</code> que ajuste os outros campos.</p>
+</div>
+
+<div class="cenario">
+<strong>Setter com dois parâmetros</strong>
+<pre class="file" data-file="setterdois.dart">class Cofre {
+  double _saldo = 0;
+  set saldo(double valor, String motivo) {
+    _saldo = valor;
+  }
+}
+
+void main() {
+  Cofre().saldo = 10;
+}
+</pre>
+<pre class="term">$ dart run setterdois.dart
+setterdois.dart:3:12: Error: A setter should have exactly one formal parameter.
+  set saldo(double valor, String motivo) {
+           ^
+</pre>
+<p>"Um setter deve ter exatamente um parâmetro." Do outro lado do <code>=</code> só cabe um valor. <strong>Como consertar:</strong> se você precisa de mais informações, use um método: <code>void mudarSaldo(double valor, String motivo)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O setter chama a si mesmo: <code>Stack Overflow</code></strong>
+<p>Este é traiçoeiro: compila sem nenhum aviso e só explode ao rodar.</p>
+<pre class="file" data-file="recursivo.dart">class Aluno {
+  String _nome = '';
+
+  String get nome =&gt; _nome;
+
+  set nome(String valor) {
+    nome = valor.trim();
+  }
+}
+
+void main() {
+  final a = Aluno();
+  a.nome = '  Bia ';
+  print('[${a.nome}]');
+}
+</pre>
+<pre class="term">$ dart run recursivo.dart
+Unhandled exception:
+Stack Overflow
+#0      _StringBase._firstNonWhitespace (dart:core-patch/string_patch.dart:501:3)
+#1      _StringBase.trim (dart:core-patch/string_patch.dart:524:17)
+#2      Aluno.nome= (file:///home/ana/recursivo.dart:7:18)
+#3      Aluno.nome= (file:///home/ana/recursivo.dart:7:5)
+#4      Aluno.nome= (file:///home/ana/recursivo.dart:7:5)
+#5      Aluno.nome= (file:///home/ana/recursivo.dart:7:5)
+« (o lab mostrou 90 linhas; as do meio são todas iguais a esta e foram cortadas aqui)
+...
+...
+#12641  Aluno.nome= (file:///home/ana/recursivo.dart:7:5)
+#12642  Aluno.nome= (file:///home/ana/recursivo.dart:7:5)
+#12643  main (file:///home/ana/recursivo.dart:13:5)
+#12644  _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#12645  _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>Stack Overflow</dt><dd>"Estouro da pilha." A <strong>pilha</strong> é onde o Dart anota quem chamou quem; ela tem um tamanho máximo, e encheu.</dd>
+  <dt>Aluno.nome= … recursivo.dart:7:5, repetido</dt><dd>O setter <code>nome=</code> chamou o setter <code>nome=</code>, que chamou o setter <code>nome=</code>… Dentro do setter, <code>nome = …</code> não é o campo: é <strong>o próprio setter</strong>. Mais de 12 mil chamadas até a pilha acabar.</dd>
+  <dt>... / ...</dt><dd>O próprio Dart encurta a lista, mostrando o começo e o fim.</dd>
+  <dt>#12643 main (…recursivo.dart:13:5)</dt><dd>Lá no fundo, quem começou tudo: o <code>a.nome = '  Bia '</code> do <code>main</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> dentro do setter, guarde no <strong>campo privado</strong>: <code>_nome = valor.trim();</code>. É por isso que getter e setter costumam ter um campo com <code>_</code> por trás. (Um getter que se lê a si mesmo, como <code>String get nome =&gt; nome;</code>, dá o mesmo estouro.)</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>double get total =&gt; preco * qtd;</code></td><td>Getter de uma linha; usa-se <code>obj.total</code></td></tr>
+<tr><td><code>double get media { …; return x; }</code></td><td>Getter com corpo</td></tr>
+<tr><td><code>set celsius(double v) { …; _celsius = v; }</code></td><td>Setter; usa-se <code>obj.celsius = 25</code></td></tr>
+<tr><td><code>double _celsius = 0;</code></td><td>Campo privado que guarda o valor por trás do getter/setter</td></tr>
+<tr><td>Getter sem setter</td><td>Propriedade só de leitura</td></tr>
+<tr><td>Campo comum</td><td>Já tem getter e setter automáticos (só getter, se for <code>final</code>)</td></tr>
+<tr><td><code>Classe.nome=</code> no stack trace</td><td>É o setter <code>nome</code></td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>'x' isn't a function or method and can't be invoked.</code></td><td>Chamou um getter com <code>()</code></td></tr>
+<tr><td><code>A getter can't have formal parameters.</code></td><td><code>get x()</code> com parênteses</td></tr>
+<tr><td><code>The setter 'x' isn't defined…</code></td><td>Só existe getter (ou o campo é <code>final</code>)</td></tr>
+<tr><td><code>A setter should have exactly one formal parameter.</code></td><td>Setter com zero ou dois parâmetros</td></tr>
+<tr><td><code>Stack Overflow</code> com <code>Classe.x=</code> repetido</td><td>O setter atribui a si mesmo; use o campo <code>_x</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o getter</h3>
+<div class="ex-code">bool <input data-answer="get" aria-label="palavra-chave"> vazio =&gt; itens.isEmpty;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Como se usa?</h3>
+<p>Com o getter acima numa classe <code>Carrinho</code> e um objeto <code>c</code>, complete o <code>if</code>:</p>
+<div class="ex-code">if (c.<input data-answer="vazio" aria-label="uso do getter">) print('Carrinho vazio');</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Por que usar <code>double get total =&gt; preco * quantidade;</code> em vez de um campo <code>total</code>?</p>
+<label><input type="radio" name="q3"> Porque getters são mais rápidos que campos</label>
+<label><input type="radio" name="q3"> Porque campos não podem ser <code>double</code></label>
+<label><input type="radio" name="q3"> Porque o getter calcula na hora e nunca fica desatualizado</label>
+<label><input type="radio" name="q3"> Porque assim o total pode receber parâmetros</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">4. O que há de errado em <code>set nome(String v) { nome = v; }</code>?</p>
+<label><input type="radio" name="q4"> Ele chama a si mesmo sem parar: <code>Stack Overflow</code> ao rodar</label>
+<label><input type="radio" name="q4"> Falta o tipo de retorno</label>
+<label><input type="radio" name="q4"> Setter não pode receber <code>String</code></label>
+<label><input type="radio" name="q4"> Nada</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destes deveria ser <strong>método</strong>, e não getter?</p>
+<label><input type="radio" name="q5"> <code>media</code> das notas</label>
+<label><input type="radio" name="q5"> <code>estaVazio</code></label>
+<label><input type="radio" name="q5"> <code>idade</code> calculada pelo ano de nascimento</label>
+<label><input type="radio" name="q5"> <code>depositar</code> um valor na conta</label>
+</div>
+
+<h3>Missão final: a nota que não passa de 10</h3>
+
+<div class="trydart" data-goal="out:Nota: 8.5;;erro:nota inválida;;src:\bset\s+valor\s*\(">
+<p class="try-task"><strong>Missão:</strong> complete a classe <code>Nota</code> com o setter <code>set valor(double v)</code>: se <code>v</code> for menor que 0 ou maior que 10, lance <code>ArgumentError('nota inválida')</code>; se não, guarde em <code>_valor</code>. O <code>main</code> guarda 8.5 (deve mostrar <code>Nota: 8.5</code>) e depois 15 (deve parar com o erro).</p>
+<pre class="script" data-file="main.dart">class Nota {
+  double _valor = 0;
+
+  double get valor =&gt; _valor;
+
+  // escreva o setter valor aqui
+}
+
+void main() {
+  final n = Nota();
+  n.valor = 8.5;
+  print('Nota: ${n.valor}');
+  n.valor = 15;
+  print('Nota: ${n.valor}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Nota {
+  double _valor = 0;
+
+  double get valor =&gt; _valor;
+
+  set valor(double v) {
+    if (v &lt; 0 || v &gt; 10) {
+      throw ArgumentError('nota inválida');
+    }
+    _valor = v;
+  }
+}
+
+void main() {
+  final n = Nota();
+  n.valor = 8.5;
+  print('Nota: ${n.valor}');
+  n.valor = 15;
+  print('Nota: ${n.valor}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>getter</strong> (<code>tipo get nome =&gt; …;</code>) parece um campo, mas é calculado toda vez que é lido. Usa-se sem parênteses.</li>
+  <li>Um <strong>setter</strong> (<code>set nome(tipo v) { … }</code>) parece uma atribuição, mas roda código: ótimo para conferir valores. Tem exatamente um parâmetro.</li>
+  <li>O valor de verdade fica num campo privado (<code>_nome</code>); dentro do setter, guarde nele, nunca em <code>nome</code>, ou o setter chama a si mesmo até o <code>Stack Overflow</code>.</li>
+  <li>Todo campo já tem getter e setter automáticos; <code>final</code> e getter sem setter são só de leitura.</li>
+  <li>Característica calculada: getter. Com parâmetros ou ação: método. Só guardar: campo comum.</li>
+  <li>Próxima aula: <a href="privado.html">Privacidade (_)</a>, o que o sublinhado no começo do nome realmente faz.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
