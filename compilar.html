@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart compile — transformando o programa num executável | Guia Dart</title>
+<meta name="description" content="dart compile para quem nunca programou: a diferença entre dart run e um executável, dart compile exe com -o, rodar o programa num computador sem Dart, o tamanho do arquivo, os outros formatos (js, kernel, aot-snapshot, wasm) e o erro real quando o código não compila. Saídas reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">compile</span></h1>
+
+<p class="intro">Até aqui, você rodou tudo com <code>dart run main.dart</code>. Isso funciona, mas exige que o computador tenha o Dart SDK instalado. E se a Ana quiser mandar o programa da padaria para o dono, que não sabe o que é Dart? Ela <strong>compila</strong> o programa: transforma o <code>.dart</code> num <strong>executável</strong>, um arquivo que roda sozinho, como qualquer outro programa do computador. O comando é o <code>dart compile</code> ("compilar").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é compilar e qual a diferença entre <code>dart run</code> e um executável.</li>
+  <li>Como gerar um executável com <code>dart compile exe</code> e escolher o nome com <code>-o</code>.</li>
+  <li>Que o executável roda num computador <strong>sem Dart</strong>, e por que ele é grande.</li>
+  <li>Os outros formatos: <code>js</code> (para o navegador), <code>kernel</code>, <code>aot-snapshot</code> e <code>wasm</code>.</li>
+  <li>O que acontece quando o código tem erro na hora de compilar.</li>
+</ul>
+</div>
+
+<p>Todos os comandos desta aula rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>, Linux), numa pasta <code>compilar</code>. O editor do guia roda programas, mas não gera executáveis: compilar é coisa do terminal.</p>
+
+<hr>
+
+<h2>A ideia: a receita e o bolo pronto</h2>
+<p>O arquivo <code>.dart</code> é uma <strong>receita</strong>. Para comer o bolo, alguém precisa de cozinha, forno e saber cozinhar: é o Dart SDK, que lê a receita e executa na hora (o <code>dart run</code>). Compilar é <strong>assar o bolo</strong> e entregar pronto numa caixa: quem recebe só abre e come, sem cozinha nenhuma.</p>
+<ul>
+  <li><strong>Vantagem:</strong> o executável roda em qualquer computador com o mesmo sistema (Linux, Windows ou macOS) e começa mais rápido, porque o trabalho de tradução já foi feito.</li>
+  <li><strong>Desvantagem:</strong> o bolo pronto não se muda. Mexeu no código? Compile de novo. E um executável do Linux não roda no Windows: cada sistema precisa do seu.</li>
+</ul>
+
+<hr>
+
+<h2>1. O programa de exemplo</h2>
+<p>Um programa que cumprimenta quem for passado na linha de comando (os <strong>argumentos</strong>, que chegam na lista <code>args</code>):</p>
+
+<pre class="file" data-file="ola.dart">void main(List&lt;String&gt; args) {
+  final nome = args.isEmpty ? 'mundo' : args.first;
+  print('Olá, $nome!');
+}
+</pre>
+
+<pre class="term">$ dart run ola.dart Ana
+Olá, Ana!
+</pre>
+
+<p>Com <code>dart run</code>, o Dart lê o <code>ola.dart</code>, traduz e roda, tudo de uma vez, toda vez.</p>
+
+<hr>
+
+<h2>2. <code>dart compile exe</code>: o executável</h2>
+
+<pre class="term">$ dart compile exe ola.dart
+Generated: /home/ana/compilar/ola.exe
+$ ls -l
+total 6356
+-rw-rw-r-- 1 ana ana     110 Oct 19 16:58 ola.dart
+-rwxrwxr-x 1 ana ana 6503384 Oct 19 16:58 ola.exe
+$ ./ola.exe Ana
+Olá, Ana!
+</pre>
+
+<dl class="anatomy">
+  <dt>dart compile</dt><dd>O comando de compilar.</dd>
+  <dt>exe</dt><dd>O <strong>formato</strong>: "executável" (<em>executable</em>), um programa que roda sozinho.</dd>
+  <dt>ola.dart</dt><dd>O arquivo com o <code>main</code>, o ponto de partida.</dd>
+  <dt>Generated: /home/ana/compilar/ola.exe</dt><dd>"Gerado": o caminho do executável criado. Por padrão, ele tem o mesmo nome do <code>.dart</code> com <code>.exe</code> no fim, até no Linux.</dd>
+  <dt>-rwxrwxr-x … 6503384</dt><dd>No <code>ls -l</code>, o <code>x</code> quer dizer "pode ser executado", e o tamanho é 6.503.384 bytes (uns 6 MB). O <code>ola.dart</code> tem só 110 bytes.</dd>
+  <dt>./ola.exe Ana</dt><dd>Roda o executável. O <code>./</code> diz "o arquivo desta pasta". O <code>Ana</code> chega no <code>args</code>, como no <code>dart run</code>.</dd>
+</dl>
+
+<h3>Escolhendo o nome com <code>-o</code></h3>
+<p>No Linux e no macOS, programas não costumam ter <code>.exe</code> no nome. A opção <code>-o</code> (de <em>output</em>, "saída") escolhe o nome do arquivo:</p>
+
+<pre class="term">$ dart compile exe ola.dart -o ola
+Generated: /home/ana/compilar/ola
+$ ./ola Bia
+Olá, Bia!
+$ ls -lh ola
+-rwxrwxr-x 1 ana ana 6,3M Oct 19 16:58 ola
+$ file ola
+ola: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 2.6.32, BuildID[sha1]=6c7bdb85e417b100de2b2c268a0409f55b61d0a1, stripped
+</pre>
+
+<p>O comando <code>file</code> conta o que o arquivo é: <code>ELF 64-bit … executable, x86-64 … for GNU/Linux</code>, um executável de verdade do Linux para processadores x86-64 (os da Intel e da AMD). É o mesmo tipo de arquivo do <code>ls</code> e do <code>bash</code>. Não sobrou nada de Dart visível nele.</p>
+
+<h3>Por que 6 MB para um "Olá"?</h3>
+<p>O executável leva junto um pedaço do Dart: o <strong>runtime</strong> (o que cuida da memória, das exceções, do <code>print</code>…). Por isso ele roda sozinho. Esse pedaço tem tamanho fixo: um programa dez vezes maior não gera um executável dez vezes maior.</p>
+
+<hr>
+
+<h2>3. Rodando num computador sem Dart</h2>
+<p>Para provar, a Ana abriu o mesmo terminal numa máquina <strong>sem o Dart SDK</strong>:</p>
+
+<pre class="term">$ dart --version
+Comando 'dart' não encontrado, você quis dizer:
+  comando 'tart' do deb tart (3.10-3build1)
+  comando 'darts' do deb darts (0.32-20build1)
+  comando 'dar' do deb dar (2.8.3-1build1)
+  comando 'dirt' do deb dput-ng (1.44ubuntu3)
+  comando 'bart' do deb bart (0.9.00-3build1)
+  comando 'dat' do deb liballegro4-dev (2:4.4.3.1-7)
+  comando 'dact' do deb dact (0.8.42-6)
+  comando 'art' do deb artemis (18.2.0+dfsg-5)
+  comando 'zart' do deb gmic-zart (2.9.4-4.2)
+Experimente: sudo apt install &lt;deb name&gt;
+$ ./ola Ana
+Olá, Ana!
+</pre>
+
+<p>O <code>dart</code> não existe ali (o Ubuntu até sugere programas de nome parecido), mas o <code>./ola</code> roda. É isso que você entrega para quem não programa.</p>
+
+<h3>E a velocidade?</h3>
+<pre class="term">$ time dart run ola.dart Ana
+Olá, Ana!
+
+real	0m0,255s
+user	0m0,309s
+sys	0m0,067s
+$ time ./ola Ana
+Olá, Ana!
+
+real	0m0,005s
+user	0m0,000s
+sys	0m0,004s
+</pre>
+<p>O <code>time</code> mede quanto o comando demorou (a linha <code>real</code> é o tempo de relógio). Com <code>dart run</code>, 0,255 segundo; com o executável, 0,005 segundo: ele <strong>começa</strong> muito mais rápido, porque não precisa ler e traduzir o código de novo. (Os números mudam de computador para computador e de uma vez para outra; o que importa é a diferença.)</p>
+
+<div class="trydart" data-args="Bia" data-goal="out:Olá, Bia! Seja bem-vinda à padaria.">
+<p class="try-task"><strong>Missão:</strong> o editor vai rodar o programa com o argumento <code>Bia</code>, como se fosse <code>./ola Bia</code>. Mude a mensagem para <code>Olá, Bia! Seja bem-vinda à padaria.</code></p>
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  final nome = args.isEmpty ? 'mundo' : args.first;
+  print('Olá, $nome!');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main(List&lt;String&gt; args) {
+  final nome = args.isEmpty ? 'mundo' : args.first;
+  print('Olá, $nome! Seja bem-vinda à padaria.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Os outros formatos</h2>
+<p>Digitando <code>dart compile</code> sozinho, o Dart lista todos:</p>
+
+<pre class="term">$ dart compile
+Missing subcommand for "dart compile".
+
+Usage: dart compile &lt;subcommand&gt; [arguments]
+-h, --help    Print this usage information.
+
+Available subcommands:
+  js             Compile Dart to JavaScript.
+  jit-snapshot   Compile Dart to a JIT snapshot.
+  kernel         Compile Dart to a kernel snapshot.
+  exe            Compile Dart to a self-contained executable.
+  aot-snapshot   Compile Dart to an AOT snapshot.
+  wasm           Compile Dart to a WebAssembly/WasmGC module.
+
+Run "dart help" to see global options.
+</pre>
+
+<p>"Falta o subcomando". Cada um gera um tipo de "bolo":</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Formato</th><th>Gera</th><th>Para quê</th></tr>
+<tr><td><code>exe</code></td><td>Executável que roda sozinho</td><td>Entregar um programa de terminal. <strong>O mais usado.</strong></td></tr>
+<tr><td><code>js</code></td><td>Arquivo <code>.js</code> (JavaScript)</td><td>Rodar no navegador (veja <a href="dart-web.html">Dart na Web</a>).</td></tr>
+<tr><td><code>wasm</code></td><td>Módulo WebAssembly</td><td>Também para o navegador, num formato mais rápido.</td></tr>
+<tr><td><code>aot-snapshot</code></td><td>Arquivo <code>.aot</code></td><td>O programa já traduzido, mas <strong>sem</strong> o runtime: precisa do <code>dartaotruntime</code> para rodar. Menor que o <code>exe</code>.</td></tr>
+<tr><td><code>kernel</code></td><td>Arquivo <code>.dill</code></td><td>Um formato intermediário, que o <code>dart run</code> lê mais rápido que o <code>.dart</code>.</td></tr>
+<tr><td><code>jit-snapshot</code></td><td>Arquivo <code>.jit</code></td><td>Um retrato do programa depois de rodar uma vez (o comando roda o programa para "aquecer"); uso avançado.</td></tr>
+</table>
+</div>
+
+<p><strong>AOT</strong> e <strong>JIT</strong> são dois jeitos de traduzir: <em>ahead-of-time</em> ("antes da hora": traduz tudo antes de rodar, como no <code>exe</code>) e <em>just-in-time</em> ("na hora certa": traduz enquanto roda, como no <code>dart run</code>, o que permite o <em>hot reload</em> do Flutter).</p>
+
+<h3>Para JavaScript</h3>
+<pre class="term">$ dart compile js ola.dart -o ola.js
+Compiled 10,737,620 input bytes (5,318,190 characters source) to 97,468 characters JavaScript in 0.53 seconds
+$ head -c 300 ola.js; echo
+// Generated by dart2js (, csp, intern-composite-values), the Dart to JavaScript compiler version: 3.13.5.
+// The code supports the following hooks:
+// dartPrint(message):
+//    if this function is defined it is called instead of the Dart [print]
+//    method.
+//
+// dartMainRunner(main, args):
+//
+</pre>
+<p>O compilador (o <code>dart2js</code>) leu cerca de 10 MB (o seu programa e as bibliotecas do Dart) e gerou 97.468 caracteres de JavaScript: só o que o programa usa. A primeira linha do arquivo confirma: "gerado pelo dart2js, o compilador de Dart para JavaScript, versão 3.13.5". Junto vieram o <code>ola.js.map</code> (para depurar no navegador) e o <code>ola.js.deps</code> (a lista de arquivos usados).</p>
+
+<h3>Kernel e AOT snapshot</h3>
+<pre class="term">$ dart compile kernel ola.dart
+Compiling ola.dart to kernel file ola.dill.
+$ dart run ola.dill Carla
+Olá, Carla!
+$ dart compile aot-snapshot ola.dart
+Generated: /home/ana/compilar/ola.aot
+$ dartaotruntime ola.aot Davi
+dartaotruntime: comando não encontrado
+$ /usr/lib/dart/bin/dartaotruntime ola.aot Davi
+Olá, Davi!
+</pre>
+<p>O <code>dartaotruntime</code> vem no SDK, mas não fica no caminho de comandos (o <code>PATH</code>): por isso o <code>comando não encontrado</code>. Com o caminho completo da pasta do SDK, funcionou. Compare os tamanhos:</p>
+
+<pre class="term">$ ls -lh
+total 22M
+-rwxrwxr-x 1 ana ana 6,3M Oct 19 16:58 ola
+-rw-rw-r-- 1 ana ana 783K Oct 19 16:58 ola.aot
+-rw-rw-r-- 1 ana ana  110 Oct 19 16:58 ola.dart
+-rw-rw-r-- 1 ana ana 8,3M Oct 19 16:58 ola.dill
+-rwxrwxr-x 1 ana ana 6,3M Oct 19 16:58 ola.exe
+-rw-rw-r-- 1 ana ana  96K Oct 19 16:58 ola.js
+-rw-rw-r-- 1 ana ana  11K Oct 19 16:58 ola.js.deps
+-rw-rw-r-- 1 ana ana  42K Oct 19 16:58 ola.js.map
+</pre>
+<p>O <code>.aot</code> (783K) é o programa traduzido sem o runtime; o <code>exe</code> (6,3M) é esse mesmo programa <strong>mais</strong> o runtime, num arquivo só.</p>
+
+<hr>
+
+<h2>Qual usar?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Está escrevendo e testando</td><td><code>dart run</code>: muda o código e roda de novo, sem passo extra.</td></tr>
+<tr><td>Vai entregar um programa de terminal</td><td><code>dart compile exe programa.dart -o nome</code></td></tr>
+<tr><td>Vai rodar no navegador</td><td><code>dart compile js</code> ou <code>wasm</code> (ou as ferramentas da web, veja <a href="dart-web.html">Dart na Web</a>)</td></tr>
+<tr><td>App de celular</td><td>O Flutter compila sozinho (<code>flutter build</code>), veja <a href="flutter.html">Dart e Flutter</a></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Código com erro não vira executável</strong>
+<pre class="file" data-file="erro.dart">void main() {
+  print('oi')
+}
+</pre>
+<pre class="term">$ dart compile exe erro.dart; echo "codigo: $?"
+erro.dart:2:13: Error: Expected ';' after this.
+  print('oi')
+            ^
+Error: AOT compilation failed
+Bad state: Generating AOT kernel dill failed!
+codigo: 254
+</pre>
+<p>Linha por linha:</p>
+<ul>
+  <li><code>erro.dart:2:13: Error: Expected ';' after this.</code>: o mesmo erro que o <code>dart run</code> mostraria. "Era esperado <code>;</code> depois disto", linha 2, coluna 13; embaixo, a linha do código e o <code>^</code> no ponto.</li>
+  <li><code>Error: AOT compilation failed</code>: "a compilação AOT falhou".</li>
+  <li><code>Bad state: Generating AOT kernel dill failed!</code>: um detalhe interno, "a geração do arquivo intermediário falhou". Pode ignorar: o que importa é a primeira linha.</li>
+  <li><code>codigo: 254</code>: o mesmo código de saída de um erro de compilação no <code>dart run</code>.</li>
+</ul>
+<p>E nenhum <code>erro.exe</code> foi criado. <strong>Como consertar:</strong> ponha o <code>;</code> e compile de novo.</p>
+</div>
+
+<div class="cenario">
+<strong>Mudou o código e o executável continua velho</strong>
+<p>O executável é um retrato do código <strong>no momento</strong> em que foi compilado. Se a Ana mudar o <code>print</code> no <code>ola.dart</code> e rodar <code>./ola</code>, vai ver a mensagem antiga. Não há aviso nenhum: o <code>./ola</code> não sabe que o <code>.dart</code> existe. <strong>Como consertar:</strong> rode o <code>dart compile exe</code> de novo depois de cada mudança.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>./</code></strong>
+<pre class="term">$ ola Ana
+Comando 'ola' não encontrado, você quis dizer:
+  comando 'cola' do deb git-cola (4.17.1-1)
+  comando 'lola' do deb lola (1.8-2)
+  comando 'olad' do deb ola (0.10.9.nojsmin-7.1build1)
+  comando 'ols' do deb speech-tools (1:2.5.0-14build1)
+Experimente: sudo apt install &lt;deb name&gt;
+</pre>
+<p>Sem o <code>./</code>, o terminal procura um comando chamado <code>ola</code> nas pastas do sistema, e não na pasta atual. Como não acha, sugere programas de nome parecido para instalar. Não instale nada: o seu programa está ali do lado. <strong>Como consertar:</strong> <code>./ola Ana</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart compile exe main.dart</code></td><td>Gera <code>main.exe</code>, que roda sem Dart.</td></tr>
+<tr><td><code>dart compile exe main.dart -o padaria</code></td><td>Escolhe o nome do arquivo gerado.</td></tr>
+<tr><td><code>dart compile js main.dart -o main.js</code></td><td>Gera JavaScript.</td></tr>
+<tr><td><code>dart compile wasm main.dart</code></td><td>Gera WebAssembly.</td></tr>
+<tr><td><code>dart compile aot-snapshot main.dart</code></td><td>Gera <code>.aot</code> (roda com <code>dartaotruntime</code>).</td></tr>
+<tr><td><code>dart compile kernel main.dart</code></td><td>Gera <code>.dill</code> (roda com <code>dart run</code>).</td></tr>
+<tr><td><code>./nome argumentos</code></td><td>Roda o executável da pasta atual.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Complete para gerar um executável chamado <code>estoque</code> a partir de <code>main.dart</code>:</p>
+<div class="ex-code">dart compile <input data-answer="exe" aria-label="formato"> main.dart <input data-answer="-o" aria-label="opção do nome"> estoque</div>
+</div>
+
+<div class="exercise">
+<h3>2. Rodando</h3>
+<p>Escreva o comando que roda o executável <code>estoque</code> da pasta atual, sem argumentos.</p>
+<div class="ex-code"><input data-answer="./estoque" aria-label="comando"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. A Ana compilou o programa no Linux e mandou o executável para o dono da padaria, que também usa Linux mas não tem Dart. O que acontece?</p>
+<label><input type="radio" name="q3"> Não roda: ele precisa instalar o Dart SDK</label>
+<label><input type="radio" name="q3"> Roda só se ele tiver o arquivo <code>.dart</code> junto</label>
+<label><input type="radio" name="q3"> Roda: o executável leva o runtime do Dart dentro</label>
+<label><input type="radio" name="q3"> Roda, mas só no navegador</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Para que serve o <code>dart compile js</code>?</p>
+<label><input type="radio" name="q4"> Para deixar o executável menor</label>
+<label><input type="radio" name="q4"> Para transformar o programa em JavaScript, que roda no navegador</label>
+<label><input type="radio" name="q4"> Para conferir se o código tem erros</label>
+<label><input type="radio" name="q4"> Para gerar um app de celular</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O <code>dart compile exe</code> mostrou <code>Error: AOT compilation failed</code>. Onde está a explicação do problema?</p>
+<label><input type="radio" name="q5"> Nas linhas de cima, com o arquivo:linha:coluna e o <code>^</code></label>
+<label><input type="radio" name="q5"> No arquivo <code>.exe</code> gerado</label>
+<label><input type="radio" name="q5"> Na linha <code>Bad state</code></label>
+<label><input type="radio" name="q5"> Em lugar nenhum: é preciso rodar de novo</label>
+</div>
+
+<h3>Missão final: o caixa da padaria</h3>
+
+<div class="trydart" data-args="3 7.5" data-goal="out:Total: R$ 22.5;;src:double\.parse">
+<p class="try-task"><strong>Missão:</strong> a Ana quer compilar um caixa que recebe a <strong>quantidade</strong> e o <strong>preço</strong> na linha de comando: <code>./caixa 3 7.5</code>. O editor roda com esses dois argumentos. Converta o primeiro com <code>int.parse</code> e o segundo com <code>double.parse</code>, multiplique e mostre <code>Total: R$ 22.5</code>.</p>
+<pre class="script" data-file="main.dart">void main(List&lt;String&gt; args) {
+  final quantidade = int.parse(args[0]);
+  // converta args[1] para double e calcule o total
+
+  print('Quantidade: $quantidade');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main(List&lt;String&gt; args) {
+  final quantidade = int.parse(args[0]);
+  final preco = double.parse(args[1]);
+  final total = quantidade * preco;
+  print('Total: R\$ $total');
+}
+</pre>
+</div>
+
+<p>Depois de funcionar, no terminal seria só <code>dart compile exe main.dart -o caixa</code> e <code>./caixa 3 7.5</code>. (O <code>\$</code> mostra o cifrão de verdade. Sem a barra, <code>'Total: R$ $total'</code> nem compila: no lab, deu <code>Error: A '$' has special meaning inside a string, and must be followed by an identifier or an expression in curly braces ({}).</code>, "o <code>$</code> tem significado especial dentro de um texto", com a sugestão <code>Try adding a backslash (\) to escape the '$'.</code>, "tente pôr uma barra invertida antes".)</p>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Compilar transforma o <code>.dart</code> num arquivo pronto. O <code>dart run</code> traduz toda vez; o executável já vem traduzido.</li>
+  <li><code>dart compile exe main.dart -o nome</code> gera um executável que roda sem Dart, no mesmo sistema (Linux, Windows ou macOS) em que foi gerado. Ele tem uns 6 MB porque leva o runtime.</li>
+  <li>Rode com <code>./nome argumentos</code>; recompile sempre que mudar o código.</li>
+  <li>Outros formatos: <code>js</code> e <code>wasm</code> (navegador), <code>aot-snapshot</code> (precisa do <code>dartaotruntime</code>), <code>kernel</code> e <code>jit-snapshot</code>.</li>
+  <li>Código com erro não compila: a explicação está nas primeiras linhas (<code>arquivo:linha:coluna: Error: …</code>), e o código de saída é 254.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
