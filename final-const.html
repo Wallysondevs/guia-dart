@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart final e const — valores que não mudam | Guia Dart</title>
+<meta name="description" content="final e const em Dart para quem nunca programou: variáveis que recebem valor uma vez só, a diferença entre final (decidido na hora de rodar) e const (decidido antes de rodar), final com valor atribuído depois, listas final e const, qual usar no lugar de var, e os erros reais do Dart 3 (Can't assign to the final variable, Not a constant expression, Cannot add to an unmodifiable list) explicados.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">final e const</span></h1>
+
+<p class="intro">Na aula <a href="variaveis.html">Variáveis</a>, o <code>var</code> criava potes cujo conteúdo dava para trocar quando quisesse. Só que, num programa de verdade, a maioria dos valores <strong>não</strong> deveria mudar: o nome da cliente do pedido, o preço do pão de hoje, o número de dias da semana. Para esses, o Dart tem duas palavras: <code>final</code> ("final": recebe o valor uma vez e pronto) e <code>const</code> ("constante": um valor fixo, conhecido antes mesmo de o programa rodar).</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A criar variáveis com <code>final</code>, que recebem valor uma única vez.</li>
+  <li>A criar constantes com <code>const</code> e o que quer dizer "conhecido antes de rodar".</li>
+  <li>A diferença entre <code>var</code>, <code>final</code> e <code>const</code>, e qual usar em cada caso.</li>
+  <li>Por que o costume em Dart é usar <code>final</code> sempre que der.</li>
+  <li>O que acontece com uma <strong>lista</strong> <code>final</code> e uma lista <code>const</code>.</li>
+  <li>Os erros reais: trocar um <code>final</code>, usar um valor que muda num <code>const</code>, e mexer numa lista <code>const</code>.</li>
+</ul>
+</div>
+
+<p>Os programas desta aula foram rodados com o <strong>Dart SDK 3.13.5</strong> na máquina fictícia da Ana (usuária <code>ana</code>, computador <code>notebook</code>), dentro da pasta <code>fc</code>, com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: lápis, caneta e placa pintada</h2>
+<p>A Ana anota as coisas da padaria de três jeitos:</p>
+<ul>
+  <li>O <strong>estoque</strong> do dia, a <strong>lápis</strong> no quadro: apaga e reescreve toda hora. É o <code>var</code>.</li>
+  <li>O <strong>nome no pedido</strong>, a <strong>caneta</strong> na comanda: só se escreve quando a cliente chega, mas depois de escrito não se apaga. É o <code>final</code>.</li>
+  <li>O <strong>horário de funcionamento</strong>, <strong>pintado</strong> na placa da porta: decidido antes de a padaria abrir e igual todos os dias. É o <code>const</code>.</li>
+</ul>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th><code>var</code></th><th><code>final</code></th><th><code>const</code></th></tr>
+<tr><td>Pode trocar o valor depois?</td><td>Sim</td><td>Não</td><td>Não</td></tr>
+<tr><td>Quando o valor é decidido</td><td>Na hora de rodar</td><td>Na hora de rodar</td><td><strong>Antes</strong> de rodar (na compilação)</td></tr>
+<tr><td>Na padaria</td><td>Lápis no quadro</td><td>Caneta na comanda</td><td>Placa pintada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. <code>final</code>: uma vez só</h2>
+
+<pre class="file" data-file="final1.dart">void main() {
+  final cliente = 'Bia';
+  final int pedidos = 3;
+  print(cliente);
+  print(pedidos);
+}
+</pre>
+
+<pre class="term">$ dart run final1.dart
+Bia
+3
+</pre>
+
+<dl class="anatomy">
+  <dt>final cliente = 'Bia';</dt><dd>No lugar do <code>var</code>, a palavra <code>final</code>. O tipo continua sendo descoberto pelo valor (<code>String</code>).</dd>
+  <dt>final int pedidos = 3;</dt><dd>Também dá para escrever o tipo, entre o <code>final</code> e o nome.</dd>
+</dl>
+
+<p>Até aqui, nada de diferente do <code>var</code>. A diferença aparece quando alguém tenta trocar o valor:</p>
+
+<pre class="file" data-file="final_muda.dart">void main() {
+  final cliente = 'Bia';
+  cliente = 'Caio';
+  print(cliente);
+}
+</pre>
+
+<pre class="term">$ dart run final_muda.dart
+final_muda.dart:3:3: Error: Can't assign to the final variable 'cliente'.
+  cliente = 'Caio';
+  ^^^^^^^
+$ echo $?
+254
+</pre>
+
+<p>"Não é possível atribuir à variável final <code>cliente</code>." É um erro de compilação: o Dart percebe antes de rodar e não deixa o programa nem começar. É exatamente para isso que o <code>final</code> serve: se você (ou um colega) trocar sem querer um valor que não devia mudar, o Dart avisa na hora.</p>
+
+<h3>Valor decidido depois, mas uma vez só</h3>
+<p>Como a comanda, o <code>final</code> pode ficar em branco por um tempo, desde que receba o valor uma única vez antes de ser usado:</p>
+
+<pre class="file" data-file="final_depois.dart">void main() {
+  final int total;
+  total = 12 + 8;
+  print(total);
+}
+</pre>
+
+<pre class="term">$ dart run final_depois.dart
+20
+</pre>
+
+<p>Nesse caso, escreva o tipo (<code>final int total;</code>). Mais adiante, com <a href="if-else.html">if e else</a>, isso vai ser útil: "se for sábado, o total é este; senão, é aquele", e o valor nunca mais muda.</p>
+
+<div class="trydart" data-goal="semerro;;outre:^Pedido de Bia\nPedido de Bia\n$;;src:^\s*final\s+cliente">
+<p class="try-task"><strong>Missão:</strong> o nome no pedido não deveria mudar. Troque o <code>var</code> por <code>final</code> e rode: o Dart vai apontar a linha que estraga o pedido. Apague essa linha.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var cliente = 'Bia';
+  print('Pedido de $cliente');
+  cliente = 'Caio';
+  print('Pedido de $cliente');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final cliente = 'Bia';
+  print('Pedido de $cliente');
+  print('Pedido de $cliente');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>const</code>: conhecido antes de rodar</h2>
+<p>O <code>const</code> também não deixa trocar o valor, mas exige mais: o valor tem de ser conhecido <strong>na compilação</strong>, aquela conferência que o Dart faz antes de rodar (aula <a href="introducao.html">O que é Dart</a>). Valem números, textos, <code>true</code>/<code>false</code> escritos direto no código, e contas feitas só com eles ou com outros <code>const</code>:</p>
+
+<pre class="file" data-file="const1.dart">void main() {
+  const precoPao = 0.9;
+  const paesPorSaco = 10;
+  const precoSaco = precoPao * paesPorSaco;
+  print(precoSaco);
+}
+</pre>
+
+<pre class="term">$ dart run const1.dart
+9.0
+</pre>
+
+<dl class="anatomy">
+  <dt>const precoPao = 0.9;</dt><dd>Um número escrito no código: o Dart já sabe o valor antes de rodar.</dd>
+  <dt>const precoSaco = precoPao * paesPorSaco;</dt><dd>Uma conta só com constantes também é constante: o Dart pode fazer essa conta durante a compilação. O resultado, <code>0.9 * 10</code>, é <code>9.0</code> (um <code>double</code>, por causa do <code>0.9</code>).</dd>
+</dl>
+
+<p>Já um valor que só existe com o programa rodando <strong>não</strong> pode ser <code>const</code>. Quantos pães há em <code>paes</code>? Depende do que aconteceu até aquela linha, e o Dart não aceita:</p>
+
+<pre class="file" data-file="const_var.dart">void main() {
+  var paes = 30;
+  const total = paes * 2;
+  print(total);
+}
+</pre>
+
+<pre class="term">$ dart run const_var.dart
+const_var.dart:3:17: Error: Not a constant expression.
+  const total = paes * 2;
+                ^^^^
+</pre>
+
+<p>"Não é uma expressão constante." O <code>^</code> aponta para <code>paes</code>, uma variável comum. Com <code>final</code>, o mesmo código funciona, porque o <code>final</code> aceita valores decididos na hora de rodar:</p>
+
+<pre class="file" data-file="final_var.dart">void main() {
+  var paes = 30;
+  final total = paes * 2;
+  print(total);
+}
+</pre>
+
+<pre class="term">$ dart run final_var.dart
+60
+</pre>
+
+<hr>
+
+<h2>3. Os três juntos</h2>
+
+<pre class="file" data-file="tres.dart">void main() {
+  var estoque = 30;
+  final cliente = 'Bia';
+  const precoPao = 0.9;
+  estoque = estoque - 5;
+  print(estoque);
+  print(cliente);
+  print(precoPao * 5);
+}
+</pre>
+
+<pre class="term">$ dart run tres.dart
+25
+Bia
+4.5
+</pre>
+
+<p>O estoque muda (<code>var</code>), o nome da cliente foi escrito uma vez (<code>final</code>) e o preço do pão é fixo no código (<code>const</code>). Só o <code>estoque</code> pode aparecer do lado esquerdo de um <code>=</code> depois de criado.</p>
+
+<h3>Qual usar</h3>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Pergunta</th><th>Resposta</th></tr>
+<tr><td>O valor vai mudar depois?</td><td>Sim → <code>var</code> (ou o tipo: <code>int estoque = 30;</code>)</td></tr>
+<tr><td>Não muda, e é um valor fixo, escrito no código?</td><td><code>const</code> (<code>const diasDaSemana = 7;</code>)</td></tr>
+<tr><td>Não muda, mas depende de algo que só se sabe rodando (uma conta com variáveis, o que a pessoa digitou, a data de hoje)?</td><td><code>final</code></td></tr>
+<tr><td>Na dúvida entre <code>final</code> e <code>const</code>?</td><td><code>final</code>: funciona sempre que o <code>const</code> funcionaria</td></tr>
+</table>
+</div>
+
+<div class="tip">
+<strong>Por que usar <code>final</code> sempre que der</strong>
+<p>Em código Dart profissional, a maior parte das variáveis é <code>final</code>, e <code>var</code> fica para o que realmente muda (contadores, totais que vão acumulando). O motivo: quando você lê <code>final total = …</code>, sabe que aquele valor nunca muda dali em diante, e não precisa procurar no resto do código se alguém o trocou. E, se alguém tentar, o Dart avisa. Este guia segue esse costume a partir daqui.</p>
+</div>
+
+<p>Um detalhe de estilo: em Dart, constantes usam o mesmo formato de nome que as variáveis (<code>precoPao</code>, <code>diasDaSemana</code>), e não letras maiúsculas como <code>PRECO_PAO</code>, que é o costume de outras linguagens. Mais em <a href="nomes-variaveis.html">Nomes de Variáveis</a>.</p>
+
+<hr>
+
+<h2>4. Listas <code>final</code> e <code>const</code></h2>
+<p>Com listas (aula <a href="list.html">Listas</a>), aparece uma diferença importante. Uma lista <code>final</code> não pode ser <strong>trocada</strong> por outra lista, mas o <strong>conteúdo</strong> dela pode mudar:</p>
+
+<pre class="file" data-file="lista_final.dart">void main() {
+  final compras = ['pão', 'leite'];
+  compras.add('café');
+  print(compras);
+}
+</pre>
+
+<pre class="term">$ dart run lista_final.dart
+[pão, leite, café]
+</pre>
+
+<p>O <code>compras.add('café')</code> ("acrescente café") funcionou. O <code>final</code> protege a <strong>etiqueta</strong>: <code>compras</code> sempre vai ser esta mesma lista. Pôr outra lista no lugar, aí sim, é erro:</p>
+
+<pre class="term">$ dart run lista_final_troca.dart
+lista_final_troca.dart:3:3: Error: Can't assign to the final variable 'compras'.
+  compras = ['café'];
+  ^^^^^^^
+</pre>
+
+<p>Já uma lista <code>const</code> é congelada por inteiro: nem a etiqueta nem o conteúdo mudam. E aqui o erro só aparece <strong>com o programa rodando</strong>:</p>
+
+<pre class="file" data-file="lista_const.dart">void main() {
+  const dias = ['seg', 'ter', 'qua'];
+  print(dias);
+  dias.add('qui');
+  print(dias);
+}
+</pre>
+
+<pre class="term">$ dart run lista_const.dart
+[seg, ter, qua]
+Unhandled exception:
+Unsupported operation: Cannot add to an unmodifiable list
+#0      UnmodifiableListMixin.add (dart:_internal/list.dart:112:5)
+#1      main (file:///home/ana/fc/lista_const.dart:4:8)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+
+<dl class="anatomy">
+  <dt>[seg, ter, qua]</dt><dd>O primeiro <code>print</code> rodou: o programa compilou e começou.</dd>
+  <dt>Unhandled exception:</dt><dd>Uma <strong>exceção</strong>: um problema com o programa já rodando (aula <a href="introducao.html">O que é Dart</a>).</dd>
+  <dt>Unsupported operation: Cannot add to an unmodifiable list</dt><dd>"Operação não suportada: não é possível acrescentar a uma lista que não pode ser modificada."</dd>
+  <dt>#1 main (file:///home/ana/fc/lista_const.dart:4:8)</dt><dd>A linha do <strong>seu</strong> código: linha 4, o <code>dias.add</code>. A linha <code>#0</code> é a peça interna do Dart que recusou o pedido.</dd>
+</dl>
+
+<p>O segundo <code>print</code> não rodou: o programa parou na linha 4, com código de saída 255.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Trocar por outra lista</th><th>Mudar o conteúdo (<code>add</code>)</th></tr>
+<tr><td><code>var compras = [...]</code></td><td>Pode</td><td>Pode</td></tr>
+<tr><td><code>final compras = [...]</code></td><td>Erro de compilação</td><td>Pode</td></tr>
+<tr><td><code>const compras = [...]</code></td><td>Erro de compilação</td><td>Exceção ao rodar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Trocar o valor de um <code>const</code></strong>
+<pre class="file" data-file="const_muda.dart">void main() {
+  const taxa = 0.1;
+  taxa = 0.2;
+  print(taxa);
+}
+</pre>
+<pre class="term">$ dart run const_muda.dart
+const_muda.dart:3:3: Error: Can't assign to the const variable 'taxa'.
+  taxa = 0.2;
+  ^^^^
+</pre>
+<p>"Não é possível atribuir à variável const <code>taxa</code>". Igual ao <code>final</code>. <strong>Como consertar:</strong> se o valor precisa mudar, use <code>var</code>; se não, apague a linha que troca.</p>
+</div>
+
+<div class="cenario">
+<strong><code>final</code> recebendo valor duas vezes</strong>
+<pre class="file" data-file="final_duas.dart">void main() {
+  final int total;
+  total = 20;
+  total = 25;
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run final_duas.dart
+final_duas.dart:4:3: Error: Final variable 'total' might already be assigned at this point.
+  total = 25;
+  ^^^^^
+</pre>
+<p>"A variável final <code>total</code> pode já ter recebido valor neste ponto." A linha 3 está certa (a primeira atribuição); a 4 é a segunda, e o <code>final</code> só aceita uma. <strong>Como consertar:</strong> fique com uma só, ou use <code>var</code> se o total precisa mudar.</p>
+</div>
+
+<div class="cenario">
+<strong><code>const</code> sem valor</strong>
+<pre class="file" data-file="const_sem_valor.dart">void main() {
+  const taxa;
+  print(taxa);
+}
+</pre>
+<pre class="term">$ dart run const_sem_valor.dart
+const_sem_valor.dart:2:9: Error: The const variable 'taxa' must be initialized.
+Try adding an initializer ('= expression') to the declaration.
+  const taxa;
+        ^^^^
+</pre>
+<p>"A variável const <code>taxa</code> precisa ser inicializada. Tente acrescentar um inicializador (<code>= expressão</code>) à declaração." Diferente do <code>final</code>, o <code>const</code> não pode receber o valor depois: tem de nascer com ele. <strong>Como consertar:</strong> <code>const taxa = 0.1;</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Algo do momento num <code>const</code>: a data de hoje</strong>
+<pre class="file" data-file="const_agora.dart">void main() {
+  const agora = DateTime.now();
+  print(agora);
+}
+</pre>
+<pre class="term">$ dart run const_agora.dart
+const_agora.dart:2:26: Error: Cannot invoke a non-'const' constructor where a const expression is expected.
+Try using a constructor or factory that is 'const'.
+  const agora = DateTime.now();
+                         ^^^
+</pre>
+<p><code>DateTime.now()</code> é "a data e a hora de agora": muda a cada vez que o programa roda, então não tem como ser conhecida antes. A mensagem fala em <strong>construtor</strong> (o jeito de criar um objeto, aula <a href="construtores.html">Construtores</a>): "não é possível chamar um construtor que não é <code>const</code> onde se espera uma expressão constante". Junto com o <code>Not a constant expression</code> da seção 2, é o sinal de que você quis um <code>const</code> onde cabia um <code>final</code>. <strong>Como consertar:</strong> <code>final agora = DateTime.now();</code>.</p>
+</div>
+
+<div class="trydart" data-goal="semerro;;outre:^Saco com 10 pães: R\$ 9\.0\nPedido de Bia: 2 sacos\n$;;src:^\s*const\s+precoPao;;src:^\s*final\s+pedido">
+<p class="try-task"><strong>Missão:</strong> o programa tem dois erros de <code>Not a constant expression</code>. O preço do pão é fixo e deve ser <code>const</code>; já o pedido depende de quantos sacos a cliente quis, e não pode ser <code>const</code>. Conserte trocando só as palavras <code>const</code>/<code>final</code>/<code>var</code>, sem mudar os valores.</p>
+<pre class="script" data-file="main.dart">void main() {
+  var precoPao = 0.9;
+  const paesPorSaco = 10;
+  var sacos = 2;
+  final cliente = 'Bia';
+  const precoSaco = precoPao * paesPorSaco;
+  const pedido = sacos;
+  print('Saco com $paesPorSaco pães: R\$ $precoSaco');
+  print('Pedido de $cliente: $pedido sacos');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  const precoPao = 0.9;
+  const paesPorSaco = 10;
+  var sacos = 2;
+  final cliente = 'Bia';
+  const precoSaco = precoPao * paesPorSaco;
+  final pedido = sacos;
+  print('Saco com $paesPorSaco pães: R\$ $precoSaco');
+  print('Pedido de $cliente: $pedido sacos');
+}
+</pre>
+</div>
+
+<p>O <code>\$</code> dentro do texto mostra um cifrão de verdade, em vez de procurar uma variável (aula <a href="interpolacao.html">Interpolação</a>).</p>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>var x = 1;</code></td><td>Variável comum: pode trocar o valor</td></tr>
+<tr><td><code>final x = 1;</code> / <code>final int x = 1;</code></td><td>Recebe valor uma vez; o valor pode vir de algo calculado ao rodar</td></tr>
+<tr><td><code>final int x;</code> … <code>x = 1;</code></td><td><code>final</code> com valor dado depois, uma vez só</td></tr>
+<tr><td><code>const x = 1;</code></td><td>Constante: valor fixo, conhecido antes de rodar; tem de nascer com o valor</td></tr>
+<tr><td><code>const y = x * 2;</code></td><td>Conta só com constantes também é constante</td></tr>
+<tr><td><code>final lista = [...]</code></td><td>A lista não pode ser trocada, mas o conteúdo pode</td></tr>
+<tr><td><code>const lista = [...]</code></td><td>Nada muda; <code>add</code> dá exceção ao rodar</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Mensagem</th><th>Causa provável</th></tr>
+<tr><td><code>Can't assign to the final variable 'x'.</code></td><td>Tentou trocar um <code>final</code></td></tr>
+<tr><td><code>Can't assign to the const variable 'x'.</code></td><td>Tentou trocar um <code>const</code></td></tr>
+<tr><td><code>Final variable 'x' might already be assigned at this point.</code></td><td><code>final</code> recebendo valor pela segunda vez</td></tr>
+<tr><td><code>The const variable 'x' must be initialized.</code></td><td><code>const</code> sem valor</td></tr>
+<tr><td><code>Not a constant expression.</code></td><td>Variável comum num <code>const</code>: use <code>final</code></td></tr>
+<tr><td><code>Cannot invoke a non-'const' constructor where a const expression is expected.</code></td><td>Algo como <code>DateTime.now()</code> num <code>const</code>: use <code>final</code></td></tr>
+<tr><td><code>Unsupported operation: Cannot add to an unmodifiable list</code></td><td><code>add</code> numa lista <code>const</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Uma vez só</h3>
+<p>Complete para criar uma variável que recebe valor uma vez e nunca mais muda (o valor é o que a pessoa digitou):</p>
+<div class="ex-code"><input data-answer="final" aria-label="palavra"> resposta = textoDigitado;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Placa pintada</h3>
+<p>Complete para criar uma constante, fixa no código:</p>
+<div class="ex-code"><input data-answer="const|final" aria-label="palavra"> diasDaSemana = 7;</div>
+</div>
+
+<div class="exercise">
+<h3>3. Qual é a saída?</h3>
+<p><code>const a = 4;</code>, <code>const b = a * 3;</code> e <code>print(b);</code>. O que aparece?</p>
+<div class="ex-code">Saída: <input data-answer="12" aria-label="saída"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. <code>var paes = 30;</code> e depois <code>const dobro = paes * 2;</code>. O que acontece?</p>
+<label><input type="radio" name="q4"> Mostra 60</label>
+<label><input type="radio" name="q4"> Erro de compilação: <code>Not a constant expression</code></label>
+<label><input type="radio" name="q4"> Exceção ao rodar</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. <code>final compras = ['pão'];</code> e depois <code>compras.add('leite');</code>. O que acontece?</p>
+<label><input type="radio" name="q5"> Funciona: a lista passa a ter pão e leite</label>
+<label><input type="radio" name="q5"> Erro de compilação: <code>compras</code> é <code>final</code></label>
+<label><input type="radio" name="q5"> Exceção: lista que não pode ser modificada</label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">6. Qual destas variáveis deveria ser <code>var</code>, e não <code>final</code>?</p>
+<label><input type="radio" name="q6"> O nome da cliente de um pedido</label>
+<label><input type="radio" name="q6"> O resultado de uma conta feita uma vez</label>
+<label><input type="radio" name="q6"> O total que vai somando cada item da compra</label>
+</div>
+
+<h3>Missão final: a etiqueta de preço</h3>
+
+<div class="trydart" data-goal="semerro;;outre:^Produto: Caderno\nPreço com desconto: 18\.0\nEstoque: 9\n$;;src:^\s*const\s+desconto;;src:^\s*final\s+produto;;src:^\s*final\s+precoFinal;;src:^\s*var\s+estoque">
+<p class="try-task"><strong>Missão:</strong> declare <code>desconto</code> como <code>const</code> (é a regra da loja: 0.1), <code>produto</code> e <code>precoFinal</code> como <code>final</code>, e <code>estoque</code> como <code>var</code> (ele muda: um caderno foi vendido). Os valores já estão certos; só troque as palavras do começo de cada linha.</p>
+<pre class="script" data-file="main.dart">void main() {
+  ? desconto = 0.1;
+  ? produto = 'Caderno';
+  ? preco = 20;
+  ? precoFinal = preco - preco * desconto;
+  ? estoque = 10;
+  estoque = estoque - 1;
+  print('Produto: $produto');
+  print('Preço com desconto: $precoFinal');
+  print('Estoque: $estoque');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  const desconto = 0.1;
+  final produto = 'Caderno';
+  final preco = 20;
+  final precoFinal = preco - preco * desconto;
+  var estoque = 10;
+  estoque = estoque - 1;
+  print('Produto: $produto');
+  print('Preço com desconto: $precoFinal');
+  print('Estoque: $estoque');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>var</code>: o valor pode mudar. <code>final</code>: recebe valor uma vez só. <code>const</code>: valor fixo, conhecido antes de rodar.</li>
+  <li><code>final</code> aceita valores calculados ao rodar; <code>const</code> só aceita valores escritos no código e contas com outros <code>const</code>.</li>
+  <li><code>final</code> pode receber o valor depois (uma vez); <code>const</code> tem de nascer com ele.</li>
+  <li>Use <code>final</code> sempre que o valor não for mudar; <code>const</code> para os valores fixos; <code>var</code> só para o que muda.</li>
+  <li>Lista <code>final</code>: o conteúdo muda, a etiqueta não. Lista <code>const</code>: nada muda (<code>add</code> → exceção).</li>
+  <li>Constantes têm nome como variáveis: <code>precoPao</code>, não <code>PRECO_PAO</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
