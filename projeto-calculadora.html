@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projeto Dart: Calculadora — passo a passo | Guia Dart</title>
+<meta name="description" content="Projeto Dart para iniciantes: uma calculadora de terminal em 4 versões. Contas com double, ler números com double.parse, escolher a operação com switch, uma função com expressão switch, ler '3 + 4' numa linha com split, divisão por zero (Infinity), validar com tryParse e guardar o histórico numa lista. Sessões e erros reais do Dart 3.13.">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Projeto: <span class="hl">Calculadora</span></h1>
+
+<p class="intro">A Ana quer uma calculadora no terminal para as contas da padaria: digita <code>3 + 4</code>, aperta <kbd>Enter</kbd>, e aparece <code>3 + 4 = 7</code>. Neste projeto você vai construí-la em <strong>quatro versões</strong>, da mais ingênua até uma que aguenta qualquer coisa que o usuário digitar e ainda mostra o histórico no fim. No caminho, vai encontrar um dos números mais estranhos da computação: o <code>Infinity</code>.</p>
+
+<div class="note">
+<strong>Você vai usar</strong>
+<ul>
+  <li>Operações com <code>double</code> (aula <a href="operadores-aritmeticos.html">Operadores Aritméticos</a>).</li>
+  <li><code>stdin.readLineSync()</code>, <code>double.parse</code> e <code>double.tryParse</code> (aulas <a href="stdin.html">Lendo o Teclado</a> e <a href="conversao.html">Conversão</a>).</li>
+  <li><code>switch</code> comum e a expressão <code>switch</code> (aula <a href="switch.html">switch</a>).</li>
+  <li>Funções, <code>split</code>, listas, <code>while (true)</code> com <code>break</code> e <code>continue</code>.</li>
+</ul>
+</div>
+
+<p>As sessões abaixo rodaram no <strong>Dart SDK 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), numa pasta <code>calc</code>; o que ela digitou aparece depois de cada pergunta. No editor do guia, a entrada "digitada" vem pronta na caixa.</p>
+
+<hr>
+
+<h2>O plano</h2>
+<ol class="passo">
+  <li><strong>Versão 1:</strong> as quatro contas com números fixos.</li>
+  <li><strong>Versão 2:</strong> perguntar os números e a operação; escolher com <code>switch</code>.</li>
+  <li><strong>Versão 3:</strong> uma função <code>calcular</code> e a conta digitada numa linha só (<code>3 + 4</code>).</li>
+  <li><strong>Versão 4:</strong> repetir até "sair", validar tudo, recusar divisão por zero, mostrar o histórico.</li>
+</ol>
+
+<hr>
+
+<h2>Versão 1: as quatro operações</h2>
+
+<pre class="file" data-file="calc1.dart">void main() {
+  final a = 12.0;
+  final b = 4.0;
+  print('$a + $b = ${a + b}');
+  print('$a - $b = ${a - b}');
+  print('$a * $b = ${a * b}');
+  print('$a / $b = ${a / b}');
+}
+</pre>
+
+<pre class="term">$ dart run calc1.dart
+12.0 + 4.0 = 16.0
+12.0 - 4.0 = 8.0
+12.0 * 4.0 = 48.0
+12.0 / 4.0 = 3.0
+</pre>
+
+<dl class="anatomy">
+  <dt>final a = 12.0;</dt><dd>Um <code>double</code> (número com casas decimais). Usamos <code>double</code> porque uma calculadora precisa de <code>10 / 4 = 2.5</code>.</dd>
+  <dt>'$a + $b = ${a + b}'</dt><dd>Interpolação: <code>$a</code> mostra a variável; <code>${a + b}</code>, com chaves, mostra o <strong>resultado de uma conta</strong>. Sem as chaves, <code>'$a + b'</code> mostraria só o <code>a</code> e o texto "+ b".</dd>
+  <dt>*</dt><dd>Multiplicação (o "×" da escola).</dd>
+  <dt>/</dt><dd>Divisão. No Dart, <code>/</code> sempre dá <code>double</code>, mesmo com inteiros: <code>12 / 4</code> é <code>3.0</code>.</dd>
+</dl>
+
+<p>Repare no <code>.0</code> em tudo: é assim que o Dart mostra um <code>double</code> sem parte decimal. Na versão 3 vamos deixar mais bonito.</p>
+
+<div class="trydart" data-goal="out:7.0 / 2.0 = 3.5">
+<p class="try-task"><strong>Missão:</strong> troque os números para <code>7.0</code> e <code>2.0</code> e confira a divisão: <code>7.0 / 2.0 = 3.5</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final a = 12.0;
+  final b = 4.0;
+  print('$a + $b = ${a + b}');
+  print('$a - $b = ${a - b}');
+  print('$a * $b = ${a * b}');
+  print('$a / $b = ${a / b}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final a = 7.0;
+  final b = 2.0;
+  print('$a + $b = ${a + b}');
+  print('$a - $b = ${a - b}');
+  print('$a * $b = ${a * b}');
+  print('$a / $b = ${a / b}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 2: perguntando ao usuário</h2>
+<p>Agora o programa pergunta os dois números e a operação, e usa um <code>switch</code> para escolher a conta:</p>
+
+<pre class="file" data-file="calc2.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = double.parse(stdin.readLineSync()!);
+  stdout.write('Operação (+ - * /): ');
+  final op = stdin.readLineSync()!;
+  stdout.write('Segundo número: ');
+  final b = double.parse(stdin.readLineSync()!);
+
+  switch (op) {
+    case '+':
+      print('Resultado: ${a + b}');
+    case '-':
+      print('Resultado: ${a - b}');
+    case '*':
+      print('Resultado: ${a * b}');
+    case '/':
+      print('Resultado: ${a / b}');
+    default:
+      print('Operação desconhecida: $op');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>double.parse(stdin.readLineSync()!)</dt><dd>Lê a linha e transforma o texto em <code>double</code>. Aceita <code>12</code>, <code>12.5</code> e <code>-3</code>; o separador decimal é o <strong>ponto</strong>, não a vírgula.</dd>
+  <dt>final op = stdin.readLineSync()!;</dt><dd>A operação fica como texto mesmo: <code>'+'</code>, <code>'/'</code>…</dd>
+  <dt>switch (op) { case '+': … }</dt><dd>Compara <code>op</code> com cada <code>case</code> e roda o que bater. No Dart 3 não precisa de <code>break</code> no fim de cada caso.</dd>
+  <dt>default:</dt><dd>"Padrão": o que fazer se nenhum caso bater.</dd>
+</dl>
+
+<pre class="term">$ dart run calc2.dart
+Primeiro número: 12
+Operação (+ - * /): /
+Segundo número: 4
+Resultado: 3.0
+$ dart run calc2.dart
+Primeiro número: 10
+Operação (+ - * /): x
+Segundo número: 2
+Operação desconhecida: x
+</pre>
+
+<h3>E dividir por zero?</h3>
+<pre class="term">$ dart run calc2.dart
+Primeiro número: 9
+Operação (+ - * /): /
+Segundo número: 0
+Resultado: Infinity
+</pre>
+<p>Não deu erro! Com <code>double</code>, o Dart segue a regra da computação de números com vírgula (o padrão IEEE 754): um número positivo dividido por zero dá <code>Infinity</code> ("infinito"). E <code>0 / 0</code> dá <code>NaN</code> (<em>Not a Number</em>, "não é um número"). Para uma calculadora de padaria, "infinito" não é uma resposta útil; a versão 4 vai recusar a divisão por zero.</p>
+
+<div class="trydart" data-stdin="10\n%\n3" data-goal="out:Resultado: 1.0;;src:case '%'">
+<p class="try-task"><strong>Missão:</strong> acrescente a operação <code>%</code>, o <strong>resto</strong> da divisão (<code>a % b</code>). A entrada digitada é 10, <code>%</code> e 3, e o resultado tem de ser <code>Resultado: 1.0</code> (10 dividido por 3 dá 3 e sobra 1).</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = double.parse(stdin.readLineSync()!);
+  stdout.write('Operação (+ - * / %): ');
+  final op = stdin.readLineSync()!;
+  stdout.write('Segundo número: ');
+  final b = double.parse(stdin.readLineSync()!);
+
+  switch (op) {
+    case '+':
+      print('Resultado: ${a + b}');
+    case '-':
+      print('Resultado: ${a - b}');
+    case '*':
+      print('Resultado: ${a * b}');
+    case '/':
+      print('Resultado: ${a / b}');
+    default:
+      print('Operação desconhecida: $op');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+void main() {
+  stdout.write('Primeiro número: ');
+  final a = double.parse(stdin.readLineSync()!);
+  stdout.write('Operação (+ - * / %): ');
+  final op = stdin.readLineSync()!;
+  stdout.write('Segundo número: ');
+  final b = double.parse(stdin.readLineSync()!);
+
+  switch (op) {
+    case '+':
+      print('Resultado: ${a + b}');
+    case '-':
+      print('Resultado: ${a - b}');
+    case '*':
+      print('Resultado: ${a * b}');
+    case '/':
+      print('Resultado: ${a / b}');
+    case '%':
+      print('Resultado: ${a % b}');
+    default:
+      print('Operação desconhecida: $op');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Versão 3: uma função e a conta numa linha</h2>
+<p>Duas melhorias. Primeiro, a conta vira uma <strong>função</strong> <code>calcular</code>, que recebe os números e a operação e <strong>devolve</strong> o resultado. Isso separa o "fazer a conta" do "conversar com o usuário", e permite usar a mesma função em outros lugares (e testá-la). Segundo, o usuário digita tudo numa linha, como numa calculadora de verdade:</p>
+
+<pre class="file" data-file="calc3.dart">import 'dart:io';
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  stdout.write('Conta (ex.: 3 + 4): ');
+  final partes = stdin.readLineSync()!.split(' ');
+  final a = double.parse(partes[0]);
+  final op = partes[1];
+  final b = double.parse(partes[2]);
+  print('= ${formatar(calcular(a, op, b))}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>return switch (op) { '+' =&gt; a + b, … }</dt><dd>A <strong>expressão <code>switch</code></strong>: em vez de rodar comandos, ela <strong>vale</strong> um resultado, que o <code>return</code> devolve. Cada linha é "padrão <code>=&gt;</code> valor".</dd>
+  <dt>_ =&gt; throw ArgumentError(…)</dt><dd>O <code>_</code> é o "qualquer outra coisa". Uma operação desconhecida <strong>lança</strong> um erro de argumento (veja <a href="throw.html">throw</a>): a função não tem um número honesto para devolver.</dd>
+  <dt>formatar</dt><dd>Se o número não tem parte decimal (<code>7.0</code> é igual a <code>7.0</code> truncado), mostra como inteiro (<code>7</code>); senão, como está (<code>2.5</code>).</dd>
+  <dt>.split(' ')</dt><dd>"Divide" o texto em pedaços a cada espaço: <code>'3 + 4'</code> vira a lista <code>['3', '+', '4']</code>. Os pedaços são <code>partes[0]</code>, <code>partes[1]</code> e <code>partes[2]</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run calc3.dart
+Conta (ex.: 3 + 4): 3 + 4
+= 7
+$ dart run calc3.dart
+Conta (ex.: 3 + 4): 10 / 4
+= 2.5
+</pre>
+
+<div class="trydart" data-stdin="10 % 3" data-goal="out:= 1;;src:'%'\s*=&gt;">
+<p class="try-task"><strong>Missão:</strong> acrescente o <code>%</code> (resto) na expressão <code>switch</code> da função <code>calcular</code>. A conta digitada é <code>10 % 3</code>, e a resposta tem de ser <code>= 1</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  stdout.write('Conta (ex.: 3 + 4): ');
+  final partes = stdin.readLineSync()!.split(' ');
+  final a = double.parse(partes[0]);
+  final op = partes[1];
+  final b = double.parse(partes[2]);
+  print('= ${formatar(calcular(a, op, b))}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    '%' =&gt; a % b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  stdout.write('Conta (ex.: 3 + 4): ');
+  final partes = stdin.readLineSync()!.split(' ');
+  final a = double.parse(partes[0]);
+  final op = partes[1];
+  final b = double.parse(partes[2]);
+  print('= ${formatar(calcular(a, op, b))}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado: quatro jeitos de quebrar a versão 3</h2>
+<p>A versão 3 funciona para quem digita direitinho. A Ana testou o que um usuário distraído faria (o <code>echo "…" |</code> "digita" a conta pelo programa, por isso ela não aparece na tela).</p>
+
+<div class="cenario">
+<strong>Dividir por zero: <code>Infinity</code> não vira inteiro</strong>
+<pre class="term">$ printf "7 / 0\n" | dart run calc3.dart; echo "codigo: $?"
+Conta (ex.: 3 + 4): Unhandled exception:
+Unsupported operation: Infinity or NaN toInt
+#0      double.toInt (dart:core-patch/double.dart)
+#1      formatar (file:///home/ana/calc/calc3.dart:15:14)
+#2      main (file:///home/ana/calc/calc3.dart:26:14)
+#3      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#4      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>Na versão 2, <code>9 / 0</code> mostrava <code>Infinity</code>. Agora quebrou, e não na divisão: "operação não suportada: <code>Infinity</code> ou <code>NaN</code> para <code>toInt</code>". Leia o stack trace de cima para baixo: o erro aconteceu dentro de <code>double.toInt</code> (<code>#0</code>), chamado pela <code>formatar</code> na linha 15 (<code>#1</code>), chamada pelo <code>main</code> na linha 26 (<code>#2</code>). O <code>formatar</code> achou que infinito "não tem parte decimal" e tentou transformá-lo em inteiro, mas não existe inteiro infinito. Código 255: exceção não tratada.</p>
+</div>
+
+<div class="cenario">
+<strong>Operação que não existe</strong>
+<pre class="term">$ echo "3 % 4" | dart run calc3.dart; echo "codigo: $?"
+Conta (ex.: 3 + 4): Unhandled exception:
+Invalid argument(s): operação desconhecida: %
+#0      calcular (file:///home/ana/calc/calc3.dart:9:10)
+#1      main (file:///home/ana/calc/calc3.dart:26:23)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>É o <strong>nosso</strong> <code>throw ArgumentError</code>: "argumento(s) inválido(s)", com a mensagem que escrevemos, em português. O <code>#0</code> aponta a linha 9 da <code>calcular</code>, o <code>_ =&gt; throw</code>. Lançar o erro foi a decisão certa dentro da função; o que falta é o <code>main</code> conferir a operação <strong>antes</strong> de chamar.</p>
+</div>
+
+<div class="cenario">
+<strong>Conta sem espaços</strong>
+<pre class="term">$ printf "3+4\n" | dart run calc3.dart; echo "codigo: $?"
+Conta (ex.: 3 + 4): Unhandled exception:
+FormatException: Invalid double
+3+4
+#0      double.parse (dart:core-patch/double_patch.dart:111:7)
+#1      main (file:///home/ana/calc/calc3.dart:23:20)
+#2      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#3      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+codigo: 255
+</pre>
+<p>Sem espaços, o <code>split(' ')</code> devolve uma lista de <strong>um</strong> pedaço só, <code>['3+4']</code>, e o <code>double.parse('3+4')</code> reclama: "erro de formato: <code>double</code> inválido", mostrando o texto <code>3+4</code>. A linha 23 é a do <code>double.parse(partes[0])</code>. (Se o primeiro pedaço fosse um número, o erro seria outro: <code>partes[1]</code> não existiria: digitando só <code>3</code>, veio <code>RangeError (length): Invalid value: Only valid value is 0: 1</code>, "posição inválida: a única válida é 0, e você pediu 1", o erro de posição fora da lista.)</p>
+</div>
+
+<div class="cenario">
+<strong>Número com vírgula ou por extenso</strong>
+<p><code>2,5 * 2</code> ou <code>dez + 1</code> dão o mesmo <code>FormatException: Invalid double</code>: o <code>double.parse</code> só entende ponto como separador decimal, e só algarismos. A solução para todos esses casos é a mesma: <strong>conferir antes de usar</strong>, com <code>tryParse</code> e <code>if</code>.</p>
+</div>
+
+<hr>
+
+<h2>Versão 4: a calculadora completa</h2>
+<pre class="file" data-file="calc4.dart">import 'dart:io';
+
+const operacoes = ['+', '-', '*', '/'];
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  print('Calculadora da Ana. Digite contas como 3 + 4, ou "sair".');
+  final historico = &lt;String&gt;[];
+  while (true) {
+    stdout.write('&gt; ');
+    final linha = stdin.readLineSync();
+    if (linha == null || linha.trim() == 'sair') {
+      break;
+    }
+    final partes = linha.trim().split(RegExp(r'\s+'));
+    if (partes.length != 3) {
+      print('Use o formato: número operação número (ex.: 3 + 4)');
+      continue;
+    }
+    final a = double.tryParse(partes[0]);
+    final op = partes[1];
+    final b = double.tryParse(partes[2]);
+    if (a == null || b == null) {
+      print('Número inválido.');
+      continue;
+    }
+    if (!operacoes.contains(op)) {
+      print('Operação desconhecida: $op (use + - * /)');
+      continue;
+    }
+    if (op == '/' &amp;&amp; b == 0) {
+      print('Não dá para dividir por zero.');
+      continue;
+    }
+    final conta = '${partes.join(' ')} = ${formatar(calcular(a, op, b))}';
+    print(conta);
+    historico.add(conta);
+  }
+  print('Contas feitas: ${historico.length}');
+  for (final conta in historico) {
+    print('  $conta');
+  }
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>while (true) { … break; … }</dt><dd>Um laço "para sempre", que só termina pelo <code>break</code>: quando a entrada acaba (<code>null</code>) ou o usuário digita <code>sair</code>.</dd>
+  <dt>linha.trim().split(RegExp(r'\s+'))</dt><dd><code>trim()</code> tira os espaços das pontas; <code>split(RegExp(r'\s+'))</code> divide em "um ou mais espaços". Assim, <code>  100   -   1  </code> também vira <code>['100', '-', '1']</code>.</dd>
+  <dt>partes.length != 3</dt><dd>Se não vieram exatamente 3 pedaços (como em <code>3+4</code>), explica o formato e pede de novo (<code>continue</code>). Isso evita o <code>RangeError</code>.</dd>
+  <dt>double.tryParse</dt><dd>Devolve <code>null</code> em vez de lançar <code>FormatException</code>.</dd>
+  <dt>operacoes.contains(op)</dt><dd>A operação está na lista? O <code>!</code> na frente inverte: "se <strong>não</strong> contém".</dd>
+  <dt>op == '/' &amp;&amp; b == 0</dt><dd>Recusa a divisão por zero antes de chegar no <code>Infinity</code>.</dd>
+  <dt>historico.add(conta)</dt><dd>Guarda cada conta feita numa lista, mostrada no fim.</dd>
+</dl>
+
+<pre class="term">$ dart run calc4.dart
+Calculadora da Ana. Digite contas como 3 + 4, ou "sair".
+&gt; 3 + 4
+3 + 4 = 7
+&gt; 10 / 4
+10 / 4 = 2.5
+&gt; 2 * 3.5
+2 * 3.5 = 7
+&gt; 7 / 0
+Não dá para dividir por zero.
+&gt; 3 % 4
+Operação desconhecida: % (use + - * /)
+&gt; dez + 1
+Número inválido.
+&gt; 3+4
+Use o formato: número operação número (ex.: 3 + 4)
+&gt;   100   -   1
+100 - 1 = 99
+&gt; sair
+Contas feitas: 4
+  3 + 4 = 7
+  10 / 4 = 2.5
+  2 * 3.5 = 7
+  100 - 1 = 99
+</pre>
+
+<p>Todos os casos que quebravam a versão 3 agora recebem uma resposta educada, e o programa continua rodando. Só as 4 contas válidas entraram no histórico.</p>
+
+<hr>
+
+<h2>Ideias para continuar</h2>
+<ul>
+  <li>Aceitar a vírgula: <code>double.tryParse(partes[0].replaceAll(',', '.'))</code>.</li>
+  <li>Uma "memória": a palavra <code>ans</code> no lugar de um número usa o último resultado.</li>
+  <li>Receber a conta pela linha de comando, <code>dart run calc.dart 3 + 4</code>, com <code>main(List&lt;String&gt; args)</code> (aula <a href="argumentos.html">Argumentos da Linha de Comando</a>), e compilar com <code>dart compile exe</code> (aula <a href="compilar.html">Compilando</a>).</li>
+  <li>Testar a função <code>calcular</code> com <code>package:test</code> (aula <a href="testes.html">Testes</a>).</li>
+</ul>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Os pedaços</h3>
+<p>Qual é o valor de <code>'8 * 2'.split(' ')[1]</code>? Escreva só o caractere.</p>
+<div class="ex-code"><input data-answer="*" aria-label="pedaço do meio"></div>
+</div>
+
+<div class="exercise">
+<h3>2. Infinito</h3>
+<p>O que o Dart mostra para <code>print(9.0 / 0);</code>?</p>
+<div class="ex-code"><input data-answer="Infinity" aria-label="resultado"></div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Por que a versão 4 usa <code>double.tryParse</code> em vez de <code>double.parse</code>?</p>
+<label><input type="radio" name="q3"> Porque é mais rápido</label>
+<label><input type="radio" name="q3"> Porque devolve <code>null</code> para texto inválido, em vez de lançar <code>FormatException</code></label>
+<label><input type="radio" name="q3"> Porque aceita vírgula</label>
+<label><input type="radio" name="q3"> Porque converte para <code>int</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Na expressão <code>switch</code> da função <code>calcular</code>, o que faz a linha <code>_ =&gt; throw ArgumentError(…)</code>?</p>
+<label><input type="radio" name="q4"> Devolve zero</label>
+<label><input type="radio" name="q4"> Ignora a operação</label>
+<label><input type="radio" name="q4"> Repete a pergunta</label>
+<label><input type="radio" name="q4"> Para qualquer operação não listada, lança um erro de argumento</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Num stack trace, qual linha costuma apontar o <strong>seu</strong> código?</p>
+<label><input type="radio" name="q5"> A primeira que mostra <code>file:///home/ana/…</code> com o nome do seu arquivo</label>
+<label><input type="radio" name="q5"> Sempre a <code>#0</code></label>
+<label><input type="radio" name="q5"> A que tem <code>dart:isolate-patch</code></label>
+<label><input type="radio" name="q5"> A última</label>
+</div>
+
+<h3>Missão final: sem divisão por zero</h3>
+
+<div class="trydart" data-stdin="8 / 2\n7 / 0\nsair" data-goal="out:Não dá para dividir por zero.;;out:Contas feitas: 1;;semerro">
+<p class="try-task"><strong>Missão:</strong> esta versão 4 esqueceu de recusar a divisão por zero, e quebra com <code>Unsupported operation: Infinity or NaN toInt</code>. Acrescente o <code>if</code> que mostra <code>Não dá para dividir por zero.</code> e pula para a próxima conta. As contas digitadas são <code>8 / 2</code>, <code>7 / 0</code> e <code>sair</code>.</p>
+<pre class="script" data-file="main.dart">import 'dart:io';
+
+const operacoes = ['+', '-', '*', '/'];
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  final historico = &lt;String&gt;[];
+  while (true) {
+    stdout.write('&gt; ');
+    final linha = stdin.readLineSync();
+    if (linha == null || linha.trim() == 'sair') {
+      break;
+    }
+    final partes = linha.trim().split(' ');
+    if (partes.length != 3) {
+      print('Use o formato: número operação número (ex.: 3 + 4)');
+      continue;
+    }
+    final a = double.tryParse(partes[0]);
+    final op = partes[1];
+    final b = double.tryParse(partes[2]);
+    if (a == null || b == null || !operacoes.contains(op)) {
+      print('Conta inválida.');
+      continue;
+    }
+    final conta = '${partes.join(' ')} = ${formatar(calcular(a, op, b))}';
+    print(conta);
+    historico.add(conta);
+  }
+  print('Contas feitas: ${historico.length}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:io';
+
+const operacoes = ['+', '-', '*', '/'];
+
+double calcular(double a, String op, double b) {
+  return switch (op) {
+    '+' =&gt; a + b,
+    '-' =&gt; a - b,
+    '*' =&gt; a * b,
+    '/' =&gt; a / b,
+    _ =&gt; throw ArgumentError('operação desconhecida: $op'),
+  };
+}
+
+String formatar(double x) {
+  if (x == x.truncateToDouble()) {
+    return x.toInt().toString();
+  }
+  return x.toString();
+}
+
+void main() {
+  final historico = &lt;String&gt;[];
+  while (true) {
+    stdout.write('&gt; ');
+    final linha = stdin.readLineSync();
+    if (linha == null || linha.trim() == 'sair') {
+      break;
+    }
+    final partes = linha.trim().split(' ');
+    if (partes.length != 3) {
+      print('Use o formato: número operação número (ex.: 3 + 4)');
+      continue;
+    }
+    final a = double.tryParse(partes[0]);
+    final op = partes[1];
+    final b = double.tryParse(partes[2]);
+    if (a == null || b == null || !operacoes.contains(op)) {
+      print('Conta inválida.');
+      continue;
+    }
+    if (op == '/' &amp;&amp; b == 0) {
+      print('Não dá para dividir por zero.');
+      continue;
+    }
+    final conta = '${partes.join(' ')} = ${formatar(calcular(a, op, b))}';
+    print(conta);
+    historico.add(conta);
+  }
+  print('Contas feitas: ${historico.length}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Use <code>double</code> numa calculadora: <code>/</code> sempre devolve <code>double</code>, e o separador decimal é o ponto.</li>
+  <li><code>switch</code> comum escolhe o que <strong>fazer</strong>; a expressão <code>switch</code> escolhe um <strong>valor</strong>, ótima para uma função <code>calcular</code>.</li>
+  <li><code>split</code> divide a linha <code>3 + 4</code> em pedaços; <code>trim</code> e <code>RegExp(r'\s+')</code> toleram espaços a mais.</li>
+  <li>Divisão de <code>double</code> por zero dá <code>Infinity</code> (e <code>0 / 0</code> dá <code>NaN</code>), sem erro; <code>Infinity.toInt()</code> é que quebra.</li>
+  <li>Confira antes de usar: <code>tryParse</code> + <code>null</code>, <code>contains</code>, o divisor zero, e <code>continue</code> para pedir de novo. Guarde o histórico numa lista.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
