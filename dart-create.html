@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart create — criando um projeto Dart | Guia Dart</title>
+<meta name="description" content="dart create para quem nunca programou: o que é um projeto Dart, o comando dart create e o que ele cria (bin, lib, test, pubspec.yaml, analysis_options.yaml, .gitignore), dart run dentro do projeto, vários programas em bin, os modelos (-t console, cli, package, server-shelf, web), --no-pub e --force, e os erros reais do Dart 3.13 (pasta que já existe, nome com maiúsculas, dart run fora do projeto, package: com nome errado).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">create</span></h1>
+
+<p class="intro">Até aqui, cada programa era <strong>um arquivo só</strong>: <code>dart run tabuada.dart</code>. Programas de verdade crescem: o código se espalha por vários arquivos, ganha testes, passa a usar pacotes de outras pessoas. Para organizar tudo isso, o Dart tem o <strong>projeto</strong>: uma pasta com uma estrutura padrão. E o jeito de criar um é o comando <code>dart create</code> ("criar").</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um projeto Dart e por que usar um.</li>
+  <li>Como criar um com <code>dart create padaria</code> e o que cada arquivo e pasta criados faz.</li>
+  <li>Como rodar o projeto com <code>dart run</code> e onde escrever o seu código (<code>bin/</code> e <code>lib/</code>).</li>
+  <li>Como ter mais de um programa no mesmo projeto.</li>
+  <li>Os modelos (<code>-t console</code>, <code>cli</code>, <code>package</code>…) e as opções <code>--no-pub</code> e <code>--force</code>.</li>
+  <li>Os erros reais: pasta que já existe, nome com maiúsculas e traço, <code>dart run</code> fora do projeto e o <code>package:</code> com nome errado.</li>
+</ul>
+</div>
+
+<p>Tudo nesta aula rodou no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), no terminal, com internet (o <code>dart create</code> baixa pacotes do <a href="pacotes.html">pub.dev</a>). Comandos como <code>cd</code> (entrar numa pasta), <code>cat</code> (mostrar um arquivo) e <code>tree</code> (desenhar as pastas) são do terminal do Linux.</p>
+
+<div class="warning">
+<strong>No editor do guia não há projeto</strong>
+<p>O editor desta página roda um arquivo <code>main.dart</code> (e as abas que estiverem junto); ele não tem terminal, não roda <code>dart create</code> nem baixa pacotes. Os comandos desta aula são para o <strong>seu</strong> computador, com o Dart instalado (veja <a href="instalar.html">Instalar o Dart</a>). As caixas "Experimente" praticam o código que vai dentro do projeto.</p>
+</div>
+
+<hr>
+
+<h2>A ideia: a cozinha organizada</h2>
+<p>Quem faz um bolo em casa usa a bancada que tiver. Uma padaria de verdade tem uma <strong>cozinha organizada</strong>: o forno num canto, a despensa no outro, o caderno de receitas na prateleira, a lista de fornecedores pregada na parede. Qualquer padeiro novo chega e sabe onde está cada coisa.</p>
+<p>Um projeto Dart é essa cozinha: <strong>todo projeto tem as mesmas pastas</strong>, com o mesmo papel. Assim, as ferramentas do Dart (e qualquer programador) sabem onde procurar o programa principal, o código reaproveitável, os testes e a lista de pacotes de que ele precisa.</p>
+
+<hr>
+
+<h2>1. Criando o projeto</h2>
+<p>Na pasta pessoal, a Ana digita <code>dart create</code> seguido do nome do projeto:</p>
+
+<pre class="term">$ dart create padaria
+Creating padaria using template console...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/padaria.dart
+  lib/padaria.dart
+  test/padaria_test.dart
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 50 dependencies!
+
+Created project padaria in padaria! In order to get started, run the following commands:
+
+  cd padaria
+  dart run
+
+$ echo $?
+0
+</pre>
+
+<p>Linha por linha:</p>
+<ul>
+  <li><code>Creating padaria using template console...</code> — "criando <code>padaria</code> com o modelo <code>console</code>": o modelo padrão, um programa de terminal.</li>
+  <li>A lista de arquivos criados (os detalhes vêm na próxima seção).</li>
+  <li><code>Running pub get...</code> — "rodando o <code>pub get</code>": o Dart baixa os pacotes de que o projeto precisa. <code>Resolving dependencies</code> = "resolvendo dependências" (descobrindo quais versões usar); <code>Downloading packages</code> = "baixando pacotes"; <code>Changed 50 dependencies!</code> = 50 pacotes entraram no projeto (são as ferramentas de teste e de análise e os pacotes de que elas dependem).</li>
+  <li><code>Created project padaria in padaria!</code> — "projeto criado na pasta <code>padaria</code>", e a sugestão dos próximos comandos.</li>
+</ul>
+
+<p>Na máquina da Ana, o <code>dart create</code> levou menos de meio segundo, porque os pacotes já estavam no cache; na primeira vez num computador novo, ele precisa baixá-los, e leva alguns segundos (depende da internet).</p>
+
+<hr>
+
+<h2>2. O que foi criado</h2>
+
+<pre class="term">$ cd padaria
+$ tree -a -I .dart_tool
+.
+├── analysis_options.yaml
+├── bin
+│   └── padaria.dart
+├── CHANGELOG.md
+├── .gitignore
+├── lib
+│   └── padaria.dart
+├── pubspec.lock
+├── pubspec.yaml
+├── README.md
+└── test
+    └── padaria_test.dart
+
+4 directories, 9 files
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Item</th><th>Para que serve</th></tr>
+<tr><td><code>bin/</code></td><td>"binários": os <strong>programas</strong> que se rodam (cada arquivo com um <code>main</code>). <code>bin/padaria.dart</code> é o principal.</td></tr>
+<tr><td><code>lib/</code></td><td>"biblioteca": o código <strong>reaproveitável</strong> (funções, classes), usado pelos programas de <code>bin/</code> e pelos testes.</td></tr>
+<tr><td><code>test/</code></td><td>os <strong>testes</strong> automáticos (aula <a href="testes.html">Testes</a>).</td></tr>
+<tr><td><code>pubspec.yaml</code></td><td>a "ficha" do projeto: nome, versão, versão do Dart, pacotes de que precisa (aula <a href="pubspec.html">O pubspec.yaml</a>).</td></tr>
+<tr><td><code>pubspec.lock</code></td><td>gerado pelo <code>pub get</code>: as versões <strong>exatas</strong> de cada pacote baixado. Não se edita à mão.</td></tr>
+<tr><td><code>analysis_options.yaml</code></td><td>as regras de estilo que o <code>dart analyze</code> confere (aula <a href="analise.html">Análise e Formatação</a>).</td></tr>
+<tr><td><code>README.md</code> / <code>CHANGELOG.md</code></td><td>textos para pessoas: o que é o projeto / o que mudou em cada versão.</td></tr>
+<tr><td><code>.gitignore</code></td><td>para quem usa o Git: o que não deve ir para o repositório (a pasta <code>.dart_tool/</code>).</td></tr>
+<tr><td><code>.dart_tool/</code></td><td>pasta escondida, de uso interno do Dart (o <code>tree</code> acima a escondeu com <code>-I .dart_tool</code>). Pode ser apagada; o Dart a recria.</td></tr>
+</table>
+</div>
+
+<p>Os arquivos que começam com ponto (<code>.gitignore</code>, <code>.dart_tool</code>) ficam escondidos num <code>ls</code> comum; o <code>-a</code> mostra todos.</p>
+
+<h3>O código que veio pronto</h3>
+
+<pre class="term">$ cat bin/padaria.dart
+import 'package:padaria/padaria.dart' as padaria;
+
+void main(List&lt;String&gt; arguments) {
+  print('Hello world: ${padaria.calculate()}!');
+}
+$ cat lib/padaria.dart
+int calculate() {
+  return 6 * 7;
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>lib/padaria.dart</dt><dd>Uma função de exemplo, <code>calculate</code> ("calcular"), que devolve 42.</dd>
+  <dt>import 'package:padaria/padaria.dart'</dt><dd>O programa de <code>bin/</code> traz o código de <code>lib/</code>. <code>package:padaria/</code> quer dizer "a pasta <code>lib/</code> do pacote <code>padaria</code>", que é este próprio projeto. Os detalhes estão em <a href="imports.html">import, export e Bibliotecas</a>.</dd>
+  <dt>as padaria</dt><dd>Um apelido: as coisas de lá são usadas como <code>padaria.calculate()</code>.</dd>
+  <dt>main(List&lt;String&gt; arguments)</dt><dd>O <code>main</code> com os <a href="argumentos.html">argumentos da linha de comando</a>.</dd>
+</dl>
+
+<hr>
+
+<h2>3. Rodando: <code>dart run</code></h2>
+<p>Dentro da pasta do projeto, <code>dart run</code> <strong>sem nome de arquivo</strong> roda o programa principal, <code>bin/padaria.dart</code> (o que tem o mesmo nome do projeto). Dar o caminho dá no mesmo:</p>
+
+<pre class="term">$ dart run
+Hello world: 42!
+$ dart run bin/padaria.dart
+Hello world: 42!
+</pre>
+
+<h3>Escrevendo o seu código</h3>
+<p>A Ana troca o exemplo pelo código da padaria. Em <code>lib/padaria.dart</code>, a regra de negócio (o cálculo):</p>
+
+<pre class="file" data-file="lib/padaria.dart">double precoTotal(int quantidade, double precoUnitario) {
+  return quantidade * precoUnitario;
+}
+</pre>
+
+<p>Em <code>bin/padaria.dart</code>, o programa que usa essa regra (agora sem o apelido <code>as</code>, para chamar <code>precoTotal</code> direto):</p>
+
+<pre class="file" data-file="bin/padaria.dart">import 'package:padaria/padaria.dart';
+
+void main(List&lt;String&gt; arguments) {
+  final total = precoTotal(12, 0.75);
+  print('12 pães custam R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run
+12 pães custam R$ 9.00
+</pre>
+
+<p>Por que separar em dois arquivos? Porque o <code>precoTotal</code> de <code>lib/</code> pode ser usado por <strong>vários</strong> programas e pelos testes, sem copiar código.</p>
+
+<div class="trydart" data-goal="out:12 pães custam R$ 9.00;;out:30 pães custam R$ 22.50;;src:precoTotal\(30">
+<p class="try-task"><strong>Missão:</strong> aqui no editor, a função e o <code>main</code> estão no mesmo arquivo (num projeto, a função iria para <code>lib/</code>). Acrescente uma linha que mostre o preço de <strong>30</strong> pães usando <code>precoTotal(30, 0.75)</code>.</p>
+<pre class="script" data-file="main.dart">double precoTotal(int quantidade, double precoUnitario) {
+  return quantidade * precoUnitario;
+}
+
+void main(List&lt;String&gt; arguments) {
+  final total = precoTotal(12, 0.75);
+  print('12 pães custam R\$ ${total.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double precoTotal(int quantidade, double precoUnitario) {
+  return quantidade * precoUnitario;
+}
+
+void main(List&lt;String&gt; arguments) {
+  final total = precoTotal(12, 0.75);
+  print('12 pães custam R\$ ${total.toStringAsFixed(2)}');
+  print('30 pães custam R\$ ${precoTotal(30, 0.75).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<h3>Mais de um programa no mesmo projeto</h3>
+<p>Cada arquivo com <code>main</code> em <code>bin/</code> é um programa. A Ana cria <code>bin/fornada.dart</code>, que usa a mesma função:</p>
+
+<pre class="file" data-file="bin/fornada.dart">import 'package:padaria/padaria.dart';
+
+void main() {
+  print('Fornada de 50 pães: R\$ ${precoTotal(50, 0.75)}');
+}
+</pre>
+
+<pre class="term">$ dart run bin/fornada.dart
+Fornada de 50 pães: R$ 37.5
+$ dart run :fornada
+Fornada de 50 pães: R$ 37.5
+</pre>
+
+<p><code>dart run :fornada</code> é um atalho: "o programa <code>fornada</code> de <code>bin/</code> deste projeto".</p>
+
+<hr>
+
+<h2>4. Modelos e opções</h2>
+<p>O <code>dart create --help</code> ("ajuda") mostra tudo o que o comando aceita:</p>
+
+<pre class="term">$ dart create --help
+Create a new Dart project.
+
+Usage: dart create [arguments] &lt;directory&gt;
+-h, --help                       Print this usage information.
+-t, --template                   The project template to use.
+
+          [cli]                  A command-line application with basic argument parsing.
+          [console] (default)    A command-line application.
+          [package]              A package containing shared Dart libraries.
+          [server-shelf]         A server app using package:shelf.
+          [web]                  A web app that uses only core Dart libraries.
+
+    --[no-]pub                   Whether to run 'pub get' after the project has been created.
+                                 (defaults to on)
+    --force                      Force project generation, even if the target directory already exists.
+
+Run "dart help" to see global options.
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Modelo (<code>-t</code>)</th><th>O que cria</th></tr>
+<tr><td><code>console</code> (padrão)</td><td>programa de terminal: <code>bin/</code>, <code>lib/</code>, <code>test/</code> (o desta aula)</td></tr>
+<tr><td><code>cli</code></td><td>programa de terminal que já lê opções com o pacote <code>args</code></td></tr>
+<tr><td><code>package</code></td><td>um pacote para outros projetos usarem (sem <code>bin/</code>)</td></tr>
+<tr><td><code>server-shelf</code></td><td>um servidor web com o pacote <code>shelf</code></td></tr>
+<tr><td><code>web</code></td><td>um site com Dart (veja <a href="dart-web.html">Dart na Web</a>)</td></tr>
+</table>
+</div>
+
+<p>O modelo <code>cli</code> já vem com <code>--help</code> e <code>--version</code> prontos:</p>
+
+<pre class="term">$ dart create -t cli pedidos
+Creating pedidos using template cli...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/pedidos.dart
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 50 dependencies!
+
+Created project pedidos in pedidos! In order to get started, run the following commands:
+
+  cd pedidos
+  dart run bin/pedidos.dart
+
+$ cd pedidos
+$ dart run bin/pedidos.dart --help
+Usage: dart pedidos.dart &lt;flags&gt; [arguments]
+-h, --help       Print this usage information.
+-v, --verbose    Show additional command output.
+    --version    Print the tool version.
+$ dart run bin/pedidos.dart --version
+pedidos version: 0.0.1
+</pre>
+
+<p>Com <code>--no-pub</code>, o <code>dart create</code> só cria os arquivos e não baixa nada (útil sem internet). Não tem problema: o primeiro <code>dart run</code> percebe que faltam os pacotes e roda o <code>pub get</code> sozinho, em silêncio (depois dele, a pasta <code>.dart_tool</code> e o <code>pubspec.lock</code> aparecem):</p>
+
+<pre class="term">$ dart create --no-pub rascunho
+Creating rascunho using template console...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/rascunho.dart
+  lib/rascunho.dart
+  test/rascunho_test.dart
+
+Created project rascunho in rascunho! In order to get started, run the following commands:
+
+  cd rascunho
+  dart run
+
+$ cd rascunho
+$ dart run
+Hello world: 42!
+</pre>
+
+<hr>
+
+<h2 id="formas">Arquivo solto ou projeto?</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>um teste rápido, um exercício, um script de um arquivo</td><td>arquivo solto: <code>dart run arquivo.dart</code></td></tr>
+<tr><td>o programa vai crescer, ter vários arquivos</td><td>projeto: <code>dart create</code></td></tr>
+<tr><td>precisa de pacotes do pub.dev (<code>http</code>, <code>intl</code>…)</td><td>projeto (os pacotes são listados no <code>pubspec.yaml</code>)</td></tr>
+<tr><td>quer testes automáticos com <code>dart test</code></td><td>projeto (já vem com <code>test/</code> e o pacote <code>test</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>A pasta já existe</strong>
+<pre class="term">$ dart create padaria
+Directory '/home/ana/padaria' already exists (use '--force' to force project generation).
+$ echo $?
+73
+</pre>
+<p>"O diretório <code>/home/ana/padaria</code> já existe (use <code>--force</code> para forçar a criação do projeto)". O <code>dart create</code> se recusa para não estragar nada, e sai com código 73. <strong>Como consertar:</strong> escolha outro nome. O <code>--force</code> recria os arquivos do modelo <strong>por cima</strong> dos que tiverem o mesmo nome: o seu <code>bin/padaria.dart</code> voltaria a ser o "Hello world". Só use se for isso mesmo que você quer.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome com maiúsculas, traço ou espaço</strong>
+<pre class="term">$ dart create Padaria-Ana
+Creating padaria__ana using template console...
+
+  .gitignore
+  analysis_options.yaml
+  CHANGELOG.md
+  pubspec.yaml
+  README.md
+  bin/padaria__ana.dart
+  lib/padaria__ana.dart
+  test/padaria__ana_test.dart
+
+Running pub get...
+  Resolving dependencies...
+  Downloading packages...
+  Changed 50 dependencies!
+
+Created project padaria__ana in Padaria-Ana! In order to get started, run the following commands:
+
+  cd Padaria-Ana
+  dart run
+
+</pre>
+<p>Não dá erro, mas o resultado é estranho: a <strong>pasta</strong> se chama <code>Padaria-Ana</code>, e o <strong>pacote</strong> virou <code>padaria__ana</code> (com dois sublinhados). Nomes de pacote no Dart só podem ter letras minúsculas, números e <code>_</code>; o <code>dart create</code> converteu sozinho. Daí em diante, os <code>import</code> serão <code>package:padaria__ana/…</code>.</p>
+<p>Com espaço é pior: em <code>dart create minha padaria</code> o terminal entrega dois argumentos, e o projeto criado se chama só <code>minha</code> (a saída mostra <code>Creating minha using template console...</code>; o <code>padaria</code> foi ignorado). <strong>Como consertar:</strong> use nomes em <code>snake_case</code>, como os arquivos: <code>dart create padaria_ana</code>.</p>
+</div>
+
+<div class="cenario">
+<strong><code>dart run</code> fora da pasta do projeto</strong>
+<pre class="term">$ dart run
+Found no `pubspec.yaml` file in `/home/ana` or parent directories
+$ echo $?
+255
+</pre>
+<p>"Não encontrei nenhum arquivo <code>pubspec.yaml</code> em <code>/home/ana</code> nem nas pastas acima". Sem nome de arquivo, o <code>dart run</code> procura o projeto pelo <code>pubspec.yaml</code>, e a Ana estava na pasta pessoal, fora do projeto. <strong>Como consertar:</strong> <code>cd padaria</code> antes, ou dê o caminho do arquivo: <code>dart run padaria/bin/padaria.dart</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>O nome do pacote errado no <code>import</code></strong>
+<pre class="file" data-file="bin/errado.dart">import 'package:padari/padaria.dart';
+
+void main() {
+  print(precoTotal(2, 0.75));
+}
+</pre>
+<pre class="term">$ dart run bin/errado.dart
+Error: Couldn't resolve the package 'padari' in 'package:padari/padaria.dart'.
+bin/errado.dart:1:8: Error: Not found: 'package:padari/padaria.dart'
+import 'package:padari/padaria.dart';
+       ^
+bin/errado.dart:4:9: Error: Method not found: 'precoTotal'.
+  print(precoTotal(2, 0.75));
+        ^^^^^^^^^^
+$ echo $?
+254
+</pre>
+<ul>
+  <li><code>Couldn't resolve the package 'padari'</code> — "não consegui encontrar o pacote <code>padari</code>": faltou um <code>a</code>. O nome depois de <code>package:</code> tem de ser o <code>name:</code> do <code>pubspec.yaml</code> (ou de um pacote baixado).</li>
+  <li><code>1:8: Error: Not found</code> — o mesmo problema, apontando a linha do <code>import</code>.</li>
+  <li><code>4:9: Error: Method not found: 'precoTotal'</code> — consequência: como o arquivo não foi importado, a função não existe. Conserte o primeiro erro e este some junto.</li>
+</ul>
+<p><strong>Como consertar:</strong> <code>import 'package:padaria/padaria.dart';</code>.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Comando</th><th>O que faz</th></tr>
+<tr><td><code>dart create nome</code></td><td>cria o projeto na pasta <code>nome</code> (modelo <code>console</code>) e roda o <code>pub get</code></td></tr>
+<tr><td><code>dart create -t cli nome</code></td><td>usa outro modelo (<code>cli</code>, <code>package</code>, <code>server-shelf</code>, <code>web</code>)</td></tr>
+<tr><td><code>dart create --no-pub nome</code></td><td>não baixa os pacotes agora</td></tr>
+<tr><td><code>dart create --force nome</code></td><td>cria mesmo que a pasta exista (sobrescreve os arquivos do modelo)</td></tr>
+<tr><td><code>dart run</code> (dentro do projeto)</td><td>roda <code>bin/NOME_DO_PROJETO.dart</code></td></tr>
+<tr><td><code>dart run bin/outro.dart</code> / <code>dart run :outro</code></td><td>roda outro programa de <code>bin/</code></td></tr>
+<tr><td><code>import 'package:nome/arquivo.dart';</code></td><td>usa um arquivo de <code>lib/</code> do projeto</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete o comando</h3>
+<p>Para criar o projeto <code>lojinha</code> com o modelo de programa de terminal que lê opções:</p>
+<div class="ex-code">dart <input data-answer="create" aria-label="subcomando"> -t <input data-answer="cli" aria-label="modelo"> lojinha</div>
+</div>
+
+<div class="exercise">
+<h3>2. Em que pasta?</h3>
+<p>Em que pasta do projeto ficam as funções e classes reaproveitáveis?</p>
+<div class="ex-code"><input data-answer="lib|lib/" aria-label="pasta">/</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Dentro da pasta do projeto <code>padaria</code>, que arquivo o <code>dart run</code> (sem nome) executa?</p>
+<label><input type="radio" name="q3"> <code>lib/padaria.dart</code></label>
+<label><input type="radio" name="q3"> <code>test/padaria_test.dart</code></label>
+<label><input type="radio" name="q3"> <code>bin/padaria.dart</code></label>
+<label><input type="radio" name="q3"> <code>main.dart</code></label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. O <code>dart create padaria</code> respondeu <code>Directory '/home/ana/padaria' already exists</code>. O que aconteceu?</p>
+<label><input type="radio" name="q4"> Faltou internet</label>
+<label><input type="radio" name="q4"> Já existe uma pasta <code>padaria</code> ali, e o comando não quis sobrescrever</label>
+<label><input type="radio" name="q4"> O nome <code>padaria</code> é proibido</label>
+<label><input type="radio" name="q4"> O Dart não está instalado</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual destes é um bom nome para <code>dart create</code>?</p>
+<label><input type="radio" name="q5"> <code>Minha Padaria</code></label>
+<label><input type="radio" name="q5"> <code>Padaria-Ana</code></label>
+<label><input type="radio" name="q5"> <code>PadariaAna</code></label>
+<label><input type="radio" name="q5"> <code>padaria_ana</code></label>
+</div>
+
+<h3>Missão final: dois arquivos, como no projeto</h3>
+
+<div class="trydart" data-goal="out:Bolo de 2 kg: R$ 70.00;;src:import\s+'precos\.dart'">
+<p class="try-task"><strong>Missão:</strong> esta caixa tem duas abas, como <code>bin/</code> e <code>lib/</code> de um projeto. A função <code>precoBolo</code> está em <code>precos.dart</code>, mas o <code>main.dart</code> ainda não a importou. Acrescente na primeira linha do <code>main.dart</code>: <code>import 'precos.dart';</code>. (Num projeto, seria <code>import 'package:padaria/precos.dart';</code>; aqui, sem projeto, o caminho é o do arquivo.)</p>
+<pre class="script" data-file="main.dart">void main() {
+  print('Bolo de 2 kg: R\$ ${precoBolo(2).toStringAsFixed(2)}');
+}
+</pre>
+<pre class="script" data-file="precos.dart">double precoBolo(int quilos) {
+  return quilos * 35.0;
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'precos.dart';
+
+void main() {
+  print('Bolo de 2 kg: R\$ ${precoBolo(2).toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>projeto</strong> é uma pasta com estrutura padrão. <code>dart create nome</code> cria uma e já baixa os pacotes (<code>pub get</code>).</li>
+  <li><code>bin/</code> tem os programas (com <code>main</code>); <code>lib/</code>, o código reaproveitável; <code>test/</code>, os testes; <code>pubspec.yaml</code>, a ficha do projeto.</li>
+  <li>Dentro da pasta, <code>dart run</code> roda <code>bin/NOME.dart</code>; <code>dart run bin/outro.dart</code> (ou <code>dart run :outro</code>) roda outro.</li>
+  <li>Os programas de <code>bin/</code> usam <code>lib/</code> com <code>import 'package:NOME/arquivo.dart';</code>.</li>
+  <li><code>-t</code> escolhe o modelo; <code>--no-pub</code> não baixa nada agora; <code>--force</code> sobrescreve.</li>
+  <li>Use nomes em <code>snake_case</code>; rode <code>dart run</code> de dentro do projeto.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
