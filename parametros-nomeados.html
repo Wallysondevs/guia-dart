@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Parâmetros Nomeados e required — chamando pelo nome | Guia Dart</title>
+<meta name="description" content="Parâmetros nomeados no Dart para quem nunca programou: as chaves { } na declaração, nome: valor na chamada, ordem livre, required (obrigatório), nomeados anuláveis, misturar posicionais e nomeados, a vírgula no fim e os erros reais do Dart 3 (falta o required, parâmetro obrigatório esquecido, nome errado, chamada sem os nomes).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Parâmetros Nomeados e required</span></h1>
+
+<p class="intro">Na aula <a href="parametros.html">Parâmetros Posicionais</a>, a Ana trocou sem querer a ordem de <code>comDesconto(10, 200)</code> e o preço ficou negativo, sem erro nenhum. Os <strong>parâmetros nomeados</strong> resolvem isso: na chamada, cada valor vai junto com o <strong>nome</strong> do parâmetro, <code>comDesconto(preco: 200, porcentagem: 10)</code>. Fica impossível confundir, e quem lê o código entende cada número sem abrir a declaração. É o estilo que você vai ver o tempo todo no Flutter.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Declarar parâmetros nomeados com chaves <code>{ }</code> e chamar com <code>nome: valor</code>.</li>
+  <li>Que a ordem dos argumentos nomeados não importa.</li>
+  <li>O <code>required</code> ("obrigatório"), e por que o Dart exige que você escolha entre <code>required</code>, um tipo anulável ou um valor padrão.</li>
+  <li>Nomeados que podem faltar (<code>String? observacao</code>).</li>
+  <li>Misturar posicionais e nomeados na mesma função.</li>
+  <li>Os erros reais: falta do <code>required</code>, parâmetro obrigatório esquecido, nome errado, chamada sem os nomes, <code>=</code> no lugar de <code>:</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (<code>ana@notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: o formulário com rótulos</h2>
+<p>Um formulário só com linhas em branco ("____, ____, ____") obriga você a lembrar o que vai em cada linha. Um formulário com <strong>rótulos</strong> ("Preço: ____ · Desconto: ____") deixa claro onde escrever cada coisa, e tanto faz se você preenche o desconto antes do preço. Os parâmetros nomeados são o formulário com rótulos.</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th></th><th>Posicional</th><th>Nomeado</th></tr>
+<tr><td>Declaração</td><td><code>comDesconto(double preco, double porcentagem)</code></td><td><code>comDesconto({required double preco, required double porcentagem})</code></td></tr>
+<tr><td>Chamada</td><td><code>comDesconto(200, 10)</code></td><td><code>comDesconto(preco: 200, porcentagem: 10)</code></td></tr>
+<tr><td>A ordem importa?</td><td>Sim</td><td>Não</td></tr>
+<tr><td>Quem lê a chamada sabe o que é cada valor?</td><td>Só olhando a declaração</td><td>Sim, está escrito</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>1. A primeira função com parâmetros nomeados</h2>
+
+<pre class="file" data-file="desconto.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(preco: 200, porcentagem: 10));
+  print(comDesconto(porcentagem: 10, preco: 200));
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>{ … }</dt><dd>As <strong>chaves</strong> dentro dos parênteses dizem: "estes parâmetros são nomeados". Tudo o que está entre elas é chamado pelo nome.</dd>
+  <dt>required</dt><dd>"Obrigatório": quem chamar <strong>tem</strong> de passar este valor. Sem o <code>required</code>, um parâmetro nomeado é opcional (seção 3).</dd>
+  <dt>double preco</dt><dd>O tipo e o nome, como num parâmetro posicional.</dd>
+  <dt>preco: 200</dt><dd>Na chamada: o nome do parâmetro, <strong>dois-pontos</strong> e o valor. Lê-se "preço: 200".</dd>
+  <dt>comDesconto(porcentagem: 10, preco: 200)</dt><dd>A mesma chamada com a ordem invertida. Como cada valor diz a que parâmetro pertence, o resultado é o mesmo.</dd>
+</dl>
+
+<pre class="term">$ dart run desconto.dart
+180.0
+180.0
+</pre>
+
+<p>As duas linhas deram <code>180.0</code>: a troca de ordem que antes dava <code>-10.0</code> agora não faz diferença nenhuma.</p>
+
+<div class="trydart" data-goal="out:R$ 45.00;;src:comDesconto\(\s*(preco|porcentagem)\s*:">
+<p class="try-task"><strong>Missão:</strong> a função já usa parâmetros nomeados, mas a chamada não compila, porque passa os valores sem os nomes. Chame com <code>preco: 50</code> e <code>porcentagem: 10</code>, até aparecer <code>R$ 45.00</code>.</p>
+<pre class="script" data-file="main.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  final valor = comDesconto(50, 10);
+  print('R\$ ${valor.toStringAsFixed(2)}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  final valor = comDesconto(preco: 50, porcentagem: 10);
+  print('R\$ ${valor.toStringAsFixed(2)}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Muitos parâmetros, uma por linha</h2>
+<p>Os nomeados brilham quando a função recebe muita coisa. O pedido da padaria:</p>
+
+<pre class="file" data-file="pedido.dart">void registrarPedido({
+  required String cliente,
+  required String produto,
+  required int quantidade,
+  String? observacao,
+}) {
+  print('$cliente: $quantidade x $produto');
+  if (observacao != null) {
+    print('  Obs.: $observacao');
+  }
+}
+
+void main() {
+  registrarPedido(cliente: 'Ana', produto: 'pão francês', quantidade: 10);
+  registrarPedido(
+    cliente: 'seu Zé',
+    produto: 'bolo de fubá',
+    quantidade: 1,
+    observacao: 'sem cobertura',
+  );
+}
+</pre>
+
+<pre class="term">$ dart run pedido.dart
+Ana: 10 x pão francês
+seu Zé: 1 x bolo de fubá
+  Obs.: sem cobertura
+</pre>
+
+<ul>
+  <li><strong>Um parâmetro por linha</strong>, na declaração e na chamada longa: fica fácil de ler e de acrescentar mais um.</li>
+  <li>A <strong>vírgula depois do último</strong> (<code>observacao,</code> e <code>'sem cobertura',</code>) é permitida e recomendada: o <code>dart format</code> (veja <a href="analise.html">Análise e Formatação</a>) entende essa vírgula como "quero um por linha" e mantém o formato.</li>
+  <li><code>String? observacao</code> não tem <code>required</code>: é <strong>opcional</strong>. O primeiro pedido não passou observação, e ela ficou <code>null</code>.</li>
+</ul>
+
+<p>Compare com a versão posicional: <code>registrarPedido('Ana', 'pão francês', 10, null)</code>. Qual é o cliente, qual é o produto? Só abrindo a função para saber.</p>
+
+<hr>
+
+<h2>3. <code>required</code>, anulável ou valor padrão: o Dart quer que você escolha</h2>
+<p>Um parâmetro nomeado pode ficar de fora da chamada. Mas, se ficar de fora, <strong>que valor ele tem?</strong> Sem mais informação, seria <code>null</code>, e um <code>double</code> comum não pode ser <code>null</code>. Veja o que o Dart diz quando a Ana esquece o <code>required</code>:</p>
+
+<pre class="file" data-file="semrequired.dart">double comDesconto({double preco, double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(preco: 200, porcentagem: 10));
+}
+</pre>
+
+<pre class="term">$ dart run semrequired.dart
+semrequired.dart:1:28: Error: The parameter 'preco' can't have a value of 'null' because of its type 'double', but the implicit default value is 'null'.
+Try adding either an explicit non-'null' default value or the 'required' modifier.
+double comDesconto({double preco, double porcentagem}) {
+                           ^^^^^
+semrequired.dart:1:42: Error: The parameter 'porcentagem' can't have a value of 'null' because of its type 'double', but the implicit default value is 'null'.
+Try adding either an explicit non-'null' default value or the 'required' modifier.
+double comDesconto({double preco, double porcentagem}) {
+                                         ^^^^^^^^^^^
+</pre>
+
+<dl class="anatomy">
+  <dt>The parameter 'preco' can't have a value of 'null' because of its type 'double'…</dt><dd>"O parâmetro <code>preco</code> não pode valer <code>null</code>, por causa do tipo <code>double</code>…"</dd>
+  <dt>…but the implicit default value is 'null'.</dt><dd>"…mas o valor padrão implícito é <code>null</code>": se ninguém passar o preço, ele valeria <code>null</code>. Contradição.</dd>
+  <dt>Try adding either an explicit non-'null' default value or the 'required' modifier.</dt><dd>"Tente acrescentar um valor padrão explícito que não seja <code>null</code>, ou o modificador <code>required</code>." O próprio Dart lista as saídas.</dd>
+</dl>
+
+<p>As três saídas, cada uma com um sentido diferente:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Declaração</th><th>Se não passar o valor</th><th>Use quando</th></tr>
+<tr><td><code>{required double preco}</code></td><td>Erro de compilação na chamada</td><td>A função não funciona sem esse valor</td></tr>
+<tr><td><code>{double? desconto}</code></td><td>Vale <code>null</code>; teste antes de usar</td><td>"Não informado" é diferente de qualquer valor (a observação do pedido)</td></tr>
+<tr><td><code>{double desconto = 0}</code></td><td>Vale o padrão, <code>0</code></td><td>Existe um valor "normal" (sem desconto). É a próxima aula: <a href="parametros-opcionais.html">Parâmetros Opcionais e Valores Padrão</a></td></tr>
+</table>
+</div>
+
+<div class="trydart" data-goal="out:Bia: 6 x sonho;;semerro">
+<p class="try-task"><strong>Missão:</strong> a função não compila. Leia a mensagem e acrescente <code>required</code> nos três parâmetros, até aparecer <code>Bia: 6 x sonho</code>.</p>
+<pre class="script" data-file="main.dart">void registrarPedido({
+  String cliente,
+  String produto,
+  int quantidade,
+}) {
+  print('$cliente: $quantidade x $produto');
+}
+
+void main() {
+  registrarPedido(cliente: 'Bia', produto: 'sonho', quantidade: 6);
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void registrarPedido({
+  required String cliente,
+  required String produto,
+  required int quantidade,
+}) {
+  print('$cliente: $quantidade x $produto');
+}
+
+void main() {
+  registrarPedido(cliente: 'Bia', produto: 'sonho', quantidade: 6);
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>4. Misturando posicionais e nomeados</h2>
+<p>Uma função pode ter os dois: primeiro os posicionais, depois as chaves com os nomeados. É comum deixar o valor "principal" como posicional e os detalhes como nomeados:</p>
+
+<pre class="file" data-file="misto.dart">void etiqueta(String produto, {required double preco, int? estoque}) {
+  final textoEstoque = estoque == null ? 'sem controle' : '$estoque no estoque';
+  print('$produto | R\$ ${preco.toStringAsFixed(2)} | $textoEstoque');
+}
+
+void main() {
+  etiqueta('Leite', preco: 5.49, estoque: 30);
+  etiqueta('Pão de queijo', preco: 1.20);
+  etiqueta(preco: 4.0, 'Café');
+}
+</pre>
+
+<pre class="term">$ dart run misto.dart
+Leite | R$ 5.49 | 30 no estoque
+Pão de queijo | R$ 1.20 | sem controle
+Café | R$ 4.00 | sem controle
+</pre>
+
+<dl class="anatomy">
+  <dt>String produto</dt><dd>Posicional, fora das chaves: sempre o primeiro argumento sem nome.</dd>
+  <dt>{required double preco, int? estoque}</dt><dd>Nomeados: o preço é obrigatório; o estoque pode faltar (fica <code>null</code>).</dd>
+  <dt>estoque == null ? … : …</dt><dd>O operador ternário escolhe o texto (veja <a href="ternario.html">O Operador Ternário</a>).</dd>
+  <dt>etiqueta(preco: 4.0, 'Café')</dt><dd>Na <strong>chamada</strong>, os nomeados podem vir até antes do posicional. <span class="versao">Dart 2.17</span> O posicional continua sendo reconhecido pela posição entre os <strong>sem nome</strong>.</dd>
+</dl>
+
+<div class="note">
+<strong>Você vai ver muito isso no Flutter</strong>
+<p>No Flutter, quase tudo se monta com parâmetros nomeados, um por linha, com a vírgula no fim. O trecho abaixo é <strong>ilustrativo</strong> (não há Flutter no lab; veja <a href="flutter.html">Dart e Flutter</a>), só para você reconhecer o formato: <code>Text('Olá', style: TextStyle(fontSize: 20, color: Colors.blue))</code>. O texto é posicional; <code>style</code>, <code>fontSize</code> e <code>color</code> são nomeados.</p>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer a mesma coisa</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>1 ou 2 parâmetros de sentido óbvio (<code>dobro(7)</code>, <code>maior(a, b)</code>)</td><td>Posicionais</td></tr>
+<tr><td>Vários parâmetros do mesmo tipo (<code>preco</code> e <code>porcentagem</code>)</td><td>Nomeados com <code>required</code></td></tr>
+<tr><td>Muitos parâmetros (3 ou mais), ou um <code>bool</code> solto (<code>enviar(true)</code>: true o quê?)</td><td>Nomeados: <code>enviar(urgente: true)</code></td></tr>
+<tr><td>Um valor principal e alguns detalhes</td><td>Posicional + nomeados: <code>etiqueta('Leite', preco: 5.49)</code></td></tr>
+<tr><td>Um detalhe que pode faltar</td><td>Nomeado anulável (<code>String? observacao</code>) ou com valor padrão (<a href="parametros-opcionais.html">próxima aula</a>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu um parâmetro <code>required</code> na chamada</strong>
+<pre class="file" data-file="esqueceu.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(preco: 200));
+}
+</pre>
+<pre class="term">$ dart run esqueceu.dart
+esqueceu.dart:6:20: Error: Required named parameter 'porcentagem' must be provided.
+  print(comDesconto(preco: 200));
+                   ^
+esqueceu.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double comDesconto({required double preco, required double porcentagem}) {
+       ^^^^^^^^^^^
+</pre>
+<p>"O parâmetro nomeado obrigatório <code>porcentagem</code> tem de ser fornecido." A linha <code>Context</code> mostra a declaração, onde se vê o <code>required</code>. <strong>Como consertar:</strong> <code>comDesconto(preco: 200, porcentagem: 10)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou sem os nomes</strong>
+<pre class="file" data-file="semnome.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(200, 10));
+}
+</pre>
+<pre class="term">$ dart run semnome.dart
+semnome.dart:6:20: Error: Too many positional arguments: 0 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print(comDesconto(200, 10));
+                   ^
+semnome.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double comDesconto({required double preco, required double porcentagem}) {
+       ^^^^^^^^^^^
+</pre>
+<p>"Argumentos posicionais demais: <strong>0</strong> permitidos, 2 encontrados." Para o Dart, valores sem nome são posicionais, e esta função não tem nenhum posicional: os dois estão nas chaves. <strong>Como consertar:</strong> escreva os nomes.</p>
+</div>
+
+<div class="cenario">
+<strong>Nome do parâmetro errado</strong>
+<pre class="file" data-file="nomeerrado.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(preco: 200, desconto: 10));
+}
+</pre>
+<pre class="term">$ dart run nomeerrado.dart
+nomeerrado.dart:6:33: Error: No named parameter with the name 'desconto'.
+  print(comDesconto(preco: 200, desconto: 10));
+                                ^^^^^^^^
+nomeerrado.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double comDesconto({required double preco, required double porcentagem}) {
+       ^^^^^^^^^^^
+</pre>
+<p>"Não existe parâmetro nomeado com o nome <code>desconto</code>." O nome da chamada tem de ser <strong>exatamente</strong> o da declaração (maiúsculas contam). <strong>Como consertar:</strong> <code>porcentagem: 10</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou <code>=</code> no lugar de <code>:</code></strong>
+<pre class="file" data-file="igual.dart">double comDesconto({required double preco, required double porcentagem}) {
+  return preco - preco * porcentagem / 100;
+}
+
+void main() {
+  print(comDesconto(preco = 200, porcentagem = 10));
+}
+</pre>
+<pre class="term">$ dart run igual.dart
+igual.dart:6:21: Error: Setter not found: 'preco'.
+  print(comDesconto(preco = 200, porcentagem = 10));
+                    ^^^^^
+igual.dart:6:34: Error: Setter not found: 'porcentagem'.
+  print(comDesconto(preco = 200, porcentagem = 10));
+                                 ^^^^^^^^^^^
+igual.dart:6:20: Error: Too many positional arguments: 0 allowed, but 2 found.
+Try removing the extra positional arguments.
+  print(comDesconto(preco = 200, porcentagem = 10));
+                   ^
+igual.dart:1:8: Context: Found this candidate, but the arguments don't match.
+double comDesconto({required double preco, required double porcentagem}) {
+       ^^^^^^^^^^^
+</pre>
+<p>Quem vem do Python escreve <code>preco=200</code>. No Dart, <code>preco = 200</code> é uma <strong>atribuição</strong> ("guarde 200 na variável <code>preco</code>"), e não existe variável <code>preco</code> no <code>main</code>: daí o <code>Setter not found</code> ("não achei onde guardar <code>preco</code>"). Depois o Dart conta dois argumentos sem nome e reclama de novo. <strong>Como consertar:</strong> na chamada, nome e valor se separam com <strong>dois-pontos</strong>: <code>preco: 200</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou um nomeado anulável sem testar</strong>
+<pre class="file" data-file="anulavel_uso.dart">void saudar({required String nome, String? apelido}) {
+  print('Olá, $nome! Seu apelido tem ${apelido.length} letras.');
+}
+
+void main() {
+  saudar(nome: 'Ana');
+}
+</pre>
+<pre class="term">$ dart run anulavel_uso.dart
+anulavel_uso.dart:2:48: Error: Property 'length' cannot be accessed on 'String?' because it is potentially null.
+Try accessing using ?. instead.
+  print('Olá, $nome! Seu apelido tem ${apelido.length} letras.');
+                                               ^^^^^^
+</pre>
+<p>O <code>apelido</code> pode não ter sido passado, e então vale <code>null</code>. <strong>Como consertar:</strong> teste antes (<code>if (apelido != null)</code>) ou use <code>??</code>: <code>${apelido?.length ?? 0}</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<div class="cenario">
+<strong>Passou o mesmo nome duas vezes</strong>
+<pre class="term">$ dart run repetido.dart
+repetido.dart:6:23: Error: Duplicated named argument 'nome'.
+  saudar(nome: 'Ana', nome: 'Bia');
+                      ^^^^
+</pre>
+<p>"Argumento nomeado repetido: <code>nome</code>." Cada nome aparece uma vez por chamada. Para saudar as duas, são duas chamadas.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>void f({required int x})</code></td><td>Nomeado obrigatório</td></tr>
+<tr><td><code>void f({int? x})</code></td><td>Nomeado opcional; vale <code>null</code> se não for passado</td></tr>
+<tr><td><code>void f({int x = 0})</code></td><td>Nomeado opcional com valor padrão (<a href="parametros-opcionais.html">próxima aula</a>)</td></tr>
+<tr><td><code>void f(String a, {required int x})</code></td><td>Posicional primeiro, nomeados nas chaves depois</td></tr>
+<tr><td><code>f(x: 10)</code></td><td>Chamada: nome, dois-pontos, valor; em qualquer ordem</td></tr>
+<tr><td>Vírgula depois do último</td><td>Permitida; faz o <code>dart format</code> pôr um por linha</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The parameter '…' can't have a value of 'null' because of its type…</code></td><td>Nomeado sem <code>required</code>, sem <code>?</code> e sem valor padrão</td></tr>
+<tr><td><code>Required named parameter '…' must be provided.</code></td><td>Faltou passar um <code>required</code></td></tr>
+<tr><td><code>Too many positional arguments: 0 allowed…</code></td><td>Chamou sem os nomes</td></tr>
+<tr><td><code>No named parameter with the name '…'.</code></td><td>Nome digitado diferente</td></tr>
+<tr><td><code>Setter not found: '…'.</code></td><td>Usou <code>=</code> em vez de <code>:</code> na chamada</td></tr>
+<tr><td><code>Duplicated named argument '…'.</code></td><td>O mesmo nome duas vezes na chamada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete a declaração</h3>
+<p>Complete para os dois parâmetros serem nomeados e obrigatórios:</p>
+<div class="ex-code">void saudar(<input data-answer="{" aria-label="símbolo que abre">required String nome, <input data-answer="required" aria-label="palavra-chave"> int idade})</div>
+</div>
+
+<div class="exercise">
+<h3>2. Complete a chamada</h3>
+<p>Chame <code>saudar</code> para a Ana, de 30 anos:</p>
+<div class="ex-code">saudar(nome<input data-answer=":" aria-label="separador"> 'Ana', idade: 30);</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Com <code>double comDesconto({required double preco, required double porcentagem})</code>, o que <code>comDesconto(porcentagem: 10, preco: 200)</code> devolve?</p>
+<label><input type="radio" name="q3"> <code>-10.0</code>: a ordem está trocada</label>
+<label><input type="radio" name="q3"> <code>180.0</code>: com nomes, a ordem não importa</label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">4. Por que <code>void f({int x})</code> não compila?</p>
+<label><input type="radio" name="q4"> Porque nomeados não podem ser <code>int</code></label>
+<label><input type="radio" name="q4"> Porque falta um posicional antes</label>
+<label><input type="radio" name="q4"> Porque as chaves não podem ficar dentro dos parênteses</label>
+<label><input type="radio" name="q4"> Porque, se ninguém passar <code>x</code>, ele valeria <code>null</code>, e <code>int</code> não aceita <code>null</code></label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual chamada está certa para <code>void etiqueta(String produto, {required double preco})</code>?</p>
+<label><input type="radio" name="q5"> <code>etiqueta('Leite', preco: 5.49)</code></label>
+<label><input type="radio" name="q5"> <code>etiqueta('Leite', 5.49)</code></label>
+<label><input type="radio" name="q5"> <code>etiqueta(produto: 'Leite', preco: 5.49)</code></label>
+<label><input type="radio" name="q5"> <code>etiqueta('Leite', preco = 5.49)</code></label>
+</div>
+
+<h3>Missão final: o recibo de entrega</h3>
+
+<div class="trydart" data-goal="out:Entrega para Ana: 2 x bolo de fubá (Rua das Flores, 10);;src:required\s+String\s+endereco">
+<p class="try-task"><strong>Missão:</strong> a padaria agora faz entregas. Acrescente à função um parâmetro nomeado obrigatório <code>String endereco</code> e mostre-o entre parênteses no fim da linha. Na chamada, passe <code>endereco: 'Rua das Flores, 10'</code>. A saída deve ser <code>Entrega para Ana: 2 x bolo de fubá (Rua das Flores, 10)</code>.</p>
+<pre class="script" data-file="main.dart">void registrarEntrega({
+  required String cliente,
+  required String produto,
+  required int quantidade,
+}) {
+  print('Entrega para $cliente: $quantidade x $produto');
+}
+
+void main() {
+  registrarEntrega(
+    cliente: 'Ana',
+    produto: 'bolo de fubá',
+    quantidade: 2,
+  );
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void registrarEntrega({
+  required String cliente,
+  required String produto,
+  required int quantidade,
+  required String endereco,
+}) {
+  print('Entrega para $cliente: $quantidade x $produto ($endereco)');
+}
+
+void main() {
+  registrarEntrega(
+    cliente: 'Ana',
+    produto: 'bolo de fubá',
+    quantidade: 2,
+    endereco: 'Rua das Flores, 10',
+  );
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Parâmetros entre chaves, <code>f({…})</code>, são <strong>nomeados</strong>: a chamada diz o nome de cada valor, <code>f(preco: 200)</code>, em qualquer ordem.</li>
+  <li>Um nomeado é opcional, a não ser que tenha <code>required</code>. Por isso o Dart exige uma escolha: <code>required</code>, tipo anulável (<code>int?</code>) ou valor padrão (<code>= 0</code>).</li>
+  <li>Nomeados evitam a troca silenciosa de argumentos do mesmo tipo e deixam a chamada legível.</li>
+  <li>Dá para misturar: posicionais primeiro, nomeados nas chaves depois.</li>
+  <li>Na chamada, nome e valor se separam com <code>:</code>, nunca com <code>=</code>.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
