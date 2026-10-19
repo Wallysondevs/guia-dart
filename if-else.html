@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart if e else — tomando decisões no programa | Guia Dart</title>
+<meta name="description" content="O if e o else do Dart para quem nunca programou: if (condição) { … }, o else, a cadeia else if com a ordem certa das condições, if dentro de if, chaves e blocos, variável criada dentro do bloco, e os erros reais do Dart 3 (if sem parênteses, elif, else com condição, chave esquecida, int no lugar de bool e o ponto e vírgula depois do if que não dá erro).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">if e else</span></h1>
+
+<p class="intro">Até aqui, os seus programas rodavam todas as linhas, de cima para baixo, sempre do mesmo jeito. Agora eles vão começar a <strong>decidir</strong>: mostrar "Aprovada" ou "Recuperação" conforme a nota, avisar do calor só quando está calor. Quem decide é o <code>if</code>, que em inglês quer dizer "<strong>se</strong>", com o seu parceiro <code>else</code>, "<strong>senão</strong>".</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>Como escrever um <code>if</code>: a condição entre parênteses e o bloco entre chaves.</li>
+  <li>O <code>else</code>: o que fazer quando a condição é falsa.</li>
+  <li>A cadeia <code>else if</code>, para mais de dois caminhos, e por que a <strong>ordem</strong> das condições importa.</li>
+  <li><code>if</code> dentro de <code>if</code>.</li>
+  <li>Por que usar chaves sempre, e o que acontece com uma variável criada dentro do bloco.</li>
+  <li>Os erros reais: <code>if</code> sem parênteses, <code>elif</code>, <code>else</code> com condição, chave esquecida, número no lugar de <code>bool</code> e o <code>;</code> depois do <code>if</code>, que não dá erro nenhum.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>) com <code>dart run arquivo.dart</code>. Você pode rodar cada um no editor do guia.</p>
+
+<hr>
+
+<h2>A ideia: o bilhete na geladeira</h2>
+<p>A mãe da Ana deixou um bilhete na geladeira: <em>"<strong>Se</strong> chover, leve o guarda-chuva. <strong>Senão</strong>, leve o boné."</em> Ana olha pela janela (a condição), e só <strong>um</strong> dos dois conselhos vale naquele dia. O outro é ignorado. E, chova ou não, ela sai de casa: o resto do dia continua igual.</p>
+<p>O <code>if</code> funciona do mesmo jeito: testa uma condição (uma pergunta de sim ou não, como as da aula <a href="operadores-comparacao.html">Comparação</a>) e, conforme a resposta, roda um bloco de código ou outro.</p>
+
+<hr>
+
+<h2>1. O primeiro <code>if</code></h2>
+
+<pre class="file" data-file="if1.dart">void main() {
+  final temperatura = 32;
+  print('Temperatura: $temperatura °C');
+  if (temperatura &gt; 30) {
+    print('Está calor! Leve uma garrafa de água.');
+  }
+  print('Bom dia!');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>if</dt><dd>A palavra-chave: "se".</dd>
+  <dt>(temperatura &gt; 30)</dt><dd>A <strong>condição</strong>, sempre entre parênteses. Tem de dar um <code>bool</code>: <code>true</code> ou <code>false</code>.</dd>
+  <dt>{ … }</dt><dd>O <strong>bloco</strong>: as linhas entre as chaves rodam <strong>só se</strong> a condição for <code>true</code>. Os 2 espaços a mais na frente mostram, para quem lê, que elas estão dentro do <code>if</code>.</dd>
+  <dt>print('Bom dia!');</dt><dd>Fora das chaves: roda sempre, com calor ou sem.</dd>
+</dl>
+
+<pre class="term">$ dart run if1.dart
+Temperatura: 32 °C
+Está calor! Leve uma garrafa de água.
+Bom dia!
+</pre>
+
+<p>Com <code>temperatura = 22</code>, a condição <code>22 &gt; 30</code> é <code>false</code>, e o Dart <strong>pula</strong> o bloco inteiro:</p>
+
+<pre class="term">$ dart run if2.dart
+Temperatura: 22 °C
+Bom dia!
+</pre>
+
+<p>Repare que não tem <code>;</code> depois do <code>)</code> nem depois do <code>}</code>: o <code>;</code> fecha instruções, e o <code>if</code> com o seu bloco é uma instrução composta (veja <a href="sintaxe.html">Instruções, Ponto e Vírgula e Blocos</a>). Um <code>;</code> logo depois do <code>if (…)</code> é um dos erros mais traiçoeiros do Dart; ele está em <a href="#errado">Quando dá errado</a>.</p>
+
+<hr>
+
+<h2>2. <code>else</code>: senão</h2>
+
+<pre class="file" data-file="else.dart">void main() {
+  final nota = 5.5;
+  if (nota &gt;= 6) {
+    print('Aprovada!');
+  } else {
+    print('Recuperação.');
+  }
+  print('Nota lançada: $nota');
+}
+</pre>
+
+<pre class="term">$ dart run else.dart
+Recuperação.
+Nota lançada: 5.5
+</pre>
+
+<p>O <code>else</code> vem logo depois da chave que fecha o <code>if</code> (<code>} else {</code>, na mesma linha, é o estilo do Dart) e tem o seu próprio bloco. Ele <strong>não tem condição</strong>: roda quando a condição do <code>if</code> deu <code>false</code>. Com <code>if</code> e <code>else</code>, <strong>sempre</strong> roda um dos dois blocos, e <strong>nunca</strong> os dois.</p>
+
+<div class="trydart" data-goal="out:Frete grátis!;;src:\belse\b">
+<p class="try-task"><strong>Missão:</strong> a loja dá frete grátis em compras de <strong>100 reais ou mais</strong>; abaixo disso, o frete é 15 reais. Complete o <code>if</code> com um <code>else</code> que mostre <code>Frete: R$ 15</code>. Depois troque o total para <code>120</code> e veja aparecer <code>Frete grátis!</code>.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final total = 80;
+  if (total &gt;= 100) {
+    print('Frete grátis!');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final total = 120;
+  if (total &gt;= 100) {
+    print('Frete grátis!');
+  } else {
+    print('Frete: R\$ 15');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>3. Mais de dois caminhos: <code>else if</code></h2>
+<p>A escola da Ana dá conceitos: A para 9 ou mais, B para 7 ou mais, C para 5 ou mais, D para o resto. São quatro caminhos. Para isso, encadeie <code>else if</code> ("senão, se"):</p>
+
+<pre class="file" data-file="elseif.dart">void main() {
+  final nota = 7.8;
+  if (nota &gt;= 9) {
+    print('Conceito A');
+  } else if (nota &gt;= 7) {
+    print('Conceito B');
+  } else if (nota &gt;= 5) {
+    print('Conceito C');
+  } else {
+    print('Conceito D');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run elseif.dart
+Conceito B
+</pre>
+
+<p>O Dart testa as condições <strong>de cima para baixo</strong> e para na <strong>primeira</strong> verdadeira:</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Teste</th><th>Com <code>nota = 7.8</code></th><th>O que acontece</th></tr>
+<tr><td><code>nota &gt;= 9</code></td><td><code>false</code></td><td>Passa para o próximo</td></tr>
+<tr><td><code>nota &gt;= 7</code></td><td><code>true</code></td><td>Mostra <code>Conceito B</code> e <strong>sai</strong> da cadeia inteira</td></tr>
+<tr><td><code>nota &gt;= 5</code></td><td>não é testado</td><td>(seria <code>true</code> também, mas o Dart nem olha)</td></tr>
+<tr><td><code>else</code></td><td>não roda</td><td>só rodaria se todas dessem <code>false</code></td></tr>
+</table>
+</div>
+
+<p>Por isso o <code>else if (nota &gt;= 7)</code> não precisa dizer "e menor que 9": se a nota fosse 9 ou mais, a primeira condição já teria pegado. Mas isso só funciona com as condições na <strong>ordem certa</strong>, da mais exigente para a menos exigente. Veja o que acontece com a ordem trocada, numa nota 9.5:</p>
+
+<pre class="file" data-file="ordem_err.dart">void main() {
+  final nota = 9.5;
+  if (nota &gt;= 5) {
+    print('Conceito C');
+  } else if (nota &gt;= 7) {
+    print('Conceito B');
+  } else if (nota &gt;= 9) {
+    print('Conceito A');
+  } else {
+    print('Conceito D');
+  }
+}
+</pre>
+
+<pre class="term">$ dart run ordem_err.dart
+Conceito C
+</pre>
+
+<p>Nota 9.5 e conceito C! O <code>9.5 &gt;= 5</code> é verdade, e a cadeia parou ali. O Dart não avisa nada, porque o código está correto do ponto de vista dele; o erro é de lógica. Os testes de <code>&gt;= 7</code> e <code>&gt;= 9</code> nunca vão ser alcançados.</p>
+
+<hr>
+
+<h2>4. <code>if</code> dentro de <code>if</code></h2>
+<p>Dentro de um bloco pode ir qualquer coisa, inclusive outro <code>if</code>. No cinema, maiores de 18 entram; menores, só com um responsável:</p>
+
+<pre class="file" data-file="aninhado.dart">void main() {
+  final idade = 16;
+  final comResponsavel = true;
+  if (idade &gt;= 18) {
+    print('Pode entrar.');
+  } else {
+    if (comResponsavel) {
+      print('Pode entrar acompanhado.');
+    } else {
+      print('Não pode entrar.');
+    }
+  }
+}
+</pre>
+
+<pre class="term">$ dart run aninhado.dart
+Pode entrar acompanhado.
+</pre>
+
+<p>Cada nível ganha 2 espaços a mais de recuo, e é isso que permite enxergar qual <code>else</code> pertence a qual <code>if</code>. A mesma regra poderia ser escrita sem aninhar, com <code>else if (comResponsavel)</code>, ou com os operadores lógicos (<code>idade &gt;= 18 || comResponsavel</code>, aula <a href="operadores-logicos.html">Operadores Lógicos</a>): veja <a href="#formas">Formas diferentes</a>.</p>
+
+<hr>
+
+<h2>5. Chaves sempre, e o que nasce dentro do bloco</h2>
+
+<h3>Sem chaves, só uma linha conta</h3>
+<p>O Dart deixa escrever um <code>if</code> sem chaves, mas aí <strong>só a primeira instrução</strong> depois dele faz parte do <code>if</code>. O recuo não conta nada para o Dart:</p>
+
+<pre class="file" data-file="semchave.dart">void main() {
+  final estoque = 0;
+  if (estoque == 0) print('Acabou o pão!');
+  if (estoque &gt; 0)
+    print('Tem pão.');
+    print('Pode passar no caixa.');
+}
+</pre>
+
+<pre class="term">$ dart run semchave.dart
+Acabou o pão!
+Pode passar no caixa.
+</pre>
+
+<p>A linha <code>Pode passar no caixa.</code> parece estar dentro do segundo <code>if</code>, mas está fora: ela roda sempre, mesmo sem pão. O guia de estilo do Dart (<a href="estilo.html">Effective Dart</a>) aceita o <code>if</code> sem chaves só quando ele cabe inteiro numa linha, como o primeiro. Para não cair nessa, a regra deste guia é simples: <strong>use chaves sempre</strong>.</p>
+
+<h3>Variável criada dentro do bloco some no <code>}</code></h3>
+<p>Uma variável criada dentro de um bloco só existe <strong>dentro dele</strong>. Para usar o resultado de um <code>if</code> depois dele, crie a variável <strong>antes</strong>, e dê o valor dentro dos blocos:</p>
+
+<pre class="file" data-file="escopo_ok.dart">void main() {
+  final nota = 8;
+  String mensagem;
+  if (nota &gt;= 6) {
+    mensagem = 'Aprovada';
+  } else {
+    mensagem = 'Recuperação';
+  }
+  print(mensagem);
+}
+</pre>
+
+<pre class="term">$ dart run escopo_ok.dart
+Aprovada
+</pre>
+
+<p>O <code>String mensagem;</code> cria a variável sem valor. O Dart confere que <strong>os dois caminhos</strong> dão um valor a ela antes do <code>print</code>; se um caminho esquecer, o programa não compila (veja <a href="#errado">Quando dá errado</a>). Para escolher entre dois valores assim, existe uma forma mais curta, o <a href="ternario.html">operador ternário</a>.</p>
+
+<hr>
+
+<h2 id="formas">Formas diferentes de fazer</h2>
+<p>A regra do cinema, de três jeitos:</p>
+
+<pre class="file" data-file="formas.dart">// 1) if dentro de else (a da seção 4)
+
+// 2) else if
+if (idade &gt;= 18) {
+  print('Pode entrar.');
+} else if (comResponsavel) {
+  print('Pode entrar acompanhado.');
+} else {
+  print('Não pode entrar.');
+}
+
+// 3) operador lógico, quando a mensagem é a mesma
+if (idade &gt;= 18 || comResponsavel) {
+  print('Pode entrar.');
+} else {
+  print('Não pode entrar.');
+}
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>Fazer algo só em um caso</td><td><code>if (…) { … }</code></td></tr>
+<tr><td>Dois caminhos</td><td><code>if (…) { … } else { … }</code></td></tr>
+<tr><td>Vários caminhos, faixas de valores (notas, idades, preços)</td><td><code>if … else if … else</code>, da condição mais exigente para a menos</td></tr>
+<tr><td>Escolher entre dois <strong>valores</strong> (não ações)</td><td>o <a href="ternario.html">operador ternário</a>: <code>nota &gt;= 6 ? 'Aprovada' : 'Recuperação'</code></td></tr>
+<tr><td>Comparar uma variável com vários valores exatos (dias da semana, opções de menu)</td><td><a href="switch.html">switch</a></td></tr>
+<tr><td>Duas condições que levam ao mesmo lugar</td><td>junte com <code>&amp;&amp;</code> ou <code>||</code> em vez de aninhar</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Um <code>;</code> depois do <code>if (…)</code>: sem erro, e tudo errado</strong>
+<pre class="file" data-file="pontoevirgula.dart">void main() {
+  final saldo = 50;
+  if (saldo &gt; 100); {
+    print('Compra aprovada!');
+  }
+}
+</pre>
+<pre class="term">$ dart run pontoevirgula.dart
+Compra aprovada!
+</pre>
+<p>Saldo 50, compra de mais de 100, e a compra foi aprovada! O <code>;</code> logo depois do <code>)</code> é uma instrução <strong>vazia</strong>: o <code>if</code> ficou sendo "se o saldo for maior que 100, não faça nada". As chaves de baixo viraram um bloco solto, que roda sempre. O Dart compila sem reclamar. <strong>Como consertar:</strong> nunca ponha <code>;</code> entre o <code>)</code> do <code>if</code> e o <code>{</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu os parênteses da condição</strong>
+<pre class="file" data-file="semparen.dart">void main() {
+  final saldo = 50;
+  if saldo &gt; 100 {
+    print('Compra aprovada!');
+  }
+}
+</pre>
+<pre class="term">$ dart run semparen.dart
+semparen.dart:3:6: Error: Expected to find '('.
+  if saldo &gt; 100 {
+     ^^^^^
+semparen.dart:3:6: Error: Expected an identifier, but got 'saldo'.
+Try inserting an identifier before 'saldo'.
+  if saldo &gt; 100 {
+     ^^^^^
+semparen.dart:3:14: Error: Expected ';' after this.
+  if saldo &gt; 100 {
+             ^^^
+</pre>
+<dl class="anatomy">
+  <dt>semparen.dart:3:6: Error: Expected to find '('.</dt><dd>"Era esperado encontrar <code>(</code>", na linha 3, coluna 6, onde começa o <code>saldo</code>. É a mensagem que importa.</dd>
+  <dt>Expected an identifier… / Expected ';' after this.</dt><dd>Erros em cascata: o Dart tentou continuar lendo e se perdeu. Quando aparecem vários erros na mesma linha, conserte o <strong>primeiro</strong> e rode de novo.</dd>
+</dl>
+<p>Quem vem do Python ou do Lua escreve a condição sem parênteses. <strong>Como consertar:</strong> <code>if (saldo &gt; 100) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Escreveu <code>elif</code> (ou <code>elseif</code>)</strong>
+<pre class="file" data-file="elif.dart">void main() {
+  final nota = 7;
+  if (nota &gt;= 9) {
+    print('A');
+  } elif (nota &gt;= 7) {
+    print('B');
+  }
+}
+</pre>
+<pre class="term">$ dart run elif.dart
+elif.dart:5:16: Error: Expected ')' before this.
+  } elif (nota &gt;= 7) {
+               ^^
+</pre>
+<p>"Era esperado <code>)</code> antes disto." Uma mensagem estranha, porque o Dart não conhece <code>elif</code>: ele achou que <code>elif(nota …)</code> fosse a chamada de uma função chamada <code>elif</code> e se perdeu no <code>&gt;=</code>. <strong>Como consertar:</strong> no Dart são duas palavras, separadas: <code>} else if (nota &gt;= 7) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Pôs uma condição no <code>else</code></strong>
+<pre class="file" data-file="else_cond.dart">void main() {
+  final nota = 8;
+  if (nota &gt;= 6) {
+    print('Aprovada');
+  } else (nota &lt; 6) {
+    print('Recuperação');
+  }
+}
+</pre>
+<pre class="term">$ dart run else_cond.dart
+else_cond.dart:5:16: Error: Expected ')' before this.
+  } else (nota &lt; 6) {
+               ^
+else_cond.dart:7:3: Error: Expected ';' after this.
+  }
+  ^
+</pre>
+<p>O <code>else</code> não leva condição: ele já quer dizer "em todos os outros casos". O Dart tentou ler <code>(nota &lt; 6)</code> como o começo do bloco do <code>else</code> e tropeçou no <code>&lt;</code> (achou que era o começo de um tipo, como em <code>List&lt;int&gt;</code>). <strong>Como consertar:</strong> só <code>} else {</code>; ou, se precisa mesmo de uma condição, <code>} else if (nota &lt; 6) {</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu de fechar uma chave</strong>
+<pre class="file" data-file="fechachave.dart">void main() {
+  final nota = 8;
+  if (nota &gt;= 6) {
+    print('Aprovada');
+  else {
+    print('Recuperação');
+  }
+}
+</pre>
+<pre class="term">$ dart run fechachave.dart
+fechachave.dart:3:18: Error: Can't find '}' to match '{'.
+  if (nota &gt;= 6) {
+                 ^
+fechachave.dart:5:3: Error: Expected an identifier, but got 'else'.
+Try inserting an identifier before 'else'.
+  else {
+  ^^^^
+fechachave.dart:4:22: Error: Expected ';' after this.
+    print('Aprovada');
+                     ^
+fechachave.dart:5:3: Error: Unexpected token 'else'.
+  else {
+  ^^^^
+</pre>
+<p>A primeira mensagem é a boa: "não achei o <code>}</code> que fecha este <code>{</code>", e o <code>^</code> aponta a chave aberta do <code>if</code>, na linha 3. As outras são consequência: o <code>else</code> ficou <strong>dentro</strong> do bloco do <code>if</code>, onde ele não faz sentido (<code>Unexpected token 'else'</code>, "palavra inesperada"). <strong>Como consertar:</strong> <code>} else {</code>. Recuar o código direitinho (ou rodar <code>dart format</code>, aula <a href="analise.html">Análise e Formatação</a>) ajuda a ver qual chave falta.</p>
+</div>
+
+<div class="cenario">
+<strong>Uma condição que não é <code>bool</code></strong>
+<pre class="file" data-file="intcond.dart">void main() {
+  final itens = 3;
+  if (itens) {
+    print('Tem itens no carrinho');
+  }
+}
+</pre>
+<pre class="term">$ dart run intcond.dart
+intcond.dart:3:7: Error: A value of type 'int' can't be assigned to a variable of type 'bool'.
+  if (itens) {
+      ^
+</pre>
+<p>Em outras linguagens, um número diferente de zero "vale" verdadeiro. No Dart, a condição do <code>if</code> tem de ser um <code>bool</code> de verdade. O mesmo erro aparece com <code>if (saldo = 100)</code>, com um <code>=</code> só (aula <a href="operadores-comparacao.html">Comparação</a>). <strong>Como consertar:</strong> escreva a pergunta inteira: <code>if (itens &gt; 0)</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou depois do <code>if</code> uma variável criada dentro dele</strong>
+<pre class="file" data-file="escopo.dart">void main() {
+  final nota = 8;
+  if (nota &gt;= 6) {
+    final mensagem = 'Aprovada';
+  } else {
+    final mensagem = 'Recuperação';
+  }
+  print(mensagem);
+}
+</pre>
+<pre class="term">$ dart run escopo.dart
+escopo.dart:8:9: Error: Undefined name 'mensagem'.
+  print(mensagem);
+        ^^^^^^^^
+</pre>
+<p>"Nome não definido: <code>mensagem</code>." As duas variáveis <code>mensagem</code> nasceram dentro dos blocos e morreram no <code>}</code>. Na linha 8, não existe mais nenhuma. E se você criar a variável antes, mas um dos caminhos não der valor a ela (um <code>if</code> sem o <code>else</code>), o erro muda:</p>
+<pre class="term">$ dart run escopo_falta.dart
+escopo_falta.dart:7:9: Error: Non-nullable variable 'mensagem' must be assigned before it can be used.
+  print(mensagem);
+        ^^^^^^^^
+</pre>
+<p>"A variável <code>mensagem</code> precisa receber um valor antes de ser usada": se a nota fosse 5, ela ficaria sem valor. <strong>Como consertar:</strong> crie a variável antes do <code>if</code> (<code>String mensagem;</code>) e dê um valor em <strong>todos</strong> os caminhos, como na seção 5.</p>
+</div>
+
+<div class="trydart" data-goal="out:Conceito A;;semerro">
+<p class="try-task"><strong>Missão:</strong> a nota é 9.5, mas o programa mostra <code>Conceito C</code>. Não há erro de compilação: o problema é a ordem das condições. Reorganize a cadeia para aparecer <code>Conceito A</code> (e confira com outras notas: 7.5 tem de dar B, 5 tem de dar C, 3 tem de dar D).</p>
+<pre class="script" data-file="main.dart">void main() {
+  final nota = 9.5;
+  if (nota &gt;= 5) {
+    print('Conceito C');
+  } else if (nota &gt;= 7) {
+    print('Conceito B');
+  } else if (nota &gt;= 9) {
+    print('Conceito A');
+  } else {
+    print('Conceito D');
+  }
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final nota = 9.5;
+  if (nota &gt;= 9) {
+    print('Conceito A');
+  } else if (nota &gt;= 7) {
+    print('Conceito B');
+  } else if (nota &gt;= 5) {
+    print('Conceito C');
+  } else {
+    print('Conceito D');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>if (cond) { … }</code></td><td>Roda o bloco só se <code>cond</code> for <code>true</code></td></tr>
+<tr><td><code>if (cond) { … } else { … }</code></td><td>Roda um dos dois blocos, nunca os dois</td></tr>
+<tr><td><code>if (a) { … } else if (b) { … } else { … }</code></td><td>Testa de cima para baixo; roda o bloco da <strong>primeira</strong> condição verdadeira</td></tr>
+<tr><td><code>if (cond) instrucao;</code></td><td>Sem chaves: só uma instrução (prefira chaves)</td></tr>
+<tr><td><code>String m; if (…) { m = …; } else { m = …; }</code></td><td>Variável criada antes, com valor em todos os caminhos</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td>O bloco roda mesmo com a condição falsa</td><td><code>;</code> depois do <code>if (…)</code></td></tr>
+<tr><td><code>Expected to find '('.</code></td><td>Condição sem parênteses</td></tr>
+<tr><td><code>Expected ')' before this.</code> numa linha com <code>elif</code> ou <code>else (…)</code></td><td><code>elif</code> não existe (é <code>else if</code>); <code>else</code> não leva condição</td></tr>
+<tr><td><code>Can't find '}' to match '{'.</code></td><td>Faltou fechar uma chave</td></tr>
+<tr><td><code>A value of type 'int' can't be assigned to a variable of type 'bool'.</code></td><td>Condição com número, ou <code>=</code> no lugar de <code>==</code></td></tr>
+<tr><td><code>Undefined name 'x'.</code> depois do <code>if</code></td><td>A variável nasceu dentro do bloco</td></tr>
+<tr><td>Sempre cai no mesmo caso de uma cadeia <code>else if</code></td><td>Condições na ordem errada</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<div class="ex-code"><input data-answer="if" aria-label="palavra-chave se"> (idade &gt;= 18) {<br>&nbsp;&nbsp;print('Pode votar');<br>} <input data-answer="else" aria-label="palavra-chave senão"> {<br>&nbsp;&nbsp;print('Ainda não');<br>}</div>
+</div>
+
+<div class="exercise">
+<h3>2. O que aparece?</h3>
+<pre class="file" data-file="ex2.dart">final x = 15;
+if (x &gt; 20) {
+  print('grande');
+} else if (x &gt; 10) {
+  print('médio');
+} else if (x &gt; 5) {
+  print('pequeno');
+} else {
+  print('mínimo');
+}
+</pre>
+<div class="ex-code">Aparece: <input data-answer="médio" aria-label="palavra mostrada"></div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. Com <code>saldo = 10</code>, o que <code>if (saldo &gt; 100); { print('Rico!'); }</code> faz?</p>
+<label><input type="radio" name="q3"> Não mostra nada</label>
+<label><input type="radio" name="q3"> Erro de compilação</label>
+<label><input type="radio" name="q3"> Mostra <code>Rico!</code>: o <code>;</code> encerrou o <code>if</code> e o bloco roda sempre</label>
+<label><input type="radio" name="q3"> Exceção ao rodar</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Numa cadeia <code>if … else if … else</code>, quantos blocos rodam?</p>
+<label><input type="radio" name="q4"> Todos cujas condições são verdadeiras</label>
+<label><input type="radio" name="q4"> Exatamente um: o da primeira condição verdadeira, ou o <code>else</code></label>
+<label><input type="radio" name="q4"> Sempre o último</label>
+<label><input type="radio" name="q4"> Nenhum, se houver mais de uma condição verdadeira</label>
+</div>
+
+<div class="mc" data-answer="4">
+<p class="mc-q">5. Qual é o jeito certo de escrever "senão, se" no Dart?</p>
+<label><input type="radio" name="q5"> <code>elif</code></label>
+<label><input type="radio" name="q5"> <code>elseif</code></label>
+<label><input type="radio" name="q5"> <code>else (condição)</code></label>
+<label><input type="radio" name="q5"> <code>else if (condição)</code></label>
+</div>
+
+<h3>Missão final: o semáforo da padaria</h3>
+
+<div class="trydart" data-goal="out:Estoque baixo: faça mais pão!;;src:else\s+if">
+<p class="try-task"><strong>Missão:</strong> o painel da padaria mostra o estoque de pães. Escreva uma cadeia <code>if … else if … else</code>: se o estoque for <strong>0</strong>, mostre <code>Acabou o pão!</code>; se for <strong>menor que 20</strong>, mostre <code>Estoque baixo: faça mais pão!</code>; nos outros casos, mostre <code>Estoque ok.</code>. Com <code>estoque = 12</code>, deve aparecer a mensagem de estoque baixo.</p>
+<pre class="script" data-file="main.dart">void main() {
+  final estoque = 12;
+  print('Pães no cesto: $estoque');
+  // escreva o if aqui
+
+}
+</pre>
+<pre class="solucao" data-file="main.dart">void main() {
+  final estoque = 12;
+  print('Pães no cesto: $estoque');
+  if (estoque == 0) {
+    print('Acabou o pão!');
+  } else if (estoque &lt; 20) {
+    print('Estoque baixo: faça mais pão!');
+  } else {
+    print('Estoque ok.');
+  }
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>if (condição) { … }</code> roda o bloco só quando a condição é <code>true</code>. A condição vai entre parênteses e tem de ser um <code>bool</code>.</li>
+  <li><code>else { … }</code> roda quando a condição é <code>false</code>; não leva condição.</li>
+  <li><code>else if</code> encadeia mais caminhos; o Dart para na <strong>primeira</strong> condição verdadeira, então ordene da mais exigente para a menos.</li>
+  <li>Use chaves sempre; sem elas, só a primeira instrução faz parte do <code>if</code>. E nunca ponha <code>;</code> logo depois do <code>if (…)</code>.</li>
+  <li>Variável criada dentro de um bloco some no <code>}</code>: para usar depois, crie antes e dê valor em todos os caminhos.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
