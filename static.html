@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart static — o que pertence à classe, e não a cada objeto | Guia Dart</title>
+<meta name="description" content="Membros static do Dart para quem nunca programou: campos static compartilhados (o contador de pedidos), static const para constantes da classe, métodos static que não precisam de objeto, os que você já usou (int.parse, double.maxFinite, DateTime.daysPerWeek), static × função solta, e os erros reais do Dart 3.13 (acessar static pelo objeto, usar campos do objeto num método static).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Membros static</span></h1>
+
+<p class="intro">Até agora, cada campo de uma classe era <strong>de cada objeto</strong>: o café tem o seu preço, o pão tem o seu. Mas algumas informações são <strong>da classe inteira</strong>: quantos pedidos a padaria já recebeu, a taxa de entrega que vale para todos, uma conta de conversão que não depende de nenhum produto. Para isso existe a palavra <code>static</code> ("estático"): um campo ou método <code>static</code> pertence à <strong>classe</strong>, e se usa pelo nome dela: <code>Pedido.total</code>, <code>int.parse('42')</code>.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>A diferença entre um campo de cada objeto e um campo <code>static</code>, que é um só para todos.</li>
+  <li>Como contar quantos objetos foram criados com um campo <code>static</code>.</li>
+  <li><code>static const</code>: constantes que fazem parte da classe.</li>
+  <li>Métodos <code>static</code>: funções que ficam "guardadas" na classe e não precisam de um objeto.</li>
+  <li>Que você já usou vários: <code>int.parse</code>, <code>double.maxFinite</code>, <code>DateTime.daysPerWeek</code>.</li>
+  <li>Os erros reais mais comuns com <code>static</code>.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>), com <code>dart run arquivo.dart</code>.</p>
+
+<hr>
+
+<h2>A ideia: a comanda e o painel de senhas</h2>
+<p>Na padaria, cada cliente recebe uma <strong>comanda</strong>, com o nome dele e o que pediu. Cada comanda é de um cliente só. Na parede, há um <strong>painel</strong> que mostra quantos pedidos já foram feitos hoje. Existe <strong>um</strong> painel para a padaria inteira; não faz sentido cada comanda ter o seu.</p>
+<ul>
+  <li>Os campos comuns são a <strong>comanda</strong>: um para cada objeto.</li>
+  <li>Os campos <code>static</code> são o <strong>painel</strong>: um só, da classe, que todos os objetos enxergam.</li>
+</ul>
+
+<hr>
+
+<h2>1. Um campo <code>static</code>: o contador de pedidos</h2>
+
+<pre class="file" data-file="contador.dart">class Pedido {
+  static int total = 0;
+
+  final String cliente;
+  final int numero;
+
+  Pedido(this.cliente) : numero = total + 1 {
+    total++;
+  }
+}
+
+void main() {
+  print('Pedidos no começo: ${Pedido.total}');
+  final a = Pedido('Ana');
+  final b = Pedido('Bia');
+  final c = Pedido('Caio');
+  print('${a.cliente}: pedido ${a.numero}');
+  print('${b.cliente}: pedido ${b.numero}');
+  print('${c.cliente}: pedido ${c.numero}');
+  print('Pedidos no fim: ${Pedido.total}');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>static int total = 0;</dt><dd>Um campo <code>static</code>: existe <strong>um só</strong>, guardado na classe <code>Pedido</code>, e não um em cada pedido. Ele já existe antes de qualquer pedido ser criado, valendo 0.</dd>
+  <dt>final String cliente; final int numero;</dt><dd>Campos comuns: cada pedido tem os seus.</dd>
+  <dt>: numero = total + 1</dt><dd>Na <a href="construtores.html">lista de inicialização</a>, o número deste pedido é o total até agora, mais 1. Dentro da classe, o campo <code>static</code> se usa só pelo nome.</dd>
+  <dt>{ total++; }</dt><dd>O corpo do construtor soma 1 no painel. Como o <code>total</code> é um só, todos os pedidos somam no <strong>mesmo</strong> lugar.</dd>
+  <dt>Pedido.total</dt><dd>Fora da classe, o campo <code>static</code> se usa pelo <strong>nome da classe</strong>, um ponto e o nome do campo. Nenhum objeto é preciso: na primeira linha do <code>main</code>, ainda não havia pedido nenhum.</dd>
+</dl>
+
+<pre class="term">$ dart run contador.dart
+Pedidos no começo: 0
+Ana: pedido 1
+Bia: pedido 2
+Caio: pedido 3
+Pedidos no fim: 3
+</pre>
+
+<p>Se <code>total</code> não fosse <code>static</code>, cada pedido teria o seu próprio <code>total</code>, começando em 0, e todos seriam o "pedido 1".</p>
+
+<div class="trydart" data-goal="out:Alunos matriculados: 3;;src:static\s+int">
+<p class="try-task"><strong>Missão:</strong> acrescente à classe <code>Aluno</code> um campo <code>static int matriculados = 0;</code> e, no construtor, some 1 nele (o construtor ganha um corpo: <code>Aluno(this.nome) { matriculados++; }</code>). O <code>main</code> deve mostrar <code>Alunos matriculados: 3</code>.</p>
+<pre class="script" data-file="main.dart">class Aluno {
+  final String nome;
+
+  Aluno(this.nome);
+}
+
+void main() {
+  Aluno('Ana');
+  Aluno('Bia');
+  Aluno('Caio');
+  // print('Alunos matriculados: ${Aluno.matriculados}');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Aluno {
+  static int matriculados = 0;
+
+  final String nome;
+
+  Aluno(this.nome) {
+    matriculados++;
+  }
+}
+
+void main() {
+  Aluno('Ana');
+  Aluno('Bia');
+  Aluno('Caio');
+  print('Alunos matriculados: ${Aluno.matriculados}');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. <code>static const</code>: as constantes da classe</h2>
+<p>Valores fixos que fazem parte de uma classe (o nome da padaria, a taxa de entrega, o pedido mínimo) ficam bem como <code>static const</code>: um só para todos (<code>static</code>) e que nunca muda (<code>const</code>; veja <a href="final-const.html">final e const</a>).</p>
+
+<pre class="file" data-file="constante.dart">class Padaria {
+  static const String nome = 'Padaria do Bairro';
+  static const double taxaEntrega = 5.0;
+  static const int pedidoMinimo = 20;
+}
+
+void main() {
+  print(Padaria.nome);
+  print('Entrega: R\$ ${Padaria.taxaEntrega}');
+  print('Pedido mínimo: R\$ ${Padaria.pedidoMinimo}');
+}
+</pre>
+
+<pre class="term">$ dart run constante.dart
+Padaria do Bairro
+Entrega: R$ 5.0
+Pedido mínimo: R$ 20
+</pre>
+
+<p>Nenhum objeto <code>Padaria</code> foi criado: a classe aqui serve só de "gaveta" com nome, que agrupa as constantes. Se a taxa mudar, você muda <strong>um</strong> lugar do código. Um campo <strong>comum</strong> não pode ser <code>const</code>; dentro de uma classe, <code>const</code> só existe junto com <code>static</code>. No lab, <code>class A { const int x = 1; }</code> deu <code>Error: Only static fields can be declared as const.</code> ("só campos static podem ser declarados como const"), com a sugestão de usar <code>final</code> ou acrescentar <code>static</code>.</p>
+
+<hr>
+
+<h2>3. Métodos <code>static</code></h2>
+<p>Um método <code>static</code> é uma função guardada dentro da classe. Ele se chama pelo nome da classe e <strong>não</strong> trabalha com um objeto específico:</p>
+
+<pre class="file" data-file="metodo.dart">class Conversor {
+  static double celsiusParaFahrenheit(double c) =&gt; c * 9 / 5 + 32;
+
+  static double reaisParaCentavos(double reais) =&gt; reais * 100;
+}
+
+void main() {
+  print(Conversor.celsiusParaFahrenheit(25));
+  print(Conversor.reaisParaCentavos(18.9));
+}
+</pre>
+
+<pre class="term">$ dart run metodo.dart
+77.0
+1889.9999999999998
+</pre>
+
+<p>As duas contas só usam os parâmetros: não precisam de um "conversor" com campos próprios, então são <code>static</code>. (O <code>1889.9999999999998</code> não é erro do <code>static</code>: é como o computador guarda números com vírgula. Veja <a href="int-double.html">Números</a>. Para dinheiro, contar em centavos inteiros evita isso.)</p>
+
+<h3>Campos, métodos e <code>static</code> juntos</h3>
+<p>Uma classe normal costuma misturar as duas coisas: o que é de cada objeto e o que é da classe.</p>
+
+<pre class="file" data-file="juntos.dart">class Produto {
+  static const double descontoMaximo = 0.3;
+  static int cadastrados = 0;
+
+  final String nome;
+  final double preco;
+
+  Produto(this.nome, this.preco) {
+    cadastrados++;
+  }
+
+  double comDesconto(double porcento) {
+    final d = porcento &gt; descontoMaximo ? descontoMaximo : porcento;
+    return preco * (1 - d);
+  }
+
+  static Produto maisBarato(List&lt;Produto&gt; lista) {
+    var menor = lista.first;
+    for (final p in lista) {
+      if (p.preco &lt; menor.preco) menor = p;
+    }
+    return menor;
+  }
+}
+
+void main() {
+  final lista = [Produto('café', 18.9), Produto('pão', 1.0), Produto('leite', 5.5)];
+  print('Cadastrados: ${Produto.cadastrados}');
+  print('Mais barato: ${Produto.maisBarato(lista).nome}');
+  print('Café com 50% (máx. 30%): ${lista[0].comDesconto(0.5).toStringAsFixed(2)}');
+}
+</pre>
+
+<pre class="term">$ dart run juntos.dart
+Cadastrados: 3
+Mais barato: pão
+Café com 50% (máx. 30%): 13.23
+</pre>
+
+<dl class="anatomy">
+  <dt>comDesconto</dt><dd>Método <strong>comum</strong>: precisa de um produto (usa o <code>preco</code> dele) e se chama no objeto: <code>lista[0].comDesconto(0.5)</code>. Ele pode usar o <code>descontoMaximo</code>, que é <code>static</code>: um método comum enxerga tudo.</dd>
+  <dt>static Produto maisBarato(List&lt;Produto&gt; lista)</dt><dd>Método <code>static</code>: trabalha com <strong>vários</strong> produtos, que chegam por parâmetro, e não com "este" produto. Chama-se pela classe: <code>Produto.maisBarato(lista)</code>.</dd>
+</dl>
+
+<div class="tip">
+<strong>A regra de ouro</strong>
+<p>Um membro <code>static</code> não sabe de nenhum objeto. Por isso, dentro de um método <code>static</code>, não existem <code>this</code> nem os campos comuns: só os parâmetros e outros membros <code>static</code>. Já um método comum pode usar tudo, inclusive os <code>static</code>.</p>
+</div>
+
+<hr>
+
+<h2>4. Você já usou vários</h2>
+
+<pre class="file" data-file="prontos.dart">import 'dart:math';
+
+void main() {
+  print(int.parse('42') + 1);
+  print(double.parse('18.9'));
+  print(pi);
+  print(DateTime.daysPerWeek);
+  print(double.maxFinite);
+}
+</pre>
+
+<pre class="term">$ dart run prontos.dart
+43
+18.9
+3.141592653589793
+7
+1.7976931348623157e+308
+</pre>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que é</th></tr>
+<tr><td><code>int.parse('42')</code></td><td>Método <code>static</code> da classe <code>int</code>: transforma texto em número (veja <a href="conversao.html">Conversão</a>). Não precisa de um número para chamá-lo; é a <strong>classe</strong> <code>int</code> que sabe converter.</td></tr>
+<tr><td><code>double.parse('18.9')</code></td><td>O mesmo, na classe <code>double</code>.</td></tr>
+<tr><td><code>DateTime.daysPerWeek</code></td><td>Constante <code>static</code> da classe <code>DateTime</code>: dias por semana (7).</td></tr>
+<tr><td><code>double.maxFinite</code></td><td>Constante <code>static</code>: o maior <code>double</code> que existe.</td></tr>
+<tr><td><code>pi</code></td><td>Não é <code>static</code>: é uma constante solta da biblioteca <code>dart:math</code>, que precisa do <code>import</code>.</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="formas">Formas diferentes: <code>static</code> ou solto no arquivo?</h2>
+<p>No Dart, uma função ou constante não precisa morar dentro de uma classe: ela pode ficar solta no arquivo, como o <code>main</code> e o <code>pi</code>. Então quando usar <code>static</code>?</p>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Qual usar</th></tr>
+<tr><td>Algo que é de <strong>cada</strong> objeto (nome, preço)</td><td>Campo/método comum</td></tr>
+<tr><td>Algo compartilhado pelos objetos da classe (contador de criados, cache)</td><td>Campo <code>static</code></td></tr>
+<tr><td>Constante que é claramente "da" classe (<code>Produto.descontoMaximo</code>)</td><td><code>static const</code></td></tr>
+<tr><td>Função ligada à classe, que cria ou compara objetos dela (<code>Produto.maisBarato</code>)</td><td>Método <code>static</code> (ou um <a href="construtores-nomeados.html">construtor nomeado/factory</a>, se cria um objeto)</td></tr>
+<tr><td>Função geral, que não é "de" nenhuma classe</td><td>Função solta no arquivo (o estilo oficial do Dart prefere isso a uma classe só com <code>static</code>)</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Acessou o <code>static</code> pelo objeto</strong>
+<pre class="file" data-file="peloobjeto.dart">class Pedido {
+  static int total = 0;
+  final String cliente;
+  Pedido(this.cliente) {
+    total++;
+  }
+}
+
+void main() {
+  final a = Pedido('Ana');
+  print(a.total);
+}
+</pre>
+<pre class="term">$ dart run peloobjeto.dart
+peloobjeto.dart:11:11: Error: The getter 'total' isn't defined for the type 'Pedido'.
+ - 'Pedido' is from 'peloobjeto.dart'.
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'total'.
+  print(a.total);
+          ^^^^^
+$ echo $?
+254
+</pre>
+<dl class="anatomy">
+  <dt>The getter 'total' isn't defined for the type 'Pedido'.</dt><dd>"O getter <code>total</code> não está definido para o tipo <code>Pedido</code>." Para o <strong>objeto</strong> <code>a</code>, não existe <code>total</code>: ele é da <strong>classe</strong>. (Em Java isso seria aceito, com um aviso; no Dart, não compila.)</dd>
+</dl>
+<p><strong>Como consertar:</strong> <code>Pedido.total</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Usou o <code>static</code> sem o nome da classe, fora dela</strong>
+<pre class="file" data-file="semclasse.dart">class Pedido {
+  static int total = 0;
+}
+
+void main() {
+  print(total);
+}
+</pre>
+<pre class="term">$ dart run semclasse.dart
+semclasse.dart:6:9: Error: Undefined name 'total'.
+  print(total);
+        ^^^^^
+</pre>
+<p>"Nome não definido: <code>total</code>." Só <strong>dentro</strong> da classe o nome curto funciona. Fora, o <code>main</code> não sabe de que <code>total</code> você fala. <strong>Como consertar:</strong> <code>Pedido.total</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Método <code>static</code> tentando usar campos do objeto</strong>
+<pre class="file" data-file="usathis.dart">class Produto {
+  final String nome;
+  final double preco;
+  Produto(this.nome, this.preco);
+
+  static String etiqueta() {
+    return '$nome: R\$ $preco';
+  }
+}
+
+void main() {
+  print(Produto.etiqueta());
+}
+</pre>
+<pre class="term">$ dart run usathis.dart
+usathis.dart:7:14: Error: Undefined name 'nome'.
+    return '$nome: R\$ $preco';
+             ^^^^
+usathis.dart:7:25: Error: Undefined name 'preco'.
+    return '$nome: R\$ $preco';
+                        ^^^^^
+</pre>
+<p>"Nome não definido: <code>nome</code>" (e <code>preco</code>). Um método <code>static</code> não tem "este produto": de qual produto seria o nome? <strong>Como consertar:</strong> se o método precisa dos campos, ele não é <code>static</code>: tire o <code>static</code> e chame-o num objeto (<code>cafe.etiqueta()</code>). Ou, se ele deve continuar <code>static</code>, receba o produto por parâmetro: <code>static String etiqueta(Produto p) =&gt; '${p.nome}…';</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Chamou um método comum pela classe</strong>
+<pre class="file" data-file="metodoobjeto.dart">class Produto {
+  final String nome;
+  Produto(this.nome);
+  String etiqueta() =&gt; 'Produto: $nome';
+}
+
+void main() {
+  print(Produto.etiqueta());
+}
+</pre>
+<pre class="term">$ dart run metodoobjeto.dart
+metodoobjeto.dart:8:17: Error: Member not found: 'Produto.etiqueta'.
+  print(Produto.etiqueta());
+                ^^^^^^^^
+</pre>
+<p>"Membro não encontrado: <code>Produto.etiqueta</code>." É o caso inverso: <code>etiqueta</code> é de cada objeto, e não da classe. <strong>Como consertar:</strong> crie o objeto e chame nele: <code>Produto('café').etiqueta()</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Tentou mudar um <code>static const</code></strong>
+<pre class="file" data-file="constmuda.dart">class Padaria {
+  static const double taxaEntrega = 5.0;
+}
+
+void main() {
+  Padaria.taxaEntrega = 7.0;
+}
+</pre>
+<pre class="term">$ dart run constmuda.dart
+constmuda.dart:6:11: Error: Setter not found: 'taxaEntrega'.
+  Padaria.taxaEntrega = 7.0;
+          ^^^^^^^^^^^
+</pre>
+<p>"Setter não encontrado: <code>taxaEntrega</code>." Uma constante não tem setter. <strong>Como consertar:</strong> se o valor precisa mudar enquanto o programa roda, use <code>static double taxaEntrega = 5.0;</code> (sem <code>const</code>); se não, mude o valor no código.</p>
+</div>
+
+<div class="cenario">
+<strong>Um método <code>static</code> pronto falhou ao rodar</strong>
+<p>Os métodos <code>static</code> do próprio Dart também lançam exceções. A Ana somou quantidades digitadas, e uma veio por extenso:</p>
+<pre class="file" data-file="parse.dart">void main() {
+  final textos = ['12', '7', 'doze'];
+  var soma = 0;
+  for (final t in textos) {
+    soma += int.parse(t);
+  }
+  print(soma);
+}
+</pre>
+<pre class="term">$ dart run parse.dart
+Unhandled exception:
+FormatException: Invalid radix-10 number (at character 1)
+doze
+^
+
+#0      int._handleFormatError (dart:core-patch/integers_patch.dart:150:5)
+#1      int._parseRadix (dart:core-patch/integers_patch.dart:179:14)
+#2      int._parse (dart:core-patch/integers_patch.dart:121:12)
+#3      int.parse (dart:core-patch/integers_patch.dart:81:12)
+#4      main (file:///home/ana/parse.dart:5:17)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<dl class="anatomy">
+  <dt>FormatException: Invalid radix-10 number (at character 1)</dt><dd>"Exceção de formato: número de base 10 inválido (no caractere 1)." <em>Radix 10</em> é a base decimal, a de sempre.</dd>
+  <dt>doze / ^</dt><dd>O texto que não deu para converter, com o <code>^</code> embaixo do primeiro caractere problemático.</dd>
+  <dt>#0 a #3: int._handleFormatError … int.parse</dt><dd>O caminho dentro do próprio <code>int.parse</code>: os nomes com <code>_</code> são métodos privados da biblioteca do Dart (veja <a href="privado.html">Privacidade</a>).</dd>
+  <dt>#4 main (file:///home/ana/parse.dart:5:17)</dt><dd>A sua linha: o <code>int.parse(t)</code>, na volta em que <code>t</code> era <code>'doze'</code>.</dd>
+</dl>
+<p><strong>Como consertar:</strong> use o outro método <code>static</code> da classe <code>int</code>, o <code>int.tryParse</code>, que devolve <code>null</code> em vez de lançar a exceção: <code>soma += int.tryParse(t) ?? 0;</code> (veja <a href="operadores-null.html">?. , ?? e ??=</a>).</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Escrita</th><th>O que faz</th></tr>
+<tr><td><code>static int total = 0;</code></td><td>Campo da classe: um só, compartilhado</td></tr>
+<tr><td><code>static const double taxa = 5.0;</code></td><td>Constante da classe</td></tr>
+<tr><td><code>static double converter(double x) =&gt; …;</code></td><td>Método da classe: não usa objeto</td></tr>
+<tr><td><code>Classe.total</code>, <code>Classe.converter(1)</code></td><td>Uso fora da classe: pelo nome da classe</td></tr>
+<tr><td><code>total</code> (dentro da classe)</td><td>Dentro da classe, o nome curto basta</td></tr>
+<tr><td><code>int.parse</code>, <code>int.tryParse</code>, <code>double.parse</code></td><td>Métodos <code>static</code> que já vêm com o Dart</td></tr>
+<tr><td><code>DateTime.daysPerWeek</code>, <code>double.maxFinite</code></td><td>Constantes <code>static</code> que já vêm com o Dart</td></tr>
+</table>
+</div>
+
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Sintoma</th><th>Causa provável</th></tr>
+<tr><td><code>The getter 'x' isn't defined for the type 'C'.</code> (com <code>x</code> static)</td><td>Usou o <code>static</code> pelo objeto: use <code>C.x</code></td></tr>
+<tr><td><code>Undefined name 'x'.</code> fora da classe</td><td>Faltou o nome da classe: <code>C.x</code></td></tr>
+<tr><td><code>Undefined name 'campo'.</code> num método static</td><td>Método <code>static</code> usando campo do objeto</td></tr>
+<tr><td><code>Member not found: 'C.metodo'.</code></td><td>Chamou pela classe um método que é do objeto</td></tr>
+<tr><td><code>Setter not found: 'x'.</code></td><td>Tentou mudar um <code>static const</code></td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Uma constante da classe <code>Escola</code>, com a nota mínima para passar:</p>
+<div class="ex-code"><input data-answer="static" aria-label="primeira palavra"> <input data-answer="const" aria-label="segunda palavra"> double notaMinima = 7;</div>
+</div>
+
+<div class="exercise">
+<h3>2. Como se usa?</h3>
+<p>Complete para mostrar a constante acima, de fora da classe:</p>
+<div class="ex-code">print(<input data-answer="Escola.notaMinima" aria-label="uso da constante">);</div>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">3. A classe <code>Pedido</code> tem <code>static int total = 0;</code>, e o construtor faz <code>total++</code>. Depois de criar 5 pedidos, quanto vale <code>Pedido.total</code>?</p>
+<label><input type="radio" name="q3"> 1, porque cada pedido tem o seu</label>
+<label><input type="radio" name="q3"> 0, porque <code>static</code> não muda</label>
+<label><input type="radio" name="q3"> 5</label>
+<label><input type="radio" name="q3"> Dá erro: <code>static</code> não pode ser mudado no construtor</label>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">4. Por que um método <code>static</code> não pode usar <code>this.nome</code>?</p>
+<label><input type="radio" name="q4"> Porque <code>nome</code> é privado</label>
+<label><input type="radio" name="q4"> Porque ele não pertence a nenhum objeto: não existe "este"</label>
+<label><input type="radio" name="q4"> Porque métodos <code>static</code> não podem ter parâmetros</label>
+<label><input type="radio" name="q4"> Pode, sim</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. Qual destas é uma chamada de método <code>static</code>?</p>
+<label><input type="radio" name="q5"> <code>int.parse('10')</code></label>
+<label><input type="radio" name="q5"> <code>'abc'.toUpperCase()</code></label>
+<label><input type="radio" name="q5"> <code>lista.add(3)</code></label>
+<label><input type="radio" name="q5"> <code>cafe.mostrar()</code></label>
+</div>
+
+<h3>Missão final: o maior saldo</h3>
+
+<div class="trydart" data-goal="out:Maior saldo: Bia (R$ 250.0);;src:static\s+Conta\s+maiorSaldo">
+<p class="try-task"><strong>Missão:</strong> escreva na classe <code>Conta</code> o método <code>static Conta maiorSaldo(List&lt;Conta&gt; contas)</code>, que percorre a lista e devolve a conta com o maior saldo. O <code>main</code> deve mostrar <code>Maior saldo: Bia (R$ 250.0)</code>.</p>
+<pre class="script" data-file="main.dart">class Conta {
+  final String dona;
+  final double saldo;
+
+  Conta(this.dona, this.saldo);
+
+  // escreva o método static maiorSaldo aqui
+}
+
+void main() {
+  final contas = [Conta('Ana', 120), Conta('Bia', 250), Conta('Caio', 80)];
+  // final m = Conta.maiorSaldo(contas);
+  // print('Maior saldo: ${m.dona} (R\$ ${m.saldo})');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">class Conta {
+  final String dona;
+  final double saldo;
+
+  Conta(this.dona, this.saldo);
+
+  static Conta maiorSaldo(List&lt;Conta&gt; contas) {
+    var maior = contas.first;
+    for (final c in contas) {
+      if (c.saldo &gt; maior.saldo) maior = c;
+    }
+    return maior;
+  }
+}
+
+void main() {
+  final contas = [Conta('Ana', 120), Conta('Bia', 250), Conta('Caio', 80)];
+  final m = Conta.maiorSaldo(contas);
+  print('Maior saldo: ${m.dona} (R\$ ${m.saldo})');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li><code>static</code> quer dizer "da classe", e não de cada objeto. Existe um só, e ele existe mesmo sem nenhum objeto criado.</li>
+  <li>Fora da classe, usa-se pelo nome dela: <code>Pedido.total</code>, <code>Conversor.celsiusParaFahrenheit(25)</code>, <code>int.parse('42')</code>. Pelo objeto, não compila.</li>
+  <li><code>static const</code> guarda constantes que fazem parte da classe.</li>
+  <li>Um método <code>static</code> não tem <code>this</code> nem campos do objeto: só parâmetros e outros <code>static</code>.</li>
+  <li>Função geral, que não é "de" classe nenhuma, fica melhor solta no arquivo.</li>
+  <li>Próxima aula: <a href="heranca.html">Herança (extends)</a>, uma classe construída a partir de outra.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
