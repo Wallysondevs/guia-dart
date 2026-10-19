@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dart Isolates — fazendo contas pesadas sem travar o programa | Guia Dart</title>
+<meta name="description" content="Isolates no Dart para quem nunca programou: o que é um isolate, Isolate.run para mandar uma conta pesada para outro isolate, por que o programa trava sem ele, memória separada, dois isolates em paralelo, Isolate.spawn com ReceivePort e SendPort, e os erros reais do Dart 3 (import esquecido, exceção no isolate, await esquecido, objeto que não pode ser enviado).">
+<link rel="stylesheet" href="assets/style.css">
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div class="layout">
+<nav class="sidebar" id="sidebar" aria-label="Tópicos"></nav>
+<main class="main">
+<div class="content">
+
+<div class="pager"></div>
+
+<h1>Dart <span class="hl">Isolates</span></h1>
+
+<p class="intro">Nas aulas de <a href="future.html">Future</a> e <a href="async-await.html">async e await</a>, o programa <strong>esperava</strong> coisas (o forno, a rede) sem travar. Mas esperar não é trabalhar. Quando o próprio programa tem uma <strong>conta pesada</strong> para fazer (somar bilhões de números, processar uma foto enorme), ele fica ocupado e não consegue fazer mais nada enquanto isso. A solução do Dart é o <strong>isolate</strong> ("isolado"): um segundo trabalhador, com a própria memória, que faz a conta enquanto o primeiro continua livre.</p>
+
+<div class="note">
+<strong>Você vai aprender</strong>
+<ul>
+  <li>O que é um isolate e por que o nome é "isolado".</li>
+  <li>Como mandar uma conta para outro isolate com <code>Isolate.run</code> e receber o resultado com <code>await</code>.</li>
+  <li>Por que uma conta pesada <strong>trava</strong> o programa, e como o isolate resolve isso.</li>
+  <li>Que cada isolate tem a <strong>sua própria memória</strong>: o que um muda, o outro não vê.</li>
+  <li>Como rodar duas contas <strong>ao mesmo tempo</strong> e como trocar recados com <code>Isolate.spawn</code>, <code>ReceivePort</code> e <code>SendPort</code>.</li>
+  <li>Os erros reais: o <code>import</code> esquecido, a exceção dentro do isolate, o <code>await</code> esquecido e o objeto que não pode ser enviado.</li>
+</ul>
+</div>
+
+<p>Todos os programas desta aula rodaram no <strong>Dart 3.13.5</strong> da máquina da Ana (usuária <code>ana</code>, computador <code>notebook</code>, com 8 núcleos de processador), executados com <code>dart run arquivo.dart</code>. Os <strong>tempos</strong> mostrados (milissegundos, quantos "tic" aparecem) dependem do computador e mudam a cada execução; os resultados das contas, não.</p>
+
+<hr>
+
+<h2>A ideia: a confeiteira e a ajudante</h2>
+<p>A Ana tem uma confeitaria e atende o balcão sozinha. Chega uma encomenda de 500 brigadeiros. Se ela mesma for enrolar, o balcão fica <strong>parado</strong>: ninguém é atendido até o último brigadeiro. Então ela chama uma <strong>ajudante</strong>, que vai para a cozinha dos fundos:</p>
+<ul>
+  <li>a ajudante enrola os brigadeiros <strong>enquanto</strong> a Ana continua atendendo;</li>
+  <li>a cozinha dos fundos tem <strong>os seus próprios</strong> ingredientes e panelas: a ajudante não mexe na bancada da Ana, e vice-versa;</li>
+  <li>as duas só se comunicam por <strong>recados</strong>: a Ana manda o pedido, a ajudante devolve a bandeja pronta.</li>
+</ul>
+<p>Cada uma é um <strong>isolate</strong>. Todo programa Dart já começa com um: o isolate principal, onde roda o <code>main</code>. Ele é a Ana no balcão. Os isolates que você cria são as ajudantes. O nome "isolado" vem da cozinha separada: <strong>isolates não dividem memória</strong>, só trocam mensagens.</p>
+
+<div class="tip">
+<strong>Esperar × trabalhar</strong>
+<p><code>async</code>/<code>await</code> serve para <strong>esperar</strong> sem travar (o forno assa sozinho; a Ana só volta quando apita). Isolate serve para <strong>trabalhar</strong> sem travar (alguém precisa enrolar os brigadeiros). Para ler um arquivo ou baixar uma página, <code>await</code> basta. Para uma conta que ocupa o processador por muito tempo, use um isolate.</p>
+</div>
+
+<hr>
+
+<h2>1. O primeiro isolate: <code>Isolate.run</code></h2>
+
+<pre class="file" data-file="primeiro_isolate.dart">import 'dart:isolate';
+
+int somarAte(int limite) {
+  var soma = 0;
+  for (var i = 1; i &lt;= limite; i++) {
+    soma += i;
+  }
+  return soma;
+}
+
+Future&lt;void&gt; main() async {
+  print('Pedindo a conta para outro isolate...');
+  final resultado = await Isolate.run(() =&gt; somarAte(100000000));
+  print('Resultado: $resultado');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>import 'dart:isolate';</dt><dd>Traz a biblioteca dos isolates. Ela vem com o Dart (não precisa instalar nada), mas precisa ser importada (veja <a href="imports.html">import</a>).</dd>
+  <dt>int somarAte(int limite)</dt><dd>Uma função comum, a "conta pesada": soma 1 + 2 + 3 + … até o limite. Nada nela sabe que vai rodar em outro isolate.</dd>
+  <dt>Isolate.run(…)</dt><dd>"Isolate, rode isto". Cria um isolate novo, roda lá a função que você passou, devolve o resultado e desliga o isolate. Tudo sozinho. Existe desde o <span class="versao">Dart 2.19</span>.</dd>
+  <dt>() =&gt; somarAte(100000000)</dt><dd>Uma função anônima sem parâmetros (veja <a href="funcoes-anonimas.html">Funções Anônimas</a>): o "pedido" que vai para a ajudante. Ela leva junto o número 100000000 (cem milhões).</dd>
+  <dt>await</dt><dd><code>Isolate.run</code> devolve um <code>Future</code>: o resultado chega depois. O <code>await</code> espera por ele. Por isso o <code>main</code> é <code>Future&lt;void&gt; main() async</code>.</dd>
+</dl>
+
+<pre class="term">$ dart run primeiro_isolate.dart
+Pedindo a conta para outro isolate...
+Resultado: 5000000050000000
+</pre>
+
+<p>A soma de 1 a cem milhões é 5.000.000.050.000.000. Com o comando <code>time</code> na frente, o terminal mostra quanto tempo levou:</p>
+
+<pre class="term">$ time dart run primeiro_isolate.dart
+Pedindo a conta para outro isolate...
+Resultado: 5000000050000000
+
+real	0m0,371s
+user	0m0,439s
+sys	0m0,106s
+</pre>
+
+<p><code>real</code> é o tempo de relógio: 0,371 segundo no computador da Ana (no seu, vai dar outro número). Cem milhões de voltas é pouco para um computador. Na próxima seção, a conta fica bem maior.</p>
+
+<div class="trydart" data-goal="out:Resultado: 500500;;src:Isolate\.run">
+<p class="try-task"><strong>Missão:</strong> peça para o isolate somar de 1 até <strong>1000</strong> (o resultado tem de ser 500500).</p>
+<pre class="script" data-file="main.dart">import 'dart:isolate';
+
+int somarAte(int limite) {
+  var soma = 0;
+  for (var i = 1; i &lt;= limite; i++) {
+    soma += i;
+  }
+  return soma;
+}
+
+Future&lt;void&gt; main() async {
+  print('Pedindo a conta para outro isolate...');
+  final resultado = await Isolate.run(() =&gt; somarAte(10));
+  print('Resultado: $resultado');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:isolate';
+
+int somarAte(int limite) {
+  var soma = 0;
+  for (var i = 1; i &lt;= limite; i++) {
+    soma += i;
+  }
+  return soma;
+}
+
+Future&lt;void&gt; main() async {
+  print('Pedindo a conta para outro isolate...');
+  final resultado = await Isolate.run(() =&gt; somarAte(1000));
+  print('Resultado: $resultado');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>2. Por que usar: o programa travado</h2>
+<p>Para <strong>ver</strong> o travamento, este programa liga um relógio que mostra <code>tic</code> a cada 200 milissegundos (com <code>Timer.periodic</code>, da biblioteca <code>dart:async</code>). Depois de meio segundo, ele começa uma conta enorme (somar até 3 bilhões) <strong>no próprio isolate principal</strong>:</p>
+
+<pre class="file" data-file="travado.dart">import 'dart:async';
+
+int somarAte(int limite) {
+  var soma = 0;
+  for (var i = 1; i &lt;= limite; i++) {
+    soma += i;
+  }
+  return soma;
+}
+
+Future&lt;void&gt; main() async {
+  final relogio = Timer.periodic(Duration(milliseconds: 200), (t) {
+    print('tic ${t.tick}');
+  });
+  await Future.delayed(Duration(milliseconds: 500));
+  print('Começando a conta pesada (no mesmo isolate)...');
+  final resultado = somarAte(3000000000);
+  print('Resultado: $resultado');
+  await Future.delayed(Duration(milliseconds: 500));
+  relogio.cancel();
+}
+</pre>
+
+<pre class="term">$ dart run travado.dart
+tic 1
+tic 2
+Começando a conta pesada (no mesmo isolate)...
+Resultado: 4500000001500000000
+tic 18
+tic 19
+tic 20
+tic 21
+</pre>
+
+<p>Durante a conta, <strong>nenhum</strong> <code>tic</code> apareceu: o isolate principal estava ocupado no <code>for</code> e não teve tempo de atender o relógio. Quando a conta acabou, o relógio voltou já no <code>tic 18</code>: o <code>t.tick</code> conta quantos intervalos de 200 ms <strong>passaram</strong>, e passaram uns 15 sem ninguém ver. Num aplicativo de verdade (no Flutter, por exemplo), isso seria a tela congelada: botões que não respondem.</p>
+
+<p>Agora a mesma conta, só que mandada para outro isolate com <code>Isolate.run</code>:</p>
+
+<pre class="file" data-file="livre.dart">import 'dart:async';
+import 'dart:isolate';
+
+// (a mesma função somarAte de antes)
+
+Future&lt;void&gt; main() async {
+  final relogio = Timer.periodic(Duration(milliseconds: 200), (t) {
+    print('tic ${t.tick}');
+  });
+  await Future.delayed(Duration(milliseconds: 500));
+  print('Começando a conta pesada (em outro isolate)...');
+  final resultado = await Isolate.run(() =&gt; somarAte(3000000000));
+  print('Resultado: $resultado');
+  await Future.delayed(Duration(milliseconds: 500));
+  relogio.cancel();
+}
+</pre>
+
+<pre class="term">$ dart run livre.dart
+tic 1
+tic 2
+Começando a conta pesada (em outro isolate)...
+tic 3
+tic 4
+tic 5
+tic 6
+tic 7
+tic 8
+tic 9
+tic 10
+tic 11
+tic 12
+tic 13
+tic 14
+tic 15
+tic 16
+tic 17
+tic 18
+Resultado: 4500000001500000000
+tic 19
+tic 20
+tic 21
+</pre>
+
+<p>O resultado é o mesmo, mas agora o relógio <strong>continuou batendo</strong> durante a conta: a ajudante estava na cozinha, e a Ana seguiu no balcão. A quantidade de <code>tic</code> no meio depende da velocidade do computador; no seu, vai ser outra.</p>
+
+<hr>
+
+<h2>3. Cada isolate tem a sua própria memória</h2>
+<p>A lista <code>pedidos</code> abaixo é uma variável de fora do <code>main</code> (de "nível superior"). O isolate acrescenta dois itens nela:</p>
+
+<pre class="file" data-file="memoria.dart">import 'dart:isolate';
+
+final pedidos = &lt;String&gt;['pão'];
+
+Future&lt;void&gt; main() async {
+  final tamanhoLa = await Isolate.run(() {
+    pedidos.add('leite');
+    pedidos.add('café');
+    return pedidos.length;
+  });
+  print('No outro isolate, a lista tinha $tamanhoLa itens.');
+  print('Aqui no main, a lista tem ${pedidos.length}: $pedidos');
+}
+</pre>
+
+<pre class="term">$ dart run memoria.dart
+No outro isolate, a lista tinha 3 itens.
+Aqui no main, a lista tem 1: [pão]
+</pre>
+
+<p>O isolate trabalhou numa <strong>cópia</strong> da lista. Lá, ela chegou a 3 itens; aqui, continua com 1. O que volta para o <code>main</code> é só o que a função <strong>devolve</strong> (o número 3). Isso parece um defeito, mas é a grande vantagem: como ninguém mexe na memória do outro, dois isolates nunca "brigam" pela mesma variável. Se você precisa do resultado, <strong>devolva</strong> o que for preciso.</p>
+
+<hr>
+
+<h2>4. Duas contas ao mesmo tempo</h2>
+<p>O computador da Ana tem vários núcleos (processadores dentro do processador). Um isolate usa um núcleo de cada vez; dois isolates podem usar dois ao mesmo tempo. Este programa conta quantos números primos existem até 3 milhões, duas vezes: primeiro uma depois da outra, depois em dois isolates juntos com <code>Future.wait</code> (veja <a href="future.html">Future</a>). O <code>Stopwatch</code> ("cronômetro") mede o tempo:</p>
+
+<pre class="file" data-file="paralelo.dart">import 'dart:isolate';
+
+int contarPrimos(int ate) {
+  var total = 0;
+  for (var n = 2; n &lt;= ate; n++) {
+    var primo = true;
+    for (var d = 2; d * d &lt;= n; d++) {
+      if (n % d == 0) {
+        primo = false;
+        break;
+      }
+    }
+    if (primo) total++;
+  }
+  return total;
+}
+
+Future&lt;void&gt; main() async {
+  final cronometro = Stopwatch()..start();
+  final a = contarPrimos(3000000);
+  final b = contarPrimos(3000000);
+  print('Um depois do outro: $a e $b em ${cronometro.elapsedMilliseconds} ms');
+
+  cronometro.reset();
+  final resultados = await Future.wait([
+    Isolate.run(() =&gt; contarPrimos(3000000)),
+    Isolate.run(() =&gt; contarPrimos(3000000)),
+  ]);
+  print('Em dois isolates: ${resultados[0]} e ${resultados[1]} em ${cronometro.elapsedMilliseconds} ms');
+}
+</pre>
+
+<pre class="term">$ dart run paralelo.dart
+Um depois do outro: 216816 e 216816 em 1666 ms
+Em dois isolates: 216816 e 216816 em 820 ms
+$ dart run paralelo.dart
+Um depois do outro: 216816 e 216816 em 1658 ms
+Em dois isolates: 216816 e 216816 em 834 ms
+</pre>
+
+<p>Os resultados (216816 primos) são sempre iguais; os milissegundos mudam a cada execução e de computador para computador. Mas a proporção se repete: com dois isolates, o tempo caiu mais ou menos pela <strong>metade</strong>, porque as duas contas rodaram em núcleos diferentes ao mesmo tempo.</p>
+
+<div class="warning">
+<strong>Isolate não é de graça</strong>
+<p>Criar um isolate e copiar os dados de ida e volta leva um tempinho. Para uma conta pequena (somar 10 números), o isolate deixa o programa <strong>mais lento</strong>. Use para trabalho que leva dezenas ou centenas de milissegundos, ou mais.</p>
+</div>
+
+<hr>
+
+<h2>5. Conversando com o isolate: <code>Isolate.spawn</code></h2>
+<p><code>Isolate.run</code> faz um pedido e recebe <strong>uma</strong> resposta. Quando a ajudante precisa mandar <strong>vários</strong> recados ao longo do tempo, o jeito mais antigo e mais completo é <code>Isolate.spawn</code> ("gerar, criar") com uma <strong>caixa de correio</strong>:</p>
+
+<pre class="file" data-file="spawn.dart">import 'dart:isolate';
+
+void ajudante(SendPort paraOMain) {
+  for (var i = 1; i &lt;= 3; i++) {
+    paraOMain.send('Recado $i do ajudante');
+  }
+  paraOMain.send(null);
+}
+
+Future&lt;void&gt; main() async {
+  final caixaDeEntrada = ReceivePort();
+  await Isolate.spawn(ajudante, caixaDeEntrada.sendPort);
+  await for (final recado in caixaDeEntrada) {
+    if (recado == null) break;
+    print('main recebeu: $recado');
+  }
+  print('Fim.');
+}
+</pre>
+
+<dl class="anatomy">
+  <dt>ReceivePort()</dt><dd>"Porta de receber": a caixa de correio do <code>main</code>. Ela é uma <a href="stream.html">Stream</a> de recados.</dd>
+  <dt>caixaDeEntrada.sendPort</dt><dd>"Porta de enviar": o endereço dessa caixa. É isso que a ajudante leva, para saber para onde mandar.</dd>
+  <dt>Isolate.spawn(ajudante, …)</dt><dd>Cria o isolate e roda nele a função <code>ajudante</code>, passando o <code>SendPort</code> como argumento. A função precisa receber exatamente um parâmetro.</dd>
+  <dt>paraOMain.send(…)</dt><dd>Manda um recado (uma cópia do valor) para a caixa do <code>main</code>.</dd>
+  <dt>send(null) / if (recado == null) break;</dt><dd>Um combinado entre os dois: <code>null</code> quer dizer "acabou". Sem ele, o <code>await for</code> esperaria recados para sempre e o programa não terminaria.</dd>
+</dl>
+
+<pre class="term">$ dart run spawn.dart
+main recebeu: Recado 1 do ajudante
+main recebeu: Recado 2 do ajudante
+main recebeu: Recado 3 do ajudante
+Fim.
+</pre>
+
+<hr>
+
+<h2 id="formas">Qual usar</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Situação</th><th>Use</th></tr>
+<tr><td>esperar arquivo, rede, temporizador</td><td><code>async</code>/<code>await</code> (sem isolate)</td></tr>
+<tr><td>uma conta pesada, com um resultado no fim</td><td><code>Isolate.run(() =&gt; conta())</code></td></tr>
+<tr><td>várias contas pesadas ao mesmo tempo</td><td><code>Future.wait([Isolate.run(…), Isolate.run(…)])</code></td></tr>
+<tr><td>um trabalhador que manda vários recados, ou que fica vivo recebendo pedidos</td><td><code>Isolate.spawn</code> com <code>ReceivePort</code>/<code>SendPort</code></td></tr>
+<tr><td>uma conta pequena</td><td>uma função comum, direto no <code>main</code></td></tr>
+</table>
+</div>
+<p>No <a href="flutter.html">Flutter</a> existe ainda a função <code>compute(funcao, valor)</code>, que faz o mesmo trabalho do <code>Isolate.run</code> (ela é do Flutter, não do Dart puro; aqui é só para você reconhecer o nome).</p>
+
+<hr>
+
+<h2 id="errado">Quando dá errado</h2>
+
+<div class="cenario">
+<strong>Esqueceu o <code>import 'dart:isolate';</code></strong>
+<pre class="file" data-file="erro_import.dart">Future&lt;void&gt; main() async {
+  final resultado = await Isolate.run(() =&gt; 2 + 2);
+  print(resultado);
+}
+</pre>
+<pre class="term">$ dart run erro_import.dart
+erro_import.dart:2:27: Error: Undefined name 'Isolate'.
+  final resultado = await Isolate.run(() =&gt; 2 + 2);
+                          ^^^^^^^
+</pre>
+<p>"Linha 2, coluna 27: nome não definido <code>Isolate</code>". O <code>print</code> e o <code>List</code> vêm de <code>dart:core</code>, que todo programa já tem; o <code>Isolate</code> mora em <code>dart:isolate</code>, que precisa ser importado. <strong>Como consertar:</strong> primeira linha do arquivo: <code>import 'dart:isolate';</code>. (O mesmo vale para <code>Timer</code>, de <code>dart:async</code>.)</p>
+</div>
+
+<div class="cenario">
+<strong>A conta deu exceção dentro do isolate</strong>
+<pre class="file" data-file="erro_excecao.dart">import 'dart:isolate';
+
+int dividir(int a, int b) =&gt; a ~/ b;
+
+Future&lt;void&gt; main() async {
+  final resultado = await Isolate.run(() =&gt; dividir(10, 0));
+  print(resultado);
+}
+</pre>
+<pre class="term">$ dart run erro_excecao.dart
+Unhandled exception:
+IntegerDivisionByZeroException
+#0      int.~/ (dart:core-patch/integers.dart:27:7)
+#1      dividir (file:///home/ana/erro_excecao.dart:3:32)
+#2      main.&lt;anonymous closure&gt; (file:///home/ana/erro_excecao.dart:6:45)
+#3      _RemoteRunner._run (dart:isolate:1234:47)
+#4      _RemoteRunner._remoteExecute (dart:isolate:1228:12)
+#5      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:316:17)
+#6      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+$ echo $?
+255
+</pre>
+<ul>
+  <li><code>IntegerDivisionByZeroException</code> — "exceção de divisão inteira por zero": o <code>~/</code> (divisão inteira) recebeu 0.</li>
+  <li><code>#0 int.~/</code> — o erro nasceu dentro do próprio operador, na biblioteca do Dart.</li>
+  <li><code>#1 dividir (…:3:32)</code> — chamado pela sua função, linha 3. <code>#2 main.&lt;anonymous closure&gt;</code> — "função anônima dentro do <code>main</code>", a <code>() =&gt; dividir(10, 0)</code> da linha 6.</li>
+  <li><code>#3</code> a <code>#6</code> — a maquinaria do <code>dart:isolate</code> que levou o pedido até o outro isolate. Para você, o que importa são as linhas com <code>file:///home/ana/…</code>.</li>
+</ul>
+<p>O isolate morreu, mas o erro foi <strong>levado de volta</strong> para o <code>await</code> do <code>main</code>, que não tratava, e o programa terminou com código 255. <strong>Como consertar:</strong> um <code>try</code> em volta do <code>await</code> (veja <a href="erros-async.html">Erros em Código Assíncrono</a>):</p>
+<pre class="file" data-file="excecao_tratada.dart">  try {
+    final resultado = await Isolate.run(() =&gt; dividir(10, 0));
+    print(resultado);
+  } catch (e) {
+    print('O isolate falhou: $e');
+  }
+  print('O programa continua.');
+</pre>
+<pre class="term">$ dart run excecao_tratada.dart
+O isolate falhou: IntegerDivisionByZeroException
+O programa continua.
+</pre>
+</div>
+
+<div class="cenario">
+<strong>Esqueceu o <code>await</code></strong>
+<pre class="file" data-file="erro_semawait.dart">import 'dart:isolate';
+
+Future&lt;void&gt; main() async {
+  final resultado = Isolate.run(() =&gt; 2 + 2);
+  print('Resultado: $resultado');
+}
+</pre>
+<pre class="term">$ dart run erro_semawait.dart
+Resultado: Instance of 'Future&lt;int&gt;'
+</pre>
+<p>Não dá erro, mas a saída está errada: "instância de <code>Future&lt;int&gt;</code>". Sem o <code>await</code>, <code>resultado</code> é a <strong>promessa</strong> do resultado, não o 4. <strong>Como consertar:</strong> <code>final resultado = await Isolate.run(…);</code>.</p>
+</div>
+
+<div class="cenario">
+<strong>Mandou para o isolate algo que não pode ser copiado</strong>
+<pre class="file" data-file="erro_unsendable.dart">import 'dart:isolate';
+
+Future&lt;void&gt; main() async {
+  final porta = ReceivePort();
+  final resultado = await Isolate.run(() {
+    print(porta);
+    return 1;
+  });
+  print(resultado);
+}
+</pre>
+<pre class="term">$ dart run erro_unsendable.dart
+Unhandled exception:
+Invalid argument(s): Illegal argument in isolate message: object is unsendable - Library:'dart:isolate' Class: _ReceivePortImpl@1026248 (see restrictions listed at `SendPort.send()` documentation for more information)
+ &lt;- field porta in main.&lt;anonymous closure&gt; (from file:///home/ana/erro_unsendable.dart)
+ &lt;- computation in Instance of '_RemoteRunner&lt;int&gt;' (from dart:isolate)
+
+#0      Isolate._spawnFunction (dart:isolate-patch/isolate_patch.dart:430:4)
+#1      Isolate.spawn (dart:isolate-patch/isolate_patch.dart:399:7)
+#2      Isolate.run (dart:isolate:288:15)
+#3      main (file:///home/ana/erro_unsendable.dart:5:35)
+#4      _delayEntrypointInvocation.&lt;anonymous closure&gt; (dart:isolate-patch/isolate_patch.dart:313:19)
+#5      _RawReceivePort._handleMessage (dart:isolate-patch/isolate_patch.dart:192:12)
+</pre>
+<ul>
+  <li><code>Invalid argument(s): Illegal argument in isolate message: object is unsendable</code> — "argumento inválido na mensagem para o isolate: o objeto não pode ser enviado".</li>
+  <li><code>Class: _ReceivePortImpl…</code> — qual objeto: o <code>ReceivePort</code> (a caixa de correio é do isolate que a criou e não pode ser copiada).</li>
+  <li><code>&lt;- field porta in main.&lt;anonymous closure&gt;</code> — o caminho até ele: a função anônima "levava junto" a variável <code>porta</code>, porque a usava (veja <a href="closures.html">Closures</a>).</li>
+  <li><code>#3 main (…:5:35)</code> — o erro aconteceu na hora de criar o isolate, na linha 5. A conta nem começou.</li>
+</ul>
+<p>Números, textos, listas, mapas e objetos das suas classes são copiados sem problema. O que não dá: <code>ReceivePort</code>, arquivos e conexões abertos, e outras coisas "presas" a um isolate. <strong>Como consertar:</strong> não use, dentro da função do <code>Isolate.run</code>, variáveis com esse tipo de objeto; passe só os <strong>dados</strong> de que a conta precisa.</p>
+</div>
+
+<hr>
+
+<h2>Referência rápida</h2>
+<div class="table-wrap">
+<table class="ref">
+<tr><th>Código</th><th>O que faz</th></tr>
+<tr><td><code>import 'dart:isolate';</code></td><td>traz <code>Isolate</code>, <code>ReceivePort</code>, <code>SendPort</code></td></tr>
+<tr><td><code>await Isolate.run(() =&gt; f())</code></td><td>roda <code>f</code> num isolate novo e devolve o resultado (o isolate é desligado no fim)</td></tr>
+<tr><td><code>Future.wait([Isolate.run(…), …])</code></td><td>várias contas em paralelo; devolve a lista de resultados</td></tr>
+<tr><td><code>ReceivePort()</code></td><td>caixa de correio (uma <code>Stream</code> de recados)</td></tr>
+<tr><td><code>porta.sendPort</code></td><td>o endereço da caixa, que pode ir para outro isolate</td></tr>
+<tr><td><code>await Isolate.spawn(funcao, argumento)</code></td><td>cria um isolate que roda <code>funcao(argumento)</code></td></tr>
+<tr><td><code>sendPort.send(valor)</code></td><td>manda uma cópia de <code>valor</code> para a caixa</td></tr>
+<tr><td><code>Stopwatch()..start()</code> / <code>.elapsedMilliseconds</code></td><td>cronômetro, para medir o tempo</td></tr>
+</table>
+</div>
+
+<hr>
+
+<h2>Exercícios</h2>
+
+<div class="exercise">
+<h3>1. Complete</h3>
+<p>Complete para rodar <code>calcular()</code> em outro isolate e guardar o resultado:</p>
+<div class="ex-code">import 'dart:<input data-answer="isolate" aria-label="biblioteca">';<br>...<br>final r = <input data-answer="await" aria-label="palavra para esperar"> Isolate.<input data-answer="run" aria-label="método"> (() =&gt; calcular());</div>
+</div>
+
+<div class="exercise">
+<h3>2. Quantos itens?</h3>
+<p>No programa <code>memoria.dart</code>, se o isolate acrescentasse <strong>cinco</strong> itens na lista <code>pedidos</code>, quantos itens o <code>main</code> veria depois?</p>
+<div class="ex-code">O main veria <input data-answer="1" aria-label="número de itens"> item.</div>
+</div>
+
+<div class="mc" data-answer="2">
+<p class="mc-q">3. Para qual destas tarefas um isolate faz mais sentido?</p>
+<label><input type="radio" name="q3"> Esperar 2 segundos com <code>Future.delayed</code></label>
+<label><input type="radio" name="q3"> Calcular os primos até 50 milhões sem travar o programa</label>
+<label><input type="radio" name="q3"> Somar 2 + 2</label>
+<label><input type="radio" name="q3"> Mostrar uma mensagem com <code>print</code></label>
+</div>
+
+<div class="mc" data-answer="3">
+<p class="mc-q">4. Por que se chama "isolate"?</p>
+<label><input type="radio" name="q4"> Porque roda num computador separado</label>
+<label><input type="radio" name="q4"> Porque não pode usar <code>print</code></label>
+<label><input type="radio" name="q4"> Porque cada um tem a sua memória e eles só trocam mensagens (cópias)</label>
+<label><input type="radio" name="q4"> Porque só funciona sem internet</label>
+</div>
+
+<div class="mc" data-answer="1">
+<p class="mc-q">5. O programa mostrou <code>Resultado: Instance of 'Future&lt;int&gt;'</code>. O que faltou?</p>
+<label><input type="radio" name="q5"> O <code>await</code> antes do <code>Isolate.run</code></label>
+<label><input type="radio" name="q5"> O <code>import 'dart:isolate';</code></label>
+<label><input type="radio" name="q5"> Um <code>try</code>/<code>catch</code></label>
+<label><input type="radio" name="q5"> O <code>sync*</code></label>
+</div>
+
+<h3>Missão final: contar vogais na cozinha dos fundos</h3>
+
+<div class="trydart" data-goal="out:A receita tem 10 vogais.;;src:Isolate\.run">
+<p class="try-task"><strong>Missão:</strong> o programa já conta as vogais da receita, mas no isolate principal. Mande a conta para outro isolate: troque <code>contarVogais(receita)</code> por <code>await Isolate.run(() =&gt; contarVogais(receita))</code>. A saída tem de continuar a mesma.</p>
+<pre class="script" data-file="main.dart">import 'dart:isolate';
+
+int contarVogais(String texto) {
+  var total = 0;
+  for (final letra in texto.toLowerCase().split('')) {
+    if ('aeiou'.contains(letra)) total++;
+  }
+  return total;
+}
+
+Future&lt;void&gt; main() async {
+  const receita = 'Bolo de milho com erva-doce';
+  final vogais = contarVogais(receita);
+  print('A receita tem $vogais vogais.');
+}
+</pre>
+<pre class="solucao" data-file="main.dart">import 'dart:isolate';
+
+int contarVogais(String texto) {
+  var total = 0;
+  for (final letra in texto.toLowerCase().split('')) {
+    if ('aeiou'.contains(letra)) total++;
+  }
+  return total;
+}
+
+Future&lt;void&gt; main() async {
+  const receita = 'Bolo de milho com erva-doce';
+  final vogais = await Isolate.run(() =&gt; contarVogais(receita));
+  print('A receita tem $vogais vogais.');
+}
+</pre>
+</div>
+
+<hr>
+
+<h2>Resumo</h2>
+<ul>
+  <li>Um <strong>isolate</strong> é um trabalhador com a sua própria memória. Todo programa começa com um (o do <code>main</code>).</li>
+  <li><code>await</code> resolve <strong>esperas</strong>; isolate resolve <strong>trabalho pesado</strong> que travaria o programa.</li>
+  <li><code>await Isolate.run(() =&gt; conta())</code> é o jeito mais simples: roda a conta em outro isolate e devolve o resultado.</li>
+  <li>Isolates não dividem variáveis: o que vai e volta é <strong>copiado</strong>. Devolva o que precisar.</li>
+  <li>Vários isolates usam vários núcleos: com <code>Future.wait</code>, duas contas levaram mais ou menos metade do tempo (os milissegundos variam).</li>
+  <li><code>Isolate.spawn</code> + <code>ReceivePort</code>/<code>SendPort</code> servem para trocar vários recados.</li>
+  <li>A exceção no isolate volta para o <code>await</code>: trate com <code>try</code>. Objetos "presos" (como <code>ReceivePort</code>) não podem ser enviados.</li>
+</ul>
+
+<div class="pager"></div>
+
+</div>
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
