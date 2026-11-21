@@ -49,6 +49,7 @@ node tools/testar-missoes.js --nativo pagina.html   # compara também com o Dart
 node tools/diferencial.js                    # teste diferencial do motor
 node tools/testar-navegador.js --todas       # roda cada caixa num Chromium sem janela (precisa do puppeteer-core)
 node tools/sim.js main.dart                  # roda um programa como o editor
+bash tools/checar-privacidade.sh             # páginas e histórico; lista extra: PROIBIDO=lista.txt
 ```
 
 ## Publicar no GitHub Pages
